@@ -21,6 +21,9 @@ Cargo.lock.bak
 captures/
 .cxx/
 
+# Local branch-protection scratch (mirrors docs/BRANCH_PROTECTION.md)
+policy.json
+
 # Local secrets / keystores
 *.keystore
 *.jks
