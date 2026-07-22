@@ -48,8 +48,7 @@ named **`android`** that builds the debug APK. Treat it as recommended
 | `enforce_admins` | `true` | Even maintainers obey the rules |
 | `required_pull_request_reviews.required_approving_review_count` | `1` | At least one approval |
 | `required_pull_request_reviews.dismiss_stale_reviews` | `true` | Stale approvals are discarded |
-| `restrictions.users[]` | n/a | Only **organization-owned** repos accept this field; personal repos reject it with `422 Validation Failed` |
-| `restrictions.teams[]` | n/a | Only **organization-owned** repos accept this field; personal repos reject it with `422 Validation Failed` |
+| `restrictions` | `null` | On **personal** repos GitHub requires the key to be present but rejects `{users: [], teams: []}`. Use `"restrictions": null` and the field is silently dropped. On **organization** repos you would populate `users[]` / `teams[]` / `apps[]`. |
 | `required_linear_history` | `true` | No merge commits on `main`; squash only |
 | `allow_force_pushes` | `false` | Force pushes are forbidden |
 | `allow_deletions` | `false` | `main` cannot be deleted |
@@ -130,10 +129,17 @@ schema violation. The most common causes:
 1. **Top-level toggles wrapped in `{enabled: ...}`** — always flatten
    to a literal boolean (e.g. `"enforce_admins": true`, not
    `"enforce_admins": {"enabled": true}`).
-2. **`restrictions` on a personal repo** — GitHub rejects it with
+2. **`restrictions: {users: [], teams: []}` on a personal repo** —
+   GitHub rejects it with
    `422 Validation Failed: Only organization repositories can have
-   users and team restrictions`. Remove the field.
+   users and team restrictions`. The fix is `"restrictions": null`
+   (not omitted — the field is structurally required).
 3. **`required_approving_review_count` on a repo with no other
    reviewers** — if the only reviewer is the owner pushing, the policy
    still requires 1 approval; make sure a second account exists or
    temporarily disable the rule for solo development.
+4. **`contexts: ["workspace"]` before the CI check has ever run** —
+   GitHub accepts any string in `contexts[]`, but the check will only
+   block merges once the workflow has executed at least once. Run the
+   CI workflow once after pushing `.github/workflows/ci.yml` before
+   applying branch protection.
