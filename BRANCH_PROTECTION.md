@@ -45,18 +45,20 @@ named **`android`** that builds the debug APK. Treat it as recommended
 |---------|-------|--------|
 | `required_status_checks.strict` | `true` | Branches must be up-to-date before merging |
 | `required_status_checks.contexts[]` | `["workspace"]` | CI must be green |
-| `enforce_admins.enabled` | `true` | Even maintainers obey the rules |
+| `enforce_admins` | `true` | Even maintainers obey the rules |
 | `required_pull_request_reviews.required_approving_review_count` | `1` | At least one approval |
 | `required_pull_request_reviews.dismiss_stale_reviews` | `true` | Stale approvals are discarded |
 | `restrictions.users[]` | `[]` | No extra collaborators beyond the team |
 | `restrictions.teams[]` | `[]` | (n/a — single-owner project) |
-| `required_linear_history.enabled` | `true` | No merge commits on `main`; squash only |
-| `allow_force_pushes.enabled` | `false` | Force pushes are forbidden |
-| `allow_deletions.enabled` | `false` | `main` cannot be deleted |
-| `block_creations.enabled` | `false` | Anyone can create feature branches |
-| `required_conversation_resolution.enabled` | `true` | All PR comments must be resolved |
-| `lock_branch.enabled` | `false` | (default; do not lock) |
-| `allow_fork_syncing.enabled` | `false` | Forks stay independent |
+| `required_linear_history` | `true` | No merge commits on `main`; squash only |
+| `allow_force_pushes` | `false` | Force pushes are forbidden |
+| `allow_deletions` | `false` | `main` cannot be deleted |
+| `block_creations` | `false` | Anyone can create feature branches |
+| `required_conversation_resolution` | `true` | All PR comments must be resolved |
+| `lock_branch` | `false` | (default; do not lock) |
+| `allow_fork_syncing` | `false` | Forks stay independent |
+
+Note: the top-level boolean toggles (`enforce_admins`, `required_linear_history`, `allow_force_pushes`, etc.) are **boolean literals**, not `{enabled: true}` wrappers. The GitHub REST API only accepts the literal form.
 
 ## Why These Rules
 
@@ -92,7 +94,7 @@ After applying:
 gh api /repos/shadow-x78/orbiscreen/branches/main/protection
 ```
 
-Expected response shape:
+Expected response shape (top-level toggles are **boolean literals**, not objects):
 
 ```json
 {
@@ -100,14 +102,28 @@ Expected response shape:
     "strict": true,
     "contexts": ["workspace"]
   },
-  "enforce_admins": { "enabled": true },
+  "enforce_admins": true,
   "required_pull_request_reviews": {
-    "required_approving_review_count": 1,
-    "dismiss_stale_reviews": true
+    "dismiss_stale_reviews": true,
+    "required_approving_review_count": 1
   },
-  "required_linear_history": { "enabled": true },
-  "allow_force_pushes": { "enabled": false },
-  "allow_deletions": { "enabled": false },
-  "required_conversation_resolution": { "enabled": true }
+  "required_linear_history": true,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_conversation_resolution": true,
+  "block_creations": false,
+  "lock_branch": false,
+  "allow_fork_syncing": false
 }
 ```
+
+The presence of the `restrictions` key in the response means the policy
+was applied successfully (it appears even with empty `users[]` / `teams[]`
+arrays because GitHub always echoes the setting back).
+
+### Debugging Failed Applies
+
+If `gh api` returns `422 Invalid request`, the JSON body of the error
+explains the schema violation. The most common cause is wrapping a
+top-level toggle (e.g. `enforce_admins`) in `{enabled: ...}` instead of
+using the literal boolean — always flatten to `true` / `false`.
