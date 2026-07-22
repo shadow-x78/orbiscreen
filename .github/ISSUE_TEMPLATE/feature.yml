@@ -1,0 +1,23 @@
+---
+name: Feature request
+about: Suggest a change for Orbiscreen v1+
+title: ""
+labels: ["enhancement"]
+assignees: []
+---
+
+### Problem
+
+What user-visible problem are we solving?
+
+### Proposal
+
+What would change in the codebase / daemon / clients?
+
+### Alternatives considered
+
+What else have you weighed, and why is this proposal better?
+
+### Out of scope
+
+iOS / iPhone / Safari — explicitly not part of Orbiscreen, ever.

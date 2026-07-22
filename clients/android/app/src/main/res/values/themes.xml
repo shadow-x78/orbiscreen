@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.Orbiscreen" parent="android:Theme.Material.NoActionBar.Fullscreen" />
+</resources>

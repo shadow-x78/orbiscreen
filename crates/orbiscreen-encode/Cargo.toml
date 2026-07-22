@@ -1,0 +1,21 @@
+[package]
+name = "orbiscreen-encode"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "GStreamer-based encoding pipeline (VAAPI / NVENC / x264)"
+
+[lints]
+workspace = true
+
+[dependencies]
+gstreamer = { workspace = true }
+gstreamer-app = { workspace = true }
+gstreamer-video = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }

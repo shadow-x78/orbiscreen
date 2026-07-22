@@ -1,0 +1,47 @@
+# Rust / Cargo
+/target/
+**/*.rs.bk
+Cargo.lock.bak
+.cargo/
+
+# Build artifacts
+/dist/
+*.deb
+*.rpm
+*.AppImage
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Gradle (Android)
+.gradle/
+**/build/
+captures/
+.cxx/
+
+# Local secrets / keystores
+*.keystore
+*.jks
+local.properties
+google-services.json
+
+# Editor artifacts
+.vscode/
+.idea/
+*.swp
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs / coverage
+*.log
+coverage/
+*.lcov
+
+# Agent / project metadata
+.kilo/
+AGENTS.md

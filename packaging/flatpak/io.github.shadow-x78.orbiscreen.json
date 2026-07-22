@@ -1,0 +1,46 @@
+{
+  "id": "io.shadow-x78.orbiscreen",
+  "runtime": "org.freedesktop.Platform",
+  "runtime-version": "24.08",
+  "sdk": "org.freedesktop.Sdk",
+  "command": "orbiscreen",
+  "finish-args": [
+    "--share=network",
+    "--share=ipc",
+    "--socket=x11",
+    "--socket=wayland",
+    "--device=dri",
+    "--filesystem=/dev/uinput:rw",
+    "--filesystem=xdg-run/pipewire-0",
+    "--talk-name=org.freedesktop.portal.Desktop",
+    "--talk-name=org.freedesktop.portal.Screencast",
+    "--talk-name=org.freedesktop.portal.RemoteDesktop"
+  ],
+  "modules": [
+    {
+      "name": "rust",
+      "buildsystem": "simple",
+      "build-commands": [],
+      "build-options": {
+        "build-args": []
+      }
+    },
+    {
+      "name": "orbiscreen",
+      "buildsystem": "simple",
+      "build-commands": [
+        "cargo --offline build --release --bin orbiscreen",
+        "install -Dm755 target/release/orbiscreen /app/bin/orbiscreen",
+        "install -Dm644 clients/web/index.html /app/share/orbiscreen/client/index.html",
+        "install -Dm644 clients/web/style.css /app/share/orbiscreen/client/style.css",
+        "install -Dm644 clients/web/app.js /app/share/orbiscreen/client/app.js"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": "../.."
+        }
+      ]
+    }
+  ]
+}

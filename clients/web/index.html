@@ -1,0 +1,28 @@
+<!doctype html>
+<!--
+  Orbiscreen — web client (GPL-3.0-or-later)
+  https://github.com/shadow-x78/orbiscreen
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <title>Orbiscreen Client</title>
+    <link rel="stylesheet" href="/client/style.css" />
+</head>
+<body>
+    <div id="stage" class="stage">
+        <video id="remoteVideo" autoplay playsinline muted></video>
+        <div id="overlay" class="overlay">
+            <div class="card">
+                <h1>Orbiscreen</h1>
+                <p class="muted" id="status">Connecting&hellip;</p>
+                <p id="resolution" class="muted small"></p>
+            </div>
+        </div>
+    </div>
+    <div id="touchIndicator" class="touchIndicator" hidden></div>
+    <script src="/client/app.js"></script>
+</body>
+</html>
