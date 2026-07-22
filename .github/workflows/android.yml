@@ -32,7 +32,7 @@ jobs:
       - name: Build
         run: ./gradlew assembleDebug
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: orbiscreen-android-debug
           path: client-android/app/build/outputs/apk/debug/*.apk
