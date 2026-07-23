@@ -4,7 +4,7 @@
   <p>شاشات فرعية افتراضية مفتوحة المصدر للينكس، تُبَثّ إلى أجهزة أندرويد عبر Wi-Fi أو USB</p>
 
   <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.4.8-blue?style=flat-square" alt="الإصدار" /></a>
+    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.4.9-blue?style=flat-square" alt="الإصدار" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml"><img src="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square" alt="CI" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="الرخصة" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/stargazers"><img src="https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&label=النجوم" alt="النجوم" /></a>
