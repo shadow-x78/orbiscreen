@@ -29,9 +29,7 @@ android {
                 storePassword = "orbiscreen123"
                 keyAlias = "orbiscreen"
                 keyPassword = "orbiscreen123"
-                v1SigningEnabled = true
-                v2SigningEnabled = true
-                v3SigningEnabled = true
+
             } else {
                 storeFile = signingConfigs.getByName("debug").storeFile
                 storePassword = signingConfigs.getByName("debug").storePassword

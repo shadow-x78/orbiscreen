@@ -20,6 +20,11 @@ mkdir -p target/rpmbuild/SOURCES
 mkdir -p target/rpmbuild/SPECS
 mkdir -p target/rpmbuild/SRPMS
 
+if [ ! -f target/release/orbiscreen ]; then
+    echo "==> Building release binaries for RPM..."
+    cargo build --release --workspace --exclude orbiscreen-gtk
+fi
+
 cp -f target/release/orbiscreen "${BUILD_ROOT}/usr/bin/"
 cp -f target/release/orbiscreen-daemon "${BUILD_ROOT}/usr/bin/" || true
 cp -f target/release/orbiscreen-gtk "${BUILD_ROOT}/usr/bin/" || true
@@ -30,9 +35,10 @@ if command -v rpmbuild >/dev/null 2>&1; then
     rpmbuild -bb \
         --buildroot "$(pwd)/${BUILD_ROOT}" \
         --define "_topdir $(pwd)/target/rpmbuild" \
+        --define "_projectroot $(pwd)" \
         --define "_version ${VERSION}" \
         data/orbiscreen.spec
-    cp -f "target/rpmbuild/RPMS/${ARCH}/orbiscreen-${VERSION}-1.${ARCH}.rpm" "${RPM_NAME}"
+    cp -f target/rpmbuild/RPMS/"${ARCH}"/orbiscreen-"${VERSION}"-1.*."${ARCH}".rpm "${RPM_NAME}" 2>/dev/null || cp -f target/rpmbuild/RPMS/"${ARCH}"/orbiscreen*.rpm "${RPM_NAME}"
     echo "==> RPM package built successfully: ${RPM_NAME}"
 else
     echo "==> rpmbuild not found; staging files ready in ${BUILD_ROOT}"
