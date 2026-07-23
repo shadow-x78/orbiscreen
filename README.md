@@ -1,25 +1,22 @@
 <div align="center">
 
 <pre align="center">
- ██████╗  ██████╗  ██████╗  ██╗ ███████╗  ██████╗  ██████╗  ███████╗ ███████╗ ██████╗
-██╔═══██╗ ██╔══██╗ ██╔══██╗ ██║ ██╔════╝ ██╔════╝  ██╔══██╗ ██╔════╝ ██╔════╝ ██╔══╝██╗
-██║   ██║ ██████╔╝ ██████╔╝ ██║ ███████╗ ██║       ██████╔╝ █████╗   █████╗   ██████╔╝
-██║   ██║ ██╔══██╗ ██╔══██╗ ██║ ╚════██║ ██║       ██╔══██╗ ██╔══╝    ██╔══╝    ██╔══██╗
-╚██████╔╝ ██║  ██║ ██████╔╝ ██║ ███████║ ╚██████╗  ██║  ██║ ███████╗ ███████╗ ██║  ██║
- ╚═════╝  ╚═╝  ╚═╝ ╚═════╝  ╚═╝ ╚══════╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═╝
+ ██████╗  ██████╗  ██████╗  ██╗ ███████╗  ██████╗  ██████╗  ███████╗ ███████╗ ███╗   ██╗
+██╔═══██╗ ██╔══██╗ ██╔══██╗ ██║ ██╔════╝ ██╔════╝  ██╔══██╗ ██╔════╝ ██╔════╝ ████╗  ██║
+██║   ██║ ██████╔╝ ██████╔╝ ██║ ███████╗ ██║       ██████╔╝ █████╗   █████╗   ██╔██╗ ██║
+██║   ██║ ██╔══██╗ ██╔══██╗ ██║ ╚════██║ ██║       ██╔══██╗ ██╔══╝   ██╔══╝   ██║╚██╗██║
+╚██████╔╝ ██║  ██║ ██████╔╝ ██║ ███████║ ╚██████╗  ██║  ██║ ███████╗ ███████╗ ██║ ╚████║
+ ╚═════╝  ╚═╝  ╚═╝ ╚═════╝  ╚═╝ ╚══════╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═══╝
 </pre>
 
 # Orbiscreen
 
 Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB
 
-[![Version](https://img.shields.io/badge/version-0.1.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
-[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
-![Language](https://img.shields.io/badge/rust-edition_2021-16a34a?style=flat-square&logo=rust)
-![Platform](https://img.shields.io/badge/platform-Linux-9333ea?style=flat-square&logo=linux)
-![Client](https://img.shields.io/badge/client-Android-eab308?style=flat-square&logo=android)
+[![Version](https://img.shields.io/badge/version-v0.1.1-blue?style=flat-square)](CHANGELOG.md)
 [![CI](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml)
-[![Stars](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&color=eab308&logo=github)](https://github.com/shadow-x78/orbiscreen/stargazers)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square)](https://github.com/shadow-x78/orbiscreen/stargazers)
 
 </div>
 
@@ -189,6 +186,7 @@ orbiscreen/
 |----------|-------------|
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [SECURITY.md](SECURITY.md) | Security policy and reporting |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and debugging |
 
 ---
 

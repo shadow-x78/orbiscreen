@@ -1,13 +1,4 @@
-<div align="center">
-
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
-
-[![الإصدار](https://img.shields.io/badge/الإصدار-0.1.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الرخصة](https://img.shields.io/badge/الرخصة-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
-![اللغة](https://img.shields.io/badge/rust-edition_2021-16a34a?style=flat-square&logo=rust)
-![المنصة](https://img.shields.io/badge/منصة-Linux-9333ea?style=flat-square&logo=linux)
-
-</div>
 
 ---
 
@@ -18,15 +9,6 @@
 ---
 
 ## 📋 فهرس المحتويات
-
-### واجهة برمجة التطبيقات GitHub / إعداد المستودع
-
-- [تطبيق حماية الفرع - `enabled` ليس boolean](#gh-api-enabled)
-- [تطبيق حماية الفرع - `restrictions` مرفوض على المستودعات الشخصية](#gh-api-restrictions)
-- [تطبيق حماية الفرع - `"restrictions" wasn't supplied`](#gh-api-restrictions-missing)
-- [تطبيق حماية الفرع - فشل `cargo-deny` بسبب `derivative` التبعي](#gh-api-deny)
-- [دمج PR محظور - `enforce_admins` وموافقة النفس يتعارضان](#gh-api-self-approval)
-- [الدفع مرفوض - `protected branch update failed`](#gh-api-push-rejected)
 
 ### إجراءات سير عمل CI (`.github/workflows/ci.yml`)
 
@@ -49,202 +31,6 @@
 
 ---
 
-<a id="gh-api-enabled"></a>
-## 🔧 تطبيق حماية الفرع - `enabled` ليس boolean
-
-**العرض:**
-```json
-{
-  "message": "Invalid request.",
-  "errors": ["For 'allOf/0', {\"enabled\" => true} is not a boolean."],
-  "status": 422
-}
-```
-
-**السبب:**
-تم تغليف مفاتيح التبديل على المستوى الأعلى (`enforce_admins`،
-`required_linear_history`، `allow_force_pushes`، إلخ) داخل كائنات
-`{ "enabled": true }`. الـ schema يقبل **boolean literals** على المستوى
-الأعلى.
-
-**الحل:**
-قم بتسوية كل مفتاح:
-```jsonc
-// ❌ خطأ
-{ "enforce_admins": { "enabled": true } }
-
-// ✅ صحيح
-{ "enforce_admins": true }
-```
-
-**التطبيق:**
-```bash
-gh api -X PUT /repos/shadow-x78/orbiscreen/branches/main/protection \
-    --input admin/branch-protection.json
-```
-
----
-
-<a id="gh-api-restrictions"></a>
-## 🔧 تطبيق حماية الفرع - `restrictions` مرفوض على المستودعات الشخصية
-
-**العرض:**
-```json
-{
-  "message": "Validation Failed",
-  "errors": ["Only organization repositories can have users and team restrictions"],
-  "status": 422
-}
-```
-
-**السبب:**
-على المستودعات **الشخصية**، يرفض GitHub أي قيمة ذات مصفوفات:
-```json
-{ "restrictions": { "users": [], "teams": [], "apps": [] } }   // ❌ مرفوض
-```
-
-**الحل:**
-بالنسبة للمستودعات الشخصية، استخدم `"restrictions": null`. الحقل موجود
-(يحقق متطلبات الـ schema) لكن قيمته null (يتجاهله GitHub بصمت - وهذا
-بالضبط ما تحتاجه المستودعات الشخصية).
-
-بالنسبة لمستودعات **المؤسسات**، يمكنك ملء `users[]` / `teams[]` / `apps[]`.
-
----
-
-<a id="gh-api-restrictions-missing"></a>
-## 🔧 تطبيق حماية الفرع - `"restrictions" wasn't supplied`
-
-**العرض:**
-```json
-{ "message": "Invalid request.", "errors": ["\"restrictions\" wasn't supplied."], "status": 422 }
-```
-
-**السبب:**
-لقد حذفت مفتاح `restrictions` تماماً. يتطلب الـ schema وجوده (حتى على
-المستودعات الشخصية حيث يجب أن تكون قيمته `null`).
-
-**الحل:**
-أضف المفتاح بقيمة `null` - لا تحذفه:
-```jsonc
-// ❌ خطأ - الحقل محذوف تماماً
-{ "enforce_admins": true, "required_linear_history": true, ... }
-
-// ✅ صحيح - الحقل موجود، قيمته null
-{ "enforce_admins": true, "restrictions": null, "required_linear_history": true, ... }
-```
-
----
-
-<a id="gh-api-deny"></a>
-## 🔧 تطبيق حماية الفرع - فشل `cargo-deny` بسبب `derivative` التبعي
-
-**العرض:**
-```
-error[unmaintained]: `derivative` is unmaintained; consider using an alternative
-  ├─ ID: RUSTSEC-2024-0388
-  ├─ derivative v2.2.0
-  │   └── evdi v0.8.0
-  │       └── orbiscreen-display v0.1.0
-advisories FAILED, bans FAILED, licenses ok, sources ok
-##[error]Process completed with exit code 3.
-```
-
-**السبب:**
-يضع `cargo-deny` علامة على `derivative v2.2.0` كحزمة مهجورة. تصل هذه الحزمة
-**تبعياً** عبر `evdi v0.8.0`، وهو ربط وحدة النواة الذي نستخدمه لإنشاء شاشات
-افتراضية.
-
-**الحل:**
-سياسة حماية الفرع تتطلب فقط فحص `workspace`، لذا فإن `cargo-deny` لا يمنع
-عمليات الدمج. ثلاث طرق للمضي قدماً:
-
-1. **اتركه كتنبيه إعلامي** - يستمر `cargo-deny` في عرض التحذيرات في سجلات
-   CI لكنه لا يمنع عمليات الدمج. هذا هو الإعداد الحالي.
-
-2. **احذف `cargo-deny` من سير العمل** إذا أصبح ضوضاء مشكلة - احذف وظيفة
-   `licenses` من `.github/workflows/ci.yml`.
-
-3. **تجاهل التنبيه** في `deny.toml` (ملاذ أخير - يضعف الفحص):
-   ```toml
-   [advisories]
-   ignore = ["RUSTSEC-2024-0388"]
-   ```
-
----
-
-<a id="gh-api-self-approval"></a>
-## 🔧 دمج PR - `enforce_admins` وموافقة النفس يتعارضان
-
-**العرض:**
-```
-GraphQL: At least 1 approving review is required by reviewers with write access.
-GraphQL: Review Can not approve your own pull request
-```
-
-**السبب:**
-عندما يكون كل من `enforce_admins: true` و
-`required_approving_review_count: 1` مفعّلين، **لا يمكن أن يكون المراجع
-الوحيد هو مؤلف الـ PR**. المستودعات ذات المطور الواحد تصطدم بهذا فوراً.
-
-**الحل:**
-سير العمل القياسي للمطور الواحد هو تخفيف مؤقت وإعادة التطبيق:
-
-```bash
-# 1. طبّق السياسة الصارمة (الإعداد الافتراضي)
-gh api -X PUT /repos/<owner>/orbiscreen/branches/main/protection \
-    --input branch-protection.json
-
-# 2. لدمج PR الخاص بك: خفف القاعدتين المحظورتين مؤقتاً
-gh api -X PATCH /repos/<owner>/orbiscreen/branches/main/protection/enforce_admins \
-    -f enabled=false
-gh api -X PATCH /repos/<owner>/orbiscreen/branches/main/protection/required_pull_request_reviews \
-    -f required_approving_review_count=0
-
-# 3. ادمج الـ PR
-gh pr merge <N> --squash --admin --delete-branch
-
-# 4. أعد تطبيق السياسة الصارمة
-gh api -X PUT /repos/<owner>/orbiscreen/branches/main/protection \
-    --input branch-protection.json
-```
-
-بمجرد أن يكون لديك حساب GitHub ثانٍ للعمل كمراجع، لن تحتاج إلى هذه الرقصة.
-
----
-
-<a id="gh-api-push-rejected"></a>
-## 🔧 الدفع - `protected branch hook declined`
-
-**العرض:**
-```
-remote: error: GH006: Protected branch update failed for refs/heads/main.
-remote:
-remote: - Changes must be made through a pull request.
-remote: - Required status check "workspace" is expected.
-```
-
-**السبب:**
-حماية الفرع نشطة على `main` وتتطلب:
-1. التغييرات تأتي عبر pull request (وليس دفعاً مباشراً).
-2. فحص الحالة `workspace` يجب أن يمر.
-
-**الحل:**
-استخدم سير عمل فرع الميزة + PR القياسي:
-```bash
-git checkout -b chore/your-change
-git commit -am "orbiscreen | v0.1.0 | chore: your change"
-git push -u origin chore/your-change
-gh pr create --base main --head chore/your-change
-# انتظر حتى ينجح فحص CI لـ workspace
-gh pr merge <N> --squash --delete-branch
-```
-
-إذا كنت بحاجة إلى التجاوز مؤقتاً، استخدم رقصة التخفيف والاستعادة من
-القسم السابق.
-
----
-
 <a id="ci-fmt"></a>
 ## 🧪 إجراء CI: `Check formatting` (`cargo fmt --all -- --check`)
 
@@ -263,7 +49,7 @@ Diff in /path/to/file.rs:
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.1.0 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.1.1 | style: cargo fmt --all"
 ```
 
 **لماذا يحدث هذا:**
@@ -339,7 +125,7 @@ cargo update -p webrtc
 # ثم أعد البناء
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.1.0 | chore: refresh Cargo.lock for webrtc 0.20.0-rc.3"
+git commit -m "orbiscreen | v0.1.1 | chore: refresh Cargo.lock for webrtc 0.20.0-rc.3"
 ```
 
 إذا كانت التبعية `webrtc = "0.20.0-rc.3"` قد تمت إزالتها أو استبدالها
@@ -413,9 +199,8 @@ advisories FAILED, bans FAILED, licenses ok, sources ok
 
 **الحل:**
 للإعداد الحالي:
-- هذا **تنبيه إعلامي فقط** - `cargo-deny` ليس في فحوصات الحالة المطلوبة
-  (`"contexts": ["workspace"]`).
-- انظر [واجهة GitHub API: فشل cargo-deny](#gh-api-deny) أعلاه.
+- هذا **تنبيه إعلامي فقط** - `cargo-deny` ليس من فحوصات الحالة المطلوبة
+  في `ci.yml`، لذا فإن فشل فحص deny لا يمكن أن يمنع دمج PR.
 
 لجعل `cargo-deny` ينجح بنظافة:
 1. حدّث قسم `[advisories]` في `deny.toml` لتجاهل تنبيه `derivative` المهجور.
