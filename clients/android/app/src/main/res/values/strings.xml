@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Orbiscreen" parent="android:Theme.Material.NoActionBar" />
-
     <string name="app_name">Orbiscreen</string>
     <string name="connect_hint">Looking for an Orbiscreen host on your Wi-Fi…</string>
     <string name="connect_button">Connect manually</string>

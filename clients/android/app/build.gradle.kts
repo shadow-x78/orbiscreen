@@ -40,17 +40,17 @@ android {
         jvmTarget = "17"
     }
 
-    sourceSets["main"].assets.srcDirs("$rootDir/../../clients/web")
+    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/assets"))
 }
 
 tasks.register<Copy>("syncWebClient") {
     from("$rootDir/../../clients/web")
-    into("$buildDir/generated/assets/client")
+    into(layout.buildDirectory.dir("generated/assets/client"))
 }
 
-tasks.named("preBuild") { dependsOn("syncWebClient") }
-android.sourceSets["main"].assets.srcDir("$buildDir/generated/assets/client")
-android.sourceSets["main"].assets.srcDirs("$rootDir/../../clients/web")
+tasks.named("preBuild") {
+    dependsOn("syncWebClient")
+}
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")

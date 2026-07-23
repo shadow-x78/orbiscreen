@@ -2,6 +2,19 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.2.1] - 2026-07-23
+
+### 🚀 Added
+- **Direct HTTP Stream Endpoint:** `orbiscreen-transport` — `/stream` GET handler streaming real-time H.264 video chunks (`tokio::sync::broadcast` + `axum::body::Body`).
+
+### ✨ Features
+- **Web Client Fallback:** `clients/web` — updated `app.js` with auto-fallback to `/stream` for zero-configuration playback on local networks.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.2.0` → `0.2.1` (`Cargo.toml` workspace version, README + README_AR badges).
+
+---
+
 ## [v0.2.0] - 2026-07-23
 
 ### 🚀 Added
