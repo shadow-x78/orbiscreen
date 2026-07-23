@@ -2,7 +2,7 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
-## [v0.1.2] - 2026-07-23
+## [v0.2.0] - 2026-07-23
 
 ### 🚀 Added
 - **WebRTC SDP Signaling:** `orbiscreen-transport` — `/sdp` POST handler for WebRTC SDP offer/answer exchange with browser and Android clients.
@@ -13,7 +13,7 @@ All notable changes to **Orbiscreen** are documented here.
 - **End-to-End Input Pipeline:** `orbiscreen-input` & `orbiscreen-daemon` — derived `serde::Serialize` / `serde::Deserialize` on `PointerEvent`, `StylusEvent`, and `KeyEvent`. Wired `input_tx` channel in daemon main loop directly into `InputInjector` for `/dev/uinput` event dispatch.
 
 ### 🔄 Updated
-- **Version Bump:** All version sources bumped from `0.1.1` → `0.1.2` (`Cargo.toml` workspace version, README + README_AR badges).
+- **Version Bump:** All version sources bumped from `0.1.1` → `0.2.0` (`Cargo.toml` workspace version, README + README_AR badges).
 
 ---
 

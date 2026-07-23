@@ -13,7 +13,7 @@
 
 شاشات فرعية افتراضية مفتوحة المصدر للينكس، تُبَثّ إلى أجهزة أندرويد عبر Wi-Fi أو USB
 
-[![الإصدار](https://img.shields.io/badge/version-v0.1.2-blue?style=flat-square)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-v0.2.0-blue?style=flat-square)](CHANGELOG.md)
 [![CI](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 [![النجوم](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&label=النجوم)](https://github.com/shadow-x78/orbiscreen/stargazers)
