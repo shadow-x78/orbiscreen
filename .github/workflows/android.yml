@@ -1,17 +1,12 @@
 name: Android build
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'clients/android/**'
-      - 'clients/web/**'
-      - '.github/workflows/android.yml'
   pull_request:
     branches: [main]
     paths:
       - 'clients/android/**'
       - 'clients/web/**'
+      - '.github/workflows/android.yml'
 
 jobs:
   android:
