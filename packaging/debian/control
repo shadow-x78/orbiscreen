@@ -1,0 +1,41 @@
+Source: orbiscreen
+Section: net
+Priority: optional
+Maintainer: shadow-x78 <shadow@shadow-x78.dev>
+Build-Depends: debhelper (>= 12),
+               cargo (>= 1.75),
+               rustc (>= 1.75),
+               libevdi-dev,
+               libgstreamer1.0-dev,
+               libgstreamer-plugins-base1.0-dev,
+               libgstreamer-plugins-bad1.0-dev,
+               libxkbcommon-dev,
+               libevdev-dev,
+               libwayland-dev,
+               libxcb1-dev,
+               libxrandr-dev,
+               pkg-config,
+Standards-Version: 4.6.2
+Homepage: https://github.com/shadow-x78/orbiscreen
+Rules-Requires-Root: no
+
+Package: orbiscreen
+Architecture: any
+Version: 0.1.0
+Depends: ${shlibs:Depends}, ${misc:Depends},
+         libgstreamer1.0-0,
+         libgstreamer-plugins-base1.0-0,
+         libgstreamer-plugins-bad1.0-0,
+         libxcb1,
+         libxrandr2,
+         libevdi0 | libevdi-dev,
+         adb
+Description: Open-source virtual secondary displays for Linux
+ Orbiscreen creates a real virtual display via DisplayLink's evdi kernel
+ module and streams it over WebRTC to Android tablets and phones over Wi-Fi
+ or USB (adb reverse). The native Wayland path uses the xdg-desktop-portal
+ ScreenCast interface; the X11 path uses x11rb GetImage.
+ .
+ This package does NOT install the evdi kernel module. See the README for
+ module install instructions; Secure Boot systems will need a signed DKMS
+ module.

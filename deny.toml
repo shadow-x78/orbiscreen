@@ -1,0 +1,40 @@
+[licenses]
+allow = [
+    "GPL-3.0",
+    "GPL-3.0-or-later",
+    "LGPL-2.1",
+    "LGPL-2.1-only",
+    "LGPL-2.1-or-later",
+    "LGPL-3.0",
+    "LGPL-3.0-or-later",
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "MPL-2.0",
+    "0BSD",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+]
+
+[graph]
+all-features = false
+
+[advisories]
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+ignore = [
+  # RUSTSEC-2024-0388 - `derivative` is unmaintained; no safe upgrade available.
+  # Arrives transitively through evdi v0.8.0 (DisplayLink kernel module
+  # binding). Cannot be fixed without forking evdi; tracked in
+  # docs/TROUBLESHOOTING.md → "CI Action: `Run cargo-deny`".
+  "RUSTSEC-2024-0388",
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "warn"
+allow-wildcard-paths = true
