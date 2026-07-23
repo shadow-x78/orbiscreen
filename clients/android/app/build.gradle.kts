@@ -17,8 +17,8 @@ android {
         applicationId = "com.orbiscreen.android"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.6.0"
     }
 
     signingConfigs {
@@ -29,6 +29,9 @@ android {
                 storePassword = "orbiscreen123"
                 keyAlias = "orbiscreen"
                 keyPassword = "orbiscreen123"
+                v1SigningEnabled = true
+                v2SigningEnabled = true
+                v3SigningEnabled = true
             } else {
                 storeFile = signingConfigs.getByName("debug").storeFile
                 storePassword = signingConfigs.getByName("debug").storePassword
