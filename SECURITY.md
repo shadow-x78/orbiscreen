@@ -2,7 +2,7 @@
 
 # Security Policy - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.1.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Language](https://img.shields.io/badge/rust-edition_2021-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux-9333ea?style=flat-square&logo=linux)

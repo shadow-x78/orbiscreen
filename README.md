@@ -1,19 +1,19 @@
 <div align="center">
 
 <pre align="center">
- ██████╗  ██████╗  ██████╗  ██╗ ███████╗  ██████╗  ██████╗  ███████╗ ███████╗ ██████╗
+██████╗  ██████╗  ██████╗  ██╗ ███████╗  ██████╗  ██████╗  ███████╗ ███████╗ ██████╗
 ██╔═══██╗ ██╔══██╗ ██╔══██╗ ██║ ██╔════╝ ██╔════╝  ██╔══██╗ ██╔════╝ ██╔════╝ ██╔══╝██╗
 ██║   ██║ ██████╔╝ ██████╔╝ ██║ ███████╗ ██║       ██████╔╝ █████╗   █████╗   ██████╔╝
 ██║   ██║ ██╔══██╗ ██╔══██╗ ██║ ╚════██║ ██║       ██╔══██╗ ██╔══╝    ██╔══╝    ██╔══██╗
 ╚██████╔╝ ██║  ██║ ██████╔╝ ██║ ███████║ ╚██████╗  ██║  ██║ ███████╗ ███████╗ ██║  ██║
- ╚═════╝  ╚═╝  ╚═╝ ╚═════╝  ╚═╝ ╚══════╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═╝
+╚═════╝  ╚═╝  ╚═╝ ╚═════╝  ╚═╝ ╚══════╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═╝
 </pre>
 
 # Orbiscreen
 
 Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB
 
-[![Version](https://img.shields.io/badge/version-0.1.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Language](https://img.shields.io/badge/rust-edition_2021-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux-9333ea?style=flat-square&logo=linux)
@@ -189,6 +189,7 @@ orbiscreen/
 |----------|-------------|
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [SECURITY.md](SECURITY.md) | Security policy and reporting |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and debugging |
 
 ---
 
