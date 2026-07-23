@@ -2,6 +2,16 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.4.9] - 2026-07-23
+
+### 🚀 Added
+- **Official Keystore Tracking & Release Build Fallback:** Included `orbiscreen-release.keystore` directly in the release pipeline and added fallback checks in `build.gradle.kts` to ensure Android release builds compile cleanly.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.4.8` → `0.4.9`.
+
+---
+
 ## [v0.4.8] - 2026-07-23
 
 ### 🚀 Added

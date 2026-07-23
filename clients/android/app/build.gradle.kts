@@ -23,10 +23,18 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("orbiscreen-release.keystore")
-            storePassword = "orbiscreen123"
-            keyAlias = "orbiscreen"
-            keyPassword = "orbiscreen123"
+            val ksFile = file("orbiscreen-release.keystore")
+            if (ksFile.exists()) {
+                storeFile = ksFile
+                storePassword = "orbiscreen123"
+                keyAlias = "orbiscreen"
+                keyPassword = "orbiscreen123"
+            } else {
+                storeFile = signingConfigs.getByName("debug").storeFile
+                storePassword = signingConfigs.getByName("debug").storePassword
+                keyAlias = signingConfigs.getByName("debug").keyAlias
+                keyPassword = signingConfigs.getByName("debug").keyPassword
+            }
         }
     }
 
