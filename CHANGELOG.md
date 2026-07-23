@@ -2,6 +2,21 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.4.4] - 2026-07-23
+
+### 🚀 Added
+- **Professional Icon Design:** New Catppuccin-themed icon with monitor and orbital arcs, applied to README headers, Android launcher icons (all densities), and `.desktop` entry.
+- **Android Launcher Icons:** Generated `ic_launcher.png` for all Android mipmap densities (`mdpi` through `xxxhdpi`) and configured `AndroidManifest.xml`.
+
+### 🔧 Fixed
+- **GitHub Release Workflow:** Fixed `permissions: contents: write` in `.github/workflows/release.yml` to resolve the 403 "Resource not accessible by integration" error when creating releases.
+
+### 🔄 Updated
+- **README & README_AR:** Replaced ASCII art header with the new icon image.
+- **Version Bump:** All version sources bumped from `0.4.3` → `0.4.4`.
+
+---
+
 ## [v0.4.3] - 2026-07-23
 
 ### 🚀 Added
