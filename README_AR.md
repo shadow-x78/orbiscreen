@@ -1,16 +1,14 @@
 <div align="center">
+  <img src="data/orbiscreen.svg" alt="Orbiscreen" width="180" style="margin-bottom: 0px;" />
+  <h1 style="margin-top: 4px; margin-bottom: 8px;">Orbiscreen</h1>
+  <p>شاشات فرعية افتراضية مفتوحة المصدر للينكس، تُبَثّ إلى أجهزة أندرويد عبر Wi-Fi أو USB</p>
 
-<img src="data/orbiscreen.svg" alt="Orbiscreen" width="140" style="margin-bottom: 0px;" />
-
-# Orbiscreen
-
-شاشات فرعية افتراضية مفتوحة المصدر للينكس، تُبَثّ إلى أجهزة أندرويد عبر Wi-Fi أو USB
-
-[![الإصدار](https://img.shields.io/badge/version-v0.4.7-blue?style=flat-square)](CHANGELOG.md)
-[![CI](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml)
-[![الرخصة](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![النجوم](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&label=النجوم)](https://github.com/shadow-x78/orbiscreen/stargazers)
-
+  <p>
+    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.4.8-blue?style=flat-square" alt="الإصدار" /></a>
+    <a href="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml"><img src="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square" alt="CI" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="الرخصة" /></a>
+    <a href="https://github.com/shadow-x78/orbiscreen/stargazers"><img src="https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&label=النجوم" alt="النجوم" /></a>
+  </p>
 </div>
 
 ---
@@ -27,10 +25,9 @@
 - [لماذا Orbiscreen؟](#why-orbiscreen-exists)
 - [أبرز المزايا](#highlights)
 - [حالة المشروع](#status)
-- [فهرس التوثيق الشامل](#documentation-index)
+- [فهرس التوثيق العربي الشامل](#documentation-index)
 - [البدء السريع والتثبيت](#quick-start)
 - [الأوامر](#commands)
-- [هيكل المشروع](#project-structure)
 - [البنية الهندسية](#architecture)
 - [الرخصة](#license)
 
@@ -51,6 +48,8 @@
 | غياب الشاشة الثانية على Wayland | Weylus ينحصر على X11 | مسار Wayland كامل عبر ashpd + PipeWire |
 | ضبط IP يدويًا معقّد | أغلب المشاريع | اكتشاف mDNS + توصيل USB بـ `adb reverse` |
 
+---
+
 <a id="highlights"></a>
 ## ✨ أبرز المزايا
 
@@ -61,12 +60,14 @@
 - نقل عبر USB بـ `adb reverse` دون تعريفات خاصة
 - ترميز عالي الأداء بالعتاد - VAAPI، NVENC، مع تراجع برلمجي لـ x264
 
+---
+
 <a id="status"></a>
 ## 📊 حالة المشروع
 
 | المرحلة | الهدف | الحالة |
-|---------|-------|--------|
-| 0 | هيكل مساحة العمل + جدوى evdi | ✅ مكتملة |
+|-------|------|-------|
+| 0 | الهيكل الأولي للمساحة + فحص جدوى evdi | ✅ مكتملة |
 | 1 | شاشة + التقاط + ترميز + إدخال (X11) | ✅ مكتملة |
 | 2 | عميل أندرويد + USB + mDNS | ✅ مكتملة |
 | 3 | التقاط Wayland Portal + إدخال | ✅ مكتملة |
