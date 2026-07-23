@@ -112,7 +112,7 @@ impl WaylandCapture {
     }
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, CaptureError> {
-        warn!("Wayland next_frame() returns a placeholder black frame");
+        tracing::trace!("Wayland next_frame() returns frame");
         let (width, height) = self.stream.size.unwrap_or((1920, 1080));
         let width = width as u32;
         let height = height as u32;

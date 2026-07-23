@@ -29,13 +29,20 @@ impl Advertiser {
     pub fn register(desc: &ServiceDescriptor) -> Result<Arc<Self>, MdnsError> {
         let daemon = ServiceDaemon::new().map_err(|e| MdnsError::Daemon(e.to_string()))?;
 
-        let hostname = hostname().unwrap_or_else(|| "orbiscreen-host".to_string());
-        let instance = format!("{} ({})", desc.instance, hostname);
+        let raw_host = hostname().unwrap_or_else(|| "orbiscreen-host".to_string());
+        let host_domain = if raw_host.ends_with(".local.") {
+            raw_host.clone()
+        } else if raw_host.ends_with(".local") {
+            format!("{raw_host}.")
+        } else {
+            format!("{raw_host}.local.")
+        };
+        let instance = desc.instance.clone();
 
         let service_info = ServiceInfo::new(
             SERVICE_TYPE,
             &instance,
-            &hostname,
+            &host_domain,
             "0.0.0.0",
             desc.port,
             None,

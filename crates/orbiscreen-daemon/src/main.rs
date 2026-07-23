@@ -53,8 +53,9 @@ fn init_tracing(verbose: u8) {
         1 => Level::DEBUG,
         _ => Level::TRACE,
     };
+    let filter_str = format!("{},zbus=error,ashpd=error", level.as_str());
     let filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level.as_str()));
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(filter_str));
     let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }
 
