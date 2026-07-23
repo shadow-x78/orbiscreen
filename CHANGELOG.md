@@ -2,6 +2,17 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.4.1] - 2026-07-23
+
+### 🚀 Added
+- **GTK4 / Libadwaita Desktop Control Panel GUI:** `crates/orbiscreen-gtk` — created native Linux GTK4 control panel application providing desktop GUI for daemon status, resolution selection, and transport monitoring.
+- **Desktop Entry & Application Icon:** `data/com.orbiscreen.OrbiscreenGtk.desktop` & `data/orbiscreen.svg` — added native desktop integration files.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.4.0` → `0.4.1` (`Cargo.toml` workspace version, README + README_AR badges).
+
+---
+
 ## [v0.4.0] - 2026-07-23
 
 ### 🚀 Added
