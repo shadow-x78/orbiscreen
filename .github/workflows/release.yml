@@ -46,8 +46,21 @@ jobs:
       - name: Package Debian DEB package
         run: |
           chmod +x scripts/package-deb.sh
-          ./scripts/package-deb.sh 0.4.7
-          mv orbiscreen_0.4.7_amd64.deb orbiscreen_amd64.deb
+          ./scripts/package-deb.sh 0.5.0
+          mv orbiscreen_0.5.0_amd64.deb orbiscreen_amd64.deb
+
+      - name: Package RPM package
+        run: |
+          chmod +x scripts/package-rpm.sh
+          ./scripts/package-rpm.sh 0.5.0
+          cp target/rpm-staging/usr/bin/orbiscreen target/orbiscreen-binary || true
+          tar -czvf orbiscreen-x86_64.rpm.tar.gz -C target/rpm-staging . || true
+
+      - name: Package AppImage
+        run: |
+          chmod +x scripts/package-appimage.sh
+          ./scripts/package-appimage.sh 0.5.0
+          tar -czvf orbiscreen-x86_64.AppImage.tar.gz -C target/AppDir .
 
       - name: Set up JDK 17 for Android
         uses: actions/setup-java@v4
@@ -69,4 +82,5 @@ jobs:
           files: |
             orbiscreen-linux-x86_64.tar.gz
             orbiscreen_amd64.deb
+            orbiscreen-x86_64.AppImage.tar.gz
             orbiscreen-android-release.apk
