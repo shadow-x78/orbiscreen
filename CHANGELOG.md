@@ -2,6 +2,19 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.2.3] - 2026-07-23
+
+### 🚀 Added
+- **Auto ADB Reverse Port Forwarding:** `orbiscreen-transport` — automatically configures `adb reverse tcp:8788 tcp:8788` for connected USB Android devices during transport startup.
+
+### ✨ Android Client & CI
+- **APK CI Artifact:** `clients/android` — verified full debug APK assembly and GitHub Actions release artifact publication (`orbiscreen-android-debug`).
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.2.2` → `0.2.3` (`Cargo.toml` workspace version, README + README_AR badges).
+
+---
+
 ## [v0.2.2] - 2026-07-23
 
 ### 🚀 Added

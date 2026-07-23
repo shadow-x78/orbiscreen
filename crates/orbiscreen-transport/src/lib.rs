@@ -83,6 +83,11 @@ impl Transport {
             .unwrap_or_else(|_| "?".into());
         info!("orbiscreen transport listening on http://{local}");
 
+        match adb::setup_reverse_for_all(adb::default_adb_path(), self.cfg.signaling_port) {
+            Ok(devices) => info!("ADB reverse port forwarding configured for devices: {devices:?}"),
+            Err(e) => debug!("ADB reverse port forwarding inactive: {e}"),
+        }
+
         tokio::spawn(async move {
             let mut frames = frames;
             while let Some(pkt) = frames.recv().await {
