@@ -37,7 +37,10 @@ impl OrbiscreenDbusServer {
     }
 
     async fn list_clients(&self) -> Vec<String> {
-        vec!["HTTP Direct /stream".to_string(), "WebRTC Signaling Active".to_string()]
+        vec![
+            "HTTP Direct /stream".to_string(),
+            "WebRTC Signaling Active".to_string(),
+        ]
     }
 
     async fn get_config(&self) -> String {
