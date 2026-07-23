@@ -2,6 +2,17 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.4.2] - 2026-07-23
+
+### 🚀 Added
+- **Multi-Distro Release Matrix Workflow:** `.github/workflows/release.yml` — automated release packaging workflow triggered on `push: tags: ['v*']` that compiles and attaches Linux tarballs (`orbiscreen-linux-x86_64.tar.gz`) and Android APKs (`orbiscreen-android-debug.apk`) directly to GitHub Releases.
+- **Multi-Distro Packaging Documentation:** `docs/PACKAGING.md` & `docs/PACKAGING_AR.md` — published complete packaging guides for AppImage, Flatpak, Debian/Ubuntu (.deb), Fedora/RHEL (.rpm), and Android.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.4.1` → `0.4.2` (`Cargo.toml` workspace version, README + README_AR badges).
+
+---
+
 ## [v0.4.1] - 2026-07-23
 
 ### 🚀 Added
