@@ -2,6 +2,16 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.3.2] - 2026-07-23
+
+### 🚀 Added
+- **Touch Calibration & Scaling:** `orbiscreen-input` — added `TouchCalibration` helper for coordinate clamping and scaling across High-DPI Android screen displays.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.3.1` → `0.3.2` (`Cargo.toml` workspace version, README + README_AR badges).
+
+---
+
 ## [v0.3.1] - 2026-07-23
 
 ### 🚀 Added
