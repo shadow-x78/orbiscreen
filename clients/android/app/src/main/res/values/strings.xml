@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Orbiscreen" parent="android:Theme.Material.NoActionBar" />
+
+    <string name="app_name">Orbiscreen</string>
+    <string name="connect_hint">Looking for an Orbiscreen host on your Wi-Fi…</string>
+    <string name="connect_button">Connect manually</string>
+    <string name="address_label">Host address</string>
+    <string name="connect_action">Connect</string>
+    <string name="status_discovered">Discovered: %1$s</string>
+    <string name="status_connecting">Connecting to %1$s…</string>
+    <string name="status_streaming">Streaming from %1$s</string>
+    <string name="status_error">Error: %1$s</string>
+    <string name="asset_client_url">file:///android_asset/client/index.html</string>
+</resources>

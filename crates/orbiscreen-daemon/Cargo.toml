@@ -1,0 +1,31 @@
+[package]
+name = "orbiscreen-daemon"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Orbiscreen daemon: the user-facing binary that wires every layer together"
+
+[lints]
+workspace = true
+
+[dependencies]
+orbiscreen-core = { path = "../orbiscreen-core" }
+orbiscreen-display = { path = "../orbiscreen-display" }
+orbiscreen-capture = { path = "../orbiscreen-capture" }
+orbiscreen-encode = { path = "../orbiscreen-encode" }
+orbiscreen-input = { path = "../orbiscreen-input" }
+orbiscreen-transport = { path = "../orbiscreen-transport" }
+
+tokio = { workspace = true }
+clap = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+hostname = { workspace = true }
+
+[[bin]]
+name = "orbiscreen"
+path = "src/main.rs"

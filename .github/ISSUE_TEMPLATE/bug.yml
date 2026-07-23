@@ -1,0 +1,32 @@
+---
+name: Bug report
+about: Report broken behaviour or unexpected output
+title: "[bug] "
+labels: ["bug"]
+assignees: []
+---
+
+### Environment
+
+- OS / distro + version: <!-- e.g. Pop!_OS 24.04 -->
+- COSMIC / GNOME / KDE / Sway / Hyprland / other:
+- evdi version / `modinfo evdi` (if available):
+- GStreamer version (`gst-inspect-1.0 --version`):
+- Rust toolchain (`rustc --version`):
+- Orbiscreen version (`orbiscreen --version`):
+
+### Steps to reproduce
+
+1.
+2.
+3.
+
+### Expected behaviour
+
+### Actual behaviour
+
+### Logs
+
+```
+<paste from `RUST_LOG=orbiscreen=trace,webrtc_rs=debug cargo run -p orbiscreen-daemon -- start`>
+```

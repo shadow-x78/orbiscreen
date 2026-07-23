@@ -1,0 +1,21 @@
+[package]
+name = "orbiscreen-input"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Input injection: evdevil for X11, ashpd RemoteDesktop for Wayland"
+
+[lints]
+workspace = true
+
+[dependencies]
+evdevil = { workspace = true }
+ashpd = { workspace = true }
+enumflags2 = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }

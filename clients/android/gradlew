@@ -1,0 +1,23 @@
+#!/bin/sh
+# Gradle wrapper starter (POSIX).
+# On first invocation it downloads `gradle-wrapper.jar` from the official
+# Gradle distribution server. Operators who already have a system-wide
+# `gradle` may instead run: `gradle assembleDebug`.
+
+set -e
+
+APP_HOME="$(cd "$(dirname "$0")" && pwd -P)"
+WRAPPER_JAR="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+
+if [ ! -f "$WRAPPER_JAR" ]; then
+    echo "Downloading gradle-wrapper.jar..." >&2
+    mkdir -p "$(dirname "$WRAPPER_JAR")"
+    curl -sSL \
+        https://raw.githubusercontent.com/gradle/gradle/v8.9.0/gradle/wrapper/gradle-wrapper.jar \
+        -o "$WRAPPER_JAR"
+fi
+
+exec "${JAVA_HOME:-/usr}/bin/java" \
+    -Dorg.gradle.appname="$(basename "$0")" \
+    -classpath "$WRAPPER_JAR" \
+    org.gradle.wrapper.GradleWrapperMain "$@"
