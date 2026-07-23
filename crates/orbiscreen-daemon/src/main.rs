@@ -1,6 +1,8 @@
 // Orbiscreen - orbiscreen-daemon daemon binary (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
+pub mod dbus;
+
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -149,6 +151,15 @@ async fn run_start(
         height: cfg.display.height,
         refresh_rate_hz: cfg.display.refresh_rate_hz,
     };
+
+    let is_running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
+    let dbus_running = is_running.clone();
+    tokio::spawn(async move {
+        if let Err(e) = dbus::run_dbus_server(dbus_running).await {
+            warn!("D-Bus session service init failed (is D-Bus running?): {e}");
+        }
+    });
+    info!("D-Bus session service registered: com.orbiscreen.Daemon");
 
     info!(
         "Orbiscreen starting - display {w}x{h}@{hz}Hz, encoder preferred = {enc}",
