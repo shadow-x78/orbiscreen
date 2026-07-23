@@ -10,7 +10,8 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Orbiscreen"
         android:allowBackup="false"
-        android:hardwareAccelerated="true">
+        android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:name=".MainActivity"
