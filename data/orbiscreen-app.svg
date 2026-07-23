@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="#1e1e2e" stroke="#313244" stroke-width="4"/>
+  <!-- Transparent Android App Launcher Icon (No Background Box) -->
   <g transform="translate(0, 16)">
     <rect x="32" y="56" width="448" height="320" rx="24" ry="24" fill="#1e1e2e" stroke="#89b4fa" stroke-width="16"/>
     <rect x="64" y="88" width="384" height="256" rx="12" ry="12" fill="#11111b"/>

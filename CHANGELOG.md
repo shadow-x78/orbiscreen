@@ -2,6 +2,21 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.4.8] - 2026-07-23
+
+### 🚀 Added
+- **Official Keystore Release Signing (`orbiscreen-release.keystore`):** Created a dedicated Android Release Keystore and configured `signingConfigs` in `build.gradle.kts` so `orbiscreen-android-release.apk` is signed with a standalone release key to bypass Play Protect warnings.
+- **Transparent Android Launcher Icons:** Updated `data/orbiscreen-app.svg` and all Android mipmap launcher icons (`mdpi` through `xxxhdpi`) to be 100% transparent without background boxes.
+
+### 🔧 Fixed
+- **README Header Proximity & Zero-Gap Alignment:** Restructured README HTML header in both `README.md` and `README_AR.md` to eliminate vertical paragraph gap above `# Orbiscreen` title and set logo width to `180px`.
+- **Arabic Documentation Index Alignment:** Cleaned up `README_AR.md` documentation index table to feature Arabic-localized documentation resources exclusively.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.4.7` → `0.4.8`.
+
+---
+
 ## [v0.4.7] - 2026-07-23
 
 ### 🚀 Added
