@@ -1,3 +1,5 @@
+%define _builddir %{_topdir}/../..
+
 Name:           orbiscreen
 Version:        %{_version}
 Release:        1%{?dist}
@@ -22,12 +24,16 @@ mkdir -p %{buildroot}/usr/share/applications
 mkdir -p %{buildroot}/usr/share/icons/hicolor/scalable/apps
 mkdir -p %{buildroot}/usr/lib/systemd/user
 
-install -m 0755 target/release/orbiscreen %{buildroot}/usr/bin/orbiscreen
-install -m 0755 target/release/orbiscreen-daemon %{buildroot}/usr/bin/orbiscreen-daemon || true
-install -m 0755 target/release/orbiscreen-gtk %{buildroot}/usr/bin/orbiscreen-gtk || true
+install -m 0755 %{_projectroot}/target/release/orbiscreen %{buildroot}/usr/bin/orbiscreen
+if [ -f %{_projectroot}/target/release/orbiscreen-daemon ]; then
+    install -m 0755 %{_projectroot}/target/release/orbiscreen-daemon %{buildroot}/usr/bin/orbiscreen-daemon
+fi
+if [ -f %{_projectroot}/target/release/orbiscreen-gtk ]; then
+    install -m 0755 %{_projectroot}/target/release/orbiscreen-gtk %{buildroot}/usr/bin/orbiscreen-gtk
+fi
 
-install -m 0644 data/com.orbiscreen.OrbiscreenGtk.desktop %{buildroot}/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop || true
-install -m 0644 data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg || true
+install -m 0644 %{_projectroot}/data/com.orbiscreen.OrbiscreenGtk.desktop %{buildroot}/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop || true
+install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg || true
 
 cat << 'EOF' > %{buildroot}/usr/lib/systemd/user/orbiscreen.service
 [Unit]
@@ -37,7 +43,7 @@ After=graphical-session.target
 
 [Service]
 Type=exec
-ExecStart=/usr/bin/orbiscreen-daemon
+ExecStart=/usr/bin/orbiscreen
 Restart=on-failure
 RestartSec=3s
 
@@ -47,8 +53,6 @@ EOF
 
 %files
 /usr/bin/orbiscreen
-/usr/bin/orbiscreen-daemon
-/usr/bin/orbiscreen-gtk
 /usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop
 /usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
 /usr/lib/systemd/user/orbiscreen.service

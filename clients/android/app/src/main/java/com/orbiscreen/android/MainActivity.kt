@@ -59,14 +59,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun connectToHost(host: String) {
-        var formatted = host
+        var formatted = host.trim()
         if (!formatted.startsWith("http://") && !formatted.startsWith("https://")) {
             formatted = "http://$formatted"
         }
-        if (!formatted.contains(":", 6) && !formatted.substring(7).contains(":")) {
-            formatted = "$formatted:8788"
+        val hostPart = formatted.removePrefix("http://").removePrefix("https://").split("/")[0]
+        if (!hostPart.contains(":")) {
+            formatted = formatted.replace(hostPart, "$hostPart:8788")
         }
-        if (!formatted.endsWith("/client/index.html") && !formatted.endsWith("/client/")) {
+        if (!formatted.endsWith("/client/index.html")) {
             formatted = if (formatted.endsWith("/")) "${formatted}client/index.html" else "$formatted/client/index.html"
         }
 
