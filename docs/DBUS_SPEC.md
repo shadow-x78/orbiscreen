@@ -1,12 +1,6 @@
 # D-Bus API Specification - Orbiscreen
 
----
 
-## 🌐 Language
-
-<a href="DBUS_SPEC.md">🇬🇧 English</a> · <a href="DBUS_SPEC_AR.md">🇸🇦 العربية</a>
-
----
 
 ## 🛰 Overview
 
