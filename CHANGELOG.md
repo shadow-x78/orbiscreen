@@ -2,6 +2,17 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.3.1] - 2026-07-23
+
+### 🚀 Added
+- **Android Release Artifact Publishing:** `.github/workflows/android.yml` — updated workflow to build and publish the Android APK artifact (`orbiscreen-android-debug`) on every `main` push and manual dispatch.
+- **Standalone Linux Install Script:** `scripts/install.sh` — added one-command installation script for Linux daemon binary and `orbiscreen.service` systemd user unit.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.3.0` → `0.3.1` (`Cargo.toml` workspace version, README + README_AR badges).
+
+---
+
 ## [v0.3.0] - 2026-07-23
 
 ### 🚀 Added
