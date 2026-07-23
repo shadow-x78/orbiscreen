@@ -2,6 +2,16 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.3.0] - 2026-07-23
+
+### 🚀 Added
+- **Wayland Desktop Portal Auto-Fallback:** `orbiscreen-daemon` — gracefully falls back to Wayland/X11 portal display capture when the EVDI kernel module is absent, enabling instant execution on any Wayland desktop (GNOME, KDE, Sway) without requiring custom kernel driver compilation.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.2.3` → `0.3.0` (`Cargo.toml` workspace version, README + README_AR badges).
+
+---
+
 ## [v0.2.3] - 2026-07-23
 
 ### 🚀 Added
