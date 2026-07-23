@@ -7,7 +7,6 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: -D warnings
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
 
 jobs:
   workspace:
