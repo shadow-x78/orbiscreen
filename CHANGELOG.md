@@ -2,6 +2,20 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.4.6] - 2026-07-23
+
+### 🚀 Added
+- **Signed Android Release Artifact (`orbiscreen-android-release.apk`):** Configured `signingConfig` in `build.gradle.kts` and automated release APK packaging in `.github/workflows/release.yml` so Android releases are signed to bypass Google Play Protect installation warnings.
+
+### 🔧 Fixed
+- **Android Cleartext HTTP Connection (`android:usesCleartextTraffic="true"`):** Added cleartext traffic permission to `AndroidManifest.xml` so WebRTC/HTTP streams to local Orbiscreen Linux host IP addresses connect without Android 9+ network security blocks.
+
+### 🔄 Updated
+- **Logo Breathing Room & Padding:** Balanced `viewBox="0 0 512 480"` for 24px breathing room margins around the original SVG logo so it displays comfortably without clipping or suffocated borders.
+- **Version Bump:** All version sources bumped from `0.4.5` → `0.4.6`.
+
+---
+
 ## [v0.4.5] - 2026-07-23
 
 ### 🚀 Added
