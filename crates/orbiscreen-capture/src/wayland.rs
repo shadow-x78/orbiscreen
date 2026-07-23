@@ -10,7 +10,7 @@ use ashpd::desktop::screencast::{
 use ashpd::desktop::Session;
 use enumflags2::BitFlags;
 use thiserror::Error;
-use tracing::{instrument, warn};
+use tracing::{instrument, trace};
 
 use super::{CaptureError, CapturedFrame};
 
@@ -112,7 +112,7 @@ impl WaylandCapture {
     }
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, CaptureError> {
-        tracing::trace!("Wayland next_frame() returns frame");
+        trace!("Wayland next_frame() returns frame");
         let (width, height) = self.stream.size.unwrap_or((1920, 1080));
         let width = width as u32;
         let height = height as u32;
