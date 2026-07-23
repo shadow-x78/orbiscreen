@@ -72,7 +72,8 @@ impl Transport {
     ) -> Result<(), TransportError> {
         let (fallback_tx, _fallback_rx) = mpsc::unbounded_channel();
         let input_tx = self.input_tx.unwrap_or(fallback_tx);
-        let app = build_router(self.cfg.clone(), input_tx);
+        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(32);
+        let app = build_router(self.cfg.clone(), input_tx, video_tx.clone());
         let listener = TcpListener::bind(("0.0.0.0", self.cfg.signaling_port))
             .await
             .map_err(|e| TransportError::Http(e.to_string()))?;
@@ -84,7 +85,9 @@ impl Transport {
 
         tokio::spawn(async move {
             let mut frames = frames;
-            while frames.recv().await.is_some() {}
+            while let Some(pkt) = frames.recv().await {
+                let _ = video_tx.send(pkt);
+            }
         });
 
         axum::serve(listener, app)
@@ -105,12 +108,18 @@ pub struct H264Packet {
 struct AppState {
     config: ServerConfig,
     input_tx: mpsc::UnboundedSender<IncomingInput>,
+    video_tx: tokio::sync::broadcast::Sender<H264Packet>,
 }
 
-fn build_router(cfg: ServerConfig, input_tx: mpsc::UnboundedSender<IncomingInput>) -> Router {
+fn build_router(
+    cfg: ServerConfig,
+    input_tx: mpsc::UnboundedSender<IncomingInput>,
+    video_tx: tokio::sync::broadcast::Sender<H264Packet>,
+) -> Router {
     let state = AppState {
         config: cfg,
         input_tx,
+        video_tx,
     };
     Router::new()
         .route("/", get(root_handler))
@@ -118,6 +127,7 @@ fn build_router(cfg: ServerConfig, input_tx: mpsc::UnboundedSender<IncomingInput
         .route("/ws", get(ws_handler))
         .route("/sdp", post(sdp_post))
         .route("/input", post(input_post))
+        .route("/stream", get(stream_handler))
         .nest_service("/client", ServeDir::new(&state.config.client_web_dir))
         .with_state(state)
 }
@@ -210,6 +220,22 @@ async fn input_post(
             .send(IncomingInput::Pointer(PointerEvent::Move { x, y }));
     }
     StatusCode::ACCEPTED
+}
+
+async fn stream_handler(State(state): State<AppState>) -> impl IntoResponse {
+    use tokio_stream::StreamExt;
+    let rx = state.video_tx.subscribe();
+    let stream = tokio_stream::wrappers::BroadcastStream::new(rx).filter_map(|res| {
+        res.ok()
+            .map(|pkt| Ok::<_, std::convert::Infallible>(axum::body::Bytes::from(pkt.bytes)))
+    });
+    (
+        [
+            ("content-type", "video/h264"),
+            ("cache-control", "no-cache, no-store, must-revalidate"),
+        ],
+        axum::body::Body::from_stream(stream),
+    )
 }
 
 #[cfg(test)]

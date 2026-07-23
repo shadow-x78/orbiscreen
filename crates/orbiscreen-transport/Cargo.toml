@@ -24,3 +24,4 @@ tracing = { workspace = true }
 tower-http = { workspace = true }
 hostname = { workspace = true }
 orbiscreen-input = { path = "../orbiscreen-input" }
+tokio-stream = { version = "0.1", features = ["sync"] }
