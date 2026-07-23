@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-VERSION="${1:-0.4.7}"
+VERSION="${1:-0.5.0}"
 ARCH="x86_64"
 RPM_NAME="orbiscreen-${VERSION}-1.${ARCH}.rpm"
 BUILD_ROOT="target/rpm-staging"

@@ -1,21 +1,15 @@
 <div align="center">
-  <img src="data/orbiscreen.svg" alt="Orbiscreen" width="180" style="margin-bottom: 0px;" />
-  <h1 style="margin-top: 4px; margin-bottom: 8px;">Orbiscreen</h1>
+  <img src="data/orbiscreen.svg" alt="Orbiscreen" width="180" style="display: block; margin: 0 auto;" />
+  <h1 style="margin-top: 0px; margin-bottom: 4px; border-bottom: none;">Orbiscreen</h1>
   <p>Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB</p>
 
   <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.4.9-blue?style=flat-square" alt="Version" /></a>
+    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.5.0-blue?style=flat-square" alt="Version" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml"><img src="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square" alt="CI" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/stargazers"><img src="https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square" alt="Stars" /></a>
   </p>
 </div>
-
----
-
-## 🌐 Language
-
-<a href="README.md">🇬🇧 English</a> · <a href="README_AR.md">🇸🇦 العربية</a>
 
 ---
 
@@ -214,9 +208,12 @@ orbiscreen/
 
 | Document | Description |
 |----------|-------------|
-| [CHANGELOG.md](CHANGELOG.md) | Release history |
-| [SECURITY.md](SECURITY.md) | Security policy and reporting |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and debugging |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System topology, zero-copy pipeline & D-Bus architecture |
+| [docs/PACKAGING.md](docs/PACKAGING.md) | Multi-distro packaging specifications (.deb, .rpm, AppImage, Flatpak) |
+| [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) | D-Bus Session Bus IPC interface specifications |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues, diagnostics & hardware acceleration fixes |
+| [docs/SECURITY.md](docs/SECURITY.md) | Security model, WebRTC transport safety & network policies |
+| [CHANGELOG.md](CHANGELOG.md) | Full release history and versioning |
 
 ---
 
