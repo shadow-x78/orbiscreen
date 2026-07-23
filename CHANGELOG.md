@@ -2,6 +2,17 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.4.3] - 2026-07-23
+
+### 🚀 Added
+- **World-Class System Architecture Specifications:** `docs/ARCHITECTURE.md` & `docs/ARCHITECTURE_AR.md` — published bilingual system topology specifications, workspace crate breakdown, and zero-copy streaming pipeline diagrams.
+- **Bilingual Documentation Pairing:** Added English/Arabic `_AR` bilingual documentation pairs for all documentation (`SECURITY_AR.md`, `DBUS_SPEC_AR.md`, `PACKAGING_AR.md`, `ARCHITECTURE_AR.md`).
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.4.2` → `0.4.3` (`Cargo.toml` workspace version, README + README_AR badges).
+
+---
+
 ## [v0.4.2] - 2026-07-23
 
 ### 🚀 Added
