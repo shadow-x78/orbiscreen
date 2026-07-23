@@ -1,12 +1,76 @@
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#121212">
 
     <WebView
         android:id="@+id/webView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/black" />
+        android:visibility="gone" />
 
-</FrameLayout>
+    <LinearLayout
+        android:id="@+id/connectCard"
+        android:layout_width="320dp"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:background="#1E1E2E"
+        android:elevation="8dp"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Orbiscreen"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Enter Linux Host Address or IP"
+            android:textColor="#A6ADC8"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/hostAddressInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="#313244"
+            android:hint="192.168.1.50:8788"
+            android:inputType="textUri"
+            android:padding="12dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#585B70"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/connectButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="#89B4FA"
+            android:padding="12dp"
+            android:text="Connect"
+            android:textAllCaps="false"
+            android:textColor="#11111B"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/usbConnectButton"
+            style="?attr/borderlessButtonStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="USB Mode (127.0.0.1:8788)"
+            android:textAllCaps="false"
+            android:textColor="#89B4FA"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+</RelativeLayout>

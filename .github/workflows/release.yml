@@ -30,7 +30,7 @@ jobs:
             libevdev-dev libxkbcommon-dev libwayland-dev \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
-            libgtk-4-dev libadwaita-1-dev libgraphene-1.0-dev
+            libgtk-4-dev libadwaita-1-dev libgraphene-1.0-dev rpm
 
       - name: Build release binaries
         run: |
@@ -46,20 +46,19 @@ jobs:
       - name: Package Debian DEB package
         run: |
           chmod +x scripts/package-deb.sh
-          ./scripts/package-deb.sh 0.5.0
-          mv orbiscreen_0.5.0_amd64.deb orbiscreen_amd64.deb
+          ./scripts/package-deb.sh 0.6.0
+          mv orbiscreen_0.6.0_amd64.deb orbiscreen_amd64.deb
 
       - name: Package RPM package
         run: |
           chmod +x scripts/package-rpm.sh
-          ./scripts/package-rpm.sh 0.5.0
-          cp target/rpm-staging/usr/bin/orbiscreen target/orbiscreen-binary || true
-          tar -czvf orbiscreen-x86_64.rpm.tar.gz -C target/rpm-staging . || true
+          ./scripts/package-rpm.sh 0.6.0
+          mv orbiscreen-0.6.0-1.x86_64.rpm orbiscreen_x86_64.rpm
 
       - name: Package AppImage
         run: |
           chmod +x scripts/package-appimage.sh
-          ./scripts/package-appimage.sh 0.5.0
+          ./scripts/package-appimage.sh 0.6.0
           tar -czvf orbiscreen-x86_64.AppImage.tar.gz -C target/AppDir .
 
       - name: Set up JDK 17 for Android
@@ -68,13 +67,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Build Android APKs
+      - name: Build Android Release APK
         run: |
           cd clients/android
           chmod +x gradlew
-          ./gradlew assembleRelease assembleDebug
+          ./gradlew assembleRelease
           cp app/build/outputs/apk/release/app-release.apk ../../orbiscreen-android-release.apk
-          cp app/build/outputs/apk/debug/app-debug.apk ../../orbiscreen-android-debug.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
@@ -83,6 +81,6 @@ jobs:
           files: |
             orbiscreen-linux-x86_64.tar.gz
             orbiscreen_amd64.deb
+            orbiscreen_x86_64.rpm
             orbiscreen-x86_64.AppImage.tar.gz
             orbiscreen-android-release.apk
-            orbiscreen-android-debug.apk

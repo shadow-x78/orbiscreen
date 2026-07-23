@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-VERSION="${1:-0.5.0}"
+VERSION="${1:-0.6.0}"
 ARCH="amd64"
 BUILD_DIR="target/deb-staging"
 DEB_NAME="orbiscreen_${VERSION}_${ARCH}.deb"

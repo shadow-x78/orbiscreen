@@ -2,6 +2,21 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.6.0] - 2026-07-24
+
+### 🚀 Added
+- **Android Host Connection UI & Direct Network Client Streaming:** Added an interactive host address entry card in Android (`MainActivity.kt` & `activity_main.xml`) allowing users to enter custom Linux host IP/port or quick-connect via USB (`127.0.0.1:8788`), streaming the live web client directly from the host.
+- **Standalone Fedora/RHEL RPM Package Build:** Created `data/orbiscreen.spec` rpmbuild specification and updated `scripts/package-rpm.sh` and `.github/workflows/release.yml` to compile and publish a real `orbiscreen_x86_64.rpm` package.
+- **Enhanced V1/V2/V3 Android Signing Schemes:** Updated `build.gradle.kts` with explicit `v1SigningEnabled`, `v2SigningEnabled`, and `v3SigningEnabled` flags on release keystore to satisfy Play Protect compliance.
+
+### 🧹 Removed
+- **Removed Debug APK:** Completely eliminated `orbiscreen-android-debug.apk` output from build scripts and GitHub release matrix, publishing `orbiscreen-android-release.apk` exclusively.
+
+### 🔄 Updated
+- **Version Bump:** Workspace version bumped to `v0.6.0`.
+
+---
+
 ## [v0.5.1] - 2026-07-24
 
 ### 🚀 Added
