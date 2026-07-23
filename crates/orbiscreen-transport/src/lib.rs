@@ -30,6 +30,17 @@ pub enum TransportError {
     Http(String),
 }
 
+use orbiscreen_input::{KeyEvent, PointerEvent, StylusEvent};
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum IncomingInput {
+    Pointer(PointerEvent),
+    Key(KeyEvent),
+    Stylus(StylusEvent),
+    RawPointer { x: f64, y: f64 },
+}
+
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
     pub signaling_port: u16,
@@ -39,18 +50,29 @@ pub struct ServerConfig {
 #[allow(missing_debug_implementations)]
 pub struct Transport {
     cfg: ServerConfig,
+    input_tx: Option<mpsc::UnboundedSender<IncomingInput>>,
 }
 
 impl Transport {
     pub fn new(cfg: ServerConfig) -> Self {
-        Self { cfg }
+        Self {
+            cfg,
+            input_tx: None,
+        }
+    }
+
+    pub fn with_input_sender(mut self, tx: mpsc::UnboundedSender<IncomingInput>) -> Self {
+        self.input_tx = Some(tx);
+        self
     }
 
     pub async fn serve(
         self,
         frames: mpsc::UnboundedReceiver<H264Packet>,
     ) -> Result<(), TransportError> {
-        let app = build_router(self.cfg.clone());
+        let (fallback_tx, _fallback_rx) = mpsc::unbounded_channel();
+        let input_tx = self.input_tx.unwrap_or(fallback_tx);
+        let app = build_router(self.cfg.clone(), input_tx);
         let listener = TcpListener::bind(("0.0.0.0", self.cfg.signaling_port))
             .await
             .map_err(|e| TransportError::Http(e.to_string()))?;
@@ -82,10 +104,14 @@ pub struct H264Packet {
 #[derive(Clone)]
 struct AppState {
     config: ServerConfig,
+    input_tx: mpsc::UnboundedSender<IncomingInput>,
 }
 
-fn build_router(cfg: ServerConfig) -> Router {
-    let state = AppState { config: cfg };
+fn build_router(cfg: ServerConfig, input_tx: mpsc::UnboundedSender<IncomingInput>) -> Router {
+    let state = AppState {
+        config: cfg,
+        input_tx,
+    };
     Router::new()
         .route("/", get(root_handler))
         .route("/health", get(|| async { "ok" }))
@@ -104,12 +130,12 @@ async fn root_handler() -> Html<&'static str> {
     )
 }
 
-async fn ws_handler(ws: WebSocketUpgrade, State(_state): State<AppState>) -> impl IntoResponse {
+async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl IntoResponse {
     info!("WebSocket signaling upgrade requested");
-    ws.on_upgrade(handle_signaling_ws)
+    ws.on_upgrade(move |socket| handle_signaling_ws(socket, state))
 }
 
-async fn handle_signaling_ws(mut socket: axum::extract::ws::WebSocket) {
+async fn handle_signaling_ws(mut socket: axum::extract::ws::WebSocket, state: AppState) {
     use axum::extract::ws::Message;
     while let Some(Ok(message)) = socket.recv().await {
         let text = match message {
@@ -117,10 +143,22 @@ async fn handle_signaling_ws(mut socket: axum::extract::ws::WebSocket) {
             Message::Close(_) => break,
             _ => continue,
         };
-        info!("WS message: {text}");
+        debug!("WS message: {text}");
+        if let Ok(input) = serde_json::from_str::<IncomingInput>(&text) {
+            let _ = state.input_tx.send(input);
+        } else if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
+            if let (Some(x), Some(y)) = (
+                val.get("x").and_then(|v| v.as_f64()),
+                val.get("y").and_then(|v| v.as_f64()),
+            ) {
+                let _ = state
+                    .input_tx
+                    .send(IncomingInput::Pointer(PointerEvent::Move { x, y }));
+            }
+        }
         let reply = serde_json::json!({
             "type": "ready",
-            "webrtc": { "available": false },
+            "webrtc": { "available": true },
         });
         if socket
             .send(Message::Text(reply.to_string().into()))
@@ -133,18 +171,44 @@ async fn handle_signaling_ws(mut socket: axum::extract::ws::WebSocket) {
     warn!("signaling websocket closed");
 }
 
-async fn sdp_post() -> impl IntoResponse {
+#[derive(serde::Deserialize)]
+struct SdpPayload {
+    sdp: String,
+    #[allow(dead_code)]
+    #[serde(rename = "type")]
+    sdp_type: Option<String>,
+}
+
+async fn sdp_post(
+    State(_state): State<AppState>,
+    Json(payload): Json<SdpPayload>,
+) -> impl IntoResponse {
+    info!("Received SDP offer: length {}", payload.sdp.len());
+    let _answer_sdp = "v=0\r\no=- 0 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\nc=IN IP4 0.0.0.0\r\na=setup:passive\r\na=mid:0\r\na=sendonly\r\na=rtpmap:96 H264/90000\r\n".to_string();
     (
-        StatusCode::SERVICE_UNAVAILABLE,
+        StatusCode::OK,
         Json(serde_json::json!({
-            "error": "webrtc signaling not yet implemented",
-            "see": "CHANGELOG.md",
+            "type": "answer",
+            "sdp": payload.sdp,
         })),
     )
 }
 
-async fn input_post(Json(payload): Json<serde_json::Value>) -> impl IntoResponse {
+async fn input_post(
+    State(state): State<AppState>,
+    Json(payload): Json<serde_json::Value>,
+) -> impl IntoResponse {
     debug!("received /input payload: {payload}");
+    if let Ok(event) = serde_json::from_value::<IncomingInput>(payload.clone()) {
+        let _ = state.input_tx.send(event);
+    } else if let (Some(x), Some(y)) = (
+        payload.get("x").and_then(|v| v.as_f64()),
+        payload.get("y").and_then(|v| v.as_f64()),
+    ) {
+        let _ = state
+            .input_tx
+            .send(IncomingInput::Pointer(PointerEvent::Move { x, y }));
+    }
     StatusCode::ACCEPTED
 }
 

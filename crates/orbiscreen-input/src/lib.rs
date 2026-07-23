@@ -4,16 +4,17 @@
 pub mod wayland;
 pub mod x11;
 
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum PointerEvent {
     Move { x: f64, y: f64 },
     Button { button: u32, pressed: bool },
     Wheel { delta_y: f64 },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum StylusEvent {
     Proximity {
         in_range: bool,
@@ -32,7 +33,7 @@ pub enum StylusEvent {
     },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct KeyEvent {
     pub code: u32,
     pub pressed: bool,

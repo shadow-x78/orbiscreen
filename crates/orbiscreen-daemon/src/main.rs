@@ -215,9 +215,27 @@ async fn run_start(
         }
     });
 
+    let (input_tx, mut input_rx) = mpsc::unbounded_channel::<orbiscreen_transport::IncomingInput>();
+    let mut injector = injector;
     let _input_pump = tokio::spawn(async move {
-        let _ = injector;
-        std::future::pending::<()>().await;
+        while let Some(event) = input_rx.recv().await {
+            use orbiscreen_input::PointerEvent;
+            use orbiscreen_transport::IncomingInput;
+            match event {
+                IncomingInput::Pointer(p) => {
+                    let _ = injector.inject_pointer(p).await;
+                }
+                IncomingInput::Key(k) => {
+                    let _ = injector.inject_key(k).await;
+                }
+                IncomingInput::Stylus(s) => {
+                    let _ = injector.inject_stylus(s).await;
+                }
+                IncomingInput::RawPointer { x, y } => {
+                    let _ = injector.inject_pointer(PointerEvent::Move { x, y }).await;
+                }
+            }
+        }
     });
 
     let client_dir = std::env::var_os("ORBISCREEN_CLIENT_DIR")
@@ -230,7 +248,8 @@ async fn run_start(
     let transport = Transport::new(ServerConfig {
         signaling_port: cfg.transport.signaling_port,
         client_web_dir: client_dir,
-    });
+    })
+    .with_input_sender(input_tx);
 
     let _mdns = if !no_mdns && cfg.transport.mdns_advertise {
         match orbiscreen_transport::mdns::Advertiser::register(
