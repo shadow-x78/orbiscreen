@@ -43,6 +43,12 @@ jobs:
           cp scripts/install.sh release-bundle/
           tar -czvf orbiscreen-linux-x86_64.tar.gz -C release-bundle .
 
+      - name: Package Debian DEB package
+        run: |
+          chmod +x scripts/package-deb.sh
+          ./scripts/package-deb.sh 0.4.7
+          mv orbiscreen_0.4.7_amd64.deb orbiscreen_amd64.deb
+
       - name: Set up JDK 17 for Android
         uses: actions/setup-java@v4
         with:
@@ -63,5 +69,6 @@ jobs:
         with:
           files: |
             orbiscreen-linux-x86_64.tar.gz
+            orbiscreen_amd64.deb
             orbiscreen-android-release.apk
             orbiscreen-android-debug.apk
