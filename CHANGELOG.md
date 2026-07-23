@@ -2,6 +2,21 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.5.0] - 2026-07-23
+
+### 🚀 Added
+- **Complete Multi-Distro Release Matrix Packaging:** Configured GitHub Release workflow to build and package `.deb` (Debian/Ubuntu), `.rpm` (Fedora/RHEL/openSUSE), `.AppImage` (Universal Linux AppImage), `.tar.gz` (standalone Linux bundle), and `orbiscreen-android-release.apk` (official signed release build).
+- **Official Release Naming for Android CI:** Updated Android workflow to assemble and upload `orbiscreen-android-release.apk` exclusively.
+
+### 🧹 Removed & Cleaned
+- **Deleted All Non-English Localized Files:** Removed all Arabic documentation files (`README_AR.md`, `ARCHITECTURE_AR.md`, `PACKAGING_AR.md`, `DBUS_SPEC_AR.md`, `TROUBLESHOOTING_AR.md`, `SECURITY_AR.md`) and eliminated the Language navigation section.
+- **Script Comment Cleanup:** Stripped non-essential inline code comments across packaging scripts, leaving clean, production-grade logic.
+
+### 🔧 Fixed
+- **README Logo Proximity & Comprehensive Documentation:** Aligned logo and `Orbiscreen` header with zero vertical gap and updated the Documentation section with direct links to all system specs (`ARCHITECTURE.md`, `PACKAGING.md`, `DBUS_SPEC.md`, `TROUBLESHOOTING.md`, `SECURITY.md`).
+
+---
+
 ## [v0.4.9] - 2026-07-23
 
 ### 🚀 Added

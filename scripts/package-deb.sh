@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-VERSION="${1:-0.4.7}"
+VERSION="${1:-0.5.0}"
 ARCH="amd64"
 BUILD_DIR="target/deb-staging"
 DEB_NAME="orbiscreen_${VERSION}_${ARCH}.deb"
@@ -17,16 +17,13 @@ mkdir -p "${BUILD_DIR}/usr/share/applications"
 mkdir -p "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps"
 mkdir -p "${BUILD_DIR}/usr/lib/systemd/user"
 
-# Copy binaries
 cp -f target/release/orbiscreen "${BUILD_DIR}/usr/bin/"
 cp -f target/release/orbiscreen-daemon "${BUILD_DIR}/usr/bin/" || true
 cp -f target/release/orbiscreen-gtk "${BUILD_DIR}/usr/bin/" || true
 
-# Copy desktop entry & icon
 cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_DIR}/usr/share/applications/" || true
 cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg" || true
 
-# Copy systemd user service
 cat << 'EOF' > "${BUILD_DIR}/usr/lib/systemd/user/orbiscreen.service"
 [Unit]
 Description=Orbiscreen Virtual Secondary Display Service
@@ -43,7 +40,6 @@ RestartSec=3s
 WantedBy=graphical-session.target
 EOF
 
-# Create Debian Control File
 cat << EOF > "${BUILD_DIR}/DEBIAN/control"
 Package: orbiscreen
 Version: ${VERSION}
