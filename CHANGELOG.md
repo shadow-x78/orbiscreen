@@ -2,6 +2,17 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.4.5] - 2026-07-23
+
+### 🚀 Added
+- **Ultra-crisp Vector SVG Logo & Brand Identity:** Designed a clean, high-grade vector SVG logo (`data/orbiscreen.svg` and `data/orbiscreen-app.svg`) representing the Linux Host Display, Android Secondary Display, and glowing wireless WebRTC/Axum stream bridge using Catppuccin Blue (`#89b4fa`), Mauve (`#cba6f7`), Rosewater (`#f5e0dc`), and Surface palette (`#11111b`, `#1e1e2e`).
+- **Crisp Multi-Density Icons:** Replaced raster image with crisp vector SVG renderings for README headers and Android launcher icons across all mipmap densities.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.4.4` → `0.4.5`.
+
+---
+
 ## [v0.4.4] - 2026-07-23
 
 ### 🚀 Added
