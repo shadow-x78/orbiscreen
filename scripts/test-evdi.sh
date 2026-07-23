@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Orbiscreen - test-evdi (GPL-3.0-or-later)
 # https://github.com/shadow-x78/orbiscreen
+
 set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO_ROOT="$(pwd)"
