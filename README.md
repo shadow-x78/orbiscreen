@@ -81,10 +81,10 @@ Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or U
 | Phase | Goal | State |
 |-------|------|-------|
 | 0 | Workspace scaffolding + evdi feasibility | ✅ Closed |
-| 1 | Display + capture + encode + input (X11) | ⚠️ Scaffolded - WebRTC streaming pending |
-| 2 | Android client + USB transport + mDNS | ⚠️ Scaffolded |
-| 3 | Wayland capture + input | ⚠️ Scaffolded - PipeWire DMA-BUF pending |
-| 4 | Packaging + advanced features | ⚠️ Scaffolded |
+| 1 | Display + capture + encode + input (X11) | ✅ Completed |
+| 2 | Android client + USB transport + mDNS | ✅ Completed |
+| 3 | Wayland capture + portal fallback + input | ✅ Completed |
+| 4 | Packaging + standalone installation | ✅ Completed |
 
 > See `CHANGELOG.md` for the complete release history.
 
@@ -98,16 +98,17 @@ Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or U
 git clone https://github.com/shadow-x78/orbiscreen.git ~/Orbiscreen
 cd ~/Orbiscreen
 
-# Build the workspace
-. "$HOME/.cargo/env"
-cargo build --workspace
+# One-command installation for Linux
+./scripts/install.sh
 
-# Probe the local session
-cargo run -p orbiscreen-daemon -- probe
+# Probe local capture, input, and display backends
+orbiscreen probe
 
-# Start the daemon (needs evdi kernel module + /dev/dri permissions)
-cargo run -p orbiscreen-daemon -- start
+# Start the Orbiscreen daemon (EVDI DRM or Wayland Portal auto-fallback)
+orbiscreen start
 ```
+
+> **Android Client:** Install `app-debug.apk` directly on your Android device (built in `clients/android/app/build/outputs/apk/debug/app-debug.apk` or downloaded from GitHub Actions / Releases `orbiscreen-android-debug`).
 
 A full host-side walk-through lives in `scripts/setup-dev-env.sh`, and the evdi feasibility probe in `scripts/test-evdi.sh`.
 

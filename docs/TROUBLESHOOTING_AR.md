@@ -312,6 +312,48 @@ pub async fn open_at(...) -> ... {
 
 ---
 
+## 📱 تطبيق الأندرويد والنشر
+
+### أين يتم إيجاد وبناء تطبيق الأندرويد (`app-debug.apk`)؟
+
+- **محلياً على جهازك:**
+  عند تشغيل `./gradlew assembleDebug` من مجلد `clients/android`، يتم حفظ ملف ה-APK في المسار التالي:
+  ```text
+  clients/android/app/build/outputs/apk/debug/app-debug.apk
+  ```
+
+- **على موقع GitHub (Actions & Releases):**
+  عند نجاح أكشن `Android build` في GitHub Actions، يتم نشر وتوليد ملف الـ APK في قسم **Artifacts** بأسفل صفحة التشغيل باسم **`orbiscreen-android-debug`**.
+
+---
+
+### غياب تعريف النواة EVDI / التراجع التلقائي لـ Wayland Desktop Portal
+
+**العرض:**
+أمر `orbiscreen probe` يظهر `display backend: kernel module missing`.
+
+**الشرح:**
+يدعم Orbiscreen تعريف EVDI الأصلي لإنشاء شاشات افتراضية مستقلة. ولكن إذا لم يكن تعريف EVDI مفعلاً في نظام اللينكس لديك، يقوم `orbiscreen-daemon` تلقائياً بالتراجع لاستخدام واجهة `Wayland/X11 ScreenCast portal` (`xdg-desktop-portal`)، مما يتيح تشغيل التطبيق فوراً وبدون أي مشاكل على واجهات GNOME و KDE و Sway.
+
+---
+
+### الاتصال عبر كابل USB وتعديل منافذ ADB
+
+**العرض:**
+تطبيق الأندرويد يظهر `Looking for host...` عند الاتصال عبر كابل USB.
+
+**الحل:**
+يقوم Orbiscreen تلقائياً بتنفيذ أمر `adb reverse tcp:8788 tcp:8788` عند التشغيل. تأكد من:
+1. تفعيل **تصحيح أخطاء USB (USB Debugging)** في خيارات المطور على جهاز الأندرويد.
+2. الموافقة على صلاحية الاتصال بالكمبيوتر عند ظهور النافذة المنبثقة على جوالك/لوحك.
+3. للتحقق يدوياً:
+   ```bash
+   adb devices
+   adb reverse tcp:8788 tcp:8788
+   ```
+
+---
+
 <a id="still-stuck"></a>
 ## 🛟 لا تزال عالقاً؟
 

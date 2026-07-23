@@ -75,10 +75,10 @@
 | المرحلة | الهدف | الحالة |
 |---------|-------|--------|
 | 0 | هيكل مساحة العمل + جدوى evdi | ✅ مكتملة |
-| 1 | شاشة + التقاط + ترميز + إدخال (X11) | ⚠️ هيكل - بث WebRTC معلّق |
-| 2 | عميل أندرويد + USB + mDNS | ⚠️ هيكل |
-| 3 | التقاط + إدخال Wayland | ⚠️ هيكل - PipeWire DMA-BUF معلّق |
-| 4 | التغليف + ميزات متقدمة | ⚠️ هيكل |
+| 1 | شاشة + التقاط + ترميز + إدخال (X11) | ✅ مكتملة |
+| 2 | عميل أندرويد + USB + mDNS | ✅ مكتملة |
+| 3 | التقاط Wayland Portal + إدخال | ✅ مكتملة |
+| 4 | التغليف + التثبيت المستقل | ✅ مكتملة |
 
 > انظر `CHANGELOG.md` للسجل الكامل للإصدارات.
 
@@ -90,16 +90,17 @@
 git clone https://github.com/shadow-x78/orbiscreen.git ~/Orbiscreen
 cd ~/Orbiscreen
 
-# البناء
-. "$HOME/.cargo/env"
-cargo build --workspace
+# التثبيت التلقائي بنقرة واحدة للينكس
+./scripts/install.sh
 
-# فحص الجلسة المحلية
-cargo run -p orbiscreen-daemon -- probe
+# فحص المحركات المحلية والبيئة
+orbiscreen probe
 
-# تشغيل الخادم (يحتاج وحدة evdi وصلاحيات /dev/dri)
-cargo run -p orbiscreen-daemon -- start
+# تشغيل الخادم (يدعم EVDI DRM أو التراجع التلقائي لـ Wayland Portal)
+orbiscreen start
 ```
+
+> **تطبيق الأندرويد:** يمكنك تثبيت `app-debug.apk` مباشرة على جهازك (يتم بناؤه في `clients/android/app/build/outputs/apk/debug/app-debug.apk` أو تحميله من قسم GitHub Releases / Actions Artifacts باسم `orbiscreen-android-debug`).
 
 دليل المضيف الكامل موجود في `scripts/setup-dev-env.sh`، وفحص جدوى evdi في `scripts/test-evdi.sh`.
 

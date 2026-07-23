@@ -314,6 +314,48 @@ pub async fn open_at(...) -> ... {
 
 ---
 
+## 📱 Android Client & Deployment
+
+### Where is the built Android APK file (`app-debug.apk`)?
+
+- **Locally on your system:**
+  When you run `./gradlew assembleDebug` inside `clients/android`, the generated APK file is stored at:
+  ```text
+  clients/android/app/build/outputs/apk/debug/app-debug.apk
+  ```
+
+- **On GitHub Actions / Releases:**
+  When the `Android build` workflow runs on GitHub Actions, the APK is published under **Artifacts** at the bottom of the workflow run page as **`orbiscreen-android-debug`**.
+
+---
+
+### EVDI Kernel Module Missing / Automatic Wayland Desktop Portal Fallback
+
+**Symptom:**
+`orbiscreen probe` reports `display backend: kernel module missing`.
+
+**Explanation:**
+Orbiscreen natively supports EVDI kernel driver for dedicated DRM virtual display connectors. However, if the EVDI module is not loaded on your Linux system (e.g. running stock Arch, Fedora, or Ubuntu without EVDI), `orbiscreen-daemon` automatically falls back to Wayland/X11 ScreenCast portal (`xdg-desktop-portal`), allowing instant streaming out-of-the-box on GNOME, KDE, and Sway.
+
+---
+
+### USB Connection & ADB Reverse Port Forwarding
+
+**Symptom:**
+Android app displays `Looking for host...` when connected over USB cable.
+
+**Fix:**
+Orbiscreen automatically configures `adb reverse tcp:8788 tcp:8788` when started. Ensure:
+1. **USB Debugging** is enabled in Android Developer Options.
+2. The host device is authorized on your Android phone/tablet prompt.
+3. Verify manually using:
+   ```bash
+   adb devices
+   adb reverse tcp:8788 tcp:8788
+   ```
+
+---
+
 <a id="still-stuck"></a>
 ## 🛟 Still Stuck?
 
