@@ -2,6 +2,17 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.4.0] - 2026-07-23
+
+### 🚀 Added
+- **D-Bus Session Service Interface:** `orbiscreen-daemon` — implemented `com.orbiscreen.Daemon` D-Bus session service via `zbus` crate (`Start`, `Stop`, `GetStatus`, `ListClients`, `GetConfig`), providing background IPC for GTK4 GUI and system tray indicators.
+- **D-Bus Specification Document:** `docs/DBUS_SPEC.md` — published detailed D-Bus API specification and `busctl` command usage examples.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.3.2` → `0.4.0` (`Cargo.toml` workspace version, README + README_AR badges).
+
+---
+
 ## [v0.3.2] - 2026-07-23
 
 ### 🚀 Added
