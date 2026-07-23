@@ -22,7 +22,7 @@ mkdir -p target/rpmbuild/SRPMS
 
 if [ ! -f target/release/orbiscreen ]; then
     echo "==> Building release binaries for RPM..."
-    cargo build --release --workspace --exclude orbiscreen-gtk
+    cargo build --release --workspace
 fi
 
 cp -f target/release/orbiscreen "${BUILD_ROOT}/usr/bin/"
