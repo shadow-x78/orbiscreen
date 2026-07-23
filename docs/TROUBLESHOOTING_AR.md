@@ -1,13 +1,4 @@
-<div align="center">
-
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
-
-[![الإصدار](https://img.shields.io/badge/الإصدار-0.1.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الرخصة](https://img.shields.io/badge/الرخصة-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
-![اللغة](https://img.shields.io/badge/rust-edition_2021-16a34a?style=flat-square&logo=rust)
-![المنصة](https://img.shields.io/badge/منصة-Linux-9333ea?style=flat-square&logo=linux)
-
-</div>
 
 ---
 

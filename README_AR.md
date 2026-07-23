@@ -1,25 +1,22 @@
 <div align="center">
 
 <pre align="center">
-██████╗  ██████╗  ██████╗  ██╗ ███████╗  ██████╗  ██████╗  ███████╗ ███████╗ ██████╗
-██╔═══██╗ ██╔══██╗ ██╔══██╗ ██║ ██╔════╝ ██╔════╝  ██╔══██╗ ██╔════╝ ██╔════╝ ██╔══╝██╗
-██║   ██║ ██████╔╝ ██████╔╝ ██║ ███████╗ ██║       ██████╔╝ █████╗   █████╗   ██████╔╝
-██║   ██║ ██╔══██╗ ██╔══██╗ ██║ ╚════██║ ██║       ██╔══██╗ ██╔══╝    ██╔══╝    ██╔══██╗
-╚██████╔╝ ██║  ██║ ██████╔╝ ██║ ███████║ ╚██████╗  ██║  ██║ ███████╗ ███████╗ ██║  ██║
-╚═════╝  ╚═╝  ╚═╝ ╚═════╝  ╚═╝ ╚══════╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═╝
+ ██████╗  ██████╗  ██████╗  ██╗ ███████╗  ██████╗  ██████╗  ███████╗ ███████╗ ███╗   ██╗
+██╔═══██╗ ██╔══██╗ ██╔══██╗ ██║ ██╔════╝ ██╔════╝  ██╔══██╗ ██╔════╝ ██╔════╝ ████╗  ██║
+██║   ██║ ██████╔╝ ██████╔╝ ██║ ███████╗ ██║       ██████╔╝ █████╗   █████╗   ██╔██╗ ██║
+██║   ██║ ██╔══██╗ ██╔══██╗ ██║ ╚════██║ ██║       ██╔══██╗ ██╔══╝   ██╔══╝   ██║╚██╗██║
+╚██████╔╝ ██║  ██║ ██████╔╝ ██║ ███████║ ╚██████╗  ██║  ██║ ███████╗ ███████╗ ██║ ╚████║
+ ╚═════╝  ╚═╝  ╚═╝ ╚═════╝  ╚═╝ ╚══════╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═══╝
 </pre>
 
 # Orbiscreen
 
 شاشات فرعية افتراضية مفتوحة المصدر للينكس، تُبَثّ إلى أجهزة أندرويد عبر Wi-Fi أو USB
 
-[![الإصدار](https://img.shields.io/badge/version-0.1.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
-[![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
-![اللغة](https://img.shields.io/badge/rust-edition_2021-16a34a?style=flat-square&logo=rust)
-![المنصة](https://img.shields.io/badge/platform-Linux-9333ea?style=flat-square&logo=linux)
-![العميل](https://img.shields.io/badge/client-Android-eab308?style=flat-square&logo=android)
+[![الإصدار](https://img.shields.io/badge/version-v0.1.1-blue?style=flat-square)](CHANGELOG.md)
 [![CI](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml)
-[![النجوم](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&color=eab308&logo=github&label=النجوم)](https://github.com/shadow-x78/orbiscreen/stargazers)
+[![الرخصة](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
+[![النجوم](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&label=النجوم)](https://github.com/shadow-x78/orbiscreen/stargazers)
 
 </div>
 
@@ -181,7 +178,8 @@ orbiscreen/
 |---------|-------|
 | [CHANGELOG.md](CHANGELOG.md) | سجل الإصدارات |
 | [SECURITY.md](SECURITY.md) | سياسة الأمان والإبلاغ عن الثغرات |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | المشاكل الشائعة والتصحيح |
+| [docs/TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) | المشاكل الشائعة والتصحيح |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and debugging (EN) |
 
 <a id="contributing"></a>
 ## 🤝 المساهمة
