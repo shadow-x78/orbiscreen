@@ -13,7 +13,7 @@
 
 Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB
 
-[![Version](https://img.shields.io/badge/version-v0.2.2-blue?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v0.2.3-blue?style=flat-square)](CHANGELOG.md)
 [![CI](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square)](https://github.com/shadow-x78/orbiscreen/stargazers)
