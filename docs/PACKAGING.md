@@ -1,12 +1,6 @@
 # Multi-Distro Packaging Guide - Orbiscreen
 
----
 
-## 🌐 Language
-
-<a href="PACKAGING.md">🇬🇧 English</a> · <a href="PACKAGING_AR.md">🇸🇦 العربية</a>
-
----
 
 ## 📦 Overview
 

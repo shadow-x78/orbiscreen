@@ -1,12 +1,6 @@
 # Architecture Specification - Orbiscreen
 
----
 
-## 🌐 Language
-
-<a href="ARCHITECTURE.md">🇬🇧 English</a> · <a href="ARCHITECTURE_AR.md">🇸🇦 العربية</a>
-
----
 
 ## 🏛 System Architecture Overview
 
