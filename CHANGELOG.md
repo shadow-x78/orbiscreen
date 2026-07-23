@@ -2,6 +2,20 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.2.2] - 2026-07-23
+
+### 🚀 Added
+- **WebRTC SDP Signaling:** `orbiscreen-transport` — updated `/sdp` POST handler for RTC SDP offer/answer exchange and video session initialization.
+
+### ⚙️ CI & Workflow
+- **Node 20 Warning Fix:** `.github/workflows/android.yml` — added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true` environment variable to suppress runner deprecation warnings.
+- **Android Gradle Assets:** `clients/android` — fixed asset merger duplication in `app/build.gradle.kts` and `strings.xml`.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.2.1` → `0.2.2` (`Cargo.toml` workspace version, README + README_AR badges).
+
+---
+
 ## [v0.2.1] - 2026-07-23
 
 ### 🚀 Added
