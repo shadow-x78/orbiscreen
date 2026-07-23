@@ -2,6 +2,20 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.5.1] - 2026-07-24
+
+### 🚀 Added
+- **Restored Android Debug APK in Release Matrix:** Re-enabled building and attaching `orbiscreen-android-debug.apk` alongside `orbiscreen-android-release.apk` in `.github/workflows/release.yml`.
+- **WebChromeClient & Offline Asset Loading for Android:** Updated `clients/web/index.html` asset URLs to relative paths (`style.css`, `app.js`) and added `WebChromeClient` with `onPermissionRequest` in `MainActivity.kt` to ensure WebRTC stream connection loads offline in WebView without asset resolution errors.
+
+### 🔧 Fixed
+- **Standardized Commit Message Format:** Enforced strict `orbiscreen | vX.Y.Z | <type>: <description>` naming convention across all commits and branches.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.5.0` → `0.5.1`.
+
+---
+
 ## [v0.5.0] - 2026-07-23
 
 ### 🚀 Added
