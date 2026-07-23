@@ -1,13 +1,4 @@
-<div align="center">
-
 # Troubleshooting - Orbiscreen
-
-[![Version](https://img.shields.io/badge/version-0.1.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
-![Language](https://img.shields.io/badge/rust-edition_2021-16a34a?style=flat-square&logo=rust)
-![Platform](https://img.shields.io/badge/platform-Linux-9333ea?style=flat-square&logo=linux)
-
-</div>
 
 ---
 
@@ -18,15 +9,6 @@
 ---
 
 ## 📋 Table of Contents
-
-### GitHub API / Repo Setup
-
-- [Apply branch protection - `"enabled"` rejected as not boolean](#gh-api-enabled)
-- [Apply branch protection - `restrictions` rejected on personal repo](#gh-api-restrictions)
-- [Apply branch protection - `"restrictions" wasn't supplied`](#gh-api-restrictions-missing)
-- [Apply branch protection - `cargo-deny` fails on transitive `derivative`](#gh-api-deny)
-- [PR merge blocked - `enforce_admins` and self-approval conflict](#gh-api-self-approval)
-- [Push rejected - `protected branch update failed`](#gh-api-push-rejected)
 
 ### CI Workflow Actions (`.github/workflows/ci.yml`)
 
@@ -49,205 +31,6 @@
 
 ---
 
-<a id="gh-api-enabled"></a>
-## 🔧 `Apply branch protection` - `"enabled"` rejected as not boolean
-
-**Symptom:**
-```json
-{
-  "message": "Invalid request.",
-  "errors": ["For 'allOf/0', {\"enabled\" => true} is not a boolean."],
-  "status": 422
-}
-```
-
-**Cause:**
-The top-level toggles (`enforce_admins`, `required_linear_history`,
-`allow_force_pushes`, etc.) were wrapped in `{ "enabled": true }`
-objects. The schema accepts **boolean literals** at the top level.
-
-**Fix:**
-Flatten each toggle:
-```jsonc
-// ❌ Wrong
-{ "enforce_admins": { "enabled": true } }
-
-// ✅ Right
-{ "enforce_admins": true }
-```
-
-**Apply:**
-```bash
-gh api -X PUT /repos/shadow-x78/orbiscreen/branches/main/protection \
-    --input admin/branch-protection.json
-```
-
----
-
-<a id="gh-api-restrictions"></a>
-## 🔧 `Apply branch protection` - `restrictions` rejected on personal repo
-
-**Symptom:**
-```json
-{
-  "message": "Validation Failed",
-  "errors": ["Only organization repositories can have users and team restrictions"],
-  "status": 422
-}
-```
-
-**Cause:**
-On **personal** repositories, GitHub rejects any value with arrays:
-```json
-{ "restrictions": { "users": [], "teams": [], "apps": [] } }   // ❌ rejected
-```
-
-**Fix:**
-For personal repos, use `"restrictions": null`. The field is present
-(satisfying the schema) but its value is null (GitHub silently drops
-push restrictions - which is exactly what a personal repo needs).
-
-For **organization** repos, populate `users[]` / `teams[]` / `apps[]`.
-
----
-
-<a id="gh-api-restrictions-missing"></a>
-## 🔧 `Apply branch protection` - `"restrictions" wasn't supplied`
-
-**Symptom:**
-```json
-{ "message": "Invalid request.", "errors": ["\"restrictions\" wasn't supplied."], "status": 422 }
-```
-
-**Cause:**
-You omitted the `restrictions` key entirely. The schema requires it to
-be present (even on personal repos where its value must be `null`).
-
-**Fix:**
-Add the key with a `null` value - do not omit it:
-```jsonc
-// ❌ Wrong - field missing entirely
-{ "enforce_admins": true, "required_linear_history": true, ... }
-
-// ✅ Right - field present, value null
-{ "enforce_admins": true, "restrictions": null, "required_linear_history": true, ... }
-```
-
----
-
-<a id="gh-api-deny"></a>
-## 🔧 `Apply branch protection` - `cargo-deny` fails on transitive `derivative`
-
-**Symptom:**
-```
-error[unmaintained]: `derivative` is unmaintained; consider using an alternative
-  ├─ ID: RUSTSEC-2024-0388
-  ├─ derivative v2.2.0
-  │   └── evdi v0.8.0
-  │       └── orbiscreen-display v0.1.0
-advisories FAILED, bans FAILED, licenses ok, sources ok
-##[error]Process completed with exit code 3.
-```
-
-**Cause:**
-`cargo-deny` flags `derivative v2.2.0` as unmaintained. This crate
-arrives **transitively** through `evdi v0.8.0`, the kernel-module
-binding we use to create virtual displays.
-
-**Fix:**
-The branch protection policy only requires the `workspace` check, so
-`cargo-deny` does not block merges. Two ways forward:
-
-1. **Leave it informational** - `cargo-deny` continues to surface
-   unmaintained transitive deps in CI logs but does not block merges.
-   This is the current setup.
-
-2. **Drop `cargo-deny` from the workflow** if its noise becomes a
-   problem - remove the `licenses` job from
-   `.github/workflows/ci.yml`.
-
-3. **Skip the advisory** in `deny.toml` (last resort - weakens the
-   check):
-   ```toml
-   [advisories]
-   ignore = ["RUSTSEC-2024-0388"]
-   ```
-
----
-
-<a id="gh-api-self-approval"></a>
-## 🔧 `PR merge` - `enforce_admins` and self-approval conflict
-
-**Symptom:**
-```
-GraphQL: At least 1 approving review is required by reviewers with write access.
-GraphQL: Review Can not approve your own pull request
-```
-
-**Cause:**
-When `enforce_admins: true` AND `required_approving_review_count: 1`
-are both on, **the only reviewer cannot be the author of the PR**.
-Solo-developer repos hit this immediately.
-
-**Fix:**
-The standard solo-developer workflow is a temporary relax-and-restore:
-
-```bash
-# 1. Apply the strict policy (default)
-gh api -X PUT /repos/<owner>/orbiscreen/branches/main/protection \
-    --input branch-protection.json
-
-# 2. To merge your own PR: temporarily relax the two blocking rules
-gh api -X PATCH /repos/<owner>/orbiscreen/branches/main/protection/enforce_admins \
-    -f enabled=false
-gh api -X PATCH /repos/<owner>/orbiscreen/branches/main/protection/required_pull_request_reviews \
-    -f required_approving_review_count=0
-
-# 3. Merge the PR
-gh pr merge <N> --squash --admin --delete-branch
-
-# 4. Restore the strict policy
-gh api -X PUT /repos/<owner>/orbiscreen/branches/main/protection \
-    --input branch-protection.json
-```
-
-Once you have a second GitHub account to act as a reviewer, this dance
-is no longer needed.
-
----
-
-<a id="gh-api-push-rejected"></a>
-## 🔧 `Push` - `protected branch hook declined`
-
-**Symptom:**
-```
-remote: error: GH006: Protected branch update failed for refs/heads/main.
-remote:
-remote: - Changes must be made through a pull request.
-remote: - Required status check "workspace" is expected.
-```
-
-**Cause:**
-Branch protection is active on `main` and requires:
-1. Changes come via a pull request (not direct push).
-2. The `workspace` status check must pass.
-
-**Fix:**
-Use the standard feature-branch + PR flow:
-```bash
-git checkout -b chore/your-change
-git commit -am "orbiscreen | v0.1.0 | chore: your change"
-git push -u origin chore/your-change
-gh pr create --base main --head chore/your-change
-# Wait for the workspace CI to pass
-gh pr merge <N> --squash --delete-branch
-```
-
-If you need to bypass temporarily, use the relax-and-restore dance from
-the previous section.
-
----
-
 <a id="ci-fmt"></a>
 ## 🧪 CI Action: `Check formatting` (`cargo fmt --all -- --check`)
 
@@ -266,7 +49,7 @@ Rust source files don't match `cargo fmt`'s formatting.
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.1.0 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.1.1 | style: cargo fmt --all"
 ```
 
 **Why this happens:**
@@ -343,7 +126,7 @@ cargo update -p webrtc
 # Then rebuild
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.1.0 | chore: refresh Cargo.lock for webrtc 0.20.0-rc.3"
+git commit -m "orbiscreen | v0.1.1 | chore: refresh Cargo.lock for webrtc 0.20.0-rc.3"
 ```
 
 If the dependency is `webrtc = "0.20.0-rc.3"` and has been removed or
@@ -417,9 +200,8 @@ transitive deps (notably `derivative` via `evdi`).
 
 **Fix:**
 For the current setup:
-- This is **informational only** - `cargo-deny` is NOT in the
-  required status checks (`"contexts": ["workspace"]`).
-- See [GH API: cargo-deny fails](#gh-api-deny) above.
+- This is **informational only** - `cargo-deny` is NOT a required
+  status check in `ci.yml`, so a deny failure cannot block a PR merge.
 
 To make `cargo-deny` pass cleanly:
 1. Update `deny.toml`'s `[advisories]` section to ignore the

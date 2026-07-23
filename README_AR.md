@@ -1,23 +1,22 @@
 <div align="center">
 
 <pre align="center">
- ██████╗  ██████╗  ██████╗  ██╗ ███████╗  ██████╗  ██████╗  ███████╗ ███████╗ ██████╗
-██╔═══██╗ ██╔══██╗ ██╔══██╗ ██║ ██╔════╝ ██╔════╝  ██╔══██╗ ██╔════╝ ██╔════╝ ██╔══╝██╗
-██║   ██║ ██████╔╝ ██████╔╝ ██║ ███████╗ ██║       ██████╔╝ █████╗   █████╗   ██████╔╝
-██║   ██║ ██╔══██╗ ██╔══██╗ ██║ ╚════██║ ██║       ██╔══██╗ ██╔══╝    ██╔══╝    ██╔══██╗
-╚██████╔╝ ██║  ██║ ██████╔╝ ██║ ███████║ ╚██████╗  ██║  ██║ ███████╗ ███████╗ ██║  ██║
- ╚═════╝  ╚═╝  ╚═╝ ╚═════╝  ╚═╝ ╚══════╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═╝
+ ██████╗  ██████╗  ██████╗  ██╗ ███████╗  ██████╗  ██████╗  ███████╗ ███████╗ ███╗   ██╗
+██╔═══██╗ ██╔══██╗ ██╔══██╗ ██║ ██╔════╝ ██╔════╝  ██╔══██╗ ██╔════╝ ██╔════╝ ████╗  ██║
+██║   ██║ ██████╔╝ ██████╔╝ ██║ ███████╗ ██║       ██████╔╝ █████╗   █████╗   ██╔██╗ ██║
+██║   ██║ ██╔══██╗ ██╔══██╗ ██║ ╚════██║ ██║       ██╔══██╗ ██╔══╝   ██╔══╝   ██║╚██╗██║
+╚██████╔╝ ██║  ██║ ██████╔╝ ██║ ███████║ ╚██████╗  ██║  ██║ ███████╗ ███████╗ ██║ ╚████║
+ ╚═════╝  ╚═╝  ╚═╝ ╚═════╝  ╚═╝ ╚══════╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═══╝
 </pre>
 
 # Orbiscreen
 
 شاشات فرعية افتراضية مفتوحة المصدر للينكس، تُبَثّ إلى أجهزة أندرويد عبر Wi-Fi أو USB
 
-[![الإصدار](https://img.shields.io/badge/version-0.1.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
-[![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
-![اللغة](https://img.shields.io/badge/rust-edition_2021-9333ea?style=flat-square&logo=rust)
-![المنصة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-16a34a?style=flat-square&logo=linux)
-[![النجوم](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&color=eab308&logo=github&label=النجوم)](https://github.com/shadow-x78/orbiscreen/stargazers)
+[![الإصدار](https://img.shields.io/badge/version-v0.1.1-blue?style=flat-square)](CHANGELOG.md)
+[![CI](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml)
+[![الرخصة](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
+[![النجوم](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&label=النجوم)](https://github.com/shadow-x78/orbiscreen/stargazers)
 
 </div>
 
@@ -32,11 +31,13 @@
 ## 📋 فهرس المحتويات
 
 - [ما هو Orbiscreen؟](#what-is-orbiscreen)
-- [لماذا Orbiscreen؟](#why)
+- [لماذا Orbiscreen؟](#why-orbiscreen-exists)
 - [أبرز المزايا](#highlights)
 - [حالة المشروع](#status)
 - [البدء السريع](#quick-start)
+- [الأوامر](#commands)
 - [هيكل المشروع](#project-structure)
+- [البنية](#architecture)
 - [التوثيق](#documentation)
 - [المساهمة](#contributing)
 - [الرخصة](#license)
@@ -48,8 +49,8 @@
 
 **Orbiscreen** يحوّل جهاز أندرويد إضافي (تابلت أو هاتف) إلى شاشة ثانوية حقيقية لسطح مكتب لينكس. يُنشئ **شاشة افتراضية على مستوى النواة** عبر وحدة `evdi` من DisplayLink، فتظهر كشاشة حقيقية لكل من مركّبات X11 وWayland، ثم يبثّها عبر **WebRTC** مع إرجاع أحداث اللمس إلى المضيف.
 
-<a id="why"></a>
-## 💡 لماذا Orbiscreen؟
+<a id="why-orbiscreen-exists"></a>
+## 🧭 لماذا Orbiscreen؟
 
 | المشكلة | المشاريع الأخرى | Orbiscreen |
 |---------|----------------|------------|
@@ -59,16 +60,14 @@
 | لا مشروع يجمع الشاشة الافتراضية + USB + أندرويد | ❌ فجوة | ✅ حل متكامل |
 
 <a id="highlights"></a>
-## ⭐ أبرز المزايا
+## ✨ أبرز المزايا
 
-| الميزة | الوصف |
-|--------|-------|
-| **شاشة افتراضية حقيقية** | عبر `evdi` - تعمل على X11 و Wayland |
-| **بث WebRTC** | يفتح من أي متصفح حديث، دون تثبيت تطبيق |
-| **لمس عكسي** | الجهاز يرسل أحداث المؤشر ولوحة المفاتيح إلى المضيف |
-| **اكتشاف mDNS** | عميل أندرويد يجد المضيف تلقائياً |
-| **نقل USB** | عبر `adb reverse` دون تعريفات خاصة |
-| **ترميز بالعتاد** | VAAPI لـ Intel/AMD، NVENC لـ NVIDIA، x264 احتياطياً |
+- شاشة افتراضية حقيقية عبر `evdi` (تعمل على X11 *و* Wayland)
+- بث WebRTC - يفتح من أي متصفح حديث، دون تثبيت تطبيق
+- لمس عكسي - أحداث المؤشر ولوحة المفاتيح والقلم تتدفق من أندرويد إلى المضيف
+- اكتشاف mDNS - عميل أندرويد يجد المضيف تلقائياً
+- نقل USB عبر `adb reverse`، دون تعريفات خاصة
+- ترميز بالعتاد - VAAPI، NVENC، x264 احتياطياً
 
 <a id="status"></a>
 ## 📊 حالة المشروع
@@ -94,16 +93,34 @@ cd ~/Orbiscreen
 # البناء
 . "$HOME/.cargo/env"
 cargo build --workspace
-cargo test  --workspace
 
-# فحص النظام المحلي
+# فحص الجلسة المحلية
 cargo run -p orbiscreen-daemon -- probe
 
-# تشغيل الخادم
+# تشغيل الخادم (يحتاج وحدة evdi وصلاحيات /dev/dri)
 cargo run -p orbiscreen-daemon -- start
 ```
 
-> دليل التبعيات الكامل في `scripts/setup-dev-env.sh`، وفحص جدوى evdi في `scripts/test-evdi.sh`.
+دليل المضيف الكامل موجود في `scripts/setup-dev-env.sh`، وفحص جدوى evdi في `scripts/test-evdi.sh`.
+
+---
+
+<a id="commands"></a>
+## ⌨️ الأوامر
+
+| الأمر | الوصف |
+|--------|-------|
+| `orbiscreen start` | إنشاء الشاشة الافتراضية وبدء البث |
+| `orbiscreen start --no-mdns` | بدء التشغيل دون إعلانات mDNS |
+| `orbiscreen list-displays` | سرد الشاشات الافتراضية المُعدة |
+| `orbiscreen probe` | تقرير عن واجهات الالتقاط والإدخال والعرض |
+| `orbiscreen print-config` | طباعة الإعدادات المحلولة |
+
+```bash
+orbiscreen --config orbiscreen.toml --verbose probe
+```
+
+---
 
 <a id="project-structure"></a>
 ## 🏗️ هيكل المشروع
@@ -127,6 +144,33 @@ orbiscreen/
 └── .editorconfig, .gitignore, .gitattributes, deny.toml, rustfmt.toml
 ```
 
+---
+
+<a id="architecture"></a>
+## 🧩 البنية
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  orbiscreen-daemon (CLI, clap)                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────┐   │
+│  │ display      │  │ capture      │  │ encode            │   │
+│  │  evdi crate  │  │ x11rb/ashpd  │  │ gstreamer-rs      │   │
+│  └──────────────┘  └──────────────┘  └───────────────────┘   │
+│  ┌──────────────┐  ┌──────────────────────────────────────┐  │
+│  │ input        │  │ transport                            │  │
+│  │ evdevil/ashpd│  │ axum + webrtc-rs + mdns-sd + adb     │  │
+│  └──────────────┘  └──────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │ core: shared types, config, errors                   │    │
+│  └──────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────┘
+       │                  │                    │
+       ▼                  ▼                    ▼
+   /dev/dri/...     X11 / Wayland         Network (mDNS + UDP)
+```
+
+---
+
 <a id="documentation"></a>
 ## 📚 التوثيق
 
@@ -134,6 +178,8 @@ orbiscreen/
 |---------|-------|
 | [CHANGELOG.md](CHANGELOG.md) | سجل الإصدارات |
 | [SECURITY.md](SECURITY.md) | سياسة الأمان والإبلاغ عن الثغرات |
+| [docs/TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) | المشاكل الشائعة والتصحيح |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and debugging (EN) |
 
 <a id="contributing"></a>
 ## 🤝 المساهمة
@@ -149,7 +195,7 @@ orbiscreen/
 <a id="license"></a>
 ## 📜 الرخصة
 
-موزّع تحت رخصة [GPL-3.0-or-later](LICENSE).
+موزّع تحت رخصة [GPL-3.0 License](LICENSE).
 
 ---
 
@@ -157,7 +203,7 @@ orbiscreen/
 
 بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [سجل التغييرات](CHANGELOG.md) ·
-<a href="README.md">English</a>
+[الأمان](SECURITY.md)
 
 <sub>&copy; 2026 Orbiscreen (shadow-x78)</sub>
 
