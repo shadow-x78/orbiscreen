@@ -158,11 +158,21 @@ async fn run_start(
         enc = cfg.encode.preferred_encoder,
     );
 
-    let handle = VirtualDisplay::open(spec).await?;
-    info!(
-        connector = ?handle.drm_connector_name(),
-        "Virtual display is open",
-    );
+    let _handle = match VirtualDisplay::open(spec).await {
+        Ok(handle) => {
+            info!(
+                connector = ?handle.drm_connector_name(),
+                "Virtual display is open (EVDI DRM active)",
+            );
+            Some(handle)
+        }
+        Err(e) => {
+            warn!(
+                "EVDI kernel module missing/inactive ({e}). Falling back to Wayland/X11 portal capture.",
+            );
+            None
+        }
+    };
 
     let capture = CaptureSession::open_async(spec.width, spec.height).await?;
     info!(backend = ?capture.backend(), "Capture backend open");
