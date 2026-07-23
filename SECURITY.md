@@ -1,12 +1,6 @@
 # Security Policy - Orbiscreen
 
----
 
-## 🌐 Language
-
-<a href="SECURITY.md">🇬🇧 English</a> · <a href="SECURITY_AR.md">🇸🇦 العربية</a>
-
----
 
 ## 📋 Table of Contents
 

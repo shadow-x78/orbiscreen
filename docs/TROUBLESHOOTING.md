@@ -1,12 +1,6 @@
 # Troubleshooting - Orbiscreen
 
----
 
-## 🌐 Language
-
-<a href="TROUBLESHOOTING.md">🇬🇧 English</a> · <a href="TROUBLESHOOTING_AR.md">🇸🇦 العربية</a>
-
----
 
 ## 📋 Table of Contents
 
