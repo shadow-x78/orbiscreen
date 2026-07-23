@@ -18,12 +18,19 @@ function setStatus(text) {
 }
 
 function sendInput(event) {
-    if (!dataChannel || dataChannel.readyState !== "open") return;
-    try {
-        dataChannel.send(JSON.stringify(event));
-    } catch (error) {
-        console.warn("sendInput failed:", error);
+    if (dataChannel && dataChannel.readyState === "open") {
+        try {
+            dataChannel.send(JSON.stringify(event));
+            return;
+        } catch (error) {
+            console.warn("sendInput via dataChannel failed:", error);
+        }
     }
+    fetch("/input", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(event),
+    }).catch((err) => console.warn("sendInput HTTP fallback failed:", err));
 }
 
 async function exchangeSdp(offer) {
@@ -119,11 +126,17 @@ async function start() {
                 new RTCSessionDescription({ type: answer.type, sdp: answer.sdp }),
             );
         } else {
-            setStatus("Daemon reported signaling is not implemented yet");
+            setStatus("Connecting to direct stream...");
+            videoEl.src = "/stream";
+            videoEl.play().catch(() => {});
+            overlayEl.classList.add("hidden");
         }
     } catch (error) {
         console.error(error);
-        setStatus(`Signaling error: ${error.message}`);
+        setStatus("Connecting to direct stream fallback...");
+        videoEl.src = "/stream";
+        videoEl.play().catch(() => {});
+        overlayEl.classList.add("hidden");
     }
 }
 
