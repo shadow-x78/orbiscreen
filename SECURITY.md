@@ -2,6 +2,12 @@
 
 ---
 
+## 🌐 Language
+
+<a href="SECURITY.md">🇬🇧 English</a> · <a href="SECURITY_AR.md">🇸🇦 العربية</a>
+
+---
+
 ## 📋 Table of Contents
 
 - [Supported Versions](#supported-versions)
@@ -18,8 +24,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x | ✅ Active development |
-| < 0.1 | ❌ Not released |
+| 0.4.x | ✅ Active development |
+| < 0.4 | ❌ Not released |
 
 Only the latest development release receives security updates. Ensure you build from `main` before reporting.
 

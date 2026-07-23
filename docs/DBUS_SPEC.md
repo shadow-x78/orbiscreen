@@ -2,6 +2,12 @@
 
 ---
 
+## 🌐 Language
+
+<a href="DBUS_SPEC.md">🇬🇧 English</a> · <a href="DBUS_SPEC_AR.md">🇸🇦 العربية</a>
+
+---
+
 ## 🛰 Overview
 
 Orbiscreen exposes a D-Bus Session Service interface allowing desktop control panels (GTK4 GUI), CLI scripts, and system tray indicators to inspect status, configure display settings, and control the daemon process.

@@ -1,0 +1,26 @@
+[package]
+name = "orbiscreen-gtk"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Orbiscreen GTK4 / Libadwaita desktop control panel GUI and system tray app"
+
+[lints]
+workspace = true
+
+[dependencies]
+orbiscreen-core = { path = "../orbiscreen-core" }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+zbus = { workspace = true }
+gtk4 = { workspace = true }
+libadwaita = { workspace = true }
+
+[[bin]]
+name = "orbiscreen-gtk"
+path = "src/main.rs"

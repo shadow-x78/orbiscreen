@@ -8,10 +8,11 @@ members = [
     "crates/orbiscreen-input",
     "crates/orbiscreen-transport",
     "crates/orbiscreen-daemon",
+    "crates/orbiscreen-gtk",
 ]
 
 [workspace.package]
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 rust-version = "1.75"
 license = "GPL-3.0-or-later"
@@ -52,6 +53,8 @@ nix = { version = "0.29", default-features = false }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 zbus = { version = "5", features = ["tokio"] }
+gtk4 = "0.9"
+libadwaita = "0.7"
 
 [workspace.lints.rust]
 unsafe_code = "warn"

@@ -26,7 +26,8 @@ jobs:
             libx11-dev libxcb1-dev libxrandr-dev \
             libevdev-dev libxkbcommon-dev libwayland-dev \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-            gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
+            gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+            libgtk-4-dev libadwaita-1-dev libgraphene-1.0-dev
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Clippy (deny warnings)
