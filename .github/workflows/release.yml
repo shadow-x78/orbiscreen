@@ -55,13 +55,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Build Android APKs
+      - name: Build Android Release APK
         run: |
           cd clients/android
           chmod +x gradlew
-          ./gradlew assembleRelease assembleDebug
+          ./gradlew assembleRelease
           cp app/build/outputs/apk/release/app-release.apk ../../orbiscreen-android-release.apk
-          cp app/build/outputs/apk/debug/app-debug.apk ../../orbiscreen-android-debug.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
@@ -71,4 +70,3 @@ jobs:
             orbiscreen-linux-x86_64.tar.gz
             orbiscreen_amd64.deb
             orbiscreen-android-release.apk
-            orbiscreen-android-debug.apk
