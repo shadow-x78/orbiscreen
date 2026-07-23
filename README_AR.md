@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="data/orbiscreen.svg" alt="Orbiscreen" width="220" />
+<img src="data/orbiscreen.svg" alt="Orbiscreen" width="140" style="margin-bottom: 0px;" />
 
 # Orbiscreen
 
 شاشات فرعية افتراضية مفتوحة المصدر للينكس، تُبَثّ إلى أجهزة أندرويد عبر Wi-Fi أو USB
 
-[![الإصدار](https://img.shields.io/badge/version-v0.4.6-blue?style=flat-square)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-v0.4.7-blue?style=flat-square)](CHANGELOG.md)
 [![CI](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 [![النجوم](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&label=النجوم)](https://github.com/shadow-x78/orbiscreen/stargazers)
@@ -27,12 +27,11 @@
 - [لماذا Orbiscreen؟](#why-orbiscreen-exists)
 - [أبرز المزايا](#highlights)
 - [حالة المشروع](#status)
-- [البدء السريع](#quick-start)
+- [فهرس التوثيق الشامل](#documentation-index)
+- [البدء السريع والتثبيت](#quick-start)
 - [الأوامر](#commands)
 - [هيكل المشروع](#project-structure)
-- [البنية](#architecture)
-- [التوثيق](#documentation)
-- [المساهمة](#contributing)
+- [البنية الهندسية](#architecture)
 - [الرخصة](#license)
 
 ---
@@ -48,19 +47,19 @@
 | المشكلة | المشاريع الأخرى | Orbiscreen |
 |---------|----------------|------------|
 | `spacedesk` بلا دعم لينكس كمضيف | ❌ أعلنوا أنه ليس مخططاً | ✅ لينكس كمضيف أصلي |
-| `VirtScreen` على X11 فقط | ❌ متوقف منذ 2018 | ✅ X11 و Wayland |
-| `Weylus` شاشة ثانية X11 فقط | ❌ Wayland بوضع المتصفح فقط | ✅ شاشة افتراضية حقيقية |
-| لا مشروع يجمع الشاشة الافتراضية + USB + أندرويد | ❌ فجوة | ✅ حل متكامل |
+| حلول حصريّة لـ X11 فقط | VirtScreen مهجور منذ 2018 | X11 و Wayland عبر evdi/DRM |
+| غياب الشاشة الثانية على Wayland | Weylus ينحصر على X11 | مسار Wayland كامل عبر ashpd + PipeWire |
+| ضبط IP يدويًا معقّد | أغلب المشاريع | اكتشاف mDNS + توصيل USB بـ `adb reverse` |
 
 <a id="highlights"></a>
 ## ✨ أبرز المزايا
 
-- شاشة افتراضية حقيقية عبر `evdi` (تعمل على X11 *و* Wayland)
-- بث WebRTC - يفتح من أي متصفح حديث، دون تثبيت تطبيق
-- لمس عكسي - أحداث المؤشر ولوحة المفاتيح والقلم تتدفق من أندرويد إلى المضيف
-- اكتشاف mDNS - عميل أندرويد يجد المضيف تلقائياً
-- نقل USB عبر `adb reverse`، دون تعريفات خاصة
-- ترميز بالعتاد - VAAPI، NVENC، x264 احتياطياً
+- شاشة افتراضية حقيقية عبر `evdi` (X11 و Wayland)
+- بث WebRTC مباشر - يفتح في أي متصفح حديث دون حاجة لتثبيت تطبيق
+- إرجاع أحداث اللمس - المؤشر / اللوحة / القلم تُنقل من أندرويد إلى المضيف
+- اكتشاف تلقائي بـ mDNS - عميل أندرويد يعثر على المضيف تلقائيًا
+- نقل عبر USB بـ `adb reverse` دون تعريفات خاصة
+- ترميز عالي الأداء بالعتاد - VAAPI، NVENC، مع تراجع برلمجي لـ x264
 
 <a id="status"></a>
 ## 📊 حالة المشروع

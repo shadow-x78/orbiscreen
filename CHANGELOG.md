@@ -2,6 +2,20 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.4.7] - 2026-07-23
+
+### 🚀 Added
+- **Automated Multi-Distro Release Packaging Matrix:** Added packaging build scripts (`scripts/package-deb.sh`, `scripts/package-rpm.sh`, `scripts/package-appimage.sh`) and updated `.github/workflows/release.yml` to automatically build and attach `.deb` (Debian/Ubuntu), `.rpm` (Fedora/RHEL/openSUSE), `.AppImage`, `.tar.gz` (standalone Linux tarball), `orbiscreen-android-release.apk` (signed release build), and `orbiscreen-android-debug.apk` directly to GitHub Releases.
+- **Global Documentation Index & Roadmap Navigation:** Added comprehensive documentation index tables and distribution-specific installation commands to both `README.md` and `README_AR.md`, linking directly to `ARCHITECTURE.md`, `PACKAGING.md`, `DBUS_SPEC.md`, `TROUBLESHOOTING.md`, and `SECURITY.md` (English & Arabic).
+
+### 🔧 Fixed
+- **Status Standardization & Compact Branding:** Standardized all phase status labels across `README.md`, `README_AR.md`, `implementation_plan.md`, and `walkthrough.md` to use consistent `✅ Completed` terminology (eliminating mixed `Closed` / `Completed` labels). Reduced README logo width to `140px` and styled bottom margin to remove excessive whitespace gap.
+
+### 🔄 Updated
+- **Version Bump:** All version sources bumped from `0.4.6` → `0.4.7`.
+
+---
+
 ## [v0.4.6] - 2026-07-23
 
 ### 🚀 Added

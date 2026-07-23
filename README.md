@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="data/orbiscreen.svg" alt="Orbiscreen" width="220" />
+<img src="data/orbiscreen.svg" alt="Orbiscreen" width="140" style="margin-bottom: 0px;" />
 
 # Orbiscreen
 
 Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB
 
-[![Version](https://img.shields.io/badge/version-v0.4.6-blue?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v0.4.7-blue?style=flat-square)](CHANGELOG.md)
 [![CI](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square)](https://github.com/shadow-x78/orbiscreen/stargazers)
@@ -27,12 +27,10 @@ Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or U
 - [Why Orbiscreen Exists](#why-orbiscreen-exists)
 - [Highlights](#highlights)
 - [Status](#status)
-- [Quick Start](#quick-start)
+- [Documentation Index](#documentation-index)
+- [Quick Start & Packaging](#quick-start)
 - [Commands](#commands)
-- [Project Structure](#project-structure)
 - [Architecture](#architecture)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
 - [License](#license)
 
 ---
@@ -73,18 +71,62 @@ Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or U
 
 | Phase | Goal | State |
 |-------|------|-------|
-| 0 | Workspace scaffolding + evdi feasibility | ✅ Closed |
+| 0 | Workspace scaffolding + evdi feasibility | ✅ Completed |
 | 1 | Display + capture + encode + input (X11) | ✅ Completed |
 | 2 | Android client + USB transport + mDNS | ✅ Completed |
 | 3 | Wayland capture + portal fallback + input | ✅ Completed |
-| 4 | Packaging + standalone installation | ✅ Completed |
+| 4 | Packaging + GTK4 GUI + D-Bus service + Standalone installation | ✅ Completed |
 
 > See `CHANGELOG.md` for the complete release history.
 
 ---
 
+<a id="documentation-index"></a>
+## 📚 Documentation Index
+
+| Topic | English Guide | Arabic Guide (العربية) |
+| :--- | :--- | :--- |
+| **System Architecture** | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [ARCHITECTURE_AR.md](docs/ARCHITECTURE_AR.md) |
+| **Multi-Distro Packaging** | [PACKAGING.md](docs/PACKAGING.md) | [PACKAGING_AR.md](docs/PACKAGING_AR.md) |
+| **D-Bus Session Spec** | [DBUS_SPEC.md](docs/DBUS_SPEC.md) | [DBUS_SPEC_AR.md](docs/DBUS_SPEC_AR.md) |
+| **Troubleshooting & Fixes** | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | [TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) |
+| **Security Architecture** | [SECURITY.md](docs/SECURITY.md) | [SECURITY_AR.md](docs/SECURITY_AR.md) |
+
+---
+
 <a id="quick-start"></a>
-## 🚀 Quick Start
+## 🚀 Quick Start & Multi-Distro Installation
+
+### 1. Official Packages & Pre-built Artifacts (GitHub Releases)
+
+Download pre-built packages from [GitHub Releases](https://github.com/shadow-x78/orbiscreen/releases):
+
+- **Debian / Ubuntu (`.deb`):**
+  ```bash
+  sudo dpkg -i orbiscreen_amd64.deb || sudo apt-get install -f
+  ```
+
+- **Fedora / RHEL (`.rpm`):**
+  ```bash
+  sudo dnf install ./orbiscreen-1.x86_64.rpm
+  ```
+
+- **Universal AppImage (`.AppImage`):**
+  ```bash
+  chmod +x orbiscreen-x86_64.AppImage
+  ./orbiscreen-x86_64.AppImage
+  ```
+
+- **Standalone Tarball (`.tar.gz`):**
+  ```bash
+  tar -xzvf orbiscreen-linux-x86_64.tar.gz
+  cd release-bundle && ./install.sh
+  ```
+
+- **Android App (`.apk`):**
+  Install `orbiscreen-android-release.apk` (signed release build to bypass Play Protect warnings) or `orbiscreen-android-debug.apk`.
+
+### 2. Building from Source
 
 ```bash
 # Clone the repository
@@ -100,10 +142,6 @@ orbiscreen probe
 # Start the Orbiscreen daemon (EVDI DRM or Wayland Portal auto-fallback)
 orbiscreen start
 ```
-
-> **Android Client:** Install `app-debug.apk` directly on your Android device (built in `clients/android/app/build/outputs/apk/debug/app-debug.apk` or downloaded from GitHub Actions / Releases `orbiscreen-android-debug`).
-
-A full host-side walk-through lives in `scripts/setup-dev-env.sh`, and the evdi feasibility probe in `scripts/test-evdi.sh`.
 
 ---
 
