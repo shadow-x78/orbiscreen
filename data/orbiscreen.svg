@@ -1,78 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="24 54 464 396" width="512" height="437">
   <defs>
-    <!-- Catppuccin Gradients -->
-    <linearGradient id="mainMonitorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="bezelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#1e1e2e"/>
-      <stop offset="100%" stop-color="#11111b"/>
-    </linearGradient>
-    <linearGradient id="secMonitorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#313244"/>
       <stop offset="100%" stop-color="#181825"/>
     </linearGradient>
-    <linearGradient id="blueGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#11111b"/>
+      <stop offset="100%" stop-color="#0b0b10"/>
+    </linearGradient>
+    <linearGradient id="blueAccent" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#89b4fa"/>
       <stop offset="100%" stop-color="#74c7ec"/>
     </linearGradient>
-    <linearGradient id="mauveGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#cba6f7"/>
-      <stop offset="100%" stop-color="#f5c2e7"/>
+    <linearGradient id="roseAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f5e0dc"/>
+      <stop offset="100%" stop-color="#f2cdcd"/>
     </linearGradient>
-    <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#89b4fa" stop-opacity="0.9"/>
-      <stop offset="50%" stop-color="#cba6f7" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#f5e0dc" stop-opacity="0.9"/>
-    </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="6" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
   </defs>
 
-  <!-- Main Monitor (Linux Host) -->
-  <g id="primary-monitor">
-    <!-- Monitor Stand Base -->
-    <path d="M120 390 L240 390 L230 350 L130 350 Z" fill="#45475a"/>
-    <rect x="165" y="340" width="30" height="20" fill="#313244"/>
-    <!-- Outer Frame -->
-    <rect x="40" y="90" width="280" height="250" rx="16" ry="16" fill="url(#mainMonitorGrad)" stroke="#89b4fa" stroke-width="6"/>
-    <!-- Inner Screen Display -->
-    <rect x="54" y="104" width="252" height="196" rx="8" ry="8" fill="#11111b"/>
-    <!-- Simulated Code / Terminal Lines on Main Monitor -->
-    <rect x="74" y="128" width="80" height="8" rx="4" fill="#89b4fa" opacity="0.8"/>
-    <rect x="162" y="128" width="50" height="8" rx="4" fill="#cba6f7" opacity="0.6"/>
-    <rect x="74" y="148" width="120" height="6" rx="3" fill="#45475a"/>
-    <rect x="74" y="162" width="90" height="6" rx="3" fill="#45475a"/>
-    <!-- Linux Display Workspace Graphic -->
-    <circle cx="210" cy="220" r="32" fill="none" stroke="url(#blueGlow)" stroke-width="4" opacity="0.4"/>
-    <circle cx="210" cy="220" r="18" fill="none" stroke="#74c7ec" stroke-width="3" opacity="0.6"/>
-  </g>
+  <!-- Outer Monitor Frame (Bezel) -->
+  <rect x="32" y="64" width="448" height="320" rx="24" ry="24" fill="url(#bezelGrad)" stroke="url(#blueAccent)" stroke-width="14"/>
 
-  <!-- Streaming Signal Arcs (Wi-Fi / WebRTC Bridge) -->
-  <g id="wireless-stream" filter="url(#glow)">
-    <path d="M 270 190 Q 320 150 370 180" fill="none" stroke="url(#waveGrad)" stroke-width="6" stroke-linecap="round" stroke-dasharray="12 6"/>
-    <path d="M 285 220 Q 330 185 375 210" fill="none" stroke="url(#waveGrad)" stroke-width="5" stroke-linecap="round"/>
-    <path d="M 300 250 Q 340 220 380 240" fill="none" stroke="url(#waveGrad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="8 4"/>
-    <!-- Active Data Stream Particles -->
-    <circle cx="320" cy="168" r="5" fill="#f5e0dc"/>
-    <circle cx="345" cy="200" r="4" fill="#a6e3a1"/>
-    <circle cx="330" cy="232" r="3.5" fill="#89b4fa"/>
-  </g>
+  <!-- Inner Display Screen -->
+  <rect x="64" y="96" width="384" height="256" rx="12" ry="12" fill="url(#screenGrad)"/>
 
-  <!-- Secondary Display Device (Android Tablet / Virtual Screen) -->
-  <g id="secondary-device">
-    <!-- Outer Device Frame -->
-    <rect x="330" y="160" width="145" height="230" rx="20" ry="20" fill="url(#secMonitorGrad)" stroke="url(#mauveGlow)" stroke-width="6"/>
-    <!-- Inner Glass Screen -->
-    <rect x="342" y="174" width="121" height="202" rx="12" ry="12" fill="#11111b"/>
-    <!-- Mirror / Extension Viewport -->
-    <rect x="354" y="190" width="97" height="150" rx="8" ry="8" fill="#1e1e2e" stroke="#cba6f7" stroke-width="2"/>
-    <!-- Virtual Screen UI Elements -->
-    <circle cx="402" cy="240" r="24" fill="none" stroke="#cba6f7" stroke-width="3"/>
-    <path d="M 390 240 L 414 240 M 402 228 L 402 252" fill="none" stroke="#f5e0dc" stroke-width="3" stroke-linecap="round"/>
-    <!-- Touch Indicator Dot -->
-    <circle cx="425" cy="275" r="7" fill="#a6e3a1" opacity="0.9"/>
-    <circle cx="425" cy="275" r="14" fill="none" stroke="#a6e3a1" stroke-width="2" opacity="0.5"/>
-    <!-- Home Bar -->
-    <rect x="382" y="358" width="40" height="4" rx="2" fill="#585b70"/>
-  </g>
+  <!-- Central Orbital Ring (Orbit Screen Motif) -->
+  <circle cx="256" cy="224" r="68" fill="none" stroke="url(#blueAccent)" stroke-width="12" opacity="0.95"/>
+
+  <!-- Top Arc Beam (Rosewater Glow) -->
+  <path d="M 188 224 A 68 68 0 0 1 324 224" fill="none" stroke="url(#roseAccent)" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Center Connection Dot -->
+  <circle cx="256" cy="224" r="10" fill="#cba6f7"/>
+
+  <!-- Monitor Stand Neck -->
+  <rect x="216" y="384" width="80" height="36" fill="url(#blueAccent)" rx="4" ry="4"/>
+
+  <!-- Monitor Stand Base -->
+  <rect x="156" y="416" width="200" height="26" rx="10" ry="10" fill="#45475a" stroke="#585b70" stroke-width="2"/>
 </svg>
