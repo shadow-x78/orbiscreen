@@ -16,7 +16,7 @@ use thiserror::Error;
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 use tower_http::services::ServeDir;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 #[derive(Debug, Clone)]
 pub struct ServiceDescriptor {
@@ -140,45 +140,26 @@ async fn root_handler() -> Html<&'static str> {
     )
 }
 
-async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl IntoResponse {
-    info!("WebSocket signaling upgrade requested");
-    ws.on_upgrade(move |socket| handle_signaling_ws(socket, state))
+async fn ws_handler(ws: WebSocketUpgrade, State(_state): State<AppState>) -> impl IntoResponse {
+    ws.on_upgrade(handle_socket)
 }
 
-async fn handle_signaling_ws(mut socket: axum::extract::ws::WebSocket, state: AppState) {
-    use axum::extract::ws::Message;
-    while let Some(Ok(message)) = socket.recv().await {
-        let text = match message {
-            Message::Text(t) => t.to_string(),
-            Message::Close(_) => break,
-            _ => continue,
-        };
-        debug!("WS message: {text}");
-        if let Ok(input) = serde_json::from_str::<IncomingInput>(&text) {
-            let _ = state.input_tx.send(input);
-        } else if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
-            if let (Some(x), Some(y)) = (
-                val.get("x").and_then(|v| v.as_f64()),
-                val.get("y").and_then(|v| v.as_f64()),
-            ) {
-                let _ = state
-                    .input_tx
-                    .send(IncomingInput::Pointer(PointerEvent::Move { x, y }));
-            }
-        }
+async fn handle_socket(mut socket: axum::extract::ws::WebSocket) {
+    info!("signaling websocket connected");
+    while let Some(Ok(msg)) = socket.recv().await {
+        debug!("ws message: {msg:?}");
         let reply = serde_json::json!({
             "type": "ready",
             "webrtc": { "available": true },
         });
         if socket
-            .send(Message::Text(reply.to_string().into()))
+            .send(axum::extract::ws::Message::Text(reply.to_string().into()))
             .await
             .is_err()
         {
             break;
         }
     }
-    warn!("signaling websocket closed");
 }
 
 #[derive(serde::Deserialize)]
@@ -194,7 +175,6 @@ async fn sdp_post(
     Json(payload): Json<SdpPayload>,
 ) -> impl IntoResponse {
     info!("Received SDP offer: length {}", payload.sdp.len());
-    let _answer_sdp = "v=0\r\no=- 0 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\nc=IN IP4 0.0.0.0\r\na=setup:passive\r\na=mid:0\r\na=sendonly\r\na=rtpmap:96 H264/90000\r\n".to_string();
     (
         StatusCode::OK,
         Json(serde_json::json!({

@@ -8,6 +8,9 @@ on:
       - 'clients/web/**'
       - '.github/workflows/android.yml'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
+
 jobs:
   android:
     name: Build debug APK
