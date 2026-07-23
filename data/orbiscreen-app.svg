@@ -1,40 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e1e2e"/>
-      <stop offset="100%" stop-color="#11111b"/>
-    </linearGradient>
-    <linearGradient id="blueAccent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#89b4fa"/>
-      <stop offset="100%" stop-color="#74c7ec"/>
-    </linearGradient>
-    <linearGradient id="roseAccent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#f5e0dc"/>
-      <stop offset="100%" stop-color="#f2cdcd"/>
-    </linearGradient>
-  </defs>
-
-  <!-- Dark Squircle App Icon Background -->
-  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="url(#bgGrad)" stroke="#313244" stroke-width="4"/>
-
-  <!-- Outer Monitor Frame (Bezel) -->
-  <rect x="48" y="80" width="416" height="296" rx="22" ry="22" fill="#181825" stroke="url(#blueAccent)" stroke-width="14"/>
-
-  <!-- Inner Display Screen -->
-  <rect x="78" y="110" width="356" height="236" rx="12" ry="12" fill="#11111b"/>
-
-  <!-- Central Orbital Ring (Orbit Screen Motif) -->
-  <circle cx="256" cy="228" r="62" fill="none" stroke="url(#blueAccent)" stroke-width="12" opacity="0.95"/>
-
-  <!-- Top Arc Beam (Rosewater Glow) -->
-  <path d="M 194 228 A 62 62 0 0 1 318 228" fill="none" stroke="url(#roseAccent)" stroke-width="12" stroke-linecap="round"/>
-
-  <!-- Center Connection Dot -->
-  <circle cx="256" cy="228" r="9" fill="#cba6f7"/>
-
-  <!-- Monitor Stand Neck -->
-  <rect x="220" y="376" width="72" height="32" fill="url(#blueAccent)" rx="4" ry="4"/>
-
-  <!-- Monitor Stand Base -->
-  <rect x="166" y="408" width="180" height="24" rx="8" ry="8" fill="#45475a" stroke="#585b70" stroke-width="2"/>
+  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="#1e1e2e" stroke="#313244" stroke-width="4"/>
+  <g transform="translate(0, 16)">
+    <rect x="32" y="56" width="448" height="320" rx="24" ry="24" fill="#1e1e2e" stroke="#89b4fa" stroke-width="16"/>
+    <rect x="64" y="88" width="384" height="256" rx="12" ry="12" fill="#11111b"/>
+    <circle cx="256" cy="216" r="64" fill="none" stroke="#89b4fa" stroke-width="12"/>
+    <path d="M192 216 A64 64 0 0 1 320 216" fill="none" stroke="#f5e0dc" stroke-width="12" stroke-linecap="round"/>
+    <rect x="208" y="376" width="96" height="32" fill="#89b4fa"/>
+    <rect x="160" y="408" width="192" height="24" rx="8" ry="8" fill="#45475a"/>
+  </g>
 </svg>
