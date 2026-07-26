@@ -4,7 +4,7 @@
   <p>Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB</p>
 
   <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.6.0-blue?style=flat-square" alt="Version" /></a>
+    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.7.3-blue?style=flat-square" alt="Version" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml"><img src="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square" alt="CI" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/stargazers"><img src="https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square" alt="Stars" /></a>
@@ -19,7 +19,6 @@
 - [Why Orbiscreen Exists](#why-orbiscreen-exists)
 - [Highlights](#highlights)
 - [Status](#status)
-- [Documentation Index](#documentation-index)
 - [Quick Start & Packaging](#quick-start)
 - [Commands](#commands)
 - [Architecture](#architecture)
@@ -70,19 +69,6 @@
 | 4 | Packaging + GTK4 GUI + D-Bus service + Standalone installation | ✅ Completed |
 
 > See `CHANGELOG.md` for the complete release history.
-
----
-
-<a id="documentation-index"></a>
-## 📚 Documentation Index
-
-| Topic | English Guide | Arabic Guide (العربية) |
-| :--- | :--- | :--- |
-| **System Architecture** | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [ARCHITECTURE_AR.md](docs/ARCHITECTURE_AR.md) |
-| **Multi-Distro Packaging** | [PACKAGING.md](docs/PACKAGING.md) | [PACKAGING_AR.md](docs/PACKAGING_AR.md) |
-| **D-Bus Session Spec** | [DBUS_SPEC.md](docs/DBUS_SPEC.md) | [DBUS_SPEC_AR.md](docs/DBUS_SPEC_AR.md) |
-| **Troubleshooting & Fixes** | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | [TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) |
-| **Security Architecture** | [SECURITY.md](docs/SECURITY.md) | [SECURITY_AR.md](docs/SECURITY_AR.md) |
 
 ---
 
@@ -212,19 +198,16 @@ orbiscreen/
 | [docs/PACKAGING.md](docs/PACKAGING.md) | Multi-distro packaging specifications (.deb, .rpm, AppImage, Flatpak) |
 | [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) | D-Bus Session Bus IPC interface specifications |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues, diagnostics & hardware acceleration fixes |
-| [docs/SECURITY.md](docs/SECURITY.md) | Security model, WebRTC transport safety & network policies |
+| [SECURITY.md](SECURITY.md) | Security model, WebRTC transport safety & network policies |
 | [CHANGELOG.md](CHANGELOG.md) | Full release history and versioning |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Guidelines for contributing and building from source |
 
 ---
 
 <a id="contributing"></a>
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on how to set up the development environment, format your code, and submit Pull Requests.
 
 ---
 
