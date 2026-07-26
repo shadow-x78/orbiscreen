@@ -43,6 +43,7 @@ enum Command {
         no_mdns: bool,
     },
     Stop,
+    Uninstall,
     ListDisplays,
     Probe,
     PrintConfig,
@@ -131,6 +132,10 @@ async fn main() -> ExitCode {
             );
             ExitCode::SUCCESS
         }
+        Command::Uninstall => {
+            run_uninstall();
+            ExitCode::SUCCESS
+        }
         Command::ListDisplays => {
             list_displays();
             ExitCode::SUCCESS
@@ -150,6 +155,37 @@ async fn main() -> ExitCode {
             }
         },
     }
+}
+
+fn run_uninstall() {
+    println!("[Orbiscreen] Uninstalling...");
+    
+    // Stop and disable service
+    if let Err(e) = std::process::Command::new("systemctl").args(["--user", "stop", "orbiscreen"]).status() {
+        warn!("Failed to stop service: {e}");
+    }
+    if let Err(e) = std::process::Command::new("systemctl").args(["--user", "disable", "orbiscreen"]).status() {
+        warn!("Failed to disable service: {e}");
+    }
+    let _ = std::process::Command::new("systemctl").args(["--user", "daemon-reload"]).status();
+
+    // Remove user files
+    if let Ok(home) = std::env::var("HOME") {
+        let home = PathBuf::from(home);
+        let _ = std::fs::remove_file(home.join(".local/bin/orbiscreen"));
+        let _ = std::fs::remove_file(home.join(".config/systemd/user/orbiscreen.service"));
+        let _ = std::fs::remove_file(home.join(".local/share/applications/com.orbiscreen.OrbiscreenGtk.desktop"));
+        let _ = std::fs::remove_file(home.join(".local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"));
+        let _ = std::fs::remove_dir_all(home.join(".local/share/orbiscreen"));
+    }
+
+    // Attempt system-wide cleanup (silently fail if no permission)
+    let _ = std::fs::remove_file("/usr/bin/orbiscreen");
+    let _ = std::fs::remove_file("/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop");
+    let _ = std::fs::remove_file("/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg");
+    let _ = std::fs::remove_dir_all("/usr/share/orbiscreen");
+
+    println!("[Orbiscreen] Uninstallation complete.");
 }
 
 async fn run_start(
