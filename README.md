@@ -86,7 +86,8 @@ Download pre-built packages from [GitHub Releases](https://github.com/shadow-x78
 
 - **Fedora / RHEL (`.rpm`):**
   ```bash
-  sudo dnf install --nogpgcheck ./orbiscreen_x86_64.rpm
+  sudo rpm --import https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/orbiscreen.asc
+  sudo dnf install ./orbiscreen_x86_64.rpm
   ```
 
 - **Universal AppImage (`.AppImage`):**

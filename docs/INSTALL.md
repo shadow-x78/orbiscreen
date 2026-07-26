@@ -18,9 +18,10 @@ sudo apt-get remove orbiscreen
 
 ### 2. Fedora / RHEL / openSUSE (`.rpm`)
 
-Download `orbiscreen_x86_64.rpm` from the releases page.
+Download `orbiscreen_x86_64.rpm` from the releases page. Import the public GPG key and install:
 ```bash
-sudo dnf install --nogpgcheck ./orbiscreen_x86_64.rpm
+sudo rpm --import https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/orbiscreen.asc
+sudo dnf install ./orbiscreen_x86_64.rpm
 ```
 
 **Uninstall:**
