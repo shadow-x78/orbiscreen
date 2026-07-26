@@ -310,55 +310,16 @@ pub async fn open_at(...) -> ... {
 
 ## 📱 Android Client & Deployment
 
-### Where is the built Android APK file (`app-release.apk`)?
+### Where is the built Android APK file (`app-debug.apk`)?
 
 - **Locally on your system:**
-  When you run `./gradlew assembleRelease` inside `clients/android`, the generated APK file is stored at:
+  When you run `./gradlew assembleDebug` inside `clients/android`, the generated APK file is stored at:
   ```text
-  clients/android/app/build/outputs/apk/release/app-release.apk
+  clients/android/app/build/outputs/apk/debug/app-debug.apk
   ```
 
 - **On GitHub Actions / Releases:**
-  When the `Android build` workflow runs on GitHub Actions, the APK is published as **`orbiscreen-android-release.apk`**.
-
----
-
-### Android App Crashes Immediately on Launch
-
-**Symptom:**
-You open the Orbiscreen app on Android and it immediately crashes back to the home screen.
-
-**Cause:**
-This is usually caused by a malformed HTML file in `clients/web/index.html` preventing the WebView from initializing. Make sure you don't have stray `-->` or broken tags. 
-
-**Fix:**
-This was fixed in Orbiscreen v0.7.0. If building from source, ensure you have the latest code and that your `index.html` is valid HTML.
-
----
-
-### Daemon Causes High CPU Usage (100%) or Freezes
-
-**Symptom:**
-Running `orbiscreen start` pegs one CPU core at 100% and makes the system sluggish.
-
-**Cause:**
-The capture loop is running in a busy loop without yielding to the scheduler when there is an error or when capturing frames faster than necessary.
-
-**Fix:**
-This was fixed in Orbiscreen v0.7.0 by adding rate-limiting and sleep intervals in the daemon's capture pump. Update to the latest version.
-
----
-
-### How to Uninstall Orbiscreen
-
-**Symptom:**
-You want to completely remove Orbiscreen from your system.
-
-**Fix:**
-Use the dedicated `uninstall.sh` script or your package manager:
-- Installed via `.deb`: `sudo apt-get remove orbiscreen`
-- Installed via `.rpm`: `sudo dnf remove orbiscreen`
-- Installed via script/tarball: `cd ~/Orbiscreen && ./scripts/uninstall.sh`
+  When the `Android build` workflow runs on GitHub Actions, the APK is published under **Artifacts** at the bottom of the workflow run page as **`orbiscreen-android-debug`**.
 
 ---
 

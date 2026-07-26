@@ -49,14 +49,3 @@ busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.D
 # List connected clients
 busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon ListClients
 ```
-
----
-
-<div align="center">
-
-Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
-[Back to README](../README.md)
-
-<sub>&copy; 2026 Orbiscreen (shadow-x78)</sub>
-
-</div>

@@ -42,6 +42,7 @@ enum Command {
         #[arg(long)]
         no_mdns: bool,
     },
+    Stop,
     ListDisplays,
     Probe,
     PrintConfig,
@@ -54,8 +55,7 @@ fn init_tracing(verbose: u8) {
         _ => Level::TRACE,
     };
     let filter_str = format!("{},zbus=error,ashpd=error", level.as_str());
-    let filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(filter_str));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(filter_str));
     let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }
 
@@ -122,6 +122,15 @@ async fn main() -> ExitCode {
                 ExitCode::from(1)
             }
         },
+        Command::Stop => {
+            // Check if there's a daemon running to stop. In this simplified implementation
+            // we just rely on systemd or kill to stop it, but if invoked via CLI `orbiscreen stop`,
+            // we could talk to DBus to gracefully stop. For now, just exit cleanly or send a signal.
+            println!(
+                "Use 'systemctl --user stop orbiscreen' or kill the process to stop the daemon."
+            );
+            ExitCode::SUCCESS
+        }
         Command::ListDisplays => {
             list_displays();
             ExitCode::SUCCESS
@@ -227,7 +236,9 @@ async fn run_start(
             match capture.next_frame().await {
                 Ok(frame) => {
                     let _ = encoder.push_frame(&frame.data, frame.width, frame.height, pts);
+                    let delay = std::time::Duration::from_nanos(encoder.frame_duration_ns());
                     pts = pts.saturating_add(encoder.frame_duration_ns());
+                    tokio::time::sleep(delay).await;
                 }
                 Err(e) => {
                     warn!("capture error: {e}");
@@ -313,7 +324,15 @@ async fn run_start(
         }
     }
 
-    let serve_res = transport.serve(video_rx).await;
+    let serve_fut = transport.serve(video_rx);
+
+    let serve_res = tokio::select! {
+        res = serve_fut => res,
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received SIGINT (Ctrl-C), initiating graceful shutdown...");
+            Ok(())
+        }
+    };
 
     cap_pump.abort();
     frame_pump.abort();
