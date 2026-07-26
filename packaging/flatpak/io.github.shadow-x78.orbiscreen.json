@@ -1,5 +1,5 @@
 {
-  "id": "io.shadow-x78.orbiscreen",
+  "id": "io.github.shadow-x78.orbiscreen",
   "runtime": "org.freedesktop.Platform",
   "runtime-version": "24.08",
   "sdk": "org.freedesktop.Sdk",
@@ -33,7 +33,9 @@
         "install -Dm755 target/release/orbiscreen /app/bin/orbiscreen",
         "install -Dm644 clients/web/index.html /app/share/orbiscreen/client/index.html",
         "install -Dm644 clients/web/style.css /app/share/orbiscreen/client/style.css",
-        "install -Dm644 clients/web/app.js /app/share/orbiscreen/client/app.js"
+        "install -Dm644 clients/web/app.js /app/share/orbiscreen/client/app.js",
+        "install -Dm644 data/com.orbiscreen.OrbiscreenGtk.desktop /app/share/applications/io.github.shadow-x78.orbiscreen.desktop",
+        "install -Dm644 data/orbiscreen.svg /app/share/icons/hicolor/scalable/apps/io.github.shadow-x78.orbiscreen.svg"
       ],
       "sources": [
         {

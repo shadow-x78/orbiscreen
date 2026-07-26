@@ -54,5 +54,29 @@ Description: Real virtual secondary displays for Linux, streamed to Android - ov
  streaming low-latency video to Android tablets/phones over WebRTC and Wi-Fi/USB.
 EOF
 
+cat <<'EOF' > "${BUILD_DIR}/DEBIAN/prerm"
+#!/bin/sh
+set -e
+if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
+    # Stop the service for all users running it
+    for u in $(users); do
+        su -s /bin/sh -c "systemctl --user stop orbiscreen || true" "$u"
+    done
+fi
+exit 0
+EOF
+chmod +x "${BUILD_DIR}/DEBIAN/prerm"
+
+cat <<'EOF' > "${BUILD_DIR}/DEBIAN/postrm"
+#!/bin/sh
+set -e
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    # Clean up user specific remnants if needed
+    echo "Orbiscreen has been removed."
+fi
+exit 0
+EOF
+chmod +x "${BUILD_DIR}/DEBIAN/postrm"
+
 dpkg-deb --build "${BUILD_DIR}" "${DEB_NAME}"
 echo "==> Debian package built successfully: ${DEB_NAME}"
