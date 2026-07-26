@@ -8,11 +8,7 @@ import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
-import android.webkit.PermissionRequest
-import android.webkit.WebChromeClient
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.view.SurfaceView
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -25,7 +21,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var webView: WebView
+    private lateinit var videoSurface: SurfaceView
     private lateinit var connectCard: LinearLayout
     private lateinit var hostInput: EditText
     private lateinit var connectButton: Button
@@ -37,13 +33,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         try {
-            webView = findViewById(R.id.webView)
+            videoSurface = findViewById(R.id.videoSurface)
             connectCard = findViewById(R.id.connectCard)
             hostInput = findViewById(R.id.hostAddressInput)
             connectButton = findViewById(R.id.connectButton)
             usbButton = findViewById(R.id.usbConnectButton)
-
-            configureWebView(webView)
 
             val prefs = getSharedPreferences("orbiscreen_prefs", Context.MODE_PRIVATE)
             val savedHost = prefs.getString("last_host", "127.0.0.1:8788")
@@ -65,10 +59,9 @@ class MainActivity : AppCompatActivity() {
             
             onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    if (webView.visibility == View.VISIBLE) {
-                        webView.visibility = View.GONE
+                    if (videoSurface.visibility == View.VISIBLE) {
+                        videoSurface.visibility = View.GONE
                         connectCard.visibility = View.VISIBLE
-                        webView.loadUrl("about:blank")
                     } else {
                         isEnabled = false
                         onBackPressedDispatcher.onBackPressed()
@@ -96,31 +89,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         connectCard.visibility = View.GONE
-        webView.visibility = View.VISIBLE
-        webView.loadUrl(formatted)
+        videoSurface.visibility = View.VISIBLE
+        // StreamClient will connect to `formatted` (implemented in Phase 5)
     }
 
 
 
-    private fun configureWebView(view: WebView) {
-        with(view.settings) {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            allowFileAccess = true
-            allowContentAccess = true
-            allowFileAccessFromFileURLs = true
-            allowUniversalAccessFromFileURLs = true
-            cacheMode = WebSettings.LOAD_DEFAULT
-            mediaPlaybackRequiresUserGesture = false
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-        }
-        view.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean = false
-        }
-        view.webChromeClient = object : WebChromeClient() {
-            override fun onPermissionRequest(request: PermissionRequest?) {
-                request?.grant(request.resources)
-            }
-        }
-    }
+
 }

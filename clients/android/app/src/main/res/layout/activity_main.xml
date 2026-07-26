@@ -3,8 +3,8 @@
     android:layout_height="match_parent"
     android:background="#121212">
 
-    <WebView
-        android:id="@+id/webView"
+    <SurfaceView
+        android:id="@+id/videoSurface"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone" />
