@@ -11,7 +11,6 @@ fi
 
 detect_distro() {
     if [[ -f /etc/os-release ]]; then
-        # shellcheck disable=SC1091
         . /etc/os-release
         echo "${ID:-unknown}"
     else
@@ -56,7 +55,7 @@ install_arch() {
 main() {
     local distro
     distro="$(detect_distro)"
-    echo "Detected distro family: $distro"
+    echo "[Orbiscreen] Detected distro family: $distro"
     case "$distro" in
         fedora|nobara|rhel|centos|rocky|almalinux) install_fedora ;;
         ubuntu|pop|pop_os|debian|linuxmint|elementary|zorin) install_debian_like ;;
@@ -73,7 +72,7 @@ main() {
             exit 1
             ;;
     esac
-    echo "Done."
+    echo "[Orbiscreen] Done."
 }
 
 main "$@"

@@ -9,7 +9,7 @@ ARCH="amd64"
 BUILD_DIR="target/deb-staging"
 DEB_NAME="orbiscreen_${VERSION}_${ARCH}.deb"
 
-echo "==> Building Debian package for Orbiscreen v${VERSION} (${ARCH})..."
+echo "[Orbiscreen] Building Debian package for Orbiscreen v${VERSION} (${ARCH})..."
 
 mkdir -p "${BUILD_DIR}/DEBIAN"
 mkdir -p "${BUILD_DIR}/usr/bin"
@@ -69,12 +69,11 @@ cat <<'EOF' > "${BUILD_DIR}/DEBIAN/postrm"
 #!/bin/sh
 set -e
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
-    # Clean up user specific remnants if needed
-    echo "Orbiscreen has been removed."
+    echo "[Orbiscreen] Orbiscreen has been removed."
 fi
 exit 0
 EOF
 chmod +x "${BUILD_DIR}/DEBIAN/postrm"
 
 dpkg-deb --build "${BUILD_DIR}" "${DEB_NAME}"
-echo "==> Debian package built successfully: ${DEB_NAME}"
+echo "[Orbiscreen] Debian package built successfully: ${DEB_NAME}"

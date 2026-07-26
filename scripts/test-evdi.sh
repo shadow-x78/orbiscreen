@@ -20,7 +20,6 @@ need_root() {
 
 detect_distro() {
     if [[ -f /etc/os-release ]]; then
-        # shellcheck disable=SC1091
         . /etc/os-release
         echo "${ID:-unknown}"
     else
@@ -129,7 +128,7 @@ check_xrandr_if_x11() {
 }
 
 main() {
-    blue "Orbiscreen Phase 0 - evdi feasibility probe"
+    blue "[Orbiscreen] Phase 0 - evdi feasibility probe"
     echo "  Working from: $REPO_ROOT"
     echo
 
@@ -142,7 +141,7 @@ main() {
     check_xrandr_if_x11
 
     echo
-    green "Phase 0 feasibility check finished."
+    green "[Orbiscreen] Phase 0 feasibility check finished."
 }
 
 main "$@"

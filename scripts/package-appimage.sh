@@ -8,7 +8,7 @@ VERSION="${1:-0.6.0}"
 APPDIR="target/AppDir"
 APPIMAGE_NAME="orbiscreen-${VERSION}-x86_64.AppImage"
 
-echo "==> Building AppImage for Orbiscreen v${VERSION}..."
+echo "[Orbiscreen] Building AppImage for Orbiscreen v${VERSION}..."
 
 mkdir -p "${APPDIR}/usr/bin"
 mkdir -p "${APPDIR}/usr/share/applications"
@@ -30,4 +30,4 @@ exec "${HERE}/usr/bin/orbiscreen" "$@"
 EOF
 
 chmod +x "${APPDIR}/AppRun"
-echo "==> AppImage directory staged in ${APPDIR}"
+echo "[Orbiscreen] AppImage directory staged in ${APPDIR}"
