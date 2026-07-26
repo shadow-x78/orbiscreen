@@ -9,12 +9,15 @@
     --accent: #CC0000;
     --card-bg: rgba(20, 20, 24, 0.85);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
-                 "DejaVu Sans", sans-serif;
+        "DejaVu Sans", sans-serif;
 }
 
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
 
-html, body {
+html,
+body {
     margin: 0;
     padding: 0;
     width: 100%;
@@ -54,7 +57,9 @@ html, body {
     transition: opacity 200ms ease;
 }
 
-.overlay.hidden { opacity: 0; }
+.overlay.hidden {
+    opacity: 0;
+}
 
 .card {
     background: var(--card-bg);
@@ -73,8 +78,14 @@ html, body {
     letter-spacing: 0.5px;
 }
 
-.muted { color: #b0b0b0; margin: 0.25rem 0; }
-.small { font-size: 0.85rem; }
+.muted {
+    color: #b0b0b0;
+    margin: 0.25rem 0;
+}
+
+.small {
+    font-size: 0.85rem;
+}
 
 .touchIndicator {
     position: fixed;
@@ -87,4 +98,7 @@ html, body {
     transform: translate(-50%, -50%);
     transition: opacity 150ms ease;
 }
-.touchIndicator.hidden { opacity: 0; }
+
+.touchIndicator.hidden {
+    opacity: 0;
+}
