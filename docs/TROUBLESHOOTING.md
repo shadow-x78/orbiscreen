@@ -333,6 +333,19 @@ Orbiscreen natively supports EVDI kernel driver for dedicated DRM virtual displa
 
 ---
 
+### Android App Crashes Immediately on Launch
+
+**Symptom:**
+You open the Orbiscreen app on Android and it immediately crashes back to the home screen.
+
+**Cause:**
+This is usually caused by a malformed HTML file in `clients/web/index.html` preventing the WebView from initializing. Make sure you don't have stray `-->` or broken tags.
+
+**Fix:**
+This was fixed in Orbiscreen v0.7.1. If building from source, ensure you have the latest code and that your `index.html` is valid HTML.
+
+---
+
 ### USB Connection & ADB Reverse Port Forwarding
 
 **Symptom:**
@@ -347,6 +360,19 @@ Orbiscreen automatically configures `adb reverse tcp:8788 tcp:8788` when started
    adb devices
    adb reverse tcp:8788 tcp:8788
    ```
+
+---
+
+### Daemon Causes High CPU Usage (100%) or Freezes
+
+**Symptom:**
+Running `orbiscreen start` pegs one CPU core at 100% and makes the system sluggish.
+
+**Cause:**
+The capture loop is running in a busy loop without yielding to the scheduler when there is an error or when capturing frames faster than necessary.
+
+**Fix:**
+This was fixed in Orbiscreen v0.7.2 by adding rate-limiting and sleep intervals in the daemon's capture pump. Update to the latest version.
 
 ---
 
