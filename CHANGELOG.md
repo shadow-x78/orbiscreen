@@ -2,6 +2,13 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.7.1] - 2026-07-26
+
+### 🐛 Fixed
+- **Android Immediate Crash:** Wrapped `MainActivity` initialization in `try/catch` and removed the stray `-->` from `index.html` that crashed the Android WebView parser.
+- **Android Target SDK:** Bumped to API 35 and explicitly enabled V1/V2/V3 signing.
+- **Android Network Security Config:** Allowed cleartext traffic for local networks only via `network_security_config.xml`.
+
 ## [v0.7.0] - 2026-07-26
 
 ### 🚀 Added
