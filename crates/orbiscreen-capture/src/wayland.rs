@@ -14,6 +14,9 @@ use tracing::{instrument, trace};
 
 use super::{CaptureError, CapturedFrame};
 
+use gstreamer::prelude::*;
+use gstreamer_app::{AppSink, AppSinkCallbacks};
+use tokio::sync::mpsc;
 #[derive(Debug, Clone)]
 pub struct WaylandCaptureSpec {
     pub width: u32,
@@ -46,6 +49,18 @@ impl From<WaylandCaptureError> for CaptureError {
     }
 }
 
+impl From<gstreamer::glib::Error> for WaylandCaptureError {
+    fn from(error: gstreamer::glib::Error) -> Self {
+        WaylandCaptureError::Dbus(format!("gstreamer error: {}", error))
+    }
+}
+
+impl From<gstreamer::glib::BoolError> for WaylandCaptureError {
+    fn from(error: gstreamer::glib::BoolError) -> Self {
+        WaylandCaptureError::Dbus(format!("gstreamer error: {}", error))
+    }
+}
+
 fn virtual_only_options() -> SelectSourcesOptions {
     SelectSourcesOptions::default()
         .set_sources(Some(BitFlags::from(SourceType::Monitor)))
@@ -59,6 +74,8 @@ pub struct WaylandCapture {
     _session: Session<Screencast>,
     _pipe_fd: OwnedFd,
     stream: PipeWireStream,
+    _pipeline: gstreamer::Pipeline,
+    rx: tokio::sync::Mutex<mpsc::UnboundedReceiver<CapturedFrame>>,
 }
 
 impl WaylandCapture {
@@ -99,11 +116,61 @@ impl WaylandCapture {
                 .size()
                 .or(Some((spec.width as i32, spec.height as i32))),
         };
+        
+        gstreamer::init().map_err(|e| WaylandCaptureError::Dbus(format!("gst init: {}", e)))?;
+        
+        // pipewiresrc path=node_id fd=pipe_fd
+        let pipeline_str = format!(
+            "pipewiresrc fd={} path={} ! videoconvert ! video/x-raw,format=BGRA ! appsink name=sink drop=true max-buffers=1",
+            stream.fd, stream.node_id
+        );
+        let pipeline = gstreamer::parse_launch(&pipeline_str)?
+            .downcast::<gstreamer::Pipeline>()
+            .map_err(|_| WaylandCaptureError::Dbus("Failed to downcast pipeline".into()))?;
+            
+        let appsink = pipeline
+            .by_name("sink")
+            .ok_or_else(|| WaylandCaptureError::Dbus("appsink not found".into()))?
+            .downcast::<AppSink>()
+            .map_err(|_| WaylandCaptureError::Dbus("Failed to downcast appsink".into()))?;
+            
+        let (tx, rx) = mpsc::unbounded_channel::<CapturedFrame>();
+        
+        appsink.set_callbacks(
+            AppSinkCallbacks::builder()
+                .new_sample(move |sink| {
+                    let sample = match sink.pull_sample() {
+                        Ok(s) => s,
+                        Err(e) => {
+                            tracing::warn!("pull_sample error: {e}");
+                            return Err(gstreamer::FlowError::Eos);
+                        }
+                    };
+                    
+                    let caps = sample.caps().unwrap();
+                    let structure = caps.structure(0).unwrap();
+                    let width = structure.get::<i32>("width").unwrap() as u32;
+                    let height = structure.get::<i32>("height").unwrap() as u32;
+                    
+                    let buffer = sample.buffer().unwrap();
+                    let map = buffer.map_readable().unwrap();
+                    let data = map.to_vec();
+                    
+                    let _ = tx.send(CapturedFrame { width, height, data });
+                    Ok(gstreamer::FlowSuccess::Ok)
+                })
+                .build(),
+        );
+
+        pipeline.set_state(gstreamer::State::Playing)?;
+
         Ok(Self {
             _screencast: screencast,
             _session: session,
             _pipe_fd: pipe_fd,
             stream,
+            _pipeline: pipeline,
+            rx: tokio::sync::Mutex::new(rx),
         })
     }
 
@@ -112,16 +179,12 @@ impl WaylandCapture {
     }
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, CaptureError> {
-        trace!("Wayland next_frame() returns frame");
-        let (width, height) = self.stream.size.unwrap_or((1920, 1080));
-        let width = width as u32;
-        let height = height as u32;
-        let data = vec![0u8; CapturedFrame::size_in_bytes(width, height)];
-        Ok(CapturedFrame {
-            width,
-            height,
-            data,
-        })
+        let mut rx = self.rx.lock().await;
+        if let Some(frame) = rx.recv().await {
+            Ok(frame)
+        } else {
+            Err(CaptureError::Io("Wayland GStreamer pipeline closed".into()))
+        }
     }
 }
 
