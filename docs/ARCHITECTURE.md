@@ -8,49 +8,24 @@ Orbiscreen is built as a modular multi-crate Rust workspace separating system di
 
 ```mermaid
 graph TD
-    subgraph Control_Layer [Control & Management]
-        GTK["GTK4 / Libadwaita GUI (orbiscreen-gtk)"]
-        TRAY["System Tray Indicator"]
-        CLI["CLI Interface (orbiscreen)"]
-        DBUS["D-Bus Session Bus (com.orbiscreen.Daemon)"]
+    subgraph Host Linux Machine
+        A[evdi Kernel Module] -->|Virtual DRM Device| B(Display Server X11/Wayland)
+        B -->|Screen Content| C(orbiscreen-capture)
+        C -->|Raw BGRA Frames| D(orbiscreen-encode)
+        D -->|GStreamer HW Encode| E(H.264 Stream)
+        E --> F(orbiscreen-transport)
+        F -->|MPEG-TS HTTP Stream| G((Network/USB))
+        F -->|mDNS Broadcast| G
     end
 
-    subgraph Service_Layer [Daemon Core Engine]
-        DAEMON["Orbiscreen Daemon (orbiscreen-daemon)"]
-        CORE["Core Engine & Config (orbiscreen-core)"]
+    subgraph Android Device
+        G -->|Auto-discover host| H(Android NsdManager)
+        G -->|MPEG-TS Stream| I(AndroidX Media3 ExoPlayer)
+        I -->|Hardware Decoding| J[MediaCodec]
+        J --> K[SurfaceView]
+        K -.->|Touch Events| L(TouchInjector)
+        L -.->|HTTP JSON POST| F
     end
-
-    subgraph Display_Capture_Layer [Display & Capture]
-        DRM["EVDI DRM Virtual Display (orbiscreen-display)"]
-        PORTAL["Wayland ScreenCast Portal (orbiscreen-capture)"]
-        X11_CAP["X11 Capture Engine (orbiscreen-capture)"]
-    end
-
-    subgraph Encode_Transport_Layer [Encode & Stream Transport]
-        GSTREAMER["H.264 Encoder (orbiscreen-encode)"]
-        TRANSPORT["Axum HTTP / WebRTC Transport (orbiscreen-transport)"]
-        MDNS["mDNS SD Service Discovery (mdns-sd)"]
-    end
-
-    subgraph Input_Layer [Reverse Touch & Input]
-        UINPUT["Linux uinput Virtual Touchscreen (orbiscreen-input)"]
-    end
-
-    GTK <-->|D-Bus Session IPC| DBUS
-    TRAY <-->|D-Bus Session IPC| DBUS
-    CLI <-->|D-Bus Session IPC| DBUS
-    DBUS <--> DAEMON
-
-    DAEMON --> CORE
-    DAEMON --> DRM
-    DAEMON --> PORTAL
-    DAEMON --> GSTREAMER
-    DAEMON --> TRANSPORT
-    DAEMON --> UINPUT
-
-    TRANSPORT <-->|HTTP /stream & WebRTC| Clients[Android App & HTML5 Web Client]
-    Clients -->|Reverse Touch / Stylus / Key Events| TRANSPORT
-    TRANSPORT --> UINPUT
 ```
 
 ---
@@ -64,7 +39,7 @@ graph TD
 | `orbiscreen-capture` | Wayland Portal (ashpd) & X11 (x11rb) capture engines | `ashpd`, `x11rb` |
 | `orbiscreen-encode` | Hardware & software H.264 encoding pipelines | `gstreamer`, `gstreamer-app` |
 | `orbiscreen-input` | Reverse touch, stylus, and keyboard injection | `evdevil`, `nix` |
-| `orbiscreen-transport` | Axum HTTP `/stream`, WebRTC signaling & ADB reverse | `axum`, `webrtc`, `tokio` |
+| `orbiscreen-transport` | Axum HTTP MPEG-TS `/stream` & ADB reverse | `axum`, `gstreamer`, `tokio` |
 | `orbiscreen-daemon` | Main daemon binary, systemd integration & D-Bus service | `zbus`, `clap`, `tokio` |
 | `orbiscreen-gtk` | Native GTK4 / Libadwaita desktop GUI control panel | `gtk4`, `libadwaita`, `zbus` |
 
@@ -74,9 +49,10 @@ graph TD
 
 1. **Virtual Monitor Provisioning:** `orbiscreen-display` provisions a virtual DRM connector via EVDI (or falls back to `xdg-desktop-portal` ScreenCast session).
 2. **Frame Capture:** Raw BGRA frame buffers are grabbed via PipeWire DMA-BUF / X11 Shared Memory.
-3. **Hardware Encoding:** GStreamer encodes frames into H.264 Annex B NAL units (`orbiscreen-encode`).
-4. **Multi-Protocol Broadcast:** Encoded chunks are broadcast simultaneously over `/stream` HTTP GET (Axum) and WebRTC RTP video tracks.
-5. **Reverse Touch Injection:** Input events sent by Android client or Web UI are mapped through `TouchCalibration` and injected directly into Linux kernel `/dev/uinput`.
+3. **Hardware Encoding:** 
+- **orbiscreen-encode**: Consumes the raw X11/PipeWire frame buffers and encodes them into H.264 using hardware-accelerated GStreamer pipelines (VAAPI, NVENC, or fallback x264).
+- **orbiscreen-transport**: Wraps the encoded H.264 NAL units into an MPEG-TS container and serves them over an HTTP stream. Also handles reverse touch injection and mDNS broadcasting.
+- **Android Client**: A native Android application that automatically discovers the daemon via mDNS, fetches the MPEG-TS stream, and decodes it using AndroidX Media3 (ExoPlayer) which hooks directly into the device's hardware `MediaCodec` for zero-latency playback. It also intercepts touch events on the `SurfaceView` and translates them into relative pointer motions for the daemon.
 
 ---
 

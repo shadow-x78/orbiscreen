@@ -4,7 +4,7 @@
   <p>Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB</p>
 
   <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.7.3-blue?style=flat-square" alt="Version" /></a>
+    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.8.7-blue?style=flat-square" alt="Version" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml"><img src="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square" alt="CI" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/stargazers"><img src="https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square" alt="Stars" /></a>
@@ -29,7 +29,7 @@
 <a id="what-is-orbiscreen"></a>
 ## 🤔 What is Orbiscreen?
 
-**Orbiscreen** turns a spare Android tablet or phone into a real second monitor for your Linux desktop. Unlike X11-only or browser-only workarounds, Orbiscreen creates a **kernel-level virtual display** via DisplayLink's `evdi`, which appears as a genuine monitor to both X11 and Wayland compositors, and streams it over **WebRTC** with reverse touch input.
+**Orbiscreen** turns a spare Android tablet or phone into a real second monitor for your Linux desktop. Unlike X11-only or browser-only workarounds, Orbiscreen creates a **kernel-level virtual display** via DisplayLink's `evdi`, which appears as a genuine monitor to both X11 and Wayland compositors, and streams it using **MPEG-TS/H.264** with reverse touch input natively on Android.
 
 ---
 
@@ -49,7 +49,7 @@
 ## ✨ Highlights
 
 - Real virtual display via `evdi` (X11 *and* Wayland)
-- WebRTC streaming - opens in any modern browser, no app install needed
+- Native Android App - uses ExoPlayer & MediaCodec for ultra-low latency hardware decoding
 - Reverse touch - pointer / keyboard / stylus events flow Android → host
 - mDNS discovery - Android clients find the host automatically
 - USB transport via `adb reverse`, no special drivers
