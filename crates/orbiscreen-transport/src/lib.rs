@@ -167,17 +167,8 @@ async fn handle_socket(mut socket: axum::extract::ws::WebSocket) {
     }
 }
 
-#[derive(serde::Deserialize)]
-struct SdpPayload {
-    sdp: String,
-    #[allow(dead_code)]
-    #[serde(rename = "type")]
-    sdp_type: Option<String>,
-}
-
 async fn sdp_post(
     State(_state): State<AppState>,
-    Json(_payload): Json<SdpPayload>,
 ) -> impl IntoResponse {
     (
         StatusCode::SERVICE_UNAVAILABLE,
