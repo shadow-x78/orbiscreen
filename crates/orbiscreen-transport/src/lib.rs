@@ -177,14 +177,12 @@ struct SdpPayload {
 
 async fn sdp_post(
     State(_state): State<AppState>,
-    Json(payload): Json<SdpPayload>,
+    Json(_payload): Json<SdpPayload>,
 ) -> impl IntoResponse {
-    info!("Received SDP offer: length {}", payload.sdp.len());
     (
-        StatusCode::OK,
+        StatusCode::SERVICE_UNAVAILABLE,
         Json(serde_json::json!({
-            "type": "answer",
-            "sdp": payload.sdp,
+            "error": "WebRTC not yet implemented, use /stream"
         })),
     )
 }
