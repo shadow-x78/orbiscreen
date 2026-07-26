@@ -88,16 +88,14 @@ jobs:
         id: extract_notes
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          echo "EOF_NOTES" >> release_notes.txt
-          awk "/^## \[v$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md >> release_notes.txt
-          echo "EOF_NOTES" >> release_notes.txt
+          awk "/^## \[v$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > release_notes.txt
           cat release_notes.txt
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: Orbiscreen ${{ github.ref_name }} 🚀
+          name: Orbiscreen ${{ github.ref_name }}
           body_path: release_notes.txt
           generate_release_notes: false
           files: |
