@@ -1,6 +1,6 @@
 # Security Policy - Orbiscreen
 
-
+> Applies to **v0.10.1** and later.
 
 ## 📋 Table of Contents
 
@@ -18,11 +18,12 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.7.x | ✅ Active development |
-| 0.6.x | ⚠️ Maintenance |
-| < 0.6 | ❌ Not released |
+| 0.10.x | ✅ Active development |
+| 0.9.x | ⚠️ Maintenance |
+| 0.8.x | ⚠️ Maintenance |
+| < 0.8 | ❌ Not released |
 
-Only the latest development release receives security updates. Ensure you build from `main` before reporting.
+Only the latest minor release receives security updates. Ensure you build from `main` before reporting.
 
 ---
 
@@ -77,23 +78,27 @@ We follow a **coordinated disclosure** model:
 <a id="considerations"></a>
 ## 🔍 Security Considerations
 
-### Scope
+### Scope (v0.10.1)
 
-Orbiscreen is a Linux host daemon that:
+Orbiscreen is a Linux host daemon plus a Material 3 Android client that:
 - Creates kernel-level virtual displays via the `evdi` DRM module
 - Captures screen contents via X11 (`x11rb`) or Wayland (`ashpd` + PipeWire)
 - Injects input events via `evdevil` (uinput) or `ashpd` RemoteDesktop
-- Streams encoded H.264 over a local WebRTC peer connection
+- Streams MPEG-TS/H.264 over a plain HTTP endpoint (`/stream`) — WebRTC is no longer used for the Android client
+- Exposes a control-plane HTTP API at `/api/control` (lock, blank, ctrl-alt-del, open)
+- Exposes `/api/info` with the host's display resolution, encoder, and version
 
 ### Known Risk Areas
 
 | Area | Risk | Mitigation |
 |------|------|------------|
-| uinput injection | Any process holding the virtual touchscreen can inject arbitrary input | The daemon opens the uinput device exclusively; restrict `/dev/uinput` permissions on the host |
-| Screen capture | Frames contain everything rendered to the virtual display | v1 binds to the evdi-backed virtual display only, not the primary desktop |
-| WebRTC signaling | Signaling server binds `0.0.0.0` by default | Local network only in v1; no cloud relay; no TURN server |
+| `uinput` injection | Any process holding the virtual touchscreen can inject arbitrary input | The daemon opens the uinput device exclusively; restrict `/dev/uinput` permissions on the host |
+| Screen capture | Frames contain everything rendered to the virtual display | v0.10 binds to the evdi-backed virtual display only, not the primary desktop |
+| Cleartext HTTP `/stream` | A LAN attacker can passively view the desktop | `orbiscreen` only binds on `127.0.0.1` by default; the LAN case is opt-in via `adb reverse` or LAN bind in the config |
+| `/api/control` | A LAN attacker can call lock/blank/open | The endpoint is unauthenticated by design; treat `0.0.0.0` bind as LAN-only |
 | evdi kernel module | DKMS + Secure Boot signing is distro-specific | Module loading is the host administrator's responsibility |
-| mDNS advertising | Hostname + port broadcast on the local network | No credentials are advertised; client must still complete the WebRTC handshake |
+| mDNS advertising (`_orbiscreen._tcp.`) | Hostname + port broadcast on the local network | No credentials are advertised; the discovery record only contains `host`, `port`, and the instance name |
+| Android input model (v0.10.1) | `InputDispatcher` posts absolute pointer / wheel / stylus / keyboard events to `/input` | The endpoint is the same one used historically; restrict access at the network layer |
 
 ### Recommendations
 
@@ -108,23 +113,26 @@ Orbiscreen is a Linux host daemon that:
 
 4. **Review the `evdi` kernel module** provenance before loading it; Secure Boot hosts must sign it.
 
-5. **Never log raw input events** in production - `tracing` is set to `INFO` by default and does not dump pointer coordinates.
+5. **Never log raw input events** in production - `tracing` is set to `INFO` by default and does not dump pointer coordinates. The Android `InputDispatcher` similarly does not log coordinates in release builds.
+
+6. **Verify package signatures** before installing. See `docs/PACKAGING.md` for the GPG / keystore fingerprints.
 
 ---
 
 <a id="audit"></a>
 ## 🔬 Security Audit
 
-Orbiscreen is written entirely in Rust (edition 2021) and a thin Kotlin Android WebView host. A running daemon performs:
+Orbiscreen (v0.10.1) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose). A running daemon performs:
 
 - `open()` on `/dev/dri/card*` evdi nodes
 - `UinputDevice` construction via `evdevil`
 - `GetImage` (X11) or `Screencast` portal (Wayland) capture
 - GStreamer pipeline construction for H.264 encoding
-- `axum` HTTP/WS listener on the configured signaling port
+- `axum` HTTP listener on the configured signaling port, serving `/stream`, `/health`, `/api/info`, `/input`, `/api/control`
 - `adb reverse` subprocess invocation when a USB device is attached
+- `NsdManager.discoverServices` on the Android client (no outbound traffic outside the LAN)
 
-All logic is readable in plain Rust. If you perform an audit, please share findings via the private reporting channels above.
+All logic is readable in plain Rust and Kotlin. If you perform an audit, please share findings via the private reporting channels above.
 
 ---
 
@@ -146,3 +154,4 @@ Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 <sub>&copy; 2026 Orbiscreen (shadow-x78)</sub>
 
 </div>
+

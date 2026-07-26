@@ -1,5 +1,7 @@
 # Installation Guide - Orbiscreen
 
+> Latest release: **v0.10.1** (Material 3 Android client, fixed black screen, live discovery).
+
 ## 🚀 Quick Start & Multi-Distro Installation
 
 Orbiscreen provides official packages for multiple distributions and a standalone release bundle.
@@ -55,6 +57,12 @@ cd release-bundle
 
 Install `orbiscreen-android-release.apk` (signed release build to bypass Play Protect warnings) from the releases page.
 
+**Permissions requested on first launch:**
+- `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_LOCK` — NSD discovery + streaming.
+- `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` — required by Android for Wi-Fi scanning on API 33+.
+- `INTERNET` — video stream and `/api/control` calls.
+- `VIBRATE` — soft keyboard feedback.
+
 ---
 
 ## 🛠️ Multi-Architecture Targets
@@ -64,19 +72,36 @@ Currently, Orbiscreen provides pre-built binaries for `x86_64` (AMD64) architect
 ### Building from Source
 
 ```bash
-# Clone the repository
 git clone https://github.com/shadow-x78/orbiscreen.git ~/Orbiscreen
 cd ~/Orbiscreen
 
-# Install dependencies (see scripts/setup-dev-env.sh for details)
 ./scripts/setup-dev-env.sh
 
-# Build the release binary
 cargo build --release --workspace
-
-# Install the daemon and systemd service
 ./scripts/install.sh
 ```
+
+### Building the Android Client from Source
+
+```bash
+cd clients/android
+./gradlew :app:assembleDebug   # or :app:assembleRelease for a signed APK
+```
+
+Requires JDK 17 and the Android SDK with platforms `android-34` installed.
+
+---
+
+## 🩺 First-Run Verification
+
+After installation:
+
+```bash
+orbiscreen probe                # verifies capture / input / display backends
+orbiscreen start                # boots the daemon in the foreground
+```
+
+Open the Android client on the same Wi-Fi and tap the host in the **Discovery** list. If mDNS is blocked, tap **Add manually** and enter `host:port`.
 
 ---
 
