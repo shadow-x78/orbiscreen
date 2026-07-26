@@ -213,7 +213,7 @@ async fn stream_handler(State(state): State<AppState>) -> impl IntoResponse {
     gstreamer::init().ok();
 
     let pipeline_str = "appsrc name=src format=time ! h264parse ! mpegtsmux alignment=7 ! appsink name=sink drop=false";
-    let pipeline = gstreamer::parse_launch(pipeline_str)
+    let pipeline = gstreamer::parse::launch(pipeline_str)
         .expect("failed to parse mpegtsmux pipeline")
         .downcast::<gstreamer::Pipeline>()
         .unwrap();

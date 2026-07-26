@@ -10,7 +10,7 @@ use ashpd::desktop::screencast::{
 use ashpd::desktop::Session;
 use enumflags2::BitFlags;
 use thiserror::Error;
-use tracing::{instrument, trace};
+use tracing::instrument;
 
 use super::{CaptureError, CapturedFrame};
 
@@ -124,7 +124,7 @@ impl WaylandCapture {
             "pipewiresrc fd={} path={} ! videoconvert ! video/x-raw,format=BGRA ! appsink name=sink drop=true max-buffers=1",
             stream.fd, stream.node_id
         );
-        let pipeline = gstreamer::parse_launch(&pipeline_str)?
+        let pipeline = gstreamer::parse::launch(&pipeline_str)?
             .downcast::<gstreamer::Pipeline>()
             .map_err(|_| WaylandCaptureError::Dbus("Failed to downcast pipeline".into()))?;
 
