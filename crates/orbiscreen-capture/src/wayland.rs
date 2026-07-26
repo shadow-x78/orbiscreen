@@ -116,9 +116,9 @@ impl WaylandCapture {
                 .size()
                 .or(Some((spec.width as i32, spec.height as i32))),
         };
-        
+
         gstreamer::init().map_err(|e| WaylandCaptureError::Dbus(format!("gst init: {}", e)))?;
-        
+
         // pipewiresrc path=node_id fd=pipe_fd
         let pipeline_str = format!(
             "pipewiresrc fd={} path={} ! videoconvert ! video/x-raw,format=BGRA ! appsink name=sink drop=true max-buffers=1",
@@ -127,15 +127,15 @@ impl WaylandCapture {
         let pipeline = gstreamer::parse_launch(&pipeline_str)?
             .downcast::<gstreamer::Pipeline>()
             .map_err(|_| WaylandCaptureError::Dbus("Failed to downcast pipeline".into()))?;
-            
+
         let appsink = pipeline
             .by_name("sink")
             .ok_or_else(|| WaylandCaptureError::Dbus("appsink not found".into()))?
             .downcast::<AppSink>()
             .map_err(|_| WaylandCaptureError::Dbus("Failed to downcast appsink".into()))?;
-            
+
         let (tx, rx) = mpsc::unbounded_channel::<CapturedFrame>();
-        
+
         appsink.set_callbacks(
             AppSinkCallbacks::builder()
                 .new_sample(move |sink| {
@@ -146,17 +146,21 @@ impl WaylandCapture {
                             return Err(gstreamer::FlowError::Eos);
                         }
                     };
-                    
+
                     let caps = sample.caps().unwrap();
                     let structure = caps.structure(0).unwrap();
                     let width = structure.get::<i32>("width").unwrap() as u32;
                     let height = structure.get::<i32>("height").unwrap() as u32;
-                    
+
                     let buffer = sample.buffer().unwrap();
                     let map = buffer.map_readable().unwrap();
                     let data = map.to_vec();
-                    
-                    let _ = tx.send(CapturedFrame { width, height, data });
+
+                    let _ = tx.send(CapturedFrame {
+                        width,
+                        height,
+                        data,
+                    });
                     Ok(gstreamer::FlowSuccess::Ok)
                 })
                 .build(),
