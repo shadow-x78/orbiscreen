@@ -30,7 +30,7 @@ sudo dnf remove orbiscreen
 
 ### 3. Universal AppImage (`.AppImage`)
 
-Download `orbiscreen-x86_64.AppImage.tar.gz` and extract the `.AppImage`.
+Download `orbiscreen-x86_64.AppImage` from the releases page.
 ```bash
 chmod +x orbiscreen-x86_64.AppImage
 ./orbiscreen-x86_64.AppImage

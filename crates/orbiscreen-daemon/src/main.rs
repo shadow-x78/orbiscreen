@@ -159,30 +159,44 @@ async fn main() -> ExitCode {
 
 fn run_uninstall() {
     println!("[Orbiscreen] Uninstalling...");
-    
+
     // Stop and disable service
-    if let Err(e) = std::process::Command::new("systemctl").args(["--user", "stop", "orbiscreen"]).status() {
+    if let Err(e) = std::process::Command::new("systemctl")
+        .args(["--user", "stop", "orbiscreen"])
+        .status()
+    {
         warn!("Failed to stop service: {e}");
     }
-    if let Err(e) = std::process::Command::new("systemctl").args(["--user", "disable", "orbiscreen"]).status() {
+    if let Err(e) = std::process::Command::new("systemctl")
+        .args(["--user", "disable", "orbiscreen"])
+        .status()
+    {
         warn!("Failed to disable service: {e}");
     }
-    let _ = std::process::Command::new("systemctl").args(["--user", "daemon-reload"]).status();
+    let _ = std::process::Command::new("systemctl")
+        .args(["--user", "daemon-reload"])
+        .status();
 
     // Remove user files
     if let Ok(home) = std::env::var("HOME") {
         let home = PathBuf::from(home);
         let _ = std::fs::remove_file(home.join(".local/bin/orbiscreen"));
         let _ = std::fs::remove_file(home.join(".config/systemd/user/orbiscreen.service"));
-        let _ = std::fs::remove_file(home.join(".local/share/applications/com.orbiscreen.OrbiscreenGtk.desktop"));
-        let _ = std::fs::remove_file(home.join(".local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"));
+        let _ = std::fs::remove_file(
+            home.join(".local/share/applications/com.orbiscreen.OrbiscreenGtk.desktop"),
+        );
+        let _ = std::fs::remove_file(
+            home.join(".local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"),
+        );
         let _ = std::fs::remove_dir_all(home.join(".local/share/orbiscreen"));
     }
 
     // Attempt system-wide cleanup (silently fail if no permission)
     let _ = std::fs::remove_file("/usr/bin/orbiscreen");
     let _ = std::fs::remove_file("/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop");
-    let _ = std::fs::remove_file("/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg");
+    let _ = std::fs::remove_file(
+        "/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg",
+    );
     let _ = std::fs::remove_dir_all("/usr/share/orbiscreen");
 
     println!("[Orbiscreen] Uninstallation complete.");
@@ -311,12 +325,18 @@ async fn run_start(
         .map(PathBuf::from)
         .or_else(|| {
             let mut paths = vec![
-                std::env::current_dir().unwrap_or_default().join("clients").join("web"),
+                std::env::current_dir()
+                    .unwrap_or_default()
+                    .join("clients")
+                    .join("web"),
                 PathBuf::from("/usr/share/orbiscreen/client"),
                 PathBuf::from("/app/share/orbiscreen/client"),
             ];
             if let Ok(home) = std::env::var("HOME") {
-                paths.insert(1, PathBuf::from(home).join(".local/share/orbiscreen/client"));
+                paths.insert(
+                    1,
+                    PathBuf::from(home).join(".local/share/orbiscreen/client"),
+                );
             }
             paths.into_iter().find(|p| p.exists())
         })
