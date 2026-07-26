@@ -51,11 +51,21 @@ jobs:
           mv orbiscreen_${VERSION}_amd64.deb orbiscreen_amd64.deb
 
       - name: Package RPM package
+        env:
+          RPM_GPG_KEY: ${{ secrets.RPM_GPG_KEY }}
+          RPM_GPG_NAME: ${{ secrets.RPM_GPG_NAME }}
         run: |
           chmod +x scripts/package-rpm.sh
           VERSION=${GITHUB_REF_NAME#v}
           ./scripts/package-rpm.sh $VERSION
           mv orbiscreen-${VERSION}-1.x86_64.rpm orbiscreen_x86_64.rpm
+          
+          echo "Signing RPM package..."
+          sudo apt-get install -y rpm-sign gnupg2
+          echo "$RPM_GPG_KEY" | gpg --import
+          echo "%_signature gpg" > ~/.rpmmacros
+          echo "%_gpg_name $RPM_GPG_NAME" >> ~/.rpmmacros
+          rpmsign --addsign orbiscreen_x86_64.rpm
 
       - name: Package AppImage
         run: |
