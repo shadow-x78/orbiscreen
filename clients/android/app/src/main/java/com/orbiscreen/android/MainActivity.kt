@@ -9,6 +9,9 @@ import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
 import android.view.SurfaceView
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.Player
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -22,6 +25,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 class MainActivity : AppCompatActivity() {
 
     private lateinit var videoSurface: SurfaceView
+    private var player: ExoPlayer? = null
     private lateinit var connectCard: LinearLayout
     private lateinit var hostInput: EditText
     private lateinit var connectButton: Button
@@ -62,6 +66,9 @@ class MainActivity : AppCompatActivity() {
                     if (videoSurface.visibility == View.VISIBLE) {
                         videoSurface.visibility = View.GONE
                         connectCard.visibility = View.VISIBLE
+                        player?.stop()
+                        player?.release()
+                        player = null
                     } else {
                         isEnabled = false
                         onBackPressedDispatcher.onBackPressed()
@@ -84,16 +91,26 @@ class MainActivity : AppCompatActivity() {
         if (!hostPart.contains(":")) {
             formatted = formatted.replace(hostPart, "$hostPart:8788")
         }
-        if (!formatted.endsWith("/client/index.html")) {
-            formatted = if (formatted.endsWith("/")) "${formatted}client/index.html" else "$formatted/client/index.html"
+        if (!formatted.endsWith("/stream")) {
+            formatted = if (formatted.endsWith("/")) "${formatted}stream" else "$formatted/stream"
         }
 
         connectCard.visibility = View.GONE
         videoSurface.visibility = View.VISIBLE
-        // StreamClient will connect to `formatted` (implemented in Phase 5)
+        
+        player = ExoPlayer.Builder(this).build().apply {
+            setVideoSurfaceView(videoSurface)
+            setMediaItem(MediaItem.fromUri(formatted))
+            prepare()
+            playWhenReady = true
+            repeatMode = Player.REPEAT_MODE_ALL
+        }
     }
-
-
-
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        player?.release()
+        player = null
+    }
 
 }
