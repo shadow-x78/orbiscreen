@@ -223,7 +223,7 @@ async fn stream_handler(State(state): State<AppState>) -> impl IntoResponse {
         .unwrap()
         .downcast::<AppSrc>()
         .unwrap();
-        
+
     let appsink = pipeline
         .by_name("sink")
         .unwrap()
