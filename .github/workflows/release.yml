@@ -54,9 +54,9 @@ jobs:
           mv orbiscreen_${VERSION}_amd64.deb orbiscreen_amd64.deb
           
           echo "Signing DEB package..."
-          sudo apt-get install -y dpkg-sig gnupg2
+          sudo apt-get install -y debsigs gnupg2
           echo "$RPM_GPG_KEY" | gpg --import
-          dpkg-sig -k "$RPM_GPG_NAME" --sign builder orbiscreen_amd64.deb
+          debsigs --sign=origin --default-key="$RPM_GPG_NAME" orbiscreen_amd64.deb
 
       - name: Package RPM package
         env:
