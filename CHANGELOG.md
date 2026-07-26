@@ -2,6 +2,17 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.7.3] - 2026-07-26
+
+### 🚀 Added
+- **Release Automation:** Updated `release.yml` with dynamic packaging versions and sha256 checksums generation.
+- **Packaging Fixes:** Fixed flatpak ID and Debian version injection.
+
+### 📝 Documentation
+- **Complete Reformatting:** Cleaned up and updated all markdown documentation including README, ARCHITECTURE, DBUS_SPEC, PACKAGING, and TROUBLESHOOTING.
+
+---
+
 ## [v0.7.2] - 2026-07-26
 
 ### 🐛 Fixed
