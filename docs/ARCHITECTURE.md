@@ -77,3 +77,14 @@ graph TD
 3. **Hardware Encoding:** GStreamer encodes frames into H.264 Annex B NAL units (`orbiscreen-encode`).
 4. **Multi-Protocol Broadcast:** Encoded chunks are broadcast simultaneously over `/stream` HTTP GET (Axum) and WebRTC RTP video tracks.
 5. **Reverse Touch Injection:** Input events sent by Android client or Web UI are mapped through `TouchCalibration` and injected directly into Linux kernel `/dev/uinput`.
+
+---
+
+<div align="center">
+
+Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+[Back to README](../README.md)
+
+<sub>&copy; 2026 Orbiscreen (shadow-x78)</sub>
+
+</div>

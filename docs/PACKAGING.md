@@ -35,12 +35,29 @@ cargo install cargo-generate-rpm
 cargo generate-rpm -p orbiscreen-daemon
 ```
 
-### 4. Android Client (`app-debug.apk`)
+### 4. Android Client (`orbiscreen-android-release.apk`)
 ```bash
 cd clients/android
-./gradlew assembleDebug
+./gradlew assembleRelease
 ```
-Output APK location: `clients/android/app/build/outputs/apk/debug/app-debug.apk`
+Output APK location: `clients/android/app/build/outputs/apk/release/app-release.apk`
+
+---
+
+## 🗑️ Uninstalling Packages
+
+Each package manager handles uninstallation cleanly:
+
+- **Debian / Ubuntu (`.deb`):** `sudo apt-get remove orbiscreen`
+- **Fedora / RHEL (`.rpm`):** `sudo dnf remove orbiscreen`
+- **Standalone Tarball:** Run `./uninstall.sh` provided in the tarball or `scripts/` directory.
+
+---
+
+## 🛠️ Multi-Architecture Targets
+
+Currently, Orbiscreen provides pre-built binaries for `x86_64` (AMD64) architecture only via GitHub Actions. 
+For `aarch64` (ARM64) devices, you must build from source or build the packages locally on the target device.
 
 ---
 

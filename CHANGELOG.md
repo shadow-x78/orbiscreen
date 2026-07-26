@@ -2,6 +2,26 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.7.0] - 2026-07-26
+
+### 🚀 Added
+- **Complete Uninstall System:** Added `scripts/uninstall.sh` and integrated `%preun`/`%postun` lifecycle scripts into `.spec` and `.deb` packages for full system cleanliness.
+- **Android Network Security Config:** Allowed cleartext traffic for local networks only (192.168.0.0/16, 10.0.0.0/8, 127.0.0.1) in Android 9+ via `network_security_config.xml`.
+- **Branding Refresh:** New Catppuccin Blue accents across the web client and a new Android connection screen layout featuring the Orbiscreen logo.
+
+### 🐛 Fixed
+- **Android Immediate Crash:** Wrapped `MainActivity` initialization in `try/catch` and removed the stray `-->` from `index.html` that crashed the Android WebView parser.
+- **Daemon Infinite Loop:** Added `tokio::time::sleep` rate-limiting to the capture frame pump loop to eliminate 100% CPU usage.
+- **Android Target SDK:** Bumped to API 35 and explicitly enabled V1/V2/V3 signing.
+- **Flatpak ID Mismatch:** Corrected `io.shadow-x78.orbiscreen` to `io.github.shadow-x78.orbiscreen`.
+- **Debian Control Version:** Removed the hardcoded version in `debian/control` and allowed the build script to inject the correct version dynamically.
+
+### 📝 Documentation
+- **Comprehensive Docs Formatting:** Cleaned up README, SECURITY, TROUBLESHOOTING, DBUS_SPEC, and ARCHITECTURE formatting, removing dead AR translation links.
+- **New Guides:** Added `INSTALL.md` and `CONTRIBUTING.md`.
+
+---
+
 ## [v0.6.0] - 2026-07-24
 
 ### 🚀 Added
@@ -320,3 +340,12 @@ The crates, HTTP routes, and types are all present and the workspace compiles + 
 
 ### ❌ Out of Scope
 - **iOS / iPhone / Safari:** No PRs adding iOS clients or Safari workarounds will be accepted.
+
+---
+
+[v0.7.0]: https://github.com/shadow-x78/orbiscreen/compare/v0.6.0...v0.7.0
+[v0.6.0]: https://github.com/shadow-x78/orbiscreen/compare/v0.5.1...v0.6.0
+[v0.5.1]: https://github.com/shadow-x78/orbiscreen/compare/v0.5.0...v0.5.1
+[v0.5.0]: https://github.com/shadow-x78/orbiscreen/compare/v0.4.9...v0.5.0
+[v0.4.9]: https://github.com/shadow-x78/orbiscreen/compare/v0.4.8...v0.4.9
+[v0.4.8]: https://github.com/shadow-x78/orbiscreen/compare/v0.4.7...v0.4.8

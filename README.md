@@ -4,7 +4,7 @@
   <p>Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB</p>
 
   <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.6.0-blue?style=flat-square" alt="Version" /></a>
+    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.7.0-blue?style=flat-square" alt="Version" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml"><img src="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square" alt="CI" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/stargazers"><img src="https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square" alt="Stars" /></a>
@@ -20,7 +20,8 @@
 - [Highlights](#highlights)
 - [Status](#status)
 - [Documentation Index](#documentation-index)
-- [Quick Start & Packaging](#quick-start)
+- [Quick Start, Packages & Uninstall](#quick-start)
+- [Multi-Architecture Targets](#multi-architecture)
 - [Commands](#commands)
 - [Architecture](#architecture)
 - [License](#license)
@@ -76,18 +77,19 @@
 <a id="documentation-index"></a>
 ## 📚 Documentation Index
 
-| Topic | English Guide | Arabic Guide (العربية) |
-| :--- | :--- | :--- |
-| **System Architecture** | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [ARCHITECTURE_AR.md](docs/ARCHITECTURE_AR.md) |
-| **Multi-Distro Packaging** | [PACKAGING.md](docs/PACKAGING.md) | [PACKAGING_AR.md](docs/PACKAGING_AR.md) |
-| **D-Bus Session Spec** | [DBUS_SPEC.md](docs/DBUS_SPEC.md) | [DBUS_SPEC_AR.md](docs/DBUS_SPEC_AR.md) |
-| **Troubleshooting & Fixes** | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | [TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) |
-| **Security Architecture** | [SECURITY.md](docs/SECURITY.md) | [SECURITY_AR.md](docs/SECURITY_AR.md) |
+| Topic | Document |
+| :--- | :--- |
+| **Installation & Uninstallation** | [INSTALL.md](docs/INSTALL.md) |
+| **System Architecture** | [ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| **Multi-Distro Packaging** | [PACKAGING.md](docs/PACKAGING.md) |
+| **D-Bus Session Spec** | [DBUS_SPEC.md](docs/DBUS_SPEC.md) |
+| **Troubleshooting & Fixes** | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
+| **Security Architecture** | [SECURITY.md](docs/SECURITY.md) |
 
 ---
 
 <a id="quick-start"></a>
-## 🚀 Quick Start & Multi-Distro Installation
+## 🚀 Quick Start, Packages & Uninstall
 
 ### 1. Official Packages & Pre-built Artifacts (GitHub Releases)
 
@@ -135,6 +137,21 @@ orbiscreen probe
 orbiscreen start
 ```
 
+### 3. Uninstalling
+
+If you used the standalone installer:
+```bash
+./scripts/uninstall.sh
+```
+If you used `.deb` or `.rpm`, use your system package manager to remove `orbiscreen`.
+
+---
+
+<a id="multi-architecture"></a>
+## 🛠️ Multi-Architecture Targets
+
+Currently, Orbiscreen provides pre-built binaries for `x86_64` (AMD64) architecture only. For `aarch64` (ARM64) devices (e.g. Raspberry Pi 4/5, Asahi Linux), you must build from source. See [INSTALL.md](docs/INSTALL.md) for detailed instructions.
+
 ---
 
 <a id="commands"></a>
@@ -171,7 +188,7 @@ orbiscreen/
 │   ├── web/                    # browser WebRTC client (HTML / CSS / JS)
 │   └── android/                # Kotlin Android WebView host
 ├── packaging/{flatpak,appimage,debian}/
-├── scripts/{setup-dev-env.sh,test-evdi.sh}
+├── scripts/{setup-dev-env.sh,install.sh,uninstall.sh,test-evdi.sh}
 ├── .github/{workflows/,ISSUE_TEMPLATE/,dependabot.yml}
 └── .editorconfig, .gitignore, .gitattributes, deny.toml, rustfmt.toml
 ```
@@ -208,23 +225,21 @@ orbiscreen/
 
 | Document | Description |
 |----------|-------------|
+| [docs/INSTALL.md](docs/INSTALL.md) | Installation and uninstallation instructions across platforms |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System topology, zero-copy pipeline & D-Bus architecture |
 | [docs/PACKAGING.md](docs/PACKAGING.md) | Multi-distro packaging specifications (.deb, .rpm, AppImage, Flatpak) |
 | [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) | D-Bus Session Bus IPC interface specifications |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues, diagnostics & hardware acceleration fixes |
 | [docs/SECURITY.md](docs/SECURITY.md) | Security model, WebRTC transport safety & network policies |
 | [CHANGELOG.md](CHANGELOG.md) | Full release history and versioning |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Guidelines for contributing code and opening PRs |
 
 ---
 
 <a id="contributing"></a>
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on branch naming conventions, commit formats, and how to submit a PR.
 
 ---
 
