@@ -29,19 +29,6 @@ install -m 0755 %{_projectroot}/target/release/orbiscreen %{buildroot}/usr/bin/o
 install -m 0644 %{_projectroot}/data/com.orbiscreen.OrbiscreenGtk.desktop %{buildroot}/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop || true
 install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg || true
 
-%preun
-if [ $1 -eq 0 ]; then
-    # This is an uninstallation, not an upgrade
-    for u in $(users); do
-        su -s /bin/sh -c "systemctl --user stop orbiscreen || true" "$u" || true
-    done
-fi
-
-%postun
-if [ $1 -eq 0 ]; then
-    echo "Orbiscreen has been removed."
-fi
-
 cat << 'EOF' > %{buildroot}/usr/lib/systemd/user/orbiscreen.service
 [Unit]
 Description=Orbiscreen Virtual Secondary Display Service
@@ -57,6 +44,21 @@ RestartSec=3s
 [Install]
 WantedBy=graphical-session.target
 EOF
+
+%preun
+if [ $1 -eq 0 ]; then
+    # This is an uninstallation, not an upgrade
+    for u in $(users); do
+        su -s /bin/sh -c "systemctl --user stop orbiscreen || true" "$u" || true
+    done
+fi
+
+%postun
+if [ $1 -eq 0 ]; then
+    echo "Orbiscreen has been removed."
+fi
+
+
 
 %files
 /usr/bin/orbiscreen
