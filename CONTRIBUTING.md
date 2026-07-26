@@ -20,7 +20,7 @@ We enforce a strict commit message format for clarity:
 - `<type>` can be `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
 - `vX.Y.Z` should be the current workspace version.
 
-Example: `orbiscreen | v0.7.3 | fix: resolve high CPU usage and Android crash on launch`
+Example: `orbiscreen | vX.Y.Z | fix: description of the issue resolved`
 
 ## 💅 Code Style
 
