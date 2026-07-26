@@ -2,6 +2,17 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.7.4] - 2026-07-26
+
+### 🚀 Added
+- **Uninstall Command:** Added `orbiscreen uninstall` built-in CLI command to cleanly remove the daemon, systemd services, desktop entries, and icons.
+
+### 🐛 Fixed
+- **Web Client Packaging:** Fixed a major bug where `index.html`, `style.css`, and `app.js` were missing from RPM, DEB, and AppImage packages, causing "webpage not available" (404) errors on Android clients.
+- **Daemon Path Resolution:** Enhanced `orbiscreen-daemon` to intelligently locate web client files across multiple system paths (`~/.local/share/orbiscreen`, `/usr/share/orbiscreen`, `/app/share/orbiscreen`) depending on the installation method.
+
+---
+
 ## [v0.7.3] - 2026-07-26
 
 ### 🚀 Added
