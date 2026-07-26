@@ -26,8 +26,6 @@ if [ ! -f target/release/orbiscreen ]; then
 fi
 
 cp -f target/release/orbiscreen "${BUILD_ROOT}/usr/bin/"
-cp -f target/release/orbiscreen-daemon "${BUILD_ROOT}/usr/bin/" || true
-cp -f target/release/orbiscreen-gtk "${BUILD_ROOT}/usr/bin/" || true
 cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_ROOT}/usr/share/applications/" || true
 cp -f data/orbiscreen.svg "${BUILD_ROOT}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg" || true
 

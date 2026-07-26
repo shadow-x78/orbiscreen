@@ -18,8 +18,6 @@ mkdir -p "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps"
 mkdir -p "${BUILD_DIR}/usr/lib/systemd/user"
 
 cp -f target/release/orbiscreen "${BUILD_DIR}/usr/bin/"
-cp -f target/release/orbiscreen-daemon "${BUILD_DIR}/usr/bin/" || true
-cp -f target/release/orbiscreen-gtk "${BUILD_DIR}/usr/bin/" || true
 
 cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_DIR}/usr/share/applications/" || true
 cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg" || true
@@ -32,7 +30,7 @@ After=graphical-session.target
 
 [Service]
 Type=exec
-ExecStart=/usr/bin/orbiscreen-daemon
+ExecStart=/usr/bin/orbiscreen
 Restart=on-failure
 RestartSec=3s
 

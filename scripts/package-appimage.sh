@@ -15,8 +15,6 @@ mkdir -p "${APPDIR}/usr/share/applications"
 mkdir -p "${APPDIR}/usr/share/icons/hicolor/scalable/apps"
 
 cp -f target/release/orbiscreen "${APPDIR}/usr/bin/"
-cp -f target/release/orbiscreen-daemon "${APPDIR}/usr/bin/" || true
-cp -f target/release/orbiscreen-gtk "${APPDIR}/usr/bin/" || true
 
 cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${APPDIR}/com.orbiscreen.OrbiscreenGtk.desktop"
 cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${APPDIR}/usr/share/applications/"
