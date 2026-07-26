@@ -166,7 +166,9 @@ impl WaylandCapture {
                 .build(),
         );
 
-        pipeline.set_state(gstreamer::State::Playing)?;
+        pipeline
+            .set_state(gstreamer::State::Playing)
+            .map_err(|e| WaylandCaptureError::Dbus(format!("State error: {}", e)))?;
 
         Ok(Self {
             _screencast: screencast,
