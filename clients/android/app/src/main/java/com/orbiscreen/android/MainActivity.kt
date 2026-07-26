@@ -12,6 +12,8 @@ import android.view.SurfaceView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.Player
+import android.net.nsd.NsdManager
+import android.net.nsd.NsdServiceInfo
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -30,6 +32,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var hostInput: EditText
     private lateinit var connectButton: Button
     private lateinit var usbButton: Button
+    
+    private var nsdManager: NsdManager? = null
+    private var discoveryListener: NsdManager.DiscoveryListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +59,8 @@ class MainActivity : AppCompatActivity() {
                     connectToHost(input)
                 }
             }
+            
+            startDiscovery()
 
             usbButton.setOnClickListener {
                 hostInput.setText("127.0.0.1:8788")
@@ -110,10 +117,42 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
+    private fun startDiscovery() {
+        nsdManager = getSystemService(Context.NSD_SERVICE) as NsdManager
+        discoveryListener = object : NsdManager.DiscoveryListener {
+            override fun onDiscoveryStarted(regType: String) {}
+            override fun onServiceFound(service: NsdServiceInfo) {
+                if (service.serviceType == "_orbiscreen._tcp.") {
+                    nsdManager?.resolveService(service, object : NsdManager.ResolveListener {
+                        override fun onResolveFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {}
+                        override fun onServiceResolved(serviceInfo: NsdServiceInfo) {
+                            val hostAddress = serviceInfo.host.hostAddress
+                            val port = serviceInfo.port
+                            runOnUiThread {
+                                val currentText = hostInput.text.toString()
+                                if (currentText == "127.0.0.1:8788" || currentText.isEmpty()) {
+                                    hostInput.setText("$hostAddress:$port")
+                                }
+                            }
+                        }
+                    })
+                }
+            }
+            override fun onServiceLost(service: NsdServiceInfo) {}
+            override fun onDiscoveryStopped(serviceType: String) {}
+            override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {}
+            override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {}
+        }
+        nsdManager?.discoverServices("_orbiscreen._tcp.", NsdManager.PROTOCOL_DNS_SD, discoveryListener)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         player?.release()
         player = null
+        discoveryListener?.let {
+            nsdManager?.stopServiceDiscovery(it)
+        }
     }
 
 }
