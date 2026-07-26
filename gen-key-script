@@ -1,0 +1,11 @@
+%echo Generating a standard key
+Key-Type: RSA
+Key-Length: 3072
+Subkey-Type: RSA
+Subkey-Length: 3072
+Name-Real: Orbiscreen Builder
+Name-Email: builder@orbiscreen.local
+Expire-Date: 0
+%no-protection
+%commit
+%echo done

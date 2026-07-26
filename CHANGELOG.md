@@ -1,6 +1,13 @@
 # Changelog
 
-All notable changes to **Orbiscreen** are documented here.
+## [0.8.8] - 2026-07-26
+
+### 🚀 Added
+- **Security:** Universal artifact signing implemented.
+- **Android:** The release APK is now cryptographically signed with a production Keystore to prevent "Untrusted Developer" warnings.
+- **Linux:** RPM, DEB, and AppImage packages are now cryptographically signed with GPG keys (`orbiscreen.asc`).
+
+---
 
 ## [v0.7.4] - 2026-07-26
 
