@@ -16,9 +16,9 @@ android {
     defaultConfig {
         applicationId = "com.orbiscreen.android"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 2
-        versionName = "0.6.0"
+        targetSdk = 35
+        versionCode = 4
+        versionName = "0.7.1"
     }
 
     signingConfigs {
@@ -29,6 +29,9 @@ android {
                 storePassword = "orbiscreen123"
                 keyAlias = "orbiscreen"
                 keyPassword = "orbiscreen123"
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
 
             } else {
                 storeFile = signingConfigs.getByName("debug").storeFile
@@ -41,7 +44,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

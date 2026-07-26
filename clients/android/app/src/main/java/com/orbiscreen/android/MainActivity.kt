@@ -16,7 +16,12 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,30 +36,49 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContentView(R.layout.activity_main)
 
-        webView = findViewById(R.id.webView)
-        connectCard = findViewById(R.id.connectCard)
-        hostInput = findViewById(R.id.hostAddressInput)
-        connectButton = findViewById(R.id.connectButton)
-        usbButton = findViewById(R.id.usbConnectButton)
+        try {
+            webView = findViewById(R.id.webView)
+            connectCard = findViewById(R.id.connectCard)
+            hostInput = findViewById(R.id.hostAddressInput)
+            connectButton = findViewById(R.id.connectButton)
+            usbButton = findViewById(R.id.usbConnectButton)
 
-        configureWebView(webView)
+            configureWebView(webView)
 
-        val prefs = getSharedPreferences("orbiscreen_prefs", Context.MODE_PRIVATE)
-        val savedHost = prefs.getString("last_host", "127.0.0.1:8788")
-        hostInput.setText(savedHost)
+            val prefs = getSharedPreferences("orbiscreen_prefs", Context.MODE_PRIVATE)
+            val savedHost = prefs.getString("last_host", "127.0.0.1:8788")
+            hostInput.setText(savedHost)
 
-        connectButton.setOnClickListener {
-            val input = hostInput.text.toString().trim()
-            if (input.isNotEmpty()) {
-                prefs.edit().putString("last_host", input).apply()
-                connectToHost(input)
+            connectButton.setOnClickListener {
+                val input = hostInput.text.toString().trim()
+                if (input.isNotEmpty()) {
+                    prefs.edit().putString("last_host", input).apply()
+                    connectToHost(input)
+                }
             }
-        }
 
-        usbButton.setOnClickListener {
-            hostInput.setText("127.0.0.1:8788")
-            prefs.edit().putString("last_host", "127.0.0.1:8788").apply()
-            connectToHost("127.0.0.1:8788")
+            usbButton.setOnClickListener {
+                hostInput.setText("127.0.0.1:8788")
+                prefs.edit().putString("last_host", "127.0.0.1:8788").apply()
+                connectToHost("127.0.0.1:8788")
+            }
+            
+            onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (webView.visibility == View.VISIBLE) {
+                        webView.visibility = View.GONE
+                        connectCard.visibility = View.VISIBLE
+                        webView.loadUrl("about:blank")
+                    } else {
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                    }
+                }
+            })
+            
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Failed to initialize: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -76,15 +100,7 @@ class MainActivity : AppCompatActivity() {
         webView.loadUrl(formatted)
     }
 
-    override fun onBackPressed() {
-        if (webView.visibility == View.VISIBLE) {
-            webView.visibility = View.GONE
-            connectCard.visibility = View.VISIBLE
-            webView.loadUrl("about:blank")
-        } else {
-            super.onBackPressed()
-        }
-    }
+
 
     private fun configureWebView(view: WebView) {
         with(view.settings) {
