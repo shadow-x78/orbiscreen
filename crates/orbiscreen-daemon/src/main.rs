@@ -273,11 +273,18 @@ async fn run_start(
 
     let client_dir = std::env::var_os("ORBISCREEN_CLIENT_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            std::env::current_dir()
-                .map(|p| p.join("clients").join("web"))
-                .unwrap_or_else(|_| PathBuf::from("clients/web"))
-        });
+        .or_else(|| {
+            let mut paths = vec![
+                std::env::current_dir().unwrap_or_default().join("clients").join("web"),
+                PathBuf::from("/usr/share/orbiscreen/client"),
+                PathBuf::from("/app/share/orbiscreen/client"),
+            ];
+            if let Ok(home) = std::env::var("HOME") {
+                paths.insert(1, PathBuf::from(home).join(".local/share/orbiscreen/client"));
+            }
+            paths.into_iter().find(|p| p.exists())
+        })
+        .unwrap_or_else(|| PathBuf::from("clients/web"));
     let transport = Transport::new(ServerConfig {
         signaling_port: cfg.transport.signaling_port,
         client_web_dir: client_dir,

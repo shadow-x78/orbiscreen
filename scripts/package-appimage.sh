@@ -13,6 +13,7 @@ echo "[Orbiscreen] Building AppImage for Orbiscreen v${VERSION}..."
 mkdir -p "${APPDIR}/usr/bin"
 mkdir -p "${APPDIR}/usr/share/applications"
 mkdir -p "${APPDIR}/usr/share/icons/hicolor/scalable/apps"
+mkdir -p "${APPDIR}/usr/share/orbiscreen/client"
 
 cp -f target/release/orbiscreen "${APPDIR}/usr/bin/"
 
@@ -20,6 +21,10 @@ cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${APPDIR}/com.orbiscreen.Orbisc
 cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${APPDIR}/usr/share/applications/"
 cp -f data/orbiscreen.svg "${APPDIR}/orbiscreen.svg"
 cp -f data/orbiscreen.svg "${APPDIR}/.DirIcon"
+
+cp -f clients/web/index.html "${APPDIR}/usr/share/orbiscreen/client/"
+cp -f clients/web/style.css "${APPDIR}/usr/share/orbiscreen/client/"
+cp -f clients/web/app.js "${APPDIR}/usr/share/orbiscreen/client/"
 
 cat << 'EOF' > "${APPDIR}/AppRun"
 #!/bin/sh

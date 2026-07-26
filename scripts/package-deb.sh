@@ -16,11 +16,16 @@ mkdir -p "${BUILD_DIR}/usr/bin"
 mkdir -p "${BUILD_DIR}/usr/share/applications"
 mkdir -p "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps"
 mkdir -p "${BUILD_DIR}/usr/lib/systemd/user"
+mkdir -p "${BUILD_DIR}/usr/share/orbiscreen/client"
 
 cp -f target/release/orbiscreen "${BUILD_DIR}/usr/bin/"
 
 cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_DIR}/usr/share/applications/" || true
 cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg" || true
+
+cp -f clients/web/index.html "${BUILD_DIR}/usr/share/orbiscreen/client/"
+cp -f clients/web/style.css "${BUILD_DIR}/usr/share/orbiscreen/client/"
+cp -f clients/web/app.js "${BUILD_DIR}/usr/share/orbiscreen/client/"
 
 cat << 'EOF' > "${BUILD_DIR}/usr/lib/systemd/user/orbiscreen.service"
 [Unit]
