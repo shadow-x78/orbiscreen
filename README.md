@@ -85,6 +85,7 @@ Download pre-built packages from [GitHub Releases](https://github.com/shadow-x78
   ```
 
 - **Fedora / RHEL (`.rpm`):**
+  > **Note:** Our RPM packages are cryptographically signed. You must import the public key first.
   ```bash
   sudo rpm --import https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/orbiscreen.asc
   sudo dnf install ./orbiscreen_x86_64.rpm
@@ -102,8 +103,8 @@ Download pre-built packages from [GitHub Releases](https://github.com/shadow-x78
   cd release-bundle && ./install.sh
   ```
 
-- **Android App (`.apk`):**
-  Install `orbiscreen-android-release.apk` (signed release build to bypass Play Protect warnings) or `orbiscreen-android-debug.apk`.
+- **Android (`.apk`):**
+  Install `orbiscreen-android-release.apk` (cryptographically signed release build to bypass Play Protect warnings).
 
 ### 2. Building from Source
 
