@@ -2,6 +2,12 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.7.2] - 2026-07-26
+
+### 🐛 Fixed
+- **Daemon Infinite Loop:** Added `tokio::time::sleep` rate-limiting to the capture frame pump loop to eliminate 100% CPU usage.
+- **Uninstall System:** Added `scripts/uninstall.sh` and updated `scripts/install.sh` to support complete uninstallation of daemon and desktop entries.
+
 ## [v0.7.1] - 2026-07-26
 
 ### 🐛 Fixed
