@@ -30,4 +30,12 @@ exec "${HERE}/usr/bin/orbiscreen" "$@"
 EOF
 
 chmod +x "${APPDIR}/AppRun"
-echo "[Orbiscreen] AppImage directory staged in ${APPDIR}"
+
+echo "[Orbiscreen] Downloading appimagetool..."
+wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
+chmod +x appimagetool
+
+echo "[Orbiscreen] Building AppImage file..."
+./appimagetool --appimage-extract-and-run "${APPDIR}" "${APPIMAGE_NAME}"
+
+echo "[Orbiscreen] AppImage built successfully: ${APPIMAGE_NAME}"

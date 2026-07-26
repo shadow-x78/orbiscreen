@@ -62,7 +62,6 @@ jobs:
           chmod +x scripts/package-appimage.sh
           VERSION=${GITHUB_REF_NAME#v}
           ./scripts/package-appimage.sh $VERSION
-          tar -czvf orbiscreen-x86_64.AppImage.tar.gz -C target/AppDir .
 
       - name: Set up JDK 17 for Android
         uses: actions/setup-java@v4
@@ -82,22 +81,25 @@ jobs:
           sha256sum orbiscreen-linux-x86_64.tar.gz > orbiscreen-linux-x86_64.tar.gz.sha256
           sha256sum orbiscreen_amd64.deb > orbiscreen_amd64.deb.sha256
           sha256sum orbiscreen_x86_64.rpm > orbiscreen_x86_64.rpm.sha256
-          sha256sum orbiscreen-x86_64.AppImage.tar.gz > orbiscreen-x86_64.AppImage.tar.gz.sha256
+          sha256sum orbiscreen-*.AppImage > orbiscreen-x86_64.AppImage.sha256
           sha256sum orbiscreen-android-release.apk > orbiscreen-android-release.apk.sha256
+
+      - name: Extract Release Notes
+        id: extract_notes
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "EOF_NOTES" >> release_notes.txt
+          awk "/^## \[v$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md >> release_notes.txt
+          echo "EOF_NOTES" >> release_notes.txt
+          cat release_notes.txt
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: Orbiscreen ${{ github.ref_name }}
-          body: |
-            ## Orbiscreen ${{ github.ref_name }}
-            
-            Please see the [CHANGELOG.md](https://github.com/shadow-x78/orbiscreen/blob/main/CHANGELOG.md) for full release notes.
-            
-            ### Installation Instructions
-            Please refer to the [Installation Guide](https://github.com/shadow-x78/orbiscreen/blob/main/docs/INSTALL.md) for detailed platform-specific instructions.
-          generate_release_notes: true
+          name: Orbiscreen ${{ github.ref_name }} 🚀
+          body_path: release_notes.txt
+          generate_release_notes: false
           files: |
             orbiscreen-linux-x86_64.tar.gz
             orbiscreen-linux-x86_64.tar.gz.sha256
@@ -105,7 +107,7 @@ jobs:
             orbiscreen_amd64.deb.sha256
             orbiscreen_x86_64.rpm
             orbiscreen_x86_64.rpm.sha256
-            orbiscreen-x86_64.AppImage.tar.gz
-            orbiscreen-x86_64.AppImage.tar.gz.sha256
+            orbiscreen-*.AppImage
+            orbiscreen-x86_64.AppImage.sha256
             orbiscreen-android-release.apk
             orbiscreen-android-release.apk.sha256
