@@ -46,19 +46,22 @@ jobs:
       - name: Package Debian DEB package
         run: |
           chmod +x scripts/package-deb.sh
-          ./scripts/package-deb.sh 0.6.0
-          mv orbiscreen_0.6.0_amd64.deb orbiscreen_amd64.deb
+          VERSION=${GITHUB_REF_NAME#v}
+          ./scripts/package-deb.sh $VERSION
+          mv orbiscreen_${VERSION}_amd64.deb orbiscreen_amd64.deb
 
       - name: Package RPM package
         run: |
           chmod +x scripts/package-rpm.sh
-          ./scripts/package-rpm.sh 0.6.0
-          mv orbiscreen-0.6.0-1.x86_64.rpm orbiscreen_x86_64.rpm
+          VERSION=${GITHUB_REF_NAME#v}
+          ./scripts/package-rpm.sh $VERSION
+          mv orbiscreen-${VERSION}-1.x86_64.rpm orbiscreen_x86_64.rpm
 
       - name: Package AppImage
         run: |
           chmod +x scripts/package-appimage.sh
-          ./scripts/package-appimage.sh 0.6.0
+          VERSION=${GITHUB_REF_NAME#v}
+          ./scripts/package-appimage.sh $VERSION
           tar -czvf orbiscreen-x86_64.AppImage.tar.gz -C target/AppDir .
 
       - name: Set up JDK 17 for Android
@@ -74,13 +77,35 @@ jobs:
           ./gradlew assembleRelease
           cp app/build/outputs/apk/release/app-release.apk ../../orbiscreen-android-release.apk
 
+      - name: Generate SHA256 sums
+        run: |
+          sha256sum orbiscreen-linux-x86_64.tar.gz > orbiscreen-linux-x86_64.tar.gz.sha256
+          sha256sum orbiscreen_amd64.deb > orbiscreen_amd64.deb.sha256
+          sha256sum orbiscreen_x86_64.rpm > orbiscreen_x86_64.rpm.sha256
+          sha256sum orbiscreen-x86_64.AppImage.tar.gz > orbiscreen-x86_64.AppImage.tar.gz.sha256
+          sha256sum orbiscreen-android-release.apk > orbiscreen-android-release.apk.sha256
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          name: Orbiscreen ${{ github.ref_name }}
+          body: |
+            ## Orbiscreen ${{ github.ref_name }}
+            
+            Please see the [CHANGELOG.md](https://github.com/shadow-x78/orbiscreen/blob/main/CHANGELOG.md) for full release notes.
+            
+            ### Installation Instructions
+            Please refer to the [Installation Guide](https://github.com/shadow-x78/orbiscreen/blob/main/docs/INSTALL.md) for detailed platform-specific instructions.
+          generate_release_notes: true
           files: |
             orbiscreen-linux-x86_64.tar.gz
+            orbiscreen-linux-x86_64.tar.gz.sha256
             orbiscreen_amd64.deb
+            orbiscreen_amd64.deb.sha256
             orbiscreen_x86_64.rpm
+            orbiscreen_x86_64.rpm.sha256
             orbiscreen-x86_64.AppImage.tar.gz
+            orbiscreen-x86_64.AppImage.tar.gz.sha256
             orbiscreen-android-release.apk
+            orbiscreen-android-release.apk.sha256

@@ -18,9 +18,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.7.x | ✅ Active development |
-| 0.6.x | ⚠️ Maintenance |
-| < 0.6 | ❌ Not released |
+| 0.4.x | ✅ Active development |
+| < 0.4 | ❌ Not released |
 
 Only the latest development release receives security updates. Ensure you build from `main` before reporting.
 
