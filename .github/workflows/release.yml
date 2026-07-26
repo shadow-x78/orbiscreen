@@ -44,11 +44,19 @@ jobs:
           tar -czvf orbiscreen-linux-x86_64.tar.gz -C release-bundle .
 
       - name: Package Debian DEB package
+        env:
+          RPM_GPG_KEY: ${{ secrets.RPM_GPG_KEY }}
+          RPM_GPG_NAME: ${{ secrets.RPM_GPG_NAME }}
         run: |
           chmod +x scripts/package-deb.sh
           VERSION=${GITHUB_REF_NAME#v}
           ./scripts/package-deb.sh $VERSION
           mv orbiscreen_${VERSION}_amd64.deb orbiscreen_amd64.deb
+          
+          echo "Signing DEB package..."
+          sudo apt-get install -y dpkg-sig gnupg2
+          echo "$RPM_GPG_KEY" | gpg --import
+          dpkg-sig -k "$RPM_GPG_NAME" --sign builder orbiscreen_amd64.deb
 
       - name: Package RPM package
         env:
@@ -68,7 +76,12 @@ jobs:
           rpmsign --addsign orbiscreen_x86_64.rpm
 
       - name: Package AppImage
+        env:
+          RPM_GPG_KEY: ${{ secrets.RPM_GPG_KEY }}
+          SIGN: 1
         run: |
+          echo "Importing GPG key for AppImage..."
+          echo "$RPM_GPG_KEY" | gpg2 --import
           chmod +x scripts/package-appimage.sh
           VERSION=${GITHUB_REF_NAME#v}
           ./scripts/package-appimage.sh $VERSION
@@ -80,8 +93,11 @@ jobs:
           java-version: 17
 
       - name: Build Android Release APK
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
         run: |
           cd clients/android
+          echo "$ANDROID_KEYSTORE_B64" | base64 -d > orbiscreen-release.keystore
           chmod +x gradlew
           ./gradlew assembleRelease
           cp app/build/outputs/apk/release/app-release.apk ../../orbiscreen-android-release.apk

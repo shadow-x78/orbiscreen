@@ -40,7 +40,12 @@ echo "[Orbiscreen] Downloading appimagetool..."
 wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
 chmod +x appimagetool
 
-echo "[Orbiscreen] Building AppImage file..."
-./appimagetool --appimage-extract-and-run "${APPDIR}" "${APPIMAGE_NAME}"
+if [ "${SIGN:-0}" = "1" ]; then
+    echo "[Orbiscreen] Building and signing AppImage file..."
+    ./appimagetool --appimage-extract-and-run --sign "${APPDIR}" "${APPIMAGE_NAME}"
+else
+    echo "[Orbiscreen] Building AppImage file..."
+    ./appimagetool --appimage-extract-and-run "${APPDIR}" "${APPIMAGE_NAME}"
+fi
 
 echo "[Orbiscreen] AppImage built successfully: ${APPIMAGE_NAME}"
