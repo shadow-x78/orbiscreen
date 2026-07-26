@@ -69,9 +69,8 @@ jobs:
           mv orbiscreen-${VERSION}-1.x86_64.rpm orbiscreen_x86_64.rpm
           
           echo "Signing RPM package..."
-          sudo apt-get install -y rpm-sign gnupg2
-          echo "$RPM_GPG_KEY" | gpg --import
-          echo "%_signature gpg" > ~/.rpmmacros
+          sudo apt-get install -y rpm gnupg2
+          echo "$RPM_GPG_KEY" | gpg2 --import
           echo "%_gpg_name $RPM_GPG_NAME" >> ~/.rpmmacros
           rpmsign --addsign orbiscreen_x86_64.rpm
 
