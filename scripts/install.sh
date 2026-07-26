@@ -21,6 +21,12 @@ if command -v cargo >/dev/null 2>&1; then
     cp data/com.orbiscreen.OrbiscreenGtk.desktop ~/.local/share/applications/
     cp data/orbiscreen.svg ~/.local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
 
+    echo "[Orbiscreen] Installing web client files..."
+    mkdir -p ~/.local/share/orbiscreen/client
+    cp clients/web/index.html ~/.local/share/orbiscreen/client/
+    cp clients/web/style.css ~/.local/share/orbiscreen/client/
+    cp clients/web/app.js ~/.local/share/orbiscreen/client/
+
     echo "[Orbiscreen] Reloading systemd user daemon..."
     echo "[Orbiscreen] Binary installed to ${INSTALL_DIR}/orbiscreen"
 else

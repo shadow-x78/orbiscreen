@@ -23,11 +23,16 @@ mkdir -p %{buildroot}/usr/bin
 mkdir -p %{buildroot}/usr/share/applications
 mkdir -p %{buildroot}/usr/share/icons/hicolor/scalable/apps
 mkdir -p %{buildroot}/usr/lib/systemd/user
+mkdir -p %{buildroot}/usr/share/orbiscreen/client
 
 install -m 0755 %{_projectroot}/target/release/orbiscreen %{buildroot}/usr/bin/orbiscreen
 
 install -m 0644 %{_projectroot}/data/com.orbiscreen.OrbiscreenGtk.desktop %{buildroot}/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop || true
 install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg || true
+
+install -m 0644 %{_projectroot}/clients/web/index.html %{buildroot}/usr/share/orbiscreen/client/index.html
+install -m 0644 %{_projectroot}/clients/web/style.css %{buildroot}/usr/share/orbiscreen/client/style.css
+install -m 0644 %{_projectroot}/clients/web/app.js %{buildroot}/usr/share/orbiscreen/client/app.js
 
 cat << 'EOF' > %{buildroot}/usr/lib/systemd/user/orbiscreen.service
 [Unit]
@@ -65,6 +70,9 @@ fi
 /usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop
 /usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
 /usr/lib/systemd/user/orbiscreen.service
+/usr/share/orbiscreen/client/index.html
+/usr/share/orbiscreen/client/style.css
+/usr/share/orbiscreen/client/app.js
 
 %changelog
 * Fri Jul 24 2026 shadow-x78 <https://github.com/shadow-x78/orbiscreen> - %{_version}-1
