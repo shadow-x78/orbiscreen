@@ -55,8 +55,7 @@ fn init_tracing(verbose: u8) {
         _ => Level::TRACE,
     };
     let filter_str = format!("{},zbus=error,ashpd=error", level.as_str());
-    let filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(filter_str));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(filter_str));
     let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }
 
@@ -127,9 +126,11 @@ async fn main() -> ExitCode {
             // Check if there's a daemon running to stop. In this simplified implementation
             // we just rely on systemd or kill to stop it, but if invoked via CLI `orbiscreen stop`,
             // we could talk to DBus to gracefully stop. For now, just exit cleanly or send a signal.
-            println!("Use 'systemctl --user stop orbiscreen' or kill the process to stop the daemon.");
+            println!(
+                "Use 'systemctl --user stop orbiscreen' or kill the process to stop the daemon."
+            );
             ExitCode::SUCCESS
-        },
+        }
         Command::ListDisplays => {
             list_displays();
             ExitCode::SUCCESS
