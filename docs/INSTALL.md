@@ -20,7 +20,7 @@ sudo apt-get remove orbiscreen
 
 Download `orbiscreen_x86_64.rpm` from the releases page.
 ```bash
-sudo dnf install ./orbiscreen_x86_64.rpm
+sudo dnf install --nogpgcheck ./orbiscreen_x86_64.rpm
 ```
 
 **Uninstall:**
