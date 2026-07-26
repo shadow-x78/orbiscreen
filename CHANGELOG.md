@@ -1,11 +1,26 @@
 # Changelog
 
-## [0.8.8] - 2026-07-26
+## [v0.9.0] - 2026-07-26
 
 ### 🚀 Added
 - **Security:** Universal artifact signing implemented.
 - **Android:** The release APK is now cryptographically signed with a production Keystore to prevent "Untrusted Developer" warnings.
 - **Linux:** RPM, DEB, and AppImage packages are now cryptographically signed with GPG keys (`orbiscreen.asc`).
+
+---
+
+## [v0.8.7] - 2026-07-26
+
+### 🚀 Added
+- **Architecture Migration:** Completely migrated the internal streaming architecture from WebRTC/WebView to a native GStreamer pipeline.
+- **Android Native Player:** Replaced the heavy, stuttering WebView with a fully native hardware-accelerated ExoPlayer implementation.
+- **Zero-Config Discovery:** Implemented mDNS service discovery; the Android app now automatically discovers and connects to the Orbiscreen daemon without manual IP entry.
+- **Touch Input Injection:** Touch events on the Android screen are now streamed back and injected directly into the Linux Wayland compositor using `uinput` and `evdev`.
+
+### 🐛 Fixed
+- **Latency & Performance:** Solved severe latency and dropped frames issues on older Android devices.
+- **Wayland Compatibility:** Removed the failing EVDI dependency. The capture backend now robustly utilizes the XDG Desktop Portal for Wayland/X11 screen capture.
+- **CI/CD Reliability:** Fixed various `cargo fmt` errors, `clippy` warnings, and `Cargo.lock` drift issues in the GitHub Actions workflow.
 
 ---
 
