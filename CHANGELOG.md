@@ -2,6 +2,13 @@
 
 All notable changes to **Orbiscreen** are documented here.
 
+## [v0.7.0] - 2026-07-26
+
+### 🚀 Added
+- **Branding Unification:** Unified the original Orbiscreen logo (screen shape) and applied it directly to the Android app connection screen.
+
+---
+
 ## [v0.6.0] - 2026-07-24
 
 ### 🚀 Added
