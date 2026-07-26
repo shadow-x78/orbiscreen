@@ -20,7 +20,7 @@ We enforce a strict commit message format for clarity:
 - `<type>` can be `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
 - `vX.Y.Z` should be the current workspace version.
 
-Example: `orbiscreen | v0.7.0 | fix: resolve null pointer dereference in X11 capture`
+Example: `orbiscreen | v0.7.3 | fix: resolve high CPU usage and Android crash on launch`
 
 ## 💅 Code Style
 
@@ -28,7 +28,7 @@ All Rust code must be formatted and pass Clippy without warnings.
 - Format: `cargo fmt --all`
 - Lint: `cargo clippy --workspace --all-targets --locked -- -D warnings`
 
-All file headers must match the UMO style:
+All file headers must match the Orbiscreen style:
 ```rust
 // Orbiscreen - <module name> (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
