@@ -97,6 +97,9 @@ class MainActivity : AppCompatActivity() {
 
         connectCard.visibility = View.GONE
         videoSurface.visibility = View.VISIBLE
+        val hostPart = formatted.removePrefix("http://").removePrefix("https://").split("/")[0].substringBefore(":")
+        
+        videoSurface.setOnTouchListener(TouchInjector(hostPart))
         
         player = ExoPlayer.Builder(this).build().apply {
             setVideoSurfaceView(videoSurface)
