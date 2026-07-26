@@ -206,15 +206,71 @@ async fn input_post(
 }
 
 async fn stream_handler(State(state): State<AppState>) -> impl IntoResponse {
+    use gstreamer::prelude::*;
+    use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
     use tokio_stream::StreamExt;
-    let rx = state.video_tx.subscribe();
-    let stream = tokio_stream::wrappers::BroadcastStream::new(rx).filter_map(|res| {
-        res.ok()
-            .map(|pkt| Ok::<_, std::convert::Infallible>(axum::body::Bytes::from(pkt.bytes)))
+
+    gstreamer::init().ok();
+
+    let pipeline_str = "appsrc name=src format=time ! h264parse ! mpegtsmux alignment=7 ! appsink name=sink drop=false";
+    let pipeline = gstreamer::parse_launch(pipeline_str)
+        .expect("failed to parse mpegtsmux pipeline")
+        .downcast::<gstreamer::Pipeline>()
+        .unwrap();
+
+    let appsrc = pipeline
+        .by_name("src")
+        .unwrap()
+        .downcast::<AppSrc>()
+        .unwrap();
+        
+    let appsink = pipeline
+        .by_name("sink")
+        .unwrap()
+        .downcast::<AppSink>()
+        .unwrap();
+
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
+
+    appsink.set_callbacks(
+        AppSinkCallbacks::builder()
+            .new_sample(move |sink| {
+                if let Ok(sample) = sink.pull_sample() {
+                    if let Some(buffer) = sample.buffer() {
+                        if let Ok(map) = buffer.map_readable() {
+                            let _ = tx.send(map.to_vec());
+                        }
+                    }
+                }
+                Ok(gstreamer::FlowSuccess::Ok)
+            })
+            .build(),
+    );
+
+    pipeline.set_state(gstreamer::State::Playing).unwrap();
+
+    let mut video_rx = state.video_tx.subscribe();
+
+    tokio::spawn(async move {
+        while let Ok(pkt) = video_rx.recv().await {
+            let mut buffer = gstreamer::Buffer::with_size(pkt.bytes.len()).unwrap();
+            {
+                let buffer_mut = buffer.get_mut().unwrap();
+                buffer_mut.copy_from_slice(0, &pkt.bytes).unwrap();
+            }
+            if appsrc.push_buffer(buffer).is_err() {
+                break;
+            }
+        }
+        let _ = pipeline.set_state(gstreamer::State::Null);
     });
+
+    let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx)
+        .map(|chunk| Ok::<_, std::convert::Infallible>(axum::body::Bytes::from(chunk)));
+
     (
         [
-            ("content-type", "video/h264"),
+            ("content-type", "video/mp2t"),
             ("cache-control", "no-cache, no-store, must-revalidate"),
         ],
         axum::body::Body::from_stream(stream),
