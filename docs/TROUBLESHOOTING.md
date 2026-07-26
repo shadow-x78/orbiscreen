@@ -310,16 +310,10 @@ pub async fn open_at(...) -> ... {
 
 ## 📱 Android Client & Deployment
 
-### Where is the built Android APK file (`app-debug.apk`)?
+### Where is the built Android APK file (`app-release.apk`)?
 
-- **Locally on your system:**
-  When you run `./gradlew assembleDebug` inside `clients/android`, the generated APK file is stored at:
-  ```text
-  clients/android/app/build/outputs/apk/debug/app-debug.apk
-  ```
-
-- **On GitHub Actions / Releases:**
-  When the `Android build` workflow runs on GitHub Actions, the APK is published under **Artifacts** at the bottom of the workflow run page as **`orbiscreen-android-debug`**.
+After building, the APK can be found at:
+- `clients/android/app/build/outputs/apk/release/app-release.apk`
 
 ---
 
