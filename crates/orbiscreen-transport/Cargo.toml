@@ -13,7 +13,7 @@ description = "WebRTC streaming, signaling, and mDNS host discovery"
 workspace = true
 
 [dependencies]
-webrtc = { workspace = true }
+
 mdns-sd = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }

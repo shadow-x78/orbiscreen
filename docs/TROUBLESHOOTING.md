@@ -103,9 +103,9 @@ Run `cargo clippy` locally before pushing.
 
 **Symptom:**
 ```
-error[E0463]: can't find crate for `webrtc`
+error[E0463]: can't find crate for `gstreamer`
   |
-  = note: the crate `webrtc` couldn't be found in the registry index
+  = note: the crate `gstreamer` couldn't be found in the registry index
 ```
 
 **Cause:**
@@ -116,17 +116,17 @@ runner. With `--locked` enabled, cargo refuses to update the lockfile.
 **Fix:**
 ```bash
 # Locally: regenerate the lockfile
-cargo update -p webrtc
+cargo update -p gstreamer
 # Then rebuild
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.1.1 | chore: refresh Cargo.lock for webrtc 0.20.0-rc.3"
+git commit -m "orbiscreen | v0.8.7 | chore: refresh Cargo.lock for gstreamer 0.23.0"
 ```
 
-If the dependency is `webrtc = "0.20.0-rc.3"` and has been removed or
+If the dependency is `gstreamer = "0.23.0"` and has been removed or
 replaced on `crates.io`, you must either:
-- Pin a different version (`cargo search webrtc`)
-- Wait for a stable release (the workspace pins a release-candidate)
+- Pin a different version (`cargo search gstreamer`)
+- Wait for a stable release
 
 **Prevention:**
 Keep `Cargo.lock` committed (already done) and run `cargo update` only
