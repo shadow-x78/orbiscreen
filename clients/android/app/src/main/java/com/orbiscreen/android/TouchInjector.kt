@@ -30,7 +30,6 @@ class TouchInjector(private val host: String) : View.OnTouchListener {
                 }
             }
             MotionEvent.ACTION_UP -> {
-                // Determine if it was a tap
                 val duration = event.eventTime - event.downTime
                 if (duration < 200) {
                     sendClick()
