@@ -88,7 +88,9 @@ com.orbiscreen.android/
 3. **Hardware Encoding:**
    - `orbiscreen-encode` consumes the raw X11 / PipeWire frame buffers and encodes them into H.264 using hardware-accelerated GStreamer pipelines (VAAPI, NVENC, or fallback x264).
    - `orbiscreen-transport` wraps the encoded H.264 NAL units into an MPEG-TS container and serves them over `http://host:port/stream.ts`.
-4. **Android Playback (v0.10.2):**
+4. **Android Playback:**
+   - `PlayerHolder.build()` runs on the Main thread (`withContext(Dispatchers.Main)`) to prevent thread access crashes on Connect.
+   - All builder and dataSource initializations inside `PlayerHolder.build()` are wrapped in a try-catch block to surface construction errors as `StreamEvent.Error` retry cards.
    - `PlayerHolder` builds `MediaItem` with `MimeTypes.VIDEO_MP2T` so ExoPlayer decodes MPEG-TS without sniffing.
    - `OkHttpDataSource` is configured with a zero read-timeout (live stream) and a tuned `DefaultLoadControl` (1.5 s min / 5 s max buffer).
    - The `PlayerHolder` exposes a `Player.Listener` that maps `Player.STATE_*` transitions to `StreamEvent` for the Compose UI.

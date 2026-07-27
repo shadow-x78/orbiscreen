@@ -19,8 +19,9 @@
 - [Runtime: capture backend unavailable on Wayland](#runtime-wayland)
 - [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations` lint warnings](#runtime-lints)
 
-### Android (v0.10.2)
+### Android
 
+- [Android: app crashes or process dies when tapping Connect](#android-connect-crash)
 - [Android: black screen after Connect](#android-black-screen)
 - [Android: discovery list is empty even though hosts are on the same Wi-Fi](#android-no-hosts)
 - [Android: touch is rotated / misaligned](#android-touch-offset)
@@ -180,6 +181,21 @@ Use `#[allow(missing_debug_implementations)]` or `#[allow(unsafe_code)]` on the 
 ---
 
 ## 📱 Android (v0.10.2)
+
+<a id="android-connect-crash"></a>
+### Android: app crashes or process dies when tapping Connect
+
+**Symptom:**
+Tapping a host on the Discovery screen immediately kills the app process or crashes back to the launcher.
+
+**Cause (fixed in v0.10.2):**
+`PlayerHolder.build()` was executed inside `withContext(Dispatchers.IO)`. ExoPlayer requires main-thread construction; creating player components on IO threads throws thread access exceptions that terminate the process.
+
+**Fix:**
+- Upgrade to `orbiscreen-android-release.apk` **v0.10.2** or later.
+- `StreamViewModel` moves ExoPlayer construction to `withContext(Dispatchers.Main)` and hardens `build()` with a try-catch block so construction errors surface as `StreamEvent.Error` retry cards instead of crashing.
+
+---
 
 <a id="android-black-screen"></a>
 ### Android: black screen after Connect

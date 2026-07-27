@@ -51,9 +51,10 @@
 ## ✨ Highlights
 
 - Real virtual display via `evdi` (X11 *and* Wayland).
-- **Material 3 Android client** — Jetpack Compose, dynamic colour, light/dark theme.
+- **Material 3 Android client** — Jetpack Compose, Catppuccin Mocha / Latte brand palette matching `data/orbiscreen-app.svg`, light/dark theme.
+- **Brand UI Chrome & Splash** — SplashScreen with brand background and vector adaptive launcher icon mirroring SVG.
 - **Live discovery** — NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner.
-- **Native streaming** — ExoPlayer with `OkHttpDataSource` + `DefaultLoadControl` for low-latency MPEG-TS / H.264.
+- **Native streaming** — Main-thread ExoPlayer construction with `OkHttpDataSource` + `DefaultLoadControl` for low-latency MPEG-TS / H.264.
 - **Reverse touch** — absolute pointer / keyboard / stylus / wheel events flow Android → host.
 - **Host control panel** — keyboard, lock, blank, Ctrl+Alt+Del, file manager, and retry actions.
 - **USB transport** via `adb reverse`, no special drivers.
@@ -166,9 +167,9 @@ The Android client is a **Material 3 + Jetpack Compose** single-Activity app. Th
 
 ### Stream screen
 
-- Background-black `Scaffold` with a centred top app bar and a `ControlToolbar` rail.
-- **ExoPlayer** is wrapped in a `PlayerView` (via `AndroidView`) with `useController = false` so the in-app bar is the single source of UI.
-- A `Player.Listener` reports `Buffering`, `Playing`, and `Error` events; errors show a retry card with a clear root-cause message.
+- Background-black `Scaffold` with Catppuccin Mocha/Latte themed top app bar and a `ControlToolbar` rail.
+- **ExoPlayer** construction runs safely on the Main thread (`withContext(Dispatchers.Main)`), wrapped in `PlayerView` (via `AndroidView`) with `useController = false` so the in-app bar is the single source of UI.
+- A hardened `PlayerHolder.build()` wraps all initialization steps in a try-catch block to surface construction errors cleanly as `StreamEvent.Error` retry cards rather than crashing.
 - `StreamUrl` always builds a `.ts` URL with `setMimeType(MimeTypes.VIDEO_MP2T)` so MPEG-TS over HTTP is decoded without sniffing.
 - `OkHttpDataSource` uses zero read-timeout for live streams and a tuned `DefaultLoadControl` for stable buffering.
 
