@@ -11,4 +11,5 @@
     <color name="orbi_subtext">#A6ADC8</color>
 
     <color name="orbi_splash_background">#1E1E2E</color>
+    <color name="ic_launcher_background">#FFFFFF</color>
 </resources>
