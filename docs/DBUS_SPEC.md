@@ -1,8 +1,6 @@
 # D-Bus API Specification - Orbiscreen
 
-
-
-## 🛰 Overview
+> Applies to **v0.10.1** and later.
 
 Orbiscreen exposes a D-Bus Session Service interface allowing desktop control panels (GTK4 GUI), CLI scripts, and system tray indicators to inspect status, configure display settings, and control the daemon process.
 
@@ -13,7 +11,22 @@ Orbiscreen exposes a D-Bus Session Service interface allowing desktop control pa
 
 ---
 
-## 🛠 Methods
+## 🛰 Companion HTTP Control Surface
+
+The Android client (v0.10.1) talks to the daemon over plain HTTP, not D-Bus. The endpoints it uses are:
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /health` | Liveness probe |
+| `GET /api/info` | Display dimensions, encoder, version |
+| `POST /api/control` | Lock, blank, ctrl-alt-del, open actions |
+| `GET /stream` | MPEG-TS video stream |
+
+D-Bus remains the canonical interface for native Linux clients (GTK GUI, CLI scripts). Both surfaces share the same source of truth in `orbiscreen-transport`.
+
+---
+
+## 🛠 D-Bus Methods
 
 ### 1. `GetStatus() -> String`
 Returns the current daemon execution state.
@@ -29,11 +42,25 @@ Stops display capture and disconnects active streams.
 
 ### 4. `ListClients() -> Vec<String>`
 Returns a list of currently connected web and Android clients.
-- **Return Value:** `["HTTP Direct /stream", "WebRTC Signaling Active"]`
+- **Return Value:** `["HTTP Direct /stream", "NSD / WebRTC Signaling Active"]`
 
 ### 5. `GetConfig() -> String`
 Returns the active configuration formatted as a JSON string.
 - **Return Value:** `{"width":1920,"height":1080,"refresh_rate":60,"encoder":"auto"}`
+
+---
+
+## 🔄 Companion Method: `SetScreenState(state: String) -> String` (proposed for v0.10.2)
+
+Mirrors the `/api/control` actions over D-Bus so a host-side control panel can also toggle the screen state without hitting HTTP.
+
+Proposed signature:
+
+```dbus
+SetScreenState(IN String state) -> String
+```
+
+Where `state ∈ {"on", "off", "lock"}`.
 
 ---
 
@@ -60,4 +87,3 @@ Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 <sub>&copy; 2026 Orbiscreen (shadow-x78)</sub>
 
 </div>
-
