@@ -115,18 +115,12 @@ jobs:
           VERSION=${GITHUB_REF_NAME#v}
           awk "/^## \[v$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > release_notes.txt
           if ! grep -q "Verification & Package Signatures" release_notes.txt; then
-            cat << 'EOF' >> release_notes.txt
-
-### 🔐 Verification & Package Signatures
-- **Android Release APK:** Signed with production `orbiscreen-release.keystore` (V1/V2/V3 schemes).
-- **RPM Package:** Cryptographically signed with GPG key (`orbiscreen.asc`). Import public key and verify:
-  ```bash
-  sudo rpm --import https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/orbiscreen.asc
-  rpm -K orbiscreen_x86_64.rpm
-  ```
-- **DEB Package:** Signed with GPG origin signature via `debsigs`.
-- **SHA256 Checksums:** All release artifacts (`.tar.gz`, `.deb`, `.rpm`, `.AppImage`, `.apk`) include corresponding `.sha256` files for integrity verification.
-EOF
+            printf '\n### 🔐 Verification & Package Signatures\n' >> release_notes.txt
+            printf '- **Android Release APK:** Signed with production `orbiscreen-release.keystore` (V1/V2/V3 schemes).\n' >> release_notes.txt
+            printf '- **RPM Package:** Cryptographically signed with GPG key (`orbiscreen.asc`). Import public key and verify:\n' >> release_notes.txt
+            printf '  ```bash\n  sudo rpm --import https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/orbiscreen.asc\n  rpm -K orbiscreen_x86_64.rpm\n  ```\n' >> release_notes.txt
+            printf '- **DEB Package:** Signed with GPG origin signature via `debsigs`.\n' >> release_notes.txt
+            printf '- **SHA256 Checksums:** All release artifacts (`.tar.gz`, `.deb`, `.rpm`, `.AppImage`, `.apk`) include corresponding `.sha256` files for integrity verification.\n' >> release_notes.txt
           fi
           cat release_notes.txt
 
