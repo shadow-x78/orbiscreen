@@ -17,16 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Version Bump:** Bump Cargo workspace version to `0.10.2` and Android `versionName` to `0.10.2` (`versionCode = 10`).
 - **Documentation:** Update all documentation files (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `docs/*`) to `v0.10.2`.
 
-### 🔐 Verification & Package Signatures
-- **Android Release APK:** Signed with production `orbiscreen-release.keystore` (V1/V2/V3 schemes).
-- **RPM Package:** Cryptographically signed with GPG key (`orbiscreen.asc`). Import public key and verify:
-  ```bash
-  sudo rpm --import https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/orbiscreen.asc
-  rpm -K orbiscreen_x86_64.rpm
-  ```
-- **DEB Package:** Signed with GPG origin signature via `debsigs`.
-- **SHA256 Checksums:** All release artifacts (`.tar.gz`, `.deb`, `.rpm`, `.AppImage`, `.apk`) include corresponding `.sha256` files for integrity verification.
-
 ## [v0.10.1] - 2026-07-27
 
 ### 🔄 Updated
