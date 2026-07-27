@@ -87,6 +87,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
     // Compose BOM
     implementation(platform("androidx.compose:compose-bom:2024.09.03"))
