@@ -33,12 +33,8 @@ android {
                 enableV1Signing = true
                 enableV2Signing = true
                 enableV3Signing = true
-
             } else {
-                storeFile = signingConfigs.getByName("debug").storeFile
-                storePassword = signingConfigs.getByName("debug").storePassword
-                keyAlias = signingConfigs.getByName("debug").keyAlias
-                keyPassword = signingConfigs.getByName("debug").keyPassword
+                throw GradleException("orbiscreen-release.keystore not found; cannot build release APK without it")
             }
         }
     }

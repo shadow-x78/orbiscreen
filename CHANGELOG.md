@@ -1,33 +1,45 @@
 # Changelog
 
-All entries follow the `orbiscreen | vX.Y.Z | <type>: <description>` commit convention.
-Each release line is a release commit; bullets under it are the per-change commits that ship in it.
+The headline lines below are release commits. Each bullet under them is the
+per-change commit that ships in the release, written in the project's
+`orbiscreen | <scope>: <description>` style.
 
 ---
 
-## orbiscreen | v0.10.1 | release: Android UI overhaul, black-screen fix, live discovery
+## orbiscreen | v0.10.1 | release: build fixes for Android Material 3 client
 
 ```
-orbiscreen | v0.10.1 | feat: migrate Android UI to Material 3 + Jetpack Compose
-orbiscreen | v0.10.1 | feat: add Spacedesk-style live NSD discovery with manual host entry
-orbiscreen | v0.10.1 | feat: add optional subnet scanner for networks without mDNS
-orbiscreen | v0.10.1 | feat: persist and surface recent host with a Material chip
-orbiscreen | v0.10.1 | fix: resolve black screen by setting explicit MPEG-TS MIME type
-orbiscreen | v0.10.1 | fix: stream via OkHttpDataSource with zero read-timeout for live feeds
-orbiscreen | v0.10.1 | fix: surface ExoPlayer errors through StreamEvent.Error instead of silent black
-orbiscreen | v0.10.1 | refactor: replace delta-based TouchInjector with absolute InputDispatcher
-orbiscreen | v0.10.1 | feat: support multi-touch, wheel, stylus and keyboard events
-orbiscreen | v0.10.1 | feat: add host control toolbar (lock, blank, ctrl-alt-del, files, retry)
-orbiscreen | v0.10.1 | feat: add soft keyboard overlay with system IME handoff
-orbiscreen | v0.10.1 | feat: query host /api/info to map Android touches to host resolution
-orbiscreen | v0.10.1 | feat: add settings screen with theme, decoder, scanner, recent host
-orbiscreen | v0.10.1 | chore: bump Android versionCode to 9 and versionName to 0.10.1
-orbiscreen | v0.10.1 | chore: bump workspace Cargo.toml version to 0.10.1
-orbiscreen | v0.10.1 | build: add Compose BOM, navigation-compose, material-icons-extended
-orbiscreen | v0.10.1 | build: add proguard rules for Media3, OkHttp, Compose and NSD
-orbiscreen | v0.10.1 | build: add lint.xml opting in to androidx.media3 UnstableApi
-orbiscreen | v0.10.1 | docs: rewrite README for Material 3 UI and v0.10.1 highlights
-orbiscreen | v0.10.1 | docs: update Android architecture diagram with new package layout
+orbiscreen | android | build: remove debug.keystore fallback from release signingConfig
+orbiscreen | android | build: fail the release build if orbiscreen-release.keystore is missing
+orbiscreen | android | build: refresh Cargo.lock for Android 0.10.0 workspace
+orbiscreen | docs  | changelog: split v0.10.0 and v0.10.1 release notes
+```
+
+---
+
+## orbiscreen | v0.10.0 | release: Android Material 3 UI overhaul, black-screen fix, live discovery
+
+```
+orbiscreen | android | ui: migrate to Material 3 + Jetpack Compose
+orbiscreen | android | discovery: add Spacedesk-style live NSD scan with manual host entry
+orbiscreen | android | discovery: add optional subnet scanner for networks without mDNS
+orbiscreen | android | discovery: persist and surface recent host with a Material chip
+orbiscreen | android | player: fix black screen by setting explicit MPEG-TS MIME type
+orbiscreen | android | player: stream via OkHttpDataSource with zero read-timeout for live feeds
+orbiscreen | android | player: surface ExoPlayer errors through StreamEvent.Error instead of silent black
+orbiscreen | android | input: replace delta-based TouchInjector with absolute InputDispatcher
+orbiscreen | android | input: support multi-touch, wheel, stylus and keyboard events
+orbiscreen | android | stream: add host control toolbar (lock, blank, ctrl-alt-del, files, retry)
+orbiscreen | android | stream: add soft keyboard overlay with system IME handoff
+orbiscreen | android | stream: query host /api/info to map Android touches to host resolution
+orbiscreen | android | settings: add settings screen with theme, decoder, scanner, recent host
+orbiscreen | android | build: bump Android versionCode to 9 and versionName to 0.10.0
+orbiscreen | build: bump workspace Cargo.toml version to 0.10.0
+orbiscreen | android | build: add Compose BOM, navigation-compose, material-icons-extended
+orbiscreen | android | build: add proguard rules for Media3, OkHttp, Compose and NSD
+orbiscreen | android | build: add lint.xml opting in to androidx.media3 UnstableApi
+orbiscreen | docs: rewrite README for Material 3 UI and v0.10.0 highlights
+orbiscreen | docs: update Android architecture diagram with new package layout
 ```
 
 ---
