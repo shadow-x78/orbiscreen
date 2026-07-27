@@ -6,6 +6,16 @@ per-change commit that ships in the release, written in the project's
 
 ---
 
+## orbiscreen | v0.10.1 | release: Android Material 3 UI overhaul, black-screen fix, live discovery
+
+```
+orbiscreen | build: bump workspace Cargo.toml version to 0.10.1
+orbiscreen | android | build: bump Android versionName to 0.10.1
+orbiscreen | build: refresh Cargo.lock path-crate entries to 0.10.1
+```
+
+---
+
 ## orbiscreen | v0.10.0 | release: Android Material 3 UI overhaul, black-screen fix, live discovery
 
 ```
