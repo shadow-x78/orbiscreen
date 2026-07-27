@@ -29,7 +29,7 @@ fun PlayerSurface(player: ExoPlayer?, onMove: (Float, Float, Int, Int) -> Unit, 
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT,
                     )
-                    setShutterBackgroundColor(0xFF11111B.toInt())
+                    setShutterBackgroundColor(android.graphics.Color.parseColor("#11111B"))
                     keepScreenOn = true
                 }
             },

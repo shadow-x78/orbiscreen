@@ -24,18 +24,29 @@ private val DarkScheme = darkColorScheme(
     onPrimaryContainer = OrbiBlue,
     secondary = OrbiMauve,
     onSecondary = OrbiBase,
+    secondaryContainer = OrbiMauve.copy(alpha = 0.18f),
+    onSecondaryContainer = OrbiMauve,
     tertiary = OrbiGreen,
     onTertiary = OrbiBase,
+    tertiaryContainer = OrbiGreen.copy(alpha = 0.18f),
+    onTertiaryContainer = OrbiGreen,
     error = OrbiRed,
     onError = OrbiBase,
+    errorContainer = OrbiRed.copy(alpha = 0.18f),
+    onErrorContainer = OrbiRed,
     background = OrbiBase,
     onBackground = OrbiText,
     surface = OrbiSurface,
     onSurface = OrbiText,
     surfaceVariant = OrbiMantle,
     onSurfaceVariant = OrbiSubtext,
-    outline = OrbiSubtext,
-    outlineVariant = OrbiMantle,
+    surfaceTint = OrbiBlue,
+    inverseSurface = OrbiSurface1,
+    inverseOnSurface = OrbiText,
+    inversePrimary = LightBlue,
+    outline = OrbiOverlay0,
+    outlineVariant = OrbiSurface1,
+    scrim = OrbiCrust,
 )
 
 private val LightScheme = lightColorScheme(
@@ -45,24 +56,35 @@ private val LightScheme = lightColorScheme(
     onPrimaryContainer = LightBlue,
     secondary = LightMauve,
     onSecondary = LightBase,
+    secondaryContainer = LightMauve.copy(alpha = 0.14f),
+    onSecondaryContainer = LightMauve,
     tertiary = LightGreen,
     onTertiary = LightBase,
+    tertiaryContainer = LightGreen.copy(alpha = 0.14f),
+    onTertiaryContainer = LightGreen,
     error = LightRed,
     onError = LightBase,
+    errorContainer = LightRed.copy(alpha = 0.14f),
+    onErrorContainer = LightRed,
     background = LightBase,
     onBackground = LightText,
-    surface = LightSurface,
+    surface = LightBase,
     onSurface = LightText,
     surfaceVariant = LightMantle,
     onSurfaceVariant = LightSubtext,
-    outline = LightSubtext,
-    outlineVariant = LightCrust,
+    surfaceTint = LightBlue,
+    inverseSurface = LightSurface1,
+    inverseOnSurface = LightText,
+    inversePrimary = OrbiBlue,
+    outline = LightOverlay0,
+    outlineVariant = LightSurface1,
+    scrim = LightCrust,
 )
 
 @Composable
 fun OrbiscreenTheme(
     mode: ThemeMode = ThemeMode.System,
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val systemDark = isSystemInDarkTheme()
@@ -85,7 +107,10 @@ fun OrbiscreenTheme(
             val window = (view.context as Activity).window
             window.statusBarColor = scheme.background.toArgb()
             window.navigationBarColor = scheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
+            }
         }
     }
     MaterialTheme(

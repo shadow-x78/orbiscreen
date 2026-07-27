@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.orbiscreen.android.data.PrefsStore
 import com.orbiscreen.android.ui.nav.OrbiNav
 import com.orbiscreen.android.ui.theme.OrbiscreenTheme
@@ -15,8 +16,10 @@ import com.orbiscreen.android.ui.theme.ThemeMode
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        splash.setKeepOnScreenCondition { false }
         val prefs = PrefsStore(this)
         setContent {
             App(prefs)

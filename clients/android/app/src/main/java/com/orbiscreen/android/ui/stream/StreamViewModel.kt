@@ -60,16 +60,16 @@ class StreamViewModel(
             }
         }
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val info = hostApi.info(host, port)
-                if (info != null) {
-                    _state.value = _state.value.copy(
-                        displayWidth = info.width,
-                        displayHeight = info.height,
-                        encoder = info.encoder,
-                        version = info.version,
-                    )
-                }
+            val info = withContext(Dispatchers.IO) { hostApi.info(host, port) }
+            if (info != null) {
+                _state.value = _state.value.copy(
+                    displayWidth = info.width,
+                    displayHeight = info.height,
+                    encoder = info.encoder,
+                    version = info.version,
+                )
+            }
+            withContext(Dispatchers.Main) {
                 playerHolder.build(host, port)
             }
         }

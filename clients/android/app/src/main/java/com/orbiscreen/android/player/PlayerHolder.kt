@@ -54,54 +54,60 @@ class PlayerHolder(
     }
 
     @OptIn(UnstableApi::class)
-    fun build(host: String, port: Int): ExoPlayer {
+    fun build(host: String, port: Int): ExoPlayer? {
         release()
         val uri = StreamUrl.build(host, port)
         _event.value = StreamEvent.Connecting(uri)
 
-        val httpFactory = OkHttpDataSource.Factory(okHttp)
-            .setUserAgent("Orbiscreen-Android/1.0")
-        val dataSourceFactory = DefaultDataSource.Factory(context, httpFactory)
+        val player = try {
+            val httpFactory = OkHttpDataSource.Factory(okHttp)
+                .setUserAgent("Orbiscreen-Android/1.0")
+            val dataSourceFactory = DefaultDataSource.Factory(context, httpFactory)
 
-        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+            val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
 
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                1_500,
-                5_000,
-                500,
-                1_000,
-            )
-            .build()
+            val loadControl = DefaultLoadControl.Builder()
+                .setBufferDurationsMs(
+                    1_500,
+                    5_000,
+                    500,
+                    1_000,
+                )
+                .build()
 
-        val player = ExoPlayer.Builder(context)
-            .setMediaSourceFactory(mediaSourceFactory)
-            .setLoadControl(loadControl)
-            .build().apply {
-                val media = MediaItem.Builder()
-                    .setUri(uri)
-                    .setMimeType(MimeTypes.VIDEO_MP2T)
-                    .build()
-                setMediaItem(media)
-                repeatMode = Player.REPEAT_MODE_OFF
-                playWhenReady = true
-                volume = 0f
-                addListener(object : Player.Listener {
-                    override fun onPlaybackStateChanged(state: Int) {
-                        when (state) {
-                            Player.STATE_BUFFERING -> _event.value = StreamEvent.Buffering
-                            Player.STATE_READY -> _event.value = StreamEvent.Playing
-                            Player.STATE_ENDED -> _event.value = StreamEvent.Error(-1, "Stream ended")
-                            Player.STATE_IDLE -> Unit
+            ExoPlayer.Builder(context)
+                .setMediaSourceFactory(mediaSourceFactory)
+                .setLoadControl(loadControl)
+                .build().apply {
+                    val media = MediaItem.Builder()
+                        .setUri(uri)
+                        .setMimeType(MimeTypes.VIDEO_MP2T)
+                        .build()
+                    setMediaItem(media)
+                    repeatMode = Player.REPEAT_MODE_OFF
+                    playWhenReady = true
+                    volume = 0f
+                    addListener(object : Player.Listener {
+                        override fun onPlaybackStateChanged(state: Int) {
+                            when (state) {
+                                Player.STATE_BUFFERING -> _event.value = StreamEvent.Buffering
+                                Player.STATE_READY -> _event.value = StreamEvent.Playing
+                                Player.STATE_ENDED -> _event.value = StreamEvent.Error(-1, "Stream ended")
+                                Player.STATE_IDLE -> Unit
+                            }
                         }
-                    }
-                    override fun onPlayerError(error: PlaybackException) {
-                        Log.w("OrbiPlayer", "player error: ${error.errorCodeName} ${error.message}")
-                        _event.value = StreamEvent.Error(error.errorCode, error.message ?: error.errorCodeName)
-                    }
-                })
-                prepare()
-            }
+                        override fun onPlayerError(error: PlaybackException) {
+                            Log.w("OrbiPlayer", "player error: ${error.errorCodeName} ${error.message}")
+                            _event.value = StreamEvent.Error(error.errorCode, error.message ?: error.errorCodeName)
+                        }
+                    })
+                    prepare()
+                }
+        } catch (e: Throwable) {
+            Log.e("OrbiPlayer", "failed to build player", e)
+            _event.value = StreamEvent.Error(-2, e.message ?: "Player init failed")
+            return null
+        }
         _player.value = player
         return player
     }
