@@ -4,7 +4,7 @@
   <p>Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB</p>
 
   <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.10.1-blue?style=flat-square" alt="Version" /></a>
+    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.10.2-blue?style=flat-square" alt="Version" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml"><img src="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square" alt="CI" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License" /></a>
     <a href="https://github.com/shadow-x78/orbiscreen/stargazers"><img src="https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square" alt="Stars" /></a>
@@ -72,7 +72,7 @@
 | 2 | Android client + USB transport + mDNS | ✅ Completed |
 | 3 | Wayland capture + portal fallback + input | ✅ Completed |
 | 4 | Packaging + GTK4 GUI + D-Bus service + Standalone installation | ✅ Completed |
-| 5 | Material 3 UI + live discovery + control panel | ✅ Completed (v0.10.1) |
+| 5 | Material 3 UI + live discovery + control panel | ✅ Completed |
 
 > See `CHANGELOG.md` for the complete release history.
 
@@ -150,7 +150,7 @@ orbiscreen --config orbiscreen.toml --verbose probe
 ---
 
 <a id="android-app"></a>
-## 📱 Android App (v0.10.1)
+## 📱 Android App
 
 The Android client is a **Material 3 + Jetpack Compose** single-Activity app. Three screens are wired through Compose Navigation:
 

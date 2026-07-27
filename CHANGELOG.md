@@ -4,6 +4,12 @@ The headline lines below are release commits. Each bullet under them is the
 per-change commit that ships in the release, written in the project's
 `orbiscreen | <scope>: <description>` style.
 
+## orbiscreen | v0.10.2 | release: android: match brand logo palette, fix connect-time crash
+
+```
+orbiscreen | v0.10.2 | android: match brand logo palette, fix connect-time crash
+orbiscreen | v0.10.2 | release: bump workspace Cargo.toml, android app, and all documentation to 0.10.2
+```
 ---
 
 ## orbiscreen | v0.10.1 | release: Android Material 3 UI overhaul, black-screen fix, live discovery

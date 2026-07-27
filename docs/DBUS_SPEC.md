@@ -1,6 +1,6 @@
 # D-Bus API Specification - Orbiscreen
 
-> Applies to **v0.10.1** and later.
+> Applies to **v0.10.2** and later.
 
 Orbiscreen exposes a D-Bus Session Service interface allowing desktop control panels (GTK4 GUI), CLI scripts, and system tray indicators to inspect status, configure display settings, and control the daemon process.
 
@@ -13,7 +13,7 @@ Orbiscreen exposes a D-Bus Session Service interface allowing desktop control pa
 
 ## 🛰 Companion HTTP Control Surface
 
-The Android client (v0.10.1) talks to the daemon over plain HTTP, not D-Bus. The endpoints it uses are:
+The Android client (v0.10.2) talks to the daemon over plain HTTP, not D-Bus. The endpoints it uses are:
 
 | Endpoint | Purpose |
 |----------|---------|

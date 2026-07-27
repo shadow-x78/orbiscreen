@@ -1,6 +1,6 @@
 # Troubleshooting - Orbiscreen
 
-> Applies to **v0.10.1** and later.
+> Applies to **v0.10.2** and later.
 
 ## 📋 Table of Contents
 
@@ -19,7 +19,7 @@
 - [Runtime: capture backend unavailable on Wayland](#runtime-wayland)
 - [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations` lint warnings](#runtime-lints)
 
-### Android (v0.10.1)
+### Android (v0.10.2)
 
 - [Android: black screen after Connect](#android-black-screen)
 - [Android: discovery list is empty even though hosts are on the same Wi-Fi](#android-no-hosts)
@@ -57,7 +57,7 @@ Rust source files don't match `cargo fmt`'s formatting.
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.10.1 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.10.2 | style: cargo fmt --all"
 ```
 
 **Prevention:**
@@ -82,7 +82,7 @@ error: this operation is not supported for derived errors
 cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
 cargo clippy --workspace --all-targets --locked --fix
 git add -A
-git commit -m "orbiscreen | v0.10.1 | fix: resolve clippy warnings"
+git commit -m "orbiscreen | v0.10.2 | fix: resolve clippy warnings"
 ```
 
 **Prevention:**
@@ -103,7 +103,7 @@ error[E0463]: can't find crate for `gstreamer`
 cargo update -p gstreamer
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.10.1 | chore: refresh Cargo.lock"
+git commit -m "orbiscreen | v0.10.2 | chore: refresh Cargo.lock"
 ```
 
 ---
@@ -179,7 +179,7 @@ Use `#[allow(missing_debug_implementations)]` or `#[allow(unsafe_code)]` on the 
 
 ---
 
-## 📱 Android (v0.10.1)
+## 📱 Android (v0.10.2)
 
 <a id="android-black-screen"></a>
 ### Android: black screen after Connect
@@ -187,11 +187,11 @@ Use `#[allow(missing_debug_implementations)]` or `#[allow(unsafe_code)]` on the 
 **Symptom:**
 Tapping a discovered host shows a black surface; no video; the control toolbar does not appear.
 
-**Cause (fixed in v0.10.1):**
-The pre-v0.10.1 client relied on ExoPlayer's MIME sniffing for the `/stream` response and fell back to a black surface when it failed to detect MPEG-TS.
+**Cause (fixed in v0.10.2):**
+The pre-v0.10.2 client relied on ExoPlayer's MIME sniffing for the `/stream` response and fell back to a black surface when it failed to detect MPEG-TS.
 
 **Fix:**
-- Upgrade to `orbiscreen-android-release.apk` **v0.10.1** or later.
+- Upgrade to `orbiscreen-android-release.apk` **v0.10.2** or later.
 - The new `PlayerHolder` builds `MediaItem` with `setMimeType(MimeTypes.VIDEO_MP2T)` and forces a `.ts` URL, so the stream is decoded without sniffing.
 - Errors are surfaced as a retry card instead of a black surface.
 
@@ -232,7 +232,7 @@ Rotate the host rather than the Android screen. The `PlayerView` letterboxes aut
 The host is running an older daemon that does not implement `/api/control`.
 
 **Fix:**
-Restart the daemon on the host to pick up the v0.10.1 transport binary. From the host:
+Restart the daemon on the host to pick up the v0.10.2 transport binary. From the host:
 ```bash
 orbiscreen stop
 sudo orbiscreen start
@@ -250,7 +250,7 @@ You open the Orbiscreen app on Android and it immediately crashes back to the ho
 Malformed `index.html` (stray `-->`) crashed the WebView.
 
 **Fix:**
-v0.10.1 uses Compose + `PlayerView` exclusively — there is no WebView. If the new APK still crashes, capture a logcat with `adb logcat *:E | grep orbiscreen` and open an issue.
+v0.10.2 uses Compose + `PlayerView` exclusively — there is no WebView. If the new APK still crashes, capture a logcat with `adb logcat *:E | grep orbiscreen` and open an issue.
 
 ---
 
@@ -277,7 +277,7 @@ Orbiscreen automatically configures `adb reverse tcp:8788 tcp:8788` when started
 Capture loop ran without yielding.
 
 **Fix:**
-Update to v0.10.1 (workspace).
+Update to v0.10.2 (workspace).
 
 ---
 

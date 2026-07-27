@@ -1,6 +1,6 @@
 # Architecture Specification - Orbiscreen
 
-> Applies to **v0.10.1** and later.
+> Applies to **v0.10.2** and later.
 
 Orbiscreen is built as a modular multi-crate Rust workspace separating system display drivers, frame capture engines, hardware-accelerated video encoders, inter-process communication (D-Bus), and multi-protocol network transports.
 
@@ -88,7 +88,7 @@ com.orbiscreen.android/
 3. **Hardware Encoding:**
    - `orbiscreen-encode` consumes the raw X11 / PipeWire frame buffers and encodes them into H.264 using hardware-accelerated GStreamer pipelines (VAAPI, NVENC, or fallback x264).
    - `orbiscreen-transport` wraps the encoded H.264 NAL units into an MPEG-TS container and serves them over `http://host:port/stream.ts`.
-4. **Android Playback (v0.10.1):**
+4. **Android Playback (v0.10.2):**
    - `PlayerHolder` builds `MediaItem` with `MimeTypes.VIDEO_MP2T` so ExoPlayer decodes MPEG-TS without sniffing.
    - `OkHttpDataSource` is configured with a zero read-timeout (live stream) and a tuned `DefaultLoadControl` (1.5 s min / 5 s max buffer).
    - The `PlayerHolder` exposes a `Player.Listener` that maps `Player.STATE_*` transitions to `StreamEvent` for the Compose UI.
@@ -106,7 +106,7 @@ com.orbiscreen.android/
 |----------|--------|------|----------|
 | `/stream` | GET | — | `video/mp2t` MPEG-TS stream |
 | `/health` | GET | — | `200 OK "ok"` |
-| `/api/info` | GET | — | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.10.1"}` |
+| `/api/info` | GET | — | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.10.2"}` |
 | `/api/control` | POST | `{"action":"lock"\|"blank\|"unblank"\|"ctrl_alt_del"\|"open","state":"on\|off","target":"files"}` | `200 OK` |
 
 Input events (`/input`) accept the same payload schema as the existing web client: `Move{x,y}`, `Button{button,pressed,x?,y?}`, `Wheel{deltaY}`, `Key{code,pressed}`, `Stylus{x,y,pressure,tilt_x,tilt_y}`.

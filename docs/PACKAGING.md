@@ -1,6 +1,6 @@
 # Multi-Distro Packaging Guide - Orbiscreen
 
-> Applies to **v0.10.1** and later. The release matrix is now: `0.10.1` (workspace), `versionCode = 9` (Android).
+> Applies to **v0.10.2** and later. The release matrix is now: `0.10.2` (workspace), `versionCode = 10` (Android).
 
 Orbiscreen provides build configurations and package definitions for all major Linux distributions and Android:
 
@@ -72,9 +72,9 @@ rpm -K orbiscreen_x86_64.rpm
 
 ## 🚀 GitHub Actions Release Matrix
 
-When a version tag is pushed (e.g. `git tag v0.10.1 && git push origin v0.10.1`), the `.github/workflows/release.yml` workflow automatically builds and attaches all release packages to the GitHub Releases page.
+When a version tag is pushed (e.g. `git tag v0.10.2 && git push origin v0.10.2`), the `.github/workflows/release.yml` workflow automatically builds and attaches all release packages to the GitHub Releases page.
 
-The release `body` is generated from the `## orbiscreen | v0.10.1 | …` block in `CHANGELOG.md`.
+The release `body` is generated from the `## orbiscreen | v0.10.2 | …` block in `CHANGELOG.md`.
 
 ---
 

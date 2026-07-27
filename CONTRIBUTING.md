@@ -25,7 +25,7 @@ orbiscreen | vX.Y.Z | <type>: <description>
 - `vX.Y.Z` should be the current workspace version (use on release commits).
 - A `release:` type denotes the bump commit (e.g. `orbiscreen | v0.10.2 | release: bump to 0.10.2`).
 
-Example: `orbiscreen | v0.10.1 | fix: respect display aspect ratio on rotation`
+Example: `orbiscreen | v0.10.2 | fix: respect display aspect ratio on rotation`
 
 ## 💅 Code Style
 
