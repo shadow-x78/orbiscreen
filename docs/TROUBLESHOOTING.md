@@ -1,6 +1,6 @@
 # Troubleshooting - Orbiscreen
 
-
+> Applies to **v0.10.1** and later.
 
 ## 📋 Table of Contents
 
@@ -11,12 +11,26 @@
 - [Action: `Build` (`cargo build --workspace --locked`)](#ci-build)
 - [Action: `Test` (`cargo test --workspace --locked`)](#ci-test)
 - [Action: `Run cargo-deny` (`cargo deny check`)](#ci-deny)
+- [Action: `Android assembleDebug` + `lintDebug`](#ci-android)
 
 ### Runtime
 
-- [Runtime: `orbiscreen start` fails - `kernel module is not installed`](#runtime-evdi)
+- [Runtime: `orbiscreen start` fails — `kernel module is not installed`](#runtime-evdi)
 - [Runtime: capture backend unavailable on Wayland](#runtime-wayland)
 - [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations` lint warnings](#runtime-lints)
+
+### Android (v0.10.1)
+
+- [Android: black screen after Connect](#android-black-screen)
+- [Android: discovery list is empty even though hosts are on the same Wi-Fi](#android-no-hosts)
+- [Android: touch is rotated / misaligned](#android-touch-offset)
+- [Android: control toolbar actions return 404](#android-control-404)
+- [Android: app crashes immediately on launch](#android-crash)
+- [Android: USB connection shows "Looking for host…"](#android-usb)
+
+### Daemon
+
+- [Daemon: 100% CPU usage or freeze](#daemon-cpu)
 
 ### Still Stuck?
 
@@ -43,54 +57,32 @@ Rust source files don't match `cargo fmt`'s formatting.
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.1.1 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.10.1 | style: cargo fmt --all"
 ```
 
-**Why this happens:**
-- Added a file without running `cargo fmt` before committing.
-- Edited `rustfmt.toml` to change formatting rules (e.g. `max_width`).
-
 **Prevention:**
-The `.github/workflows/ci.yml` runs `cargo fmt --all -- --check` on every
-PR. Run `cargo fmt --all` locally before pushing.
+Run `./gradlew :app:lintDebug` and `cargo fmt --all` locally before pushing.
 
 ---
 
 <a id="ci-clippy"></a>
-## 🧪 CI Action: `Clippy (deny warnings)` (`cargo clippy --workspace --all-targets --locked -- -D warnings`)
+## 🧪 CI Action: `Clippy (deny warnings)`
 
 **Symptom:**
 ```
 error: this operation is not supported for derived errors
   --> src/lib.rs:42:5
-   |
-42 |     let result = self.op().expect("...");   // unwrap in production code
-   |                              ^^^^^^^^
-   |
-   = note: `-D warnings` implied by `-D warnings`
 ```
 
 **Cause:**
-`cargo clippy -D warnings` treats every clippy warning as an error. The
-most common culprits are:
-
-1. **`let _ = unit_value`** - assigning `()` to a discarded binding.
-   Fix: `let _ = expr;` becomes just `expr;`, or use `drop()`.
-2. **`unwrap()`/`expect()` in production code** (allowed only in
-   `#[cfg(test)]` modules per `CONTRIBUTING`).
-3. **Unused imports / variables / fields** - fix or prefix with `_`.
-4. **Manual `#[derive]` impl** where Default is derivable - use
-   `#[derive(Default)]`.
-5. **Code comment quality** - sometimes a clipped clippy lint.
-6. **`unsafe_op_in_unsafe_fn`** - when working with `unsafe` blocks, add
-   `#[allow(unsafe_code)]` to the inner function.
+`cargo clippy -D warnings` treats every clippy warning as an error.
 
 **Fix:**
 ```bash
 cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
-# Apply the suggestions, then:
 cargo clippy --workspace --all-targets --locked --fix
-# Review the changes and commit
+git add -A
+git commit -m "orbiscreen | v0.10.1 | fix: resolve clippy warnings"
 ```
 
 **Prevention:**
@@ -104,117 +96,52 @@ Run `cargo clippy` locally before pushing.
 **Symptom:**
 ```
 error[E0463]: can't find crate for `gstreamer`
-  |
-  = note: the crate `gstreamer` couldn't be found in the registry index
 ```
-
-**Cause:**
-`Cargo.lock` is pinned to versions that are not on `crates.io` anymore.
-Or the toolchain pinned in `rust-toolchain.toml` differs from the
-runner. With `--locked` enabled, cargo refuses to update the lockfile.
 
 **Fix:**
 ```bash
-# Locally: regenerate the lockfile
 cargo update -p gstreamer
-# Then rebuild
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.8.7 | chore: refresh Cargo.lock for gstreamer 0.23.0"
+git commit -m "orbiscreen | v0.10.1 | chore: refresh Cargo.lock"
 ```
-
-If the dependency is `gstreamer = "0.23.0"` and has been removed or
-replaced on `crates.io`, you must either:
-- Pin a different version (`cargo search gstreamer`)
-- Wait for a stable release
-
-**Prevention:**
-Keep `Cargo.lock` committed (already done) and run `cargo update` only
-intentionally.
 
 ---
 
 <a id="ci-test"></a>
 ## 🧪 CI Action: `Test` (`cargo test --workspace --locked`)
 
-**Symptom:**
+Tests assume the host has GStreamer plugins (`x264enc`, `vaapih264enc`, `nvh264enc`). Install them locally:
+```bash
+sudo dnf install gstreamer1.0-plugins-{good,bad,ugly,libav}
 ```
-test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-
----- tests::test_encode_default stdout ----
-thread 'tests::test_encode_default' panicked at 'called `Result::unwrap()` on an `Err` value: EncodeError("gstreamer pipeline error: appsrc: ...")', src/encode.rs:125:5
-```
-
-**Cause:**
-Tests assume the host has certain GStreamer plugins installed
-(`x264enc`, `vaapih264enc`, `nvh264enc`). On CI these aren't always
-present, so the encoder init fails.
-
-**Fix:**
-Either install the plugins on CI (the workflow installs
-`gstreamer1.0-plugins-good gstreamer1.0-plugins-bad` already - add
-`gstreamer1.0-libav gstreamer1.0-plugins-ugly` if x264 is needed), or
-make the failing test conditional:
-
-```rust
-#[test]
-fn frame_duration_ns_matches_framerate() {
-    let params = EncodeParams {
-        framerate: 60,
-        ..EncodeParams::default()
-    };
-    let mut encoder = Encoder::new(params).ok();
-    // Skip if no GStreamer H.264 plugin is installed on the test host.
-    if let Some(encoder) = encoder.as_mut() {
-        assert_eq!(encoder.frame_duration_ns(), 16_666_666);
-    }
-}
-```
-
-**Prevention:**
-Keep CI dependencies up to date. For H.264 encoding on CI,
-`gstreamer1.0-plugins-ugly` (which contains `x264enc`) is mandatory.
 
 ---
 
 <a id="ci-deny"></a>
-## 🧪 CI Action: `Run cargo-deny` (`cargo deny check`)
+## 🧪 CI Action: `Run cargo-deny`
 
-**Symptom:**
-```
-advisories FAILED, bans FAILED, licenses ok, sources ok
-##[error]Process completed with exit code 3.
-```
+This is a **non-blocking** informational check. See `deny.toml` for the allowlist.
 
-**Cause:**
-The license check passes (GPL-3.0-or-later allowlist includes
-`libevdi`'s LGPL-2.1). The bans check fails when `wildcards = "deny"`
-flags a path with `*`. The advisories check fails on unmaintained
-transitive deps (notably `derivative` via `evdi`).
+---
 
-**Fix:**
-For the current setup:
-- This is **informational only** - `cargo-deny` is NOT a required
-  status check in `ci.yml`, so a deny failure cannot block a PR merge.
+<a id="ci-android"></a>
+## 🧪 CI Action: `Android assembleDebug` + `lintDebug`
 
-To make `cargo-deny` pass cleanly:
-1. Update `deny.toml`'s `[advisories]` section to ignore the
-   unmaintained `derivative` advisory.
-2. Ensure all path globs are resolved before committing.
+The Android workflow runs `./gradlew :app:assembleDebug :app:lintDebug`. Common failures:
+
+- **UnstableApi lint error.** `clients/android/app/lint.xml` opts in to `androidx.media3.common.util.UnstableApi`. If you call a new Media3 API, make sure the surrounding class is annotated with `@OptIn(UnstableApi::class)`.
+- **Compose imports.** Run `./gradlew :app:compileDebugKotlin` to localise the error first; lint is slower.
 
 ---
 
 <a id="runtime-evdi"></a>
-## 🚀 Runtime: `orbiscreen start` fails - `kernel module is not installed`
+## 🚀 Runtime: `orbiscreen start` fails — `kernel module is not installed`
 
 **Symptom:**
 ```
 Error: evdi kernel module is not installed
 ```
-
-**Cause:**
-The `evdi` kernel module from DisplayLink has not been loaded on the
-host. The daemon needs it to expose a virtual display through DRM/KMS.
 
 **Fix:**
 1. Install `evdi` (DKMS build) on the host:
@@ -230,143 +157,127 @@ host. The daemon needs it to expose a virtual display through DRM/KMS.
    cd evdi && sudo make dkms-install
    sudo modprobe evdi
    ```
-2. Verify it loaded:
+2. Verify:
    ```bash
-   lsmod | grep evdi   # should show evdi module
-   ls /dev/dri/card*  # should show at least one card
+   lsmod | grep evdi
+   ls /dev/dri/card*
    ```
-
-The full installation walk-through is in `scripts/setup-dev-env.sh`
-and `scripts/test-evdi.sh`.
 
 ---
 
 <a id="runtime-wayland"></a>
 ## 🚀 Runtime: capture backend unavailable on Wayland
 
-**Symptom:**
-```
-Error: capture backend unavailable: Wayland capture requires open_async
-```
-
-**Cause:**
-The synchronous `CaptureSession::open()` cannot drive the Wayland
-ScreenCast portal. On a Wayland session, you must use the async path.
-
-**Fix:**
-Use `CaptureSession::open_async()` instead of `open()`:
-```rust
-// ❌ Wrong on Wayland
-let session = CaptureSession::open(width, height)?;
-
-// ✅ Right
-let session = CaptureSession::open_async(width, height).await?;
-```
-
-The daemon binary (`orbiscreen-daemon`) already uses `open_async`
-internally, so this only matters if you call the library directly.
+Use `CaptureSession::open_async()` (the daemon already does so).
 
 ---
 
 <a id="runtime-lints"></a>
-## 🚀 Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations` lint warnings
+## 🚀 Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`
+
+Use `#[allow(missing_debug_implementations)]` or `#[allow(unsafe_code)]` on the offending type/function.
+
+---
+
+## 📱 Android (v0.10.1)
+
+<a id="android-black-screen"></a>
+### Android: black screen after Connect
 
 **Symptom:**
-```
-warning: unnecessary `unsafe` block
-  --> crates/orbiscreen-display/src/lib.rs:142:9
-warning: type `VirtualDisplay` does not implement `Debug`
-```
+Tapping a discovered host shows a black surface; no video; the control toolbar does not appear.
 
-**Cause:**
-The workspace has these clippy lints enabled at warn level:
-- `unsafe_code = "warn"`
-- `missing_debug_implementations = "warn"`
+**Cause (fixed in v0.10.1):**
+The pre-v0.10.1 client relied on ExoPlayer's MIME sniffing for the `/stream` response and fell back to a black surface when it failed to detect MPEG-TS.
 
 **Fix:**
-For types that hold non-`Debug` handles (like `evdi::Handle` or
-`GStreamer` pipeline), suppress the lint explicitly:
-```rust
-#[allow(missing_debug_implementations)]
-pub struct VirtualDisplay { ... }
+- Upgrade to `orbiscreen-android-release.apk` **v0.10.1** or later.
+- The new `PlayerHolder` builds `MediaItem` with `setMimeType(MimeTypes.VIDEO_MP2T)` and forces a `.ts` URL, so the stream is decoded without sniffing.
+- Errors are surfaced as a retry card instead of a black surface.
+
+If the issue persists after upgrade:
+1. Confirm the host is reachable with `curl http://host:8788/health` from the same Wi-Fi.
+2. Confirm `/api/info` responds: `curl http://host:8788/api/info`.
+3. Check `adb logcat -s OrbiPlayer:*` for `player error:` lines.
+
+---
+
+<a id="android-no-hosts"></a>
+### Android: discovery list is empty even though hosts are on the same Wi-Fi
+
+**Cause:**
+mDNS is blocked on the network (corporate Wi-Fi, Apple Bonjour filter, etc.).
+
+**Fix:**
+1. Open the **Add manually** card and enter `host:port` (e.g. `192.168.1.50:8788`).
+2. Optional: enable the **Scan subnet for hosts** toggle in **Settings**. The scanner probes the /24 around the current gateway over TCP and adds any host that responds on port 8788.
+
+---
+
+<a id="android-touch-offset"></a>
+### Android: touch is rotated / misaligned
+
+**Cause:**
+The pointer-to-host mapping uses the host's reported resolution from `/api/info`. If the host is rotated (e.g. portrait virtual display) but the JSON still reports landscape, mapping will be off.
+
+**Fix:**
+Rotate the host rather than the Android screen. The `PlayerView` letterboxes automatically to preserve the host's reported aspect ratio.
+
+---
+
+<a id="android-control-404"></a>
+### Android: control toolbar actions return 404
+
+**Cause:**
+The host is running an older daemon that does not implement `/api/control`.
+
+**Fix:**
+Restart the daemon on the host to pick up the v0.10.1 transport binary. From the host:
+```bash
+orbiscreen stop
+sudo orbiscreen start
 ```
 
-For `unsafe_op_in_unsafe_fn`:
-```rust
-#[allow(unsafe_code)]
-pub async fn open_at(...) -> ... {
-    let unconnected = unsafe { node.open() }?;
-    ...
-}
-```
-
-**Why these lints exist:**
-- `missing_debug_implementations` forces explicit handling of opaque
-  types so you can't accidentally print internal pointers in logs.
-- `unsafe_code = warn` catches stray unsafe blocks outside the few
-  deliberately-marked call sites.
-
 ---
 
-## 📱 Android Client & Deployment
-
-### Where is the built Android APK file (`app-release.apk`)?
-
-After building, the APK can be found at:
-- `clients/android/app/build/outputs/apk/release/app-release.apk`
-
----
-
-### EVDI Kernel Module Missing / Automatic Wayland Desktop Portal Fallback
-
-**Symptom:**
-`orbiscreen probe` reports `display backend: kernel module missing`.
-
-**Explanation:**
-Orbiscreen natively supports EVDI kernel driver for dedicated DRM virtual display connectors. However, if the EVDI module is not loaded on your Linux system (e.g. running stock Arch, Fedora, or Ubuntu without EVDI), `orbiscreen-daemon` automatically falls back to Wayland/X11 ScreenCast portal (`xdg-desktop-portal`), allowing instant streaming out-of-the-box on GNOME, KDE, and Sway.
-
----
-
-### Android App Crashes Immediately on Launch
+<a id="android-crash"></a>
+### Android: app crashes immediately on launch
 
 **Symptom:**
 You open the Orbiscreen app on Android and it immediately crashes back to the home screen.
 
-**Cause:**
-This is usually caused by a malformed HTML file in `clients/web/index.html` preventing the WebView from initializing. Make sure you don't have stray `-->` or broken tags.
+**Cause (fixed in v0.7.1):**
+Malformed `index.html` (stray `-->`) crashed the WebView.
 
 **Fix:**
-This was fixed in Orbiscreen v0.7.1. If building from source, ensure you have the latest code and that your `index.html` is valid HTML.
+v0.10.1 uses Compose + `PlayerView` exclusively — there is no WebView. If the new APK still crashes, capture a logcat with `adb logcat *:E | grep orbiscreen` and open an issue.
 
 ---
 
-### USB Connection & ADB Reverse Port Forwarding
-
-**Symptom:**
-Android app displays `Looking for host...` when connected over USB cable.
+<a id="android-usb"></a>
+### Android: USB connection shows "Looking for host…"
 
 **Fix:**
 Orbiscreen automatically configures `adb reverse tcp:8788 tcp:8788` when started. Ensure:
 1. **USB Debugging** is enabled in Android Developer Options.
 2. The host device is authorized on your Android phone/tablet prompt.
-3. Verify manually using:
+3. Verify manually:
    ```bash
    adb devices
    adb reverse tcp:8788 tcp:8788
    ```
+4. Tap the **USB mode** card on the Discovery screen.
 
 ---
 
-### Daemon Causes High CPU Usage (100%) or Freezes
+<a id="daemon-cpu"></a>
+## 🚀 Daemon: 100% CPU usage or freeze
 
-**Symptom:**
-Running `orbiscreen start` pegs one CPU core at 100% and makes the system sluggish.
-
-**Cause:**
-The capture loop is running in a busy loop without yielding to the scheduler when there is an error or when capturing frames faster than necessary.
+**Cause (fixed in v0.7.2):**
+Capture loop ran without yielding.
 
 **Fix:**
-This was fixed in Orbiscreen v0.7.2 by adding rate-limiting and sleep intervals in the daemon's capture pump. Update to the latest version.
+Update to v0.10.1 (workspace).
 
 ---
 
@@ -378,21 +289,20 @@ This was fixed in Orbiscreen v0.7.2 by adding rate-limiting and sleep intervals 
 
 On the failed PR page:
 1. Open the **Checks** section.
-2. Click the failed check name (e.g. `Build, test & lint (workspace)`).
+2. Click the failed check name.
 3. Click **Re-run jobs** → **Re-run failed jobs**.
 
 ### Check the action logs
 
-For each failed job, the **Run logs** section shows the exact `cargo`
-output. Cross-reference with the sections above.
+The **Run logs** section shows the exact `cargo` / `gradlew` output. Cross-reference with the sections above.
 
 ### Open an issue
 
-If none of the above applies, open an issue using
-`.github/ISSUE_TEMPLATE/bug.yml`. Include:
-- The exact `cargo` error output
-- The CI run URL
-- The OS / compositor of the host (if runtime-related)
+Use `.github/ISSUE_TEMPLATE/bug.yml`. Include:
+- The exact `cargo` / `gradlew` error output.
+- The CI run URL.
+- The OS / compositor of the host (if runtime-related).
+- `adb logcat *:E` output (if Android-related).
 
 ---
 

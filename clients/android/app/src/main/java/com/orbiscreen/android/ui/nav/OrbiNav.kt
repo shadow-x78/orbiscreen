@@ -1,0 +1,102 @@
+package com.orbiscreen.android.ui.nav
+
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.orbiscreen.android.data.PrefsStore
+import com.orbiscreen.android.net.DiscoveryService
+import com.orbiscreen.android.net.WifiGatewayProvider
+import com.orbiscreen.android.ui.discovery.DiscoveryScreen
+import com.orbiscreen.android.ui.discovery.DiscoveryViewModel
+import com.orbiscreen.android.ui.settings.SettingsScreen
+import com.orbiscreen.android.ui.stream.StreamScreen
+import com.orbiscreen.android.ui.stream.StreamViewModel
+
+object Routes {
+    const val DISCOVERY = "discovery"
+    const val STREAM = "stream/{host}/{port}?label={label}"
+    const val SETTINGS = "settings"
+
+    fun stream(host: String, port: Int, label: String? = null): String {
+        val safeLabel = label ?: ""
+        return "stream/$host/$port?label=$safeLabel"
+    }
+}
+
+@Composable
+fun OrbiNav(prefs: PrefsStore) {
+    val nav = rememberNavController()
+    val context = LocalContext.current
+
+    NavHost(
+        navController = nav,
+        startDestination = Routes.DISCOVERY,
+        enterTransition = { slideInHorizontally(animationSpec = tween(220)) { it / 4 } + fadeIn(tween(220)) },
+        exitTransition = { fadeOut(tween(120)) },
+        popEnterTransition = { slideInHorizontally(animationSpec = tween(220)) { it / 4 } + fadeIn(tween(220)) },
+        popExitTransition = { slideOutHorizontally(animationSpec = tween(220)) { it / 4 } + fadeOut(tween(220)) },
+    ) {
+        composable(Routes.DISCOVERY) {
+            val vm: DiscoveryViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        DiscoveryViewModel(
+                            discovery = DiscoveryService(context),
+                            prefs = prefs,
+                            gatewayProvider = { WifiGatewayProvider.gateway(context) },
+                        )
+                    }
+                },
+            )
+            DiscoveryScreen(
+                viewModel = vm,
+                onConnect = { host, port ->
+                    nav.navigate(Routes.stream(host, port))
+                },
+                onSettings = { nav.navigate(Routes.SETTINGS) },
+            )
+        }
+        composable(
+            route = Routes.STREAM,
+            arguments = listOf(
+                navArgument("host") { type = NavType.StringType },
+                navArgument("port") { type = NavType.IntType },
+                navArgument("label") { type = NavType.StringType; defaultValue = "" },
+            ),
+        ) { backStack ->
+            val host = backStack.arguments?.getString("host").orEmpty()
+            val port = backStack.arguments?.getInt("port") ?: 8788
+            val label = backStack.arguments?.getString("label").orEmpty().takeIf { it.isNotEmpty() }
+            val app = context.applicationContext
+            val vm: StreamViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        StreamViewModel(app, prefs, host, port, label)
+                    }
+                },
+            )
+            StreamScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+            )
+        }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(prefs = prefs, onBack = { nav.popBackStack() })
+        }
+    }
+}

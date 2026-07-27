@@ -15,12 +15,17 @@ Example: `feature/wayland-clipboard`
 ## 💬 Commit Convention
 
 We enforce a strict commit message format for clarity:
-`orbiscreen | vX.Y.Z | <type>: <description>`
+
+```text
+orbiscreen | <type>: <description>
+orbiscreen | vX.Y.Z | <type>: <description>
+```
 
 - `<type>` can be `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
-- `vX.Y.Z` should be the current workspace version.
+- `vX.Y.Z` should be the current workspace version (use on release commits).
+- A `release:` type denotes the bump commit (e.g. `orbiscreen | v0.10.2 | release: bump to 0.10.2`).
 
-Example: `orbiscreen | vX.Y.Z | fix: description of the issue resolved`
+Example: `orbiscreen | v0.10.1 | fix: respect display aspect ratio on rotation`
 
 ## 💅 Code Style
 
