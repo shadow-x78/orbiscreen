@@ -37,10 +37,15 @@ orbiscreen | build: bump workspace Cargo.toml version to 0.10.0
 orbiscreen | android | build: add Compose BOM, navigation-compose, material-icons-extended
 orbiscreen | android | build: add proguard rules for Media3, OkHttp, Compose and NSD
 orbiscreen | android | build: add lint.xml opting in to androidx.media3 UnstableApi
+<<<<<<< HEAD
 orbiscreen | android | build: remove debug.keystore fallback from release signingConfig
 orbiscreen | docs: rewrite README for Material 3 UI and v0.10.0 highlights
 orbiscreen | docs: update Android architecture diagram with new package layout
 orbiscreen | docs: update docs/ARCHITECTURE, DBUS_SPEC, INSTALL, PACKAGING, TROUBLESHOOTING, SECURITY for v0.10.0
+=======
+orbiscreen | docs: rewrite README for Material 3 UI and v0.10.0 highlights
+orbiscreen | docs: update Android architecture diagram with new package layout
+>>>>>>> origin/main
 ```
 
 ---
