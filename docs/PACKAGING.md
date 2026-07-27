@@ -1,8 +1,6 @@
 # Multi-Distro Packaging Guide - Orbiscreen
 
-
-
-## 📦 Overview
+> Applies to **v0.10.1** and later. The release matrix is now: `0.10.1` (workspace), `versionCode = 9` (Android).
 
 Orbiscreen provides build configurations and package definitions for all major Linux distributions and Android:
 
@@ -11,7 +9,7 @@ Orbiscreen provides build configurations and package definitions for all major L
 - **Debian / Ubuntu (.deb):** Native Debian package for Ubuntu, Debian, Mint, and Pop!_OS.
 - **Fedora / RHEL (.rpm):** Native RPM package for Fedora, RHEL, CentOS, and openSUSE.
 - **Generic Tarball (.tar.gz):** Standalone release archive with one-command installer.
-- **Android APK (.apk):** Client application for Android tablets and smartphones.
+- **Android APK (.apk):** Material 3 + Jetpack Compose client for Android tablets and smartphones.
 
 ---
 
@@ -42,6 +40,8 @@ cd clients/android
 ```
 Output APK location: `clients/android/app/build/outputs/apk/release/app-release.apk`
 
+The release APK is signed with `orbiscreen-release.keystore` (when present) using V1/V2/V3 schemes. ProGuard rules in `clients/android/app/proguard-rules.pro` keep `androidx.media3`, OkHttp, Compose, and NSD reflective classes.
+
 ---
 
 ## 🗑️ Uninstalling Packages
@@ -51,12 +51,42 @@ Each package manager handles uninstallation cleanly:
 - **Debian / Ubuntu (`.deb`):** `sudo apt-get remove orbiscreen`
 - **Fedora / RHEL (`.rpm`):** `sudo dnf remove orbiscreen`
 - **Standalone Tarball:** Run `./scripts/uninstall.sh` provided in the source or tarball directory.
+- **Android:** Long-press the app icon → **App info** → **Uninstall**.
+
+---
+
+## 🔐 Cryptographic Signing
+
+All artifacts are cryptographically signed (v0.9.0+):
+
+- **Linux packages:** RPM signed with GPG (`orbiscreen.asc`), DEB signed with `debsigs`, AppImage contains a hashed signature.
+- **Android APK:** Signed with the production `orbiscreen-release.keystore` (V1/V2/V3).
+
+To verify the Linux RPM manually:
+```bash
+sudo rpm --import https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/orbiscreen.asc
+rpm -K orbiscreen_x86_64.rpm
+```
 
 ---
 
 ## 🚀 GitHub Actions Release Matrix
 
-When a version tag is pushed (e.g., `git tag v0.4.2 && git push origin v0.4.2`), the `.github/workflows/release.yml` workflow automatically builds and attaches all release packages to the GitHub Releases page.
+When a version tag is pushed (e.g. `git tag v0.10.1 && git push origin v0.10.1`), the `.github/workflows/release.yml` workflow automatically builds and attaches all release packages to the GitHub Releases page.
+
+The release `body` is generated from the `## orbiscreen | v0.10.1 | …` block in `CHANGELOG.md`.
+
+---
+
+## 📱 Android Build Options
+
+| Build type | Command | Notes |
+|------------|---------|-------|
+| Unsigned debug | `./gradlew assembleDebug` | No signing; not for distribution |
+| Signed release | `./gradlew assembleRelease` | Uses `orbiscreen-release.keystore` if present |
+| Static lint | `./gradlew lintDebug` | Project opt-in to `androidx.media3 UnstableApi` |
+
+The debug APK is ~22 MB; R8 shrinks the release APK to ~4 MB.
 
 ---
 
@@ -68,4 +98,3 @@ Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 <sub>&copy; 2026 Orbiscreen (shadow-x78)</sub>
 
 </div>
-
