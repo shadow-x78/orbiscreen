@@ -119,7 +119,7 @@ jobs:
           cat release_notes.txt
 
       - name: Generate GitHub Build Attestations
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             orbiscreen-linux-x86_64.tar.gz
