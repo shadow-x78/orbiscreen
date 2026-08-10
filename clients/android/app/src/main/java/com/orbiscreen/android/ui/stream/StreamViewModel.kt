@@ -46,7 +46,7 @@ class StreamViewModel(
             host = host,
             port = port,
             label = label,
-            event = StreamEvent.Connecting(android.net.Uri.parse("http://$host:$port/stream.ts")),
+            event = StreamEvent.Connecting(android.net.Uri.parse("http://$host:$port/stream")),
         )
     )
     val state: StateFlow<StreamState> = _state.asStateFlow()

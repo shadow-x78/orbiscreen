@@ -33,6 +33,7 @@
     <string name="share_logs">Share logs</string>
     <string name="connecting">Connecting…</string>
     <string name="buffering">Buffering…</string>
+    <string name="loading_video">Rendering video…</string>
     <string name="host_unreachable">Host unreachable. Check IP/port and Wi-Fi.</string>
     <string name="stream_format_unknown">Stream format not recognised (expected MPEG-TS / H.264).</string>
     <string name="move_left_apps">Move this device to the apps screen</string>

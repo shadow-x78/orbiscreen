@@ -57,27 +57,28 @@ class InputDispatcher(
     fun move(localX: Float, localY: Float, containerW: Int, containerH: Int) {
         val (x, y) = map(localX, localY, containerW, containerH)
         moves.tryEmit(JSONObject().apply {
-            put("Move", JSONObject().apply { put("x", x); put("y", y) })
+            put("Pointer", JSONObject().apply {
+                put("Move", JSONObject().apply { put("x", x); put("y", y) })
+            })
         })
     }
 
     fun button(localX: Float?, localY: Float?, containerW: Int, containerH: Int, button: Int, pressed: Boolean) {
-        val payload = JSONObject()
         val btn = JSONObject()
         btn.put("button", button)
         btn.put("pressed", pressed)
-        if (localX != null && localY != null) {
-            val (x, y) = map(localX, localY, containerW, containerH)
-            btn.put("x", x)
-            btn.put("y", y)
-        }
-        payload.put("Button", btn)
+        // Buttons don't carry coordinates; position already lives in the pointer track.
+        val payload = JSONObject()
+        payload.put("Pointer", JSONObject().apply { put("Button", btn) })
         discrete.tryEmit(payload)
     }
 
     fun wheel(deltaY: Float) {
+        // delta_y rounds on the host; keep the raw float here.
         val payload = JSONObject()
-        payload.put("Wheel", JSONObject().apply { put("deltaY", deltaY) })
+        payload.put("Pointer", JSONObject().apply {
+            put("Wheel", JSONObject().apply { put("delta_y", deltaY) })
+        })
         discrete.tryEmit(payload)
     }
 
@@ -94,10 +95,12 @@ class InputDispatcher(
         val (x, y) = map(localX, localY, containerW, containerH)
         val payload = JSONObject()
         payload.put("Stylus", JSONObject().apply {
-            put("x", x); put("y", y)
-            put("pressure", pressure)
-            put("tilt_x", tiltX)
-            put("tilt_y", tiltY)
+            put("Tilt", JSONObject().apply {
+                put("x", x); put("y", y)
+                put("pressure", pressure)
+                put("tilt_x_deg", tiltX)
+                put("tilt_y_deg", tiltY)
+            })
         })
         discrete.tryEmit(payload)
     }

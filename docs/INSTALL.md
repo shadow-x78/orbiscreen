@@ -1,6 +1,12 @@
 # Installation Guide - Orbiscreen
 
-> Latest release: **v0.10.2** (Material 3 Android client, fixed black screen, live discovery).
+## 🌐 Language
+
+<a href="INSTALL.md">🇬🇧 English</a> · <a href="INSTALL_AR.md">🇸🇦 العربية</a>
+
+---
+
+> Latest release: **v0.10.3** (Material 3 Android client, fixed black screen, live discovery).
 
 ## 🚀 Quick Start & Multi-Distro Installation
 

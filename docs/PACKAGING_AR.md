@@ -1,0 +1,106 @@
+# دليل التغليف متعدد التوزيعات - Orbiscreen
+
+## 🌐 اللغة
+
+<a href="PACKAGING.md">🇬🇧 English</a> · <a href="PACKAGING_AR.md">🇸🇦 العربية</a>
+
+---
+
+> ينطبق على **v0.10.3** والإصدارات الأحدث. مصفوفة الإصدار حالياً: `0.10.2` (مساحة العمل)، `versionCode = 10` (Android).
+
+يوفّر Orbiscreen تكوينات البناء وتعريفات الحزم لجميع توزيعات Linux الرئيسية وAndroid:
+
+- **AppImage:** حزمة محمولة لجميع توزيعات Linux.
+- **Flatpak:** صيغة حاوية معزولة متوافقة مع Flathub.
+- **Debian / Ubuntu (.deb):** حزمة Debian أصلية لـ Ubuntu وDebian وMint وPop!_OS.
+- **Fedora / RHEL (.rpm):** حزمة RPM أصلية لـ Fedora وRHEL وCentOS وopenSUSE.
+- **أرشيف عام (.tar.gz):** أرشيف إصدار مستقل مع مثبّت بأمر واحد.
+- **Android APK (.apk):** عميل Material 3 + Jetpack Compose لأجهزة Android اللوحية والهواتف.
+
+---
+
+## 🔨 بناء الحزم محلياً
+
+### 1. الأرشيف المستقل والمثبّت بأمر واحد
+```bash
+cargo build --release --workspace
+./scripts/install.sh
+```
+
+### 2. حزمة Debian / Ubuntu (`.deb`)
+```bash
+cargo install cargo-deb
+cargo deb -p orbiscreen-daemon
+```
+
+### 3. حزمة Fedora / RHEL / openSUSE (`.rpm`)
+```bash
+cargo install cargo-generate-rpm
+cargo generate-rpm -p orbiscreen-daemon
+```
+
+### 4. عميل Android (`orbiscreen-android-release.apk`)
+```bash
+cd clients/android
+./gradlew assembleRelease
+```
+موقع ملف APK الناتج: `clients/android/app/build/outputs/apk/release/app-release.apk`
+
+يوقَّع ملف APK للإصدار بمفتاح `orbiscreen-release.keystore` (عند وجوده) باستخدام مخططات V1/V2/V3. قواعد ProGuard في `clients/android/app/proguard-rules.pro` تحافظ على صفوف `androidx.media3` وOkHttp وCompose وNSD الانعكاسية.
+
+---
+
+## 🗑️ إزالة الحزم
+
+يتعامل كل مدير حزم مع الإزالة بنظافة:
+
+- **Debian / Ubuntu (`.deb`):** `sudo apt-get remove orbiscreen`
+- **Fedora / RHEL (`.rpm`):** `sudo dnf remove orbiscreen`
+- **الأرشيف المستقل:** شغّل `./scripts/uninstall.sh` المرفق في المصدر أو مجلد الأرشيف.
+- **Android:** اضغط مطوّلاً على أيقونة التطبيق ← **App info** ← **Uninstall**.
+
+---
+
+## 🔐 التوقيع التشفيري
+
+جميع البنى موقّعة تشفيرياً (v0.9.0+):
+
+- **حزم Linux:** حزم RPM موقّعة بـ GPG (`orbiscreen.asc`)، حزم DEB موقّعة بـ `debsigs`، ويحتوي AppImage على توقيعة مُجزّأة.
+- **Android APK:** موقّع بملف الإنتاج `orbiscreen-release.keystore` (V1/V2/V3).
+
+للتحقق من حزمة RPM يدوياً:
+```bash
+sudo rpm --import https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/orbiscreen.asc
+rpm -K orbiscreen_x86_64.rpm
+```
+
+---
+
+## 🚀 مصفوفة إصدارات GitHub Actions
+
+عند دفع وسم إصدار (مثلاً `git tag v0.10.3 && git push origin v0.10.3`)، يبني سير العمل `.github/workflows/release.yml` تلقائياً جميع حزم الإصدار ويرفقها بصفحة GitHub Releases.
+
+يُولَّد محتوى `body` للإصدار من كتلة `## orbiscreen | v0.10.3 | …` في `CHANGELOG.md`.
+
+---
+
+## 📱 خيارات بناء Android
+
+| نوع البناء | الأمر | ملاحظات |
+|------------|---------|-------|
+| Debug غير موقّع | `./gradlew assembleDebug` | بلا توقيع؛ غير مخصص للتوزيع |
+| Release موقّع | `./gradlew assembleRelease` | يستخدم `orbiscreen-release.keystore` عند وجوده |
+| فحص Lint ثابت | `./gradlew lintDebug` | اشتراك المشروع في `androidx.media3 UnstableApi` |
+
+يبلغ حجم APK الـ Debug حوالي 22 ميغابايت؛ يقلّص R8 حجم APK الـ Release إلى نحو 4 ميغابايت.
+
+---
+
+<div align="center">
+
+بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+[العودة إلى README](../README_AR.md)
+
+<sub>&copy; 2026 Orbiscreen (shadow-x78)</sub>
+
+</div>

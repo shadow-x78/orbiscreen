@@ -31,7 +31,9 @@ impl From<WaylandInputError> for InputError {
 #[allow(missing_debug_implementations)]
 pub struct WaylandInjector {
     remote: RemoteDesktop,
-    session: Session<RemoteDesktop>,
+    // Arc so `Drop` can hand a clone to a background task and close the
+    // portal session even as this struct is being torn down.
+    session: std::sync::Arc<Session<RemoteDesktop>>,
 }
 
 impl WaylandInjector {
@@ -60,19 +62,19 @@ impl WaylandInjector {
             .response()
             .map_err(|e| WaylandInputError::Dbus(e.to_string()))?;
         info!("RemoteDesktop session established");
-        Ok(Self { remote, session })
+        Ok(Self {
+            remote,
+            session: std::sync::Arc::new(session),
+        })
     }
 
     pub async fn inject_pointer(&self, event: PointerEvent) -> Result<(), InputError> {
         match event {
             PointerEvent::Move { x, y } => {
-                if let Err(error) = self
-                    .remote
+                self.remote
                     .notify_pointer_motion(&self.session, x, y, Default::default())
                     .await
-                {
-                    warn!("notify_pointer_motion failed: {error}");
-                }
+                    .map_err(|e| InputError::Uinput(e.to_string()))?;
             }
             PointerEvent::Button { button, pressed } => {
                 let state = if pressed {
@@ -80,22 +82,18 @@ impl WaylandInjector {
                 } else {
                     KeyState::Released
                 };
-                if let Err(error) = self
-                    .remote
-                    .notify_pointer_button(&self.session, button as i32, state, Default::default())
+                let button = i32::try_from(button)
+                    .map_err(|_| InputError::Uinput(format!("invalid button: {button}")))?;
+                self.remote
+                    .notify_pointer_button(&self.session, button, state, Default::default())
                     .await
-                {
-                    warn!("notify_pointer_button failed: {error}");
-                }
+                    .map_err(|e| InputError::Uinput(e.to_string()))?;
             }
             PointerEvent::Wheel { delta_y } => {
-                if let Err(error) = self
-                    .remote
+                self.remote
                     .notify_pointer_axis(&self.session, 0.0, delta_y, Default::default())
                     .await
-                {
-                    warn!("notify_pointer_axis failed: {error}");
-                }
+                    .map_err(|e| InputError::Uinput(e.to_string()))?;
             }
         }
         Ok(())
@@ -107,11 +105,27 @@ impl WaylandInjector {
         } else {
             KeyState::Released
         };
+        let code = i32::try_from(event.code)
+            .map_err(|_| InputError::Uinput(format!("invalid key code: {}", event.code)))?;
         self.remote
-            .notify_keyboard_keycode(&self.session, event.code as i32, state, Default::default())
+            .notify_keyboard_keycode(&self.session, code, state, Default::default())
             .await
             .map_err(|e| InputError::Uinput(e.to_string()))?;
         Ok(())
+    }
+}
+
+impl Drop for WaylandInjector {
+    fn drop(&mut self) {
+        // Without an explicit Close the compositor keeps the RemoteDesktop
+        // session (and its "remote control active" indicator) alive after
+        // the daemon exits.
+        let session = self.session.clone();
+        tokio::spawn(async move {
+            if let Err(e) = session.close().await {
+                warn!("failed to close RemoteDesktop session: {e}");
+            }
+        });
     }
 }
 

@@ -138,6 +138,9 @@ impl WaylandCapture {
 
         appsink.set_callbacks(
             AppSinkCallbacks::builder()
+                // Ignores malformed samples instead of panicking; a panic in a
+                // GStreamer callback unwinds into C code and is UB, so we log and
+                // skip the frame.
                 .new_sample(move |sink| {
                     let sample = match sink.pull_sample() {
                         Ok(s) => s,
@@ -147,18 +150,35 @@ impl WaylandCapture {
                         }
                     };
 
-                    let caps = sample.caps().unwrap();
-                    let structure = caps.structure(0).unwrap();
-                    let width = structure.get::<i32>("width").unwrap() as u32;
-                    let height = structure.get::<i32>("height").unwrap() as u32;
+                    let Some(caps) = sample.caps() else {
+                        tracing::warn!("skipping sample with no caps");
+                        return Ok(gstreamer::FlowSuccess::Ok);
+                    };
+                    let Some(structure) = caps.structure(0) else {
+                        tracing::warn!("skipping sample with empty caps");
+                        return Ok(gstreamer::FlowSuccess::Ok);
+                    };
+                    let (Ok(width), Ok(height)) = (
+                        structure.get::<i32>("width"),
+                        structure.get::<i32>("height"),
+                    ) else {
+                        tracing::warn!("skipping sample with missing width/height in caps");
+                        return Ok(gstreamer::FlowSuccess::Ok);
+                    };
 
-                    let buffer = sample.buffer().unwrap();
-                    let map = buffer.map_readable().unwrap();
+                    let Some(buffer) = sample.buffer() else {
+                        tracing::warn!("skipping sample with no buffer");
+                        return Ok(gstreamer::FlowSuccess::Ok);
+                    };
+                    let Ok(map) = buffer.map_readable() else {
+                        tracing::warn!("buffer not readable; skipping sample");
+                        return Ok(gstreamer::FlowSuccess::Ok);
+                    };
                     let data = map.to_vec();
 
                     let _ = tx.send(CapturedFrame {
-                        width,
-                        height,
+                        width: width as u32,
+                        height: height as u32,
                         data,
                     });
                     Ok(gstreamer::FlowSuccess::Ok)
@@ -183,6 +203,10 @@ impl WaylandCapture {
     pub fn stream(&self) -> &PipeWireStream {
         &self.stream
     }
+
+    // The pipeline is kept alive purely by holding ownership in `_pipeline`;
+    // when the WaylandCapture drops, the pipeline is dropped by GStreamer and
+    // the appsink callback's `tx` closes, so readers see channel close.
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, CaptureError> {
         let mut rx = self.rx.lock().await;

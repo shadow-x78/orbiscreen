@@ -1,6 +1,12 @@
 # D-Bus API Specification - Orbiscreen
 
-> Applies to **v0.10.2** and later.
+## 🌐 Language
+
+<a href="DBUS_SPEC.md">🇬🇧 English</a> · <a href="DBUS_SPEC_AR.md">🇸🇦 العربية</a>
+
+---
+
+> Applies to **v0.10.3** and later.
 
 Orbiscreen exposes a D-Bus Session Service interface allowing desktop control panels (GTK4 GUI), CLI scripts, and system tray indicators to inspect status, configure display settings, and control the daemon process.
 
@@ -13,7 +19,7 @@ Orbiscreen exposes a D-Bus Session Service interface allowing desktop control pa
 
 ## 🛰 Companion HTTP Control Surface
 
-The Android client (v0.10.2) talks to the daemon over plain HTTP, not D-Bus. The endpoints it uses are:
+The Android client (v0.10.3) talks to the daemon over plain HTTP, not D-Bus. The endpoints it uses are:
 
 | Endpoint | Purpose |
 |----------|---------|
@@ -50,7 +56,7 @@ Returns the active configuration formatted as a JSON string.
 
 ---
 
-## 🔄 Companion Method: `SetScreenState(state: String) -> String` (proposed for v0.10.2)
+## 🔄 Companion Method: `SetScreenState(state: String) -> String` (proposed for v0.10.3)
 
 Mirrors the `/api/control` actions over D-Bus so a host-side control panel can also toggle the screen state without hitting HTTP.
 

@@ -10,8 +10,8 @@ object StreamUrl {
         val ub = Uri.Builder()
             .scheme("http")
             .authority("$host:$port")
-            .path("/stream.ts")
-            .appendQueryParameter("fmt", "mp2t")
+            // The daemon serves the MPEG-TS stream at /stream (no extension).
+            .path("/stream")
         return ub.build()
     }
 

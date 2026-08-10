@@ -57,6 +57,7 @@ fn init_tracing(verbose: u8) {
     };
     let filter_str = format!("{},zbus=error,ashpd=error", level.as_str());
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(filter_str));
+    // try_init fails only if a subscriber is already set; ignored deliberately.
     let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }
 
@@ -124,9 +125,10 @@ async fn main() -> ExitCode {
             }
         },
         Command::Stop => {
-            // Check if there's a daemon running to stop. In this simplified implementation
-            // we just rely on systemd or kill to stop it, but if invoked via CLI `orbiscreen stop`,
-            // we could talk to DBus to gracefully stop. For now, just exit cleanly or send a signal.
+            // There is no control socket yet, so the graceful stop path is to delegate
+            // to systemd (or kill the PID). The D-Bus stop method only flips the
+            // reported status flag for clients; the capture/transport loop is tied to
+            // SIGINT.
             println!(
                 "Use 'systemctl --user stop orbiscreen' or kill the process to stop the daemon."
             );
@@ -212,6 +214,9 @@ async fn run_start(
         refresh_rate_hz: cfg.display.refresh_rate_hz,
     };
 
+    // The daemon's actual lifecycle is tied to the tokio runtime; the atomic here
+    // reflects the D-Bus view of "serve is up". It is true from startup because
+    // clients can connect as soon as the listener binds.
     let is_running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
     let dbus_running = is_running.clone();
     tokio::spawn(async move {
@@ -255,8 +260,16 @@ async fn run_start(
     .await?;
     info!(backend = ?injector.backend(), "Input injector open");
 
-    let encoder_kind =
-        EncoderKind::parse(&cfg.encode.preferred_encoder).unwrap_or(EncoderKind::X264);
+    let encoder_kind = match EncoderKind::parse(&cfg.encode.preferred_encoder) {
+        Some(kind) => kind,
+        None => {
+            warn!(
+                requested = %cfg.encode.preferred_encoder,
+                "Unknown encoder; falling back to software x264"
+            );
+            EncoderKind::X264
+        }
+    };
     let mut encoder = Encoder::new(EncodeParams {
         kind: encoder_kind,
         bitrate_kbps: cfg.encode.bitrate_kbps,
@@ -266,6 +279,9 @@ async fn run_start(
     })?;
     let mut encoded_rx = encoder.subscribe().ok_or("encoder returned no rx")?;
 
+    // Pumps encoded chunks out of the encoder into the transport. The encoder
+    // timestamps buffers internally at push time, so H264Packet's pts_ns is
+    // informational only here; 0 means "use the encoder's clock".
     let (video_tx, video_rx) = mpsc::unbounded_channel::<H264Packet>();
     let frame_pump = tokio::spawn(async move {
         while let Some(chunk) = encoded_rx.recv().await {
@@ -280,14 +296,19 @@ async fn run_start(
         }
     });
 
+    // Input scaling needs the capture region after `capture` moves into the
+    // pump below, so snapshot it here.
+    let cap_dims = (capture.width(), capture.height());
     let cap_pump = tokio::spawn(async move {
         let mut pts: u64 = 0;
         loop {
             match capture.next_frame().await {
                 Ok(frame) => {
                     let _ = encoder.push_frame(&frame.data, frame.width, frame.height, pts);
-                    let delay = std::time::Duration::from_nanos(encoder.frame_duration_ns());
-                    pts = pts.saturating_add(encoder.frame_duration_ns());
+                    let delay = std::time::Duration::from_nanos(Encoder::frame_duration_ns(
+                        spec.refresh_rate_hz,
+                    ));
+                    pts = pts.saturating_add(Encoder::frame_duration_ns(spec.refresh_rate_hz));
                     tokio::time::sleep(delay).await;
                 }
                 Err(e) => {
@@ -301,11 +322,28 @@ async fn run_start(
     let (input_tx, mut input_rx) = mpsc::unbounded_channel::<orbiscreen_transport::IncomingInput>();
     let mut injector = injector;
     let _input_pump = tokio::spawn(async move {
+        use orbiscreen_input::PointerEvent;
+        use orbiscreen_transport::IncomingInput;
+        // Clients report coordinates in the region actually shown on screen
+        // (the evdi viewport if active, the native display otherwise), so
+        // scale into display pixels before injecting. The capture region is
+        // the stream's source of truth for the visible area.
+        let (cap_w, cap_h) = cap_dims;
+        let scale = |x: f64, y: f64| {
+            let x = x * f64::from(spec.width) / f64::from(cap_w.max(1));
+            let y = y * f64::from(spec.height) / f64::from(cap_h.max(1));
+            (x, y)
+        };
         while let Some(event) = input_rx.recv().await {
-            use orbiscreen_input::PointerEvent;
-            use orbiscreen_transport::IncomingInput;
             match event {
                 IncomingInput::Pointer(p) => {
+                    let p = match p {
+                        PointerEvent::Move { x, y } => {
+                            let (x, y) = scale(x, y);
+                            PointerEvent::Move { x, y }
+                        }
+                        other => other,
+                    };
                     let _ = injector.inject_pointer(p).await;
                 }
                 IncomingInput::Key(k) => {
@@ -315,6 +353,7 @@ async fn run_start(
                     let _ = injector.inject_stylus(s).await;
                 }
                 IncomingInput::RawPointer { x, y } => {
+                    let (x, y) = scale(x, y);
                     let _ = injector.inject_pointer(PointerEvent::Move { x, y }).await;
                 }
             }
@@ -389,6 +428,9 @@ async fn run_start(
 
     let serve_fut = transport.serve(video_rx);
 
+    // Dropping the mDNS advertiser before serve() returns defaults to unregistering
+    // (Drop impl handles shutdown explicitly); keeping `_mdns` alive until here is
+    // what stops the announcement disappearing before the HTTP listener is up.
     let serve_res = tokio::select! {
         res = serve_fut => res,
         _ = tokio::signal::ctrl_c() => {

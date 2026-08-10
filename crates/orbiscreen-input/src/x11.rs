@@ -12,7 +12,6 @@ use tracing::info;
 
 use super::{InputError, PointerEvent, StylusEvent, VirtualTouchscreenSpec};
 
-const MAX_KEY_COUNT: usize = 200;
 const PRESSURE_MAX: i32 = 1024;
 const TILT_MIN: i32 = -90;
 const TILT_MAX: i32 = 90;
@@ -37,8 +36,11 @@ impl UinputInjector {
         let pressure_axis = AbsInfo::new(0, PRESSURE_MAX);
         let tilt_axis = AbsInfo::new(TILT_MIN, TILT_MAX);
 
+        // Declare every code inject_key/button_code can emit: the full
+        // keyboard range and the BTN_MOUSE block (0x110..=0x117). Keys that
+        // were never registered with with_keys are silently dropped by uinput,
+        // which previously made all mouse buttons a no-op.
         let keys: Vec<Key> = (Key::KEY_ESC.raw()..=Key::KEY_KPDOT.raw())
-            .take(MAX_KEY_COUNT)
             .map(Key::from_raw)
             .collect();
 
@@ -52,6 +54,16 @@ impl UinputInjector {
                 AbsSetup::new(Abs::TILT_Y, tilt_axis),
             ])?
             .with_keys(keys)?
+            .with_keys([
+                Key::BTN_LEFT,
+                Key::BTN_RIGHT,
+                Key::BTN_MIDDLE,
+                Key::BTN_SIDE,
+                Key::BTN_EXTRA,
+                Key::BTN_FORWARD,
+                Key::BTN_BACK,
+                Key::BTN_TASK,
+            ])?
             .build("Orbiscreen Virtual Touchscreen")?;
         info!("opened uinput device: orbiscreen virtual touchscreen");
         Ok(Self {
@@ -61,9 +73,11 @@ impl UinputInjector {
         })
     }
 
+    /// Clamp a display-pixel coordinate to the ABS_X/ABS_Y axis ranges;
+    /// saturating_sub keeps a degenerate 0-size spec from underflowing.
     fn clamp_point(&self, x: f64, y: f64) -> (i32, i32) {
-        let cx = x.clamp(0.0, (self.width - 1) as f64) as i32;
-        let cy = y.clamp(0.0, (self.height - 1) as f64) as i32;
+        let cx = x.clamp(0.0, f64::from(self.width.saturating_sub(1))) as i32;
+        let cy = y.clamp(0.0, f64::from(self.height.saturating_sub(1))) as i32;
         (cx, cy)
     }
 
@@ -90,10 +104,16 @@ impl UinputInjector {
                 ]
             }
             PointerEvent::Wheel { delta_y } => {
-                vec![
-                    RelEvent::new(Rel::WHEEL, delta_y as i32).into(),
-                    SynEvent::new(Syn::REPORT).into(),
-                ]
+                // Clients send pixel deltas (Android) or lines (web client);
+                // uinput REL_WHEEL wants integer wheel clicks, so round
+                // rather than truncate to avoid losing small scrolls.
+                let mut events: Vec<InputEvent> = Vec::new();
+                let delta = delta_y.round() as i32;
+                if delta != 0 {
+                    events.push(RelEvent::new(Rel::WHEEL, delta).into());
+                }
+                events.push(SynEvent::new(Syn::REPORT).into());
+                events
             }
         };
         self.device.write_events(&events)?;
@@ -101,6 +121,11 @@ impl UinputInjector {
     }
 
     pub fn inject_key(&mut self, code: u32, pressed: bool) -> Result<(), InputError> {
+        // Reject codes the kernel treats as escapes from the uinput domain
+        // (> u16::MAX) or as junk padding (0 is KEY_RESERVED).
+        if code == 0 || code > u32::from(u16::MAX) {
+            return Err(InputError::Uinput(format!("invalid key code: {code}")));
+        }
         let state = if pressed {
             KeyState::PRESSED
         } else {
@@ -129,15 +154,18 @@ impl UinputInjector {
             StylusEvent::Proximity { .. } => unreachable!(),
         };
         let (xi, yi) = self.clamp_point(x, y);
-        let pressure = (pressure * PRESSURE_MAX as f64).clamp(0.0, PRESSURE_MAX as f64) as i32;
+        let pressure =
+            (pressure * f64::from(PRESSURE_MAX)).clamp(0.0, f64::from(PRESSURE_MAX)) as i32;
 
         let mut events: Vec<InputEvent> = Vec::with_capacity(6);
         events.push(AbsEvent::new(Abs::X, xi).into());
         events.push(AbsEvent::new(Abs::Y, yi).into());
         events.push(AbsEvent::new(Abs::PRESSURE, pressure).into());
         if let Some((tx, ty)) = tilt {
-            events.push(AbsEvent::new(Abs::TILT_X, tx as i32).into());
-            events.push(AbsEvent::new(Abs::TILT_Y, ty as i32).into());
+            let tx = tx.clamp(f64::from(TILT_MIN), f64::from(TILT_MAX)) as i32;
+            let ty = ty.clamp(f64::from(TILT_MIN), f64::from(TILT_MAX)) as i32;
+            events.push(AbsEvent::new(Abs::TILT_X, tx).into());
+            events.push(AbsEvent::new(Abs::TILT_Y, ty).into());
         }
         events.push(SynEvent::new(Syn::REPORT).into());
         self.device.write_events(&events)?;
@@ -145,11 +173,13 @@ impl UinputInjector {
     }
 }
 
+/// Map a DOM/Android button number (1 = left) to a Linux BTN_* code,
+/// clamped to the BTN_LEFT..=BTN_TASK range the device registers.
 pub fn button_code(button: u32) -> u32 {
     match button {
-        1 => 0x110,
-        2 => 0x112,
-        3 => 0x111,
-        n => n + 0x110,
+        1 => 0x110,                  // BTN_LEFT
+        2 => 0x112,                  // BTN_MIDDLE
+        3 => 0x111,                  // BTN_RIGHT
+        n => (n + 0x110).min(0x117), // BTN_SIDE ..= BTN_TASK
     }
 }

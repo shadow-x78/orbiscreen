@@ -101,8 +101,15 @@ pub struct Encoder {
     pipeline: Pipeline,
     appsrc: AppSrc,
     kind: EncoderKind,
-    framerate: u32,
     rx: Option<mpsc::UnboundedReceiver<EncodedChunk>>,
+}
+
+impl Drop for Encoder {
+    fn drop(&mut self) {
+        // Never leave a Playing pipeline behind; GStreamer pads bus errors
+        // and leaked elements if the pipeline outlives this struct.
+        let _ = self.pipeline.set_state(gstreamer::State::Null);
+    }
 }
 
 impl Encoder {
@@ -156,18 +163,23 @@ impl Encoder {
             .build();
         appsrc.set_caps(Some(&caps));
         appsrc.set_format(gstreamer::Format::Time);
+        // A capture/restart loop can briefly outpace the encoder; bound the
+        // internal queue so backpressure shows up as a flow error instead of
+        // unbounded memory growth. 1 second of frames (~8 MB at 1080p BGRA).
+        appsrc.set_max_bytes((params.width as u64) * params.height as u64 * 4 * 60);
 
+        // GStreamer's "bitrate" property is in kbit/s for every H.264
+        // encoder (x264enc, vaapih264enc, nvh264enc), set via a string to
+        // cover both the uint (x264enc) and int properties.
         if encoder.find_property("bitrate").is_some() {
-            let bitrate_value = if kind == EncoderKind::X264 {
-                params.bitrate_kbps.to_string()
-            } else {
-                (params.bitrate_kbps * 1000).to_string()
-            };
-            encoder.set_property_from_str("bitrate", &bitrate_value);
+            encoder.set_property_from_str("bitrate", &params.bitrate_kbps.to_string());
         }
         if kind == EncoderKind::X264 {
             encoder.set_property_from_str("tune", "zerolatency");
             encoder.set_property_from_str("speed-preset", "ultrafast");
+            // Emit SPS/PPS in the same buffer as each keyframe so a client
+            // joining mid-stream gets the codec config with the first IDR.
+            encoder.set_property_from_str("repeat-headers", "true");
         }
 
         let (tx, rx) = mpsc::unbounded_channel::<EncodedChunk>();
@@ -204,7 +216,6 @@ impl Encoder {
             pipeline,
             appsrc,
             kind,
-            framerate: params.framerate,
             rx: Some(rx),
         })
     }
@@ -213,6 +224,8 @@ impl Encoder {
         self.rx.take()
     }
 
+    /// Push one BGRA frame with the given timestamp; block-free unless the
+    /// appsrc queue is full, in which case a flow error is returned.
     pub fn push_frame(
         &self,
         frame: &[u8],
@@ -237,12 +250,18 @@ impl Encoder {
         Ok(())
     }
 
+    /// Send end-of-stream so the encoder flushes its delayed tail frames
+    /// through the pipeline, then tear everything down.
     pub fn stop(&self) {
-        self.pipeline.set_state(gstreamer::State::Null).ok();
+        if let Err(e) = self.appsrc.end_of_stream() {
+            warn!("failed to signal EOS on stop: {e}");
+        }
+        let _ = self.pipeline.set_state(gstreamer::State::Null);
     }
 
-    pub fn frame_duration_ns(&self) -> u64 {
-        1_000_000_000 / u64::from(self.framerate)
+    /// Duration of one frame in nanoseconds at `framerate` fps.
+    pub fn frame_duration_ns(framerate: u32) -> u64 {
+        1_000_000_000 / u64::from(framerate)
     }
 
     pub fn kind(&self) -> EncoderKind {
@@ -301,13 +320,7 @@ mod tests {
 
     #[test]
     fn frame_duration_ns_matches_framerate() {
-        let params = EncodeParams {
-            framerate: 60,
-            ..EncodeParams::default()
-        };
-        let mut encoder = Encoder::new(params).ok();
-        if let Some(encoder) = encoder.as_mut() {
-            assert_eq!(encoder.frame_duration_ns(), 16_666_666);
-        }
+        assert_eq!(Encoder::frame_duration_ns(60), 16_666_666);
+        assert_eq!(Encoder::frame_duration_ns(30), 33_333_333);
     }
 }

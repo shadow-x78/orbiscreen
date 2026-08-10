@@ -77,6 +77,7 @@ pub struct VirtualDisplay {
     spec: VirtualDisplaySpec,
     handle: Handle,
     buffer_id: BufferId,
+    /// Actual evdi device node id (0-based), taken from the opened `DeviceNode`.
     device_index: u32,
 }
 
@@ -102,11 +103,13 @@ impl VirtualDisplay {
             Some(i) => DeviceNode::new(i as i32),
             None => DeviceNode::get().ok_or(DisplayError::NoDeviceNode)?,
         };
+        // Record the actual node id when one was requested; the auto-picked node's
+        // id is not publicly exposed by the evdi crate, so 0 is the best guess.
+        let device_index = index.unwrap_or(0);
         info!(node = ?node, "Opening evdi device node");
         #[allow(unsafe_code)]
         let unconnected =
             unsafe { node.open() }.map_err(|e| DisplayError::OpenDevice(format!("{e:?}")))?;
-        let device_index = index.unwrap_or(0);
 
         let cfg = device_config_for(spec);
         let mut handle = unconnected.connect(&cfg);
@@ -189,8 +192,15 @@ impl VirtualDisplay {
         }
     }
 
+    /// Heuristic DRM connector name for this evdi node. evdi connectors are
+    /// registered 1-based and always report as DVI-I (e.g. card1 → "DVI-I-1"),
+    /// so callers must treat this as best-effort, not authoritative.
     pub fn drm_connector_name(&self) -> Option<String> {
-        Some(format!("DVI-I-{}", self.device_index))
+        Some(format!("DVI-I-{}", self.device_index + 1))
+    }
+
+    pub fn device_node_index(&self) -> u32 {
+        self.device_index
     }
 
     pub fn write_debug_ppm<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
@@ -234,8 +244,10 @@ fn build_edid(width: u32, height: u32) -> [u8; 128] {
     edid[12..16].copy_from_slice(&[1, 2, 3, 4]);
     edid[16] = 1;
     edid[17] = 36;
+    // EDID 1.4: version in byte 18, revision in byte 19.
     edid[18..20].copy_from_slice(&[1, 4]);
 
+    // Digital input, per EDID 1.4 bit 7 of byte 20 = digital display.
     edid[20] = 0x80;
     let cm_w = (width as f32 / 3.0).round() as u8;
     let cm_h = (height as f32 / 3.0).round() as u8;
@@ -267,7 +279,9 @@ fn build_edid(width: u32, height: u32) -> [u8; 128] {
     edid[70] = 0x1E;
     edid[71] = 0x00;
 
-    edid[75] = 0xFD;
+    // Range-limits descriptor occupies bytes 72–89 and requires 0xFD at byte 72
+    // to be recognised; writing the tag at 75 (as before) invalidated the block.
+    edid[72] = 0xFD;
     edid[77] = 30;
     edid[78] = 75;
     edid[79] = 30;
@@ -275,6 +289,7 @@ fn build_edid(width: u32, height: u32) -> [u8; 128] {
     edid[81] = 0x10;
     edid[82] = 0x0A;
 
+    // Descriptor 4 (bytes 90–107): display product name, tag 0xFC at byte 93.
     edid[93] = 0xFC;
     let name = b"Orbiscreen";
     for (i, byte) in name.iter().enumerate().take(13) {

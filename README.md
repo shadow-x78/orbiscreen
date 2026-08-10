@@ -1,15 +1,31 @@
 <div align="center">
-  <img src="data/orbiscreen.svg" alt="Orbiscreen" width="180" style="display: block; margin: 0 auto;" />
-  <h1 style="margin-top: 0px; margin-bottom: 4px; border-bottom: none;">Orbiscreen</h1>
-  <p>Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB</p>
 
-  <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v0.10.2-blue?style=flat-square" alt="Version" /></a>
-    <a href="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml"><img src="https://github.com/shadow-x78/orbiscreen/actions/workflows/ci.yml/badge.svg?style=flat-square" alt="CI" /></a>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License" /></a>
-    <a href="https://github.com/shadow-x78/orbiscreen/stargazers"><img src="https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square" alt="Stars" /></a>
-  </p>
+<pre align="center">
+ ██████╗ ██████╗ ██████╗ ██╗███████╗ ██████╗██████╗ ███████╗███████╗███╗   ██╗
+██╔═══██╗██╔══██╗██╔══██╗██║██╔════╝██╔════╝██╔══██╗██╔════╝██╔════╝████╗  ██║
+██║   ██║██████╔╝██████╔╝██║███████╗██║     ██████╔╝█████╗  █████╗  ██╔██╗ ██║
+██║   ██║██╔══██╗██╔══██╗██║╚════██║██║     ██╔══██╗██╔══╝  ██╔══╝  ██║╚██╗██║
+╚██████╔╝██║  ██║██████╔╝██║███████║╚██████╗██║  ██║███████╗███████╗██║ ╚████║
+ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═══╝
+</pre>
+
+# Orbiscreen
+
+Real virtual secondary displays for Linux, streamed to Android — one command, zero hassle
+
+[![Version](https://img.shields.io/badge/version-0.10.3-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
+![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
+[![Stars](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&color=eab308&logo=github)](https://github.com/shadow-x78/orbiscreen/stargazers)
+
 </div>
+
+---
+
+## 🌐 Language
+
+<a href="README.md">🇬🇧 English</a> · <a href="README_AR.md">🇸🇦 العربية</a>
 
 ---
 
@@ -19,10 +35,12 @@
 - [Why Orbiscreen Exists](#why-orbiscreen-exists)
 - [Highlights](#highlights)
 - [Status](#status)
-- [Quick Start & Packaging](#quick-start)
+- [Quick Start & Multi-Distro Installation](#quick-start)
 - [Commands](#commands)
 - [Android App](#android-app)
 - [Architecture](#architecture)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
 - [License](#license)
 
 ---
@@ -39,11 +57,11 @@
 
 | Problem | Other Projects | Orbiscreen |
 |---------|---------------|------------|
-| No Linux host support | spacedesk refuses officially | Real kernel-level virtual display |
-| X11-only workaround | VirtScreen unmaintained since 2018 | X11 **and** Wayland via evdi/DRM |
-| Wayland second screen missing | Weylus caps it to X11 | Full Wayland path via ashpd + PipeWire |
-| Manual IP configuration | Most projects | mDNS discovery + live network scan + manual add |
-| Single-purpose client | Spacedesk only | Native Android screen + host control panel |
+| No Linux host support | ❌ spacedesk refuses officially | ✅ Real kernel-level virtual display |
+| X11-only workaround | ❌ VirtScreen unmaintained since 2018 | ✅ X11 **and** Wayland via evdi/DRM |
+| Wayland second screen missing | ❌ Weylus caps it to X11 | ✅ Full Wayland path via ashpd + PipeWire |
+| Manual IP configuration | ❌ Most projects | ✅ mDNS discovery + live network scan + manual add |
+| Single-purpose client | ❌ spacedesk only | ✅ Native Android screen + host control panel |
 
 ---
 
@@ -52,7 +70,7 @@
 
 - Real virtual display via `evdi` (X11 *and* Wayland).
 - **Material 3 Android client** — Jetpack Compose, Catppuccin Mocha / Latte brand palette matching `data/orbiscreen-app.svg`, light/dark theme.
-- **Brand UI Chrome & Splash** — SplashScreen with brand background and vector adaptive launcher icon mirroring SVG.
+- **Brand UI Chrome & Splash** — SplashScreen with brand background and vector adaptive launcher icon mirroring the white-background SVG.
 - **Live discovery** — NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner.
 - **Native streaming** — Main-thread ExoPlayer construction with `OkHttpDataSource` + `DefaultLoadControl` for low-latency MPEG-TS / H.264.
 - **Reverse touch** — absolute pointer / keyboard / stylus / wheel events flow Android → host.
@@ -160,9 +178,9 @@ The Android client is a **Material 3 + Jetpack Compose** single-Activity app. Th
 - Status banner that reports the active scan and the number of hosts found.
 - **Live list** of `_orbiscreen._tcp.` services discovered via `NsdManager`, with name, IP, and port.
 - **Quick chips** for each host: tap to connect, or long-press for details.
-- **Add manually** card — expand to reveal an `OutlinedTextField` that validates `host:port` with a regex.
+- **Add manually** card — expand to reveal an `OutlinedTextField` that validates `host:port`.
 - **USB mode** card — pre-fills `127.0.0.1:8788` for `adb reverse tcp:8788 tcp:8788`.
-- Refresh button to restart the scan.
+- Refresh button that cancels the running NSD session and restarts the scan.
 - **Recent host** persisted in `SharedPreferences` and surfaced at the top of the list with a "Recent" chip.
 
 ### Stream screen
@@ -170,7 +188,7 @@ The Android client is a **Material 3 + Jetpack Compose** single-Activity app. Th
 - Background-black `Scaffold` with Catppuccin Mocha/Latte themed top app bar and a `ControlToolbar` rail.
 - **ExoPlayer** construction runs safely on the Main thread (`withContext(Dispatchers.Main)`), wrapped in `PlayerView` (via `AndroidView`) with `useController = false` so the in-app bar is the single source of UI.
 - A hardened `PlayerHolder.build()` wraps all initialization steps in a try-catch block to surface construction errors cleanly as `StreamEvent.Error` retry cards rather than crashing.
-- `StreamUrl` always builds a `.ts` URL with `setMimeType(MimeTypes.VIDEO_MP2T)` so MPEG-TS over HTTP is decoded without sniffing.
+- `StreamUrl` targets `/stream` with `setMimeType(MimeTypes.VIDEO_MP2T)` so MPEG-TS over HTTP is decoded without sniffing.
 - `OkHttpDataSource` uses zero read-timeout for live streams and a tuned `DefaultLoadControl` for stable buffering.
 
 ### Control toolbar
@@ -195,13 +213,15 @@ A floating action rail over the player surface with:
 
 ### Input model
 
-`InputDispatcher` translates Android touch events into absolute host coordinates using the host's reported display dimensions:
+`InputDispatcher` translates Android touch events into absolute host coordinates using the host's reported display dimensions and POSTs protocol envelopes the daemon deserializes directly:
 
 ```kotlin
 fun move(localX: Float, localY: Float, containerW: Int, containerH: Int) {
     val (x, y) = map(localX, localY, containerW, containerH)
     moves.tryEmit(JSONObject().apply {
-        put("Move", JSONObject().apply { put("x", x); put("y", y) })
+        put("Pointer", JSONObject().apply {
+            put("Move", JSONObject().apply { put("x", x); put("y", y) })
+        })
     })
 }
 ```
@@ -210,7 +230,7 @@ Pointer events are debounced through a `MutableSharedFlow` with `BufferOverflow.
 
 ### Host control endpoints (Rust side)
 
-The Android client uses three lightweight JSON endpoints in addition to the existing `/stream` and `/input`:
+The Android client uses three lightweight JSON endpoints in addition to `/stream` and `/input`:
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
@@ -231,10 +251,10 @@ orbiscreen/
 │   ├── orbiscreen-capture/     # X11 (x11rb) + Wayland (ashpd + PipeWire)
 │   ├── orbiscreen-encode/      # GStreamer pipeline (VAAPI / NVENC / x264)
 │   ├── orbiscreen-input/       # evdevil + ashpd RemoteDesktop
-│   ├── orbiscreen-transport/   # axum + mDNS + adb reverse + /api/info + /api/control
+│   ├── orbiscreen-transport/   # axum + mDNS + /api/info + /api/control
 │   └── orbiscreen-daemon/      # CLI binary wiring every layer together
 ├── clients/
-│   ├── web/                    # browser WebRTC client (HTML / CSS / JS)
+│   ├── web/                    # browser MPEG-TS client (HTML / CSS / JS)
 │   └── android/                # Material 3 Compose app
 │       └── app/src/main/java/com/orbiscreen/android/
 │           ├── MainActivity.kt
@@ -263,7 +283,7 @@ orbiscreen/
 │  └──────────────┘  └──────────────┘  └───────────────────┘   │
 │  ┌──────────────┐  ┌──────────────────────────────────────┐  │
 │  │ input        │  │ transport                            │  │
-│  │ evdevil/ashpd│  │ axum + webrtc-rs + mdns-sd + adb     │  │
+│  │ evdevil/ashpd│  │ axum + mdns-sd + adb                 │  │
 │  │              │  │ + /api/info + /api/control + /health  │  │
 │  └──────────────┘  └──────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────┐    │
@@ -272,25 +292,28 @@ orbiscreen/
 └──────────────────────────────────────────────────────────────┘
        │                  │                    │
        ▼                  ▼                    ▼
-   /dev/dri/...     X11 / Wayland         Network (mDNS + UDP)
+   /dev/dri/...     X11 / Wayland         Network (mDNS + HTTP)
 ```
 
 ---
 
+<a id="documentation"></a>
 ## 📚 Documentation
 
 | Document | Description |
 |----------|-------------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System topology, zero-copy pipeline & D-Bus architecture |
-| [docs/PACKAGING.md](docs/PACKAGING.md) | Multi-distro packaging specifications (.deb, .rpm, AppImage, Flatpak) |
-| [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) | D-Bus Session Bus IPC interface specifications |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues, diagnostics & hardware acceleration fixes |
-| [SECURITY.md](SECURITY.md) | Security model, WebRTC transport safety & network policies |
-| [CHANGELOG.md](CHANGELOG.md) | Full release history and commit style |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | System topology, zero-copy pipeline & D-Bus architecture |
+| [docs/INSTALL.md](docs/INSTALL.md) · [AR](docs/INSTALL_AR.md) | Multi-distro installation walkthroughs |
+| [docs/PACKAGING.md](docs/PACKAGING.md) · [AR](docs/PACKAGING_AR.md) | Multi-distro packaging specs (.deb, .rpm, AppImage, Flatpak) |
+| [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) · [AR](docs/DBUS_SPEC_AR.md) | D-Bus Session Bus IPC interface specifications |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) · [AR](docs/TROUBLESHOOTING_AR.md) | Common issues, diagnostics & hardware acceleration fixes |
+| [SECURITY.md](SECURITY.md) | Security model, transport safety & network policies |
+| [CHANGELOG.md](CHANGELOG.md) | Full release history |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Guidelines for contributing and building from source |
 
 ---
 
+<a id="contributing"></a>
 ## 🤝 Contributing
 
 Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on how to set up the development environment, format your code, and submit Pull Requests.
@@ -306,11 +329,12 @@ For example:
 ```text
 orbiscreen | android | player: retry on transient network errors
 orbiscreen | docs | readme: clarify mDNS discovery flow
-orbiscreen | v0.10.2 | release: hotfix for blank screen on Pixel 7
+orbiscreen | v0.10.3 | release: host-input protocol alignment
 ```
 
 ---
 
+<a id="license"></a>
 ## 📜 License
 
 Distributed under the [GPL-3.0 License](LICENSE).
@@ -323,6 +347,6 @@ Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [Changelog](CHANGELOG.md) ·
 [Security](SECURITY.md)
 
-<sub>&copy; 2026 Orbiscreen (shadow-x78)</sub>
+<sub>&copy; 2026 Orbiscreen</sub>
 
 </div>

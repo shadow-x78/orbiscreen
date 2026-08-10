@@ -154,7 +154,7 @@ private fun StatusOverlay(event: StreamEvent) {
                     }
                     is StreamEvent.Playing -> {
                         CircularProgressIndicator(modifier = Modifier.size(40.dp))
-                        Text(stringResource(R.string.buffering), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.loading_video), style = MaterialTheme.typography.titleMedium)
                     }
                     is StreamEvent.Error -> {
                         Icon(Icons.Filled.WifiTethering, contentDescription = null, tint = MaterialTheme.colorScheme.error)
@@ -220,7 +220,7 @@ private fun SoftKeyboard(onKey: (Int, Boolean) -> Unit) {
                     Surface(
                         onClick = {
                             val code = keyCodeFor(ch)
-                            onKey(code, true); onKey(code, false)
+                            if (code != 0) { onKey(code, true); onKey(code, false) }
                         },
                         shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -231,17 +231,18 @@ private fun SoftKeyboard(onKey: (Int, Boolean) -> Unit) {
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            KeyPill("space", Modifier.weight(2f)) {
-                onKey(62, true); onKey(62, false)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                // Linux evdev codes: KEY_SPACE=57, KEY_ENTER=28, KEY_BACKSPACE=14.
+                KeyPill("space", Modifier.weight(2f)) {
+                    onKey(57, true); onKey(57, false)
+                }
+                KeyPill("enter", Modifier.weight(1f)) {
+                    onKey(28, true); onKey(28, false)
+                }
+                KeyPill("back", Modifier.weight(1f)) {
+                    onKey(14, true); onKey(14, false)
+                }
             }
-            KeyPill("enter", Modifier.weight(1f)) {
-                onKey(66, true); onKey(66, false)
-            }
-            KeyPill("back", Modifier.weight(1f)) {
-                onKey(67, true); onKey(67, false)
-            }
-        }
     }
 }
 
@@ -261,15 +262,17 @@ private fun KeyPill(label: String, modifier: Modifier, onClick: () -> Unit) {
 private fun SpacerW() = androidx.compose.foundation.layout.Spacer(Modifier.size(12.dp))
 
 private fun keyCodeFor(c: Char): Int = when (c) {
-    ' ' -> 62
-    '\n' -> 66
-    '0' -> 7; '1' -> 8; '2' -> 9; '3' -> 10; '4' -> 11
-    '5' -> 12; '6' -> 13; '7' -> 14; '8' -> 15; '9' -> 16
-    'a','A' -> 29; 'b','B' -> 30; 'c','C' -> 31; 'd','D' -> 32; 'e','E' -> 33
-    'f','F' -> 34; 'g','G' -> 35; 'h','H' -> 36; 'i','I' -> 37; 'j','J' -> 38
-    'k','K' -> 39; 'l','L' -> 40; 'm','M' -> 41; 'n','N' -> 42; 'o','O' -> 43
-    'p','P' -> 44; 'q','Q' -> 45; 'r','R' -> 46; 's','S' -> 47; 't','T' -> 48
-    'u','U' -> 49; 'v','V' -> 50; 'w','W' -> 51; 'x','X' -> 52; 'y','Y' -> 53
-    'z','Z' -> 54
-    else -> c.code
+    // Linux evdev key codes (see linux/input-event-codes.h) — the host
+    // injector expects these, not Android KeyEvent codes.
+    ' ' -> 57   // KEY_SPACE
+    '\n' -> 28  // KEY_ENTER
+    '0' -> 11; '1' -> 2; '2' -> 3; '3' -> 4; '4' -> 5
+    '5' -> 6; '6' -> 7; '7' -> 8; '8' -> 9; '9' -> 10
+    'q','Q' -> 16; 'w','W' -> 17; 'e','E' -> 18; 'r','R' -> 19; 't','T' -> 20
+    'y','Y' -> 21; 'u','U' -> 22; 'i','I' -> 23; 'o','O' -> 24; 'p','P' -> 25
+    'a','A' -> 30; 's','S' -> 31; 'd','D' -> 32; 'f','F' -> 33; 'g','G' -> 34
+    'h','H' -> 35; 'j','J' -> 36; 'k','K' -> 37; 'l','L' -> 38
+    'z','Z' -> 44; 'x','X' -> 45; 'c','C' -> 46; 'v','V' -> 47; 'b','B' -> 48
+    'n','N' -> 49; 'm','M' -> 50
+    else -> 0
 }

@@ -235,9 +235,37 @@ mod tests {
     }
 
     #[test]
+    fn button_codes_stay_within_registered_keys() {
+        // uinput drops events for keys never passed to with_keys(); the
+        // device registers KEY_ESC..=KEY_KPDOT (1..=83) and BTN_LEFT..=BTN_TASK
+        // (0x110..=0x117), so button_code must stay inside those ranges.
+        for button in 1..=8 {
+            let code = x11::button_code(button);
+            assert!(
+                (0x110..=0x117).contains(&code),
+                "button {button} maps to {code:#x}, outside registered key range"
+            );
+        }
+    }
+
+    #[test]
     fn touch_calibration_clamps_and_scales() {
         let cal = TouchCalibration::new(1920, 1080);
         assert_eq!(cal.clamp_and_scale(0.5, 0.5), (960.0, 540.0));
         assert_eq!(cal.clamp_and_scale(-0.1, 1.2), (0.0, 1080.0));
+    }
+
+    #[test]
+    fn key_event_json_uses_snake_case_field_names() {
+        // The web client sends {"Key": {"code": ..., "pressed": ...}}.
+        let json = serde_json::json!({"Key": {"code": 30, "pressed": true}});
+        #[derive(serde::Deserialize)]
+        struct W {
+            #[serde(rename = "Key")]
+            key: KeyEvent,
+        }
+        let w: W = serde_json::from_value(json).expect("key payload");
+        assert_eq!(w.key.code, 30);
+        assert!(w.key.pressed);
     }
 }

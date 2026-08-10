@@ -16,16 +16,18 @@ pub enum AdbError {
     NoDevice,
 }
 
+/// Returns the serial of the first USB-debugging-authorized device, or None.
+/// Using `?` inside the loop would abort on any malformed line, so parse failures skip.
 fn first_device_serial(out: &str) -> Option<&str> {
-    for line in out.lines().skip(1) {
-        let mut parts = line.split_whitespace();
-        let serial = parts.next()?;
-        let state = parts.next()?;
-        if state == "device" {
-            return Some(serial);
-        }
-    }
-    None
+    out.lines()
+        .skip(1)
+        .filter_map(|line| {
+            let mut parts = line.split_whitespace();
+            let serial = parts.next()?;
+            let state = parts.next()?;
+            (state == "device").then_some(serial)
+        })
+        .next()
 }
 
 pub fn find_usb_device(adb_path: &Path) -> Result<String, AdbError> {

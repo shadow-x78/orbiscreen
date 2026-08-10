@@ -38,39 +38,12 @@ Categories=Network;System;
 StartupNotify=true
 EOF
 
-python3 - <<'PY' > "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png"
-import base64
-import struct
-import sys
-import zlib
-
-WIDTH = HEIGHT = 256
-
-def chunk(tag, data):
-    crc = zlib.crc32(tag + data) & 0xFFFFFFFF
-    return (struct.pack(">I", len(data)) + tag + data + struct.pack(">I", crc))
-
-ihdr = struct.pack(">IIBBBBB", WIDTH, HEIGHT, 8, 2, 0, 0, 0)
-idat_raw = bytearray()
-for y in range(HEIGHT):
-    idat_raw.append(0)
-    for x in range(WIDTH):
-        is_border = (x < 4 or x >= WIDTH - 4 or y < 4 or y >= HEIGHT - 4)
-        r, g, b = (0xCC, 0x00, 0x00) if not is_border else (0x55, 0x00, 0x00)
-        cx, cy = x - WIDTH // 2, y - HEIGHT // 2
-        in_oval = (cx * cx) * 9 + (cy * cy) * 25 < 64 * 64 * 25
-        if in_oval:
-            r, g, b = 0xFF, 0xFF, 0xFF
-        idat_raw.extend((r, g, b))
-idat = zlib.compress(bytes(idat_raw), 9)
-png = (
-    b"\x89PNG\r\n\x1a\n"
-    + chunk(b"IHDR", ihdr)
-    + chunk(b"IDAT", idat)
-    + chunk(b"IEND", b"")
-)
-sys.stdout.buffer.write(png)
-PY
+if ! command -v magick >/dev/null 2>&1; then
+    echo "error: ImageMagick ('magick') is required to rasterize the app icon." >&2
+    exit 1
+fi
+magick -background white "$REPO_ROOT/data/orbiscreen.svg" -flatten -resize 256x256 \
+    "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png"
 cp "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png" "$APP/orbiscreen.png"
 
 cat > "$APP/AppRun" <<'EOF'

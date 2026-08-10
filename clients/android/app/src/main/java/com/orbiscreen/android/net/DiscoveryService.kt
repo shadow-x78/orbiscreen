@@ -32,8 +32,12 @@ class DiscoveryService(private val context: Context) {
     private val active = MutableStateFlow<Map<String, DiscoveredHost>>(emptyMap())
     val hosts: StateFlow<Map<String, DiscoveredHost>> get() = active
 
+    private var discoveryScope: kotlinx.coroutines.CoroutineScope? = null
+
     @SuppressLint("NewApi")
     fun start(scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)) {
+        stop() // never run two NSD discovery sessions at once
+        discoveryScope = scope
         scope.launch {
             listen().collect { ev ->
                 val key = "${ev.host}:${ev.port}"
@@ -53,6 +57,10 @@ class DiscoveryService(private val context: Context) {
     }
 
     fun stop() {
+        // Cancelling the scope closes the listener's awaitClose, which calls
+        // NsdManager.stopServiceDiscovery.
+        discoveryScope?.coroutineContext?.get(kotlinx.coroutines.Job)?.cancel()
+        discoveryScope = null
     }
 
     private fun listen(): Flow<ResolvedService> = callbackFlow {

@@ -1,6 +1,6 @@
 # Architecture Specification - Orbiscreen
 
-> Applies to **v0.10.2** and later.
+> Applies to **v0.10.3** and later.
 
 Orbiscreen is built as a modular multi-crate Rust workspace separating system display drivers, frame capture engines, hardware-accelerated video encoders, inter-process communication (D-Bus), and multi-protocol network transports.
 

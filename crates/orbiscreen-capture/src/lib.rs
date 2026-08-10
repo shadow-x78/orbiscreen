@@ -55,6 +55,8 @@ impl CapturedFrame {
 pub struct CaptureSession {
     backend_kind: CaptureBackend,
     inner: Arc<CaptureInner>,
+    width: u32,
+    height: u32,
 }
 
 #[allow(missing_debug_implementations)]
@@ -69,6 +71,8 @@ impl CaptureSession {
             CaptureBackend::X11 => Ok(Self {
                 backend_kind: CaptureBackend::X11,
                 inner: Arc::new(CaptureInner::X11(x11::X11Capture::open(width, height)?)),
+                width,
+                height,
             }),
             CaptureBackend::Wayland => Err(CaptureError::BackendUnavailable(
                 "Wayland capture requires open_async",
@@ -86,6 +90,8 @@ impl CaptureSession {
                 Ok(Self {
                     backend_kind: CaptureBackend::Wayland,
                     inner: Arc::new(CaptureInner::Wayland(capture)),
+                    width,
+                    height,
                 })
             }
         }
@@ -93,6 +99,16 @@ impl CaptureSession {
 
     pub fn backend(&self) -> CaptureBackend {
         self.backend_kind
+    }
+
+    /// Width of the captured region in pixels (matches the encoder config).
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    /// Height of the captured region in pixels (matches the encoder config).
+    pub fn height(&self) -> u32 {
+        self.height
     }
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, CaptureError> {

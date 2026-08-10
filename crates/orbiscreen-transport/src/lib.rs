@@ -16,7 +16,7 @@ use thiserror::Error;
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 use tower_http::services::ServeDir;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 #[derive(Debug, Clone)]
 pub struct ServiceDescriptor {
@@ -32,13 +32,23 @@ pub enum TransportError {
 
 use orbiscreen_input::{KeyEvent, PointerEvent, StylusEvent};
 
+/// Client input payloads sent over POST `/input`.
+///
+/// The tagged forms (`{"Pointer": {...}}`, `{"Key": {...}}`, `{"Stylus": {...}}`)
+/// are used by the Android client (field names like `wheel`, `deltaY`, `tilt_x`);
+/// the untagged `{"x", "y"}` fallback is used by the web client for pointer
+/// moves. `Pointer` accepts `x`/`y` for `Move` because the Kotlin `Move`
+/// serializer flattens the fields.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(untagged)]
 pub enum IncomingInput {
     Pointer(PointerEvent),
     Key(KeyEvent),
     Stylus(StylusEvent),
-    RawPointer { x: f64, y: f64 },
+    #[serde(untagged)]
+    RawPointer {
+        x: f64,
+        y: f64,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -83,8 +93,12 @@ impl Transport {
             .unwrap_or_else(|_| "?".into());
         info!("orbiscreen transport listening on http://{local}");
 
+        // The daemon also runs adb setup before `serve` is called; this second pass
+        // is a best-effort retry so `Transport` still works when used standalone.
+        // NoDevice/NotInstalled are expected states and not worth logging again.
         match adb::setup_reverse_for_all(adb::default_adb_path(), self.cfg.signaling_port) {
             Ok(devices) => info!("ADB reverse port forwarding configured for devices: {devices:?}"),
+            Err(adb::AdbError::NoDevice | adb::AdbError::NotInstalled) => {}
             Err(e) => debug!("ADB reverse port forwarding inactive: {e}"),
         }
 
@@ -181,20 +195,33 @@ async fn input_post(
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
     debug!("received /input payload: {payload}");
-    if let Ok(event) = serde_json::from_value::<IncomingInput>(payload.clone()) {
-        let _ = state.input_tx.send(event);
-    } else if let (Some(x), Some(y)) = (
-        payload.get("x").and_then(|v| v.as_f64()),
-        payload.get("y").and_then(|v| v.as_f64()),
-    ) {
-        let _ = state
-            .input_tx
-            .send(IncomingInput::Pointer(PointerEvent::Move { x, y }));
+    // NOTE: `IncomingInput` is `#[serde(untagged)]`; untagged deserialization cannot
+    // report field errors, so malformed objects silently fall through to the x/y path.
+    let event = serde_json::from_value::<IncomingInput>(payload.clone()).ok();
+    match event {
+        Some(ev) => {
+            let _ = state.input_tx.send(ev);
+        }
+        None => {
+            if let (Some(x), Some(y)) = (
+                payload.get("x").and_then(|v| v.as_f64()),
+                payload.get("y").and_then(|v| v.as_f64()),
+            ) {
+                let _ = state
+                    .input_tx
+                    .send(IncomingInput::Pointer(PointerEvent::Move { x, y }));
+            } else {
+                return StatusCode::BAD_REQUEST;
+            }
+        }
     }
     StatusCode::ACCEPTED
 }
 
-async fn stream_handler(State(state): State<AppState>) -> impl IntoResponse {
+/// Builds a per-client GStreamer MPEG-TS pipeline (appsrc → mpegtsmux → appsink)
+/// and streams it as the HTTP response body. All failures are handled in-band:
+/// a broken pipeline yields 503 instead of panicking the axum task.
+async fn stream_handler(State(state): State<AppState>) -> axum::response::Response {
     use gstreamer::prelude::*;
     use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
     use tokio_stream::StreamExt;
@@ -202,22 +229,41 @@ async fn stream_handler(State(state): State<AppState>) -> impl IntoResponse {
     gstreamer::init().ok();
 
     let pipeline_str = "appsrc name=src format=time ! h264parse ! mpegtsmux alignment=7 ! appsink name=sink drop=false";
-    let pipeline = gstreamer::parse::launch(pipeline_str)
-        .expect("failed to parse mpegtsmux pipeline")
-        .downcast::<gstreamer::Pipeline>()
-        .unwrap();
+    let pipeline = match gstreamer::parse::launch(pipeline_str) {
+        Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
+            Ok(pipeline) => pipeline,
+            Err(_) => {
+                warn!("stream pipeline did not downcast to Pipeline");
+                return StatusCode::SERVICE_UNAVAILABLE.into_response();
+            }
+        },
+        Err(e) => {
+            warn!("failed to build stream pipeline: {e}");
+            return StatusCode::SERVICE_UNAVAILABLE.into_response();
+        }
+    };
 
-    let appsrc = pipeline
+    let appsrc = match pipeline
         .by_name("src")
-        .unwrap()
-        .downcast::<AppSrc>()
-        .unwrap();
+        .and_then(|e| e.downcast::<AppSrc>().ok())
+    {
+        Some(s) => s,
+        None => {
+            warn!("stream pipeline missing appsrc element");
+            return StatusCode::SERVICE_UNAVAILABLE.into_response();
+        }
+    };
 
-    let appsink = pipeline
+    let appsink = match pipeline
         .by_name("sink")
-        .unwrap()
-        .downcast::<AppSink>()
-        .unwrap();
+        .and_then(|e| e.downcast::<AppSink>().ok())
+    {
+        Some(s) => s,
+        None => {
+            warn!("stream pipeline missing appsink element");
+            return StatusCode::SERVICE_UNAVAILABLE.into_response();
+        }
+    };
 
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
 
@@ -236,16 +282,32 @@ async fn stream_handler(State(state): State<AppState>) -> impl IntoResponse {
             .build(),
     );
 
-    pipeline.set_state(gstreamer::State::Playing).unwrap();
+    if let Err(e) = pipeline.set_state(gstreamer::State::Playing) {
+        warn!("stream pipeline failed to reach playing state: {e}");
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    }
 
     let mut video_rx = state.video_tx.subscribe();
 
+    // Feeds broadcast H.264 packets into this client's appsrc until the channel
+    // closes. Known limitation: a client that falls behind hits `RecvError::Lagged`
+    // and busy-loops (no error propagation in broadcast channels).
     tokio::spawn(async move {
         while let Ok(pkt) = video_rx.recv().await {
-            let mut buffer = gstreamer::Buffer::with_size(pkt.bytes.len()).unwrap();
+            // Buffer sizes are validated upstream; keep panics out of the request task.
+            let Ok(mut buffer) = gstreamer::Buffer::with_size(pkt.bytes.len()) else {
+                warn!("failed to allocate gstreamer buffer for packet");
+                break;
+            };
             {
-                let buffer_mut = buffer.get_mut().unwrap();
-                buffer_mut.copy_from_slice(0, &pkt.bytes).unwrap();
+                let Some(buffer_mut) = buffer.get_mut() else {
+                    warn!("gstreamer buffer not writable");
+                    break;
+                };
+                if buffer_mut.copy_from_slice(0, &pkt.bytes).is_err() {
+                    warn!("packet larger than allocated gstreamer buffer");
+                    break;
+                }
             }
             if appsrc.push_buffer(buffer).is_err() {
                 break;
@@ -264,6 +326,7 @@ async fn stream_handler(State(state): State<AppState>) -> impl IntoResponse {
         ],
         axum::body::Body::from_stream(stream),
     )
+        .into_response()
 }
 
 #[cfg(test)]

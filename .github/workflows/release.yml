@@ -15,8 +15,48 @@ permissions:
   attestations: write
 
 jobs:
+  verify:
+    name: Verify code integrity (release gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo registry & target
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev libxcb1-dev libxrandr-dev \
+            libevdev-dev libxkbcommon-dev libwayland-dev \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy (deny warnings; GTK excluded — needs gtk4 system libs)
+        run: cargo clippy --workspace --exclude orbiscreen-gtk --all-targets --locked -- -D warnings
+
+      - name: Build (non-GTK crates)
+        run: cargo build --workspace --exclude orbiscreen-gtk --locked
+
+      - name: Test
+        run: cargo test --workspace --exclude orbiscreen-gtk --locked
+
+      - name: Dependency & license audit
+        run: |
+          cargo install --locked cargo-deny
+          cargo deny check
+
   release:
     name: Build & Package Release Artifacts
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

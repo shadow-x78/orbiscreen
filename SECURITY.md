@@ -1,6 +1,6 @@
 # Security Policy - Orbiscreen
 
-> Applies to **v0.10.2** and later.
+> Applies to **v0.10.3** and later.
 
 ## 📋 Table of Contents
 
@@ -78,7 +78,7 @@ We follow a **coordinated disclosure** model:
 <a id="considerations"></a>
 ## 🔍 Security Considerations
 
-### Scope (v0.10.2)
+### Scope (v0.10.3)
 
 Orbiscreen is a Linux host daemon plus a Material 3 Android client that:
 - Creates kernel-level virtual displays via the `evdi` DRM module
@@ -98,7 +98,7 @@ Orbiscreen is a Linux host daemon plus a Material 3 Android client that:
 | `/api/control` | A LAN attacker can call lock/blank/open | The endpoint is unauthenticated by design; treat `0.0.0.0` bind as LAN-only |
 | evdi kernel module | DKMS + Secure Boot signing is distro-specific | Module loading is the host administrator's responsibility |
 | mDNS advertising (`_orbiscreen._tcp.`) | Hostname + port broadcast on the local network | No credentials are advertised; the discovery record only contains `host`, `port`, and the instance name |
-| Android input model (v0.10.2) | `InputDispatcher` posts absolute pointer / wheel / stylus / keyboard events to `/input` | The endpoint is the same one used historically; restrict access at the network layer |
+| Android input model (v0.10.3) | `InputDispatcher` posts absolute pointer / wheel / stylus / keyboard events to `/input` | The endpoint is the same one used historically; restrict access at the network layer |
 
 ### Recommendations
 
@@ -122,7 +122,7 @@ Orbiscreen is a Linux host daemon plus a Material 3 Android client that:
 <a id="audit"></a>
 ## 🔬 Security Audit
 
-Orbiscreen (v0.10.2) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose). A running daemon performs:
+Orbiscreen (v0.10.3) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose). A running daemon performs:
 
 - `open()` on `/dev/dri/card*` evdi nodes
 - `UinputDevice` construction via `evdevil`

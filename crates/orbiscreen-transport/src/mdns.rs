@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use mdns_sd::{ServiceDaemon, ServiceInfo};
 use thiserror::Error;
-use tracing::info;
+use tracing::{debug, info, warn};
 
 use super::ServiceDescriptor;
 
@@ -54,18 +54,22 @@ impl Advertiser {
             .register(service_info)
             .map_err(|e| MdnsError::Register(e.to_string()))?;
 
-        let monitor_rx = daemon.monitor().ok();
-        let advertiser = Arc::new(Self {
-            daemon,
-            fullname: instance.clone(),
-        });
-        info!(instance = %instance, port = desc.port, "Advertised Orbiscreen service via mDNS");
+        // Fullname must match mdns-sd's derived form ("<instance>.<service-type>")
+        // so Drop can unregister exactly what was registered.
+        let fullname = format!("{instance}.{SERVICE_TYPE}");
 
-        if let Some(rx) = monitor_rx {
+        // Drain daemon events in the background so their reporting channel does not
+        // back up; connection-closed or repeated timeouts end the thread quietly.
+        if let Ok(rx) = daemon.monitor() {
             std::thread::spawn(move || {
-                while rx.recv_timeout(std::time::Duration::from_secs(60)).is_ok() {}
+                while let Ok(event) = rx.recv_timeout(std::time::Duration::from_secs(60)) {
+                    debug!(?event, "mDNS daemon event");
+                }
             });
         }
+
+        let advertiser = Arc::new(Self { daemon, fullname });
+        info!(instance = %instance, port = desc.port, "Advertised Orbiscreen service via mDNS");
         Ok(advertiser)
     }
 
@@ -75,7 +79,13 @@ impl Advertiser {
 }
 
 impl Drop for Advertiser {
+    // Unregister before shutdown so peers see the service disappear promptly,
+    // instead of relying on record expiry after the daemon exits.
     fn drop(&mut self) {
+        match self.daemon.unregister(&self.fullname) {
+            Ok(_rx) => {}
+            Err(e) => warn!(fullname = %self.fullname, "mDNS unregister failed: {e}"),
+        }
         let _ = self.daemon.shutdown();
     }
 }
