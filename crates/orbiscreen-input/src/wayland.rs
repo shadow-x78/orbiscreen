@@ -31,8 +31,6 @@ impl From<WaylandInputError> for InputError {
 #[allow(missing_debug_implementations)]
 pub struct WaylandInjector {
     remote: RemoteDesktop,
-    // Arc so `Drop` can hand a clone to a background task and close the
-    // portal session even as this struct is being torn down.
     session: std::sync::Arc<Session<RemoteDesktop>>,
 }
 
@@ -117,9 +115,6 @@ impl WaylandInjector {
 
 impl Drop for WaylandInjector {
     fn drop(&mut self) {
-        // Without an explicit Close the compositor keeps the RemoteDesktop
-        // session (and its "remote control active" indicator) alive after
-        // the daemon exits.
         let session = self.session.clone();
         tokio::spawn(async move {
             if let Err(e) = session.close().await {

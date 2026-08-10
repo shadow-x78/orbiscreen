@@ -48,10 +48,6 @@ impl OrbiscreenDbusServer {
     }
 }
 
-// Serves com.orbiscreen.Daemon on the session bus and holds the connection.
-// Returning normally would drop `_conn` and tear down the name and interface,
-// so we park here forever; callers place this future in a spawned task and
-// abort it during shutdown.
 pub async fn run_dbus_server(is_running: Arc<AtomicBool>) -> zbus::Result<()> {
     let server = OrbiscreenDbusServer::new(is_running);
     let _conn = zbus::connection::Builder::session()?
@@ -60,7 +56,6 @@ pub async fn run_dbus_server(is_running: Arc<AtomicBool>) -> zbus::Result<()> {
         .build()
         .await?;
 
-    // Serve until the surrounding task is aborted.
     std::future::pending::<()>().await;
     Ok(())
 }

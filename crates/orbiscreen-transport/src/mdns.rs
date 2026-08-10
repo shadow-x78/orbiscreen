@@ -54,12 +54,8 @@ impl Advertiser {
             .register(service_info)
             .map_err(|e| MdnsError::Register(e.to_string()))?;
 
-        // Fullname must match mdns-sd's derived form ("<instance>.<service-type>")
-        // so Drop can unregister exactly what was registered.
         let fullname = format!("{instance}.{SERVICE_TYPE}");
 
-        // Drain daemon events in the background so their reporting channel does not
-        // back up; connection-closed or repeated timeouts end the thread quietly.
         if let Ok(rx) = daemon.monitor() {
             std::thread::spawn(move || {
                 while let Ok(event) = rx.recv_timeout(std::time::Duration::from_secs(60)) {
@@ -79,8 +75,6 @@ impl Advertiser {
 }
 
 impl Drop for Advertiser {
-    // Unregister before shutdown so peers see the service disappear promptly,
-    // instead of relying on record expiry after the daemon exits.
     fn drop(&mut self) {
         match self.daemon.unregister(&self.fullname) {
             Ok(_rx) => {}

@@ -42,7 +42,7 @@ if ! command -v magick >/dev/null 2>&1; then
     echo "error: ImageMagick ('magick') is required to rasterize the app icon." >&2
     exit 1
 fi
-magick -background white "$REPO_ROOT/data/orbiscreen.svg" -flatten -resize 256x256 \
+magick -background none "$REPO_ROOT/data/orbiscreen.svg" -flatten -resize 256x256 \
     "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png"
 cp "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png" "$APP/orbiscreen.png"
 

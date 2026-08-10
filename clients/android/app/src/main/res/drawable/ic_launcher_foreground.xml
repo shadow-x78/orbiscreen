@@ -4,7 +4,6 @@
     android:height="108dp"
     android:viewportWidth="512"
     android:viewportHeight="512">
-    <!-- Logo scaled to 66% and centered inside the adaptive-icon safe zone. -->
     <group
         android:scaleX="0.66"
         android:scaleY="0.66"
@@ -35,7 +34,8 @@
                 android:pathData="M208,376 H304 V408 H208 Z" />
             <path
                 android:fillColor="#45475A"
-                android:pathData="M160,408 H352 A8,8 0 0 1 360,416 V424 A8,8 0 0 1 352,432 H160 A8,8 0 0 1 152,424 V416 A8,8 0 0 1 160,408 Z" />
+                android:pathData="M160,408 H352 A8,8 0 0 1 360,416 V424 A8,8 0 0 1 352,432 H160 A8,8 0 0 1 160,408 Z" />
         </group>
     </group>
 </vector>
+

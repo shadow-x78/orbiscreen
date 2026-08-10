@@ -36,10 +36,6 @@ impl UinputInjector {
         let pressure_axis = AbsInfo::new(0, PRESSURE_MAX);
         let tilt_axis = AbsInfo::new(TILT_MIN, TILT_MAX);
 
-        // Declare every code inject_key/button_code can emit: the full
-        // keyboard range and the BTN_MOUSE block (0x110..=0x117). Keys that
-        // were never registered with with_keys are silently dropped by uinput,
-        // which previously made all mouse buttons a no-op.
         let keys: Vec<Key> = (Key::KEY_ESC.raw()..=Key::KEY_KPDOT.raw())
             .map(Key::from_raw)
             .collect();
@@ -104,9 +100,6 @@ impl UinputInjector {
                 ]
             }
             PointerEvent::Wheel { delta_y } => {
-                // Clients send pixel deltas (Android) or lines (web client);
-                // uinput REL_WHEEL wants integer wheel clicks, so round
-                // rather than truncate to avoid losing small scrolls.
                 let mut events: Vec<InputEvent> = Vec::new();
                 let delta = delta_y.round() as i32;
                 if delta != 0 {
@@ -121,8 +114,6 @@ impl UinputInjector {
     }
 
     pub fn inject_key(&mut self, code: u32, pressed: bool) -> Result<(), InputError> {
-        // Reject codes the kernel treats as escapes from the uinput domain
-        // (> u16::MAX) or as junk padding (0 is KEY_RESERVED).
         if code == 0 || code > u32::from(u16::MAX) {
             return Err(InputError::Uinput(format!("invalid key code: {code}")));
         }

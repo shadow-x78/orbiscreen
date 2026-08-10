@@ -236,9 +236,6 @@ mod tests {
 
     #[test]
     fn button_codes_stay_within_registered_keys() {
-        // uinput drops events for keys never passed to with_keys(); the
-        // device registers KEY_ESC..=KEY_KPDOT (1..=83) and BTN_LEFT..=BTN_TASK
-        // (0x110..=0x117), so button_code must stay inside those ranges.
         for button in 1..=8 {
             let code = x11::button_code(button);
             assert!(
@@ -257,7 +254,6 @@ mod tests {
 
     #[test]
     fn key_event_json_uses_snake_case_field_names() {
-        // The web client sends {"Key": {"code": ..., "pressed": ...}}.
         let json = serde_json::json!({"Key": {"code": 30, "pressed": true}});
         #[derive(serde::Deserialize)]
         struct W {

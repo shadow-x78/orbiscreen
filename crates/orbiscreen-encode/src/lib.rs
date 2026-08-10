@@ -106,8 +106,6 @@ pub struct Encoder {
 
 impl Drop for Encoder {
     fn drop(&mut self) {
-        // Never leave a Playing pipeline behind; GStreamer pads bus errors
-        // and leaked elements if the pipeline outlives this struct.
         let _ = self.pipeline.set_state(gstreamer::State::Null);
     }
 }
@@ -163,22 +161,14 @@ impl Encoder {
             .build();
         appsrc.set_caps(Some(&caps));
         appsrc.set_format(gstreamer::Format::Time);
-        // A capture/restart loop can briefly outpace the encoder; bound the
-        // internal queue so backpressure shows up as a flow error instead of
-        // unbounded memory growth. 1 second of frames (~8 MB at 1080p BGRA).
         appsrc.set_max_bytes((params.width as u64) * params.height as u64 * 4 * 60);
 
-        // GStreamer's "bitrate" property is in kbit/s for every H.264
-        // encoder (x264enc, vaapih264enc, nvh264enc), set via a string to
-        // cover both the uint (x264enc) and int properties.
         if encoder.find_property("bitrate").is_some() {
             encoder.set_property_from_str("bitrate", &params.bitrate_kbps.to_string());
         }
         if kind == EncoderKind::X264 {
             encoder.set_property_from_str("tune", "zerolatency");
             encoder.set_property_from_str("speed-preset", "ultrafast");
-            // Emit SPS/PPS in the same buffer as each keyframe so a client
-            // joining mid-stream gets the codec config with the first IDR.
             encoder.set_property_from_str("repeat-headers", "true");
         }
 

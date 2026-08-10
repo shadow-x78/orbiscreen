@@ -138,9 +138,6 @@ impl WaylandCapture {
 
         appsink.set_callbacks(
             AppSinkCallbacks::builder()
-                // Ignores malformed samples instead of panicking; a panic in a
-                // GStreamer callback unwinds into C code and is UB, so we log and
-                // skip the frame.
                 .new_sample(move |sink| {
                     let sample = match sink.pull_sample() {
                         Ok(s) => s,
@@ -203,10 +200,6 @@ impl WaylandCapture {
     pub fn stream(&self) -> &PipeWireStream {
         &self.stream
     }
-
-    // The pipeline is kept alive purely by holding ownership in `_pipeline`;
-    // when the WaylandCapture drops, the pipeline is dropped by GStreamer and
-    // the appsink callback's `tx` closes, so readers see channel close.
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, CaptureError> {
         let mut rx = self.rx.lock().await;

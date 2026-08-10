@@ -93,9 +93,6 @@ impl Transport {
             .unwrap_or_else(|_| "?".into());
         info!("orbiscreen transport listening on http://{local}");
 
-        // The daemon also runs adb setup before `serve` is called; this second pass
-        // is a best-effort retry so `Transport` still works when used standalone.
-        // NoDevice/NotInstalled are expected states and not worth logging again.
         match adb::setup_reverse_for_all(adb::default_adb_path(), self.cfg.signaling_port) {
             Ok(devices) => info!("ADB reverse port forwarding configured for devices: {devices:?}"),
             Err(adb::AdbError::NoDevice | adb::AdbError::NotInstalled) => {}
@@ -195,8 +192,6 @@ async fn input_post(
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
     debug!("received /input payload: {payload}");
-    // NOTE: `IncomingInput` is `#[serde(untagged)]`; untagged deserialization cannot
-    // report field errors, so malformed objects silently fall through to the x/y path.
     let event = serde_json::from_value::<IncomingInput>(payload.clone()).ok();
     match event {
         Some(ev) => {
@@ -289,12 +284,8 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     let mut video_rx = state.video_tx.subscribe();
 
-    // Feeds broadcast H.264 packets into this client's appsrc until the channel
-    // closes. Known limitation: a client that falls behind hits `RecvError::Lagged`
-    // and busy-loops (no error propagation in broadcast channels).
     tokio::spawn(async move {
         while let Ok(pkt) = video_rx.recv().await {
-            // Buffer sizes are validated upstream; keep panics out of the request task.
             let Ok(mut buffer) = gstreamer::Buffer::with_size(pkt.bytes.len()) else {
                 warn!("failed to allocate gstreamer buffer for packet");
                 break;
