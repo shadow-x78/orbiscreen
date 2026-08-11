@@ -84,7 +84,7 @@ Orbiscreen is a Linux host daemon plus a Material 3 Android client that:
 - Creates kernel-level virtual displays via the `evdi` DRM module
 - Captures screen contents via X11 (`x11rb`) or Wayland (`ashpd` + PipeWire)
 - Injects input events via `evdevil` (uinput) or `ashpd` RemoteDesktop
-- Streams MPEG-TS/H.264 over a plain HTTP endpoint (`/stream`) — WebRTC is no longer used for the Android client
+- Streams MPEG-TS/H.264 over a plain HTTP endpoint (`/stream`) - WebRTC is no longer used for the Android client
 - Exposes a control-plane HTTP API at `/api/control` (lock, blank, ctrl-alt-del, open)
 - Exposes `/api/info` with the host's display resolution, encoder, and version
 
