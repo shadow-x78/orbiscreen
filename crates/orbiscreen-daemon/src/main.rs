@@ -296,7 +296,12 @@ async fn run_start(
                     let _ = encoder.push_frame(&frame.data, frame.width, frame.height, pts);
                     let n = fc.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
                     if n % 60 == 0 || n == 1 {
-                        info!("capture frame #{n} pushed ({}x{}, {} B)", frame.width, frame.height, frame.data.len());
+                        info!(
+                            "capture frame #{n} pushed ({}x{}, {} B)",
+                            frame.width,
+                            frame.height,
+                            frame.data.len()
+                        );
                     }
                     let delay = std::time::Duration::from_nanos(Encoder::frame_duration_ns(
                         spec.refresh_rate_hz,

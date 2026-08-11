@@ -349,24 +349,23 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
-            .new_sample(move |sink| {
-                match sink.pull_sample() {
-                    Ok(sample) => {
-                        if let Some(buffer) = sample.buffer() {
-                            if let Ok(map) = buffer.map_readable() {
-                                let n = pushed_cb.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-                                if n <= 5 || n % 30 == 0 {
-                                    debug!("appsink sample #{n}: {} B", map.size());
-                                }
-                                let _ = tx.send(map.to_vec());
+            .new_sample(move |sink| match sink.pull_sample() {
+                Ok(sample) => {
+                    if let Some(buffer) = sample.buffer() {
+                        if let Ok(map) = buffer.map_readable() {
+                            let n =
+                                pushed_cb.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                            if n <= 5 || n % 30 == 0 {
+                                debug!("appsink sample #{n}: {} B", map.size());
                             }
+                            let _ = tx.send(map.to_vec());
                         }
-                        Ok(gstreamer::FlowSuccess::Ok)
                     }
-                    Err(e) => {
-                        debug!("pull_sample EOS/err: {e}");
-                        Err(gstreamer::FlowError::Eos)
-                    }
+                    Ok(gstreamer::FlowSuccess::Ok)
+                }
+                Err(e) => {
+                    debug!("pull_sample EOS/err: {e}");
+                    Err(gstreamer::FlowError::Eos)
                 }
             })
             .build(),
