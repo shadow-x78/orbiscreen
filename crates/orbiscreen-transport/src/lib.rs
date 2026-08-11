@@ -79,11 +79,23 @@ impl Transport {
     pub async fn serve(
         self,
         frames: mpsc::UnboundedReceiver<H264Packet>,
+        display_width: u32,
+        display_height: u32,
+        refresh_hz: u32,
+        encoder_kind: &'static str,
     ) -> Result<(), TransportError> {
         let (fallback_tx, _fallback_rx) = mpsc::unbounded_channel();
         let input_tx = self.input_tx.unwrap_or(fallback_tx);
         let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(32);
-        let app = build_router(self.cfg.clone(), input_tx, video_tx.clone());
+        let app = build_router(
+            self.cfg.clone(),
+            input_tx,
+            video_tx.clone(),
+            display_width,
+            display_height,
+            refresh_hz,
+            encoder_kind,
+        );
         let listener = TcpListener::bind(("0.0.0.0", self.cfg.signaling_port))
             .await
             .map_err(|e| TransportError::Http(e.to_string()))?;
@@ -125,17 +137,31 @@ struct AppState {
     config: ServerConfig,
     input_tx: mpsc::UnboundedSender<IncomingInput>,
     video_tx: tokio::sync::broadcast::Sender<H264Packet>,
+    display_width: u32,
+    display_height: u32,
+    refresh_hz: u32,
+    encoder_kind: &'static str,
+    version: &'static str,
 }
 
 fn build_router(
     cfg: ServerConfig,
     input_tx: mpsc::UnboundedSender<IncomingInput>,
     video_tx: tokio::sync::broadcast::Sender<H264Packet>,
+    display_width: u32,
+    display_height: u32,
+    refresh_hz: u32,
+    encoder_kind: &'static str,
 ) -> Router {
     let state = AppState {
         config: cfg,
         input_tx,
         video_tx,
+        display_width,
+        display_height,
+        refresh_hz,
+        encoder_kind,
+        version: env!("CARGO_PKG_VERSION"),
     };
     Router::new()
         .route("/", get(root_handler))
@@ -144,8 +170,46 @@ fn build_router(
         .route("/sdp", post(sdp_post))
         .route("/input", post(input_post))
         .route("/stream", get(stream_handler))
+        .route("/api/info", get(api_info))
+        .route("/api/control", post(api_control))
         .nest_service("/client", ServeDir::new(&state.config.client_web_dir))
         .with_state(state)
+}
+
+async fn api_info(State(state): State<AppState>) -> impl IntoResponse {
+    let envelope = serde_json::json!({
+        "display_width": state.display_width,
+        "display_height": state.display_height,
+        "refresh_hz": state.refresh_hz,
+        "encoder": state.encoder_kind,
+        "version": state.version,
+    });
+    Json(envelope)
+}
+
+async fn api_control(
+    State(_state): State<AppState>,
+    Json(payload): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    match payload.get("action").and_then(|v| v.as_str()) {
+        Some("lock") => {
+            info!("host control: lock");
+            StatusCode::OK
+        }
+        Some("blank") | Some("unblank") => {
+            info!("host control: blank toggle");
+            StatusCode::OK
+        }
+        Some("ctrl_alt_del") => {
+            info!("host control: ctrl_alt_del");
+            StatusCode::OK
+        }
+        Some("open") => {
+            info!("host control: open {:?}", payload.get("target"));
+            StatusCode::OK
+        }
+        _ => StatusCode::BAD_REQUEST,
+    }
 }
 
 async fn root_handler() -> Html<&'static str> {
@@ -223,7 +287,16 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     gstreamer::init().ok();
 
-    let pipeline_str = "appsrc name=src format=time ! h264parse ! mpegtsmux alignment=7 ! appsink name=sink drop=false";
+    // do-timestamp lets appsrc set PTS from arrival clock so mpegtsmux doesn't
+    // see wildly old (or zero) timestamps from frames pushed before the sink
+    // started leaking. mpegtsmux is greedy: it requires PAT/PMT emission before
+    // it produces output, so `pat-interval=0 pmt-interval=0` means "emit on
+    // every keyframe". Without these we'd see zero bytes until mpegtsmux's
+    // internal default interval fires.
+    let pipeline_str = "appsrc name=src format=time is-live=true do-timestamp=true block=false \
+                        ! h264parse config-interval=-1 \
+                        ! mpegtsmux alignment=7 pat-interval=500000000 pmt-interval=500000000 \
+                        ! appsink name=sink drop=false sync=false max-buffers=0";
     let pipeline = match gstreamer::parse::launch(pipeline_str) {
         Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
             Ok(pipeline) => pipeline,
@@ -249,6 +322,16 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     };
 
+    // Telling appsrc what we're pushing is REQUIRED - without video/x-h264
+    // caps, downstream parsers see an unrecognized stream and produce no
+    // output samples for the HTTP response body.
+    let caps = gstreamer::Caps::builder("video/x-h264")
+        .field("stream-format", "byte-stream")
+        .field("alignment", "au")
+        .build();
+    appsrc.set_caps(Some(&caps));
+    appsrc.set_format(gstreamer::Format::Time);
+
     let appsink = match pipeline
         .by_name("sink")
         .and_then(|e| e.downcast::<AppSink>().ok())
@@ -261,18 +344,30 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     };
 
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
+    let pushed = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let pushed_cb = pushed.clone();
 
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
             .new_sample(move |sink| {
-                if let Ok(sample) = sink.pull_sample() {
-                    if let Some(buffer) = sample.buffer() {
-                        if let Ok(map) = buffer.map_readable() {
-                            let _ = tx.send(map.to_vec());
+                match sink.pull_sample() {
+                    Ok(sample) => {
+                        if let Some(buffer) = sample.buffer() {
+                            if let Ok(map) = buffer.map_readable() {
+                                let n = pushed_cb.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                                if n <= 5 || n % 30 == 0 {
+                                    debug!("appsink sample #{n}: {} B", map.size());
+                                }
+                                let _ = tx.send(map.to_vec());
+                            }
                         }
+                        Ok(gstreamer::FlowSuccess::Ok)
+                    }
+                    Err(e) => {
+                        debug!("pull_sample EOS/err: {e}");
+                        Err(gstreamer::FlowError::Eos)
                     }
                 }
-                Ok(gstreamer::FlowSuccess::Ok)
             })
             .build(),
     );
@@ -284,6 +379,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     let mut video_rx = state.video_tx.subscribe();
 
+    let appsrc_clone = appsrc.clone();
     tokio::spawn(async move {
         while let Ok(pkt) = video_rx.recv().await {
             let Ok(mut buffer) = gstreamer::Buffer::with_size(pkt.bytes.len()) else {
@@ -299,8 +395,14 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                     warn!("packet larger than allocated gstreamer buffer");
                     break;
                 }
+                // Tag keyframes so h264parse knows to copy SPS/PPS onto them,
+                // and so mpegtsmux can write them as random-access points.
+                if pkt.is_keyframe {
+                    buffer_mut.set_flags(gstreamer::BufferFlags::MARKER);
+                }
             }
-            if appsrc.push_buffer(buffer).is_err() {
+            if let Err(e) = appsrc_clone.push_buffer(buffer) {
+                debug!("push_buffer (client gone or EOS): {e}");
                 break;
             }
         }

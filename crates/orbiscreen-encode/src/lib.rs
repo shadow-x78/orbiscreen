@@ -142,13 +142,6 @@ impl Encoder {
                 appsink.upcast_ref(),
             ])
             .map_err(|e| EncodeError::Pipeline(format!("add_many: {e}")))?;
-        gstreamer::Element::link_many([
-            appsrc.upcast_ref(),
-            &videoconvert,
-            &encoder,
-            appsink.upcast_ref(),
-        ])
-        .map_err(|e| EncodeError::Pipeline(format!("link_many: {e}")))?;
 
         let caps = gstreamer::Caps::builder("video/x-raw")
             .field("format", "BGRA")
@@ -175,19 +168,50 @@ impl Encoder {
             if encoder.find_property("repeat-headers").is_some() {
                 encoder.set_property_from_str("repeat-headers", "true");
             }
+            if encoder.find_property("key-int-max").is_some() {
+                encoder.set_property_from_str("key-int-max", "30");
+            }
         }
 
+        // h264parse puts SPS/PPS in caps so downstream (appsink) and any TS mux
+        // sees them as streamheader=... on every keyframe. Without this the
+        // encapsulated stream is just NAL units with no parameter sets for
+        // clients that join mid-stream.
+        // h264parse puts SPS/PPS in the caps so downstream consumers see them
+        // attached to every keyframe. We relink through it instead of just
+        // passing the encoder output straight to appsink.
+        let h264parse = make_element("h264parse")?;
+        h264parse.set_property_from_str("config-interval", "1");
+        pipeline
+            .add(&h264parse)
+            .map_err(|e| EncodeError::Pipeline(format!("add parse: {e}")))?;
+        gstreamer::Element::link_many([
+            appsrc.upcast_ref(),
+            &videoconvert,
+            &encoder,
+            &h264parse,
+            appsink.upcast_ref(),
+        ])
+        .map_err(|e| EncodeError::Pipeline(format!("link parse: {e}")))?;
+
         let (tx, rx) = mpsc::unbounded_channel::<EncodedChunk>();
+        let enc_samples = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let enc_samples_cb = enc_samples.clone();
+        let enc_samples_pub = enc_samples.clone();
         appsink.set_callbacks(
             AppSinkCallbacks::builder()
                 .new_sample(move |sink| {
                     let sample = match sink.pull_sample() {
                         Ok(s) => s,
                         Err(e) => {
-                            warn!("pull_sample error: {e}");
+                            warn!("encoder pull_sample error: {e}");
                             return Err(gstreamer::FlowError::Eos);
                         }
                     };
+                    let n = enc_samples_cb.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                    if n <= 5 || n % 60 == 0 {
+                        info!("encoder sample #{n}");
+                    }
                     let buffer = sample.buffer().ok_or_else(|| {
                         warn!("sample had no buffer");
                         gstreamer::FlowError::Eos
@@ -200,8 +224,19 @@ impl Encoder {
                     tx.send(EncodedChunk { bytes, is_keyframe }).ok();
                     Ok(gstreamer::FlowSuccess::Ok)
                 })
+                .eos(move |_| {
+                    info!("encoder EOS");
+                })
                 .build(),
         );
+        let enc_samples_alive = enc_samples_pub;
+        std::thread::spawn(move || loop {
+            std::thread::sleep(std::time::Duration::from_secs(3));
+            let n = enc_samples_alive.load(std::sync::atomic::Ordering::Relaxed);
+            if n > 0 {
+                info!("encoder alive: {n} samples emitted");
+            }
+        });
 
         pipeline
             .set_state(gstreamer::State::Playing)

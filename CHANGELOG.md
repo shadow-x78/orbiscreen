@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.10.6] - 2026-08-11
+
+### 🐛 Fixed
+- **`/stream` returning 0 bytes:** Streamed MPEG-TS pipeline lacked explicit `video/x-h264` caps on `appsrc`. Without caps, `mpegtsmux` never classified incoming NAL units as keyframe-anchored video and withheld output indefinitely. Clients saw `200 OK` with an empty body.
+- **Slow frame pacing (1-2 fps instead of 60):** Wayland capture pipeline lacked explicit frame size caps. The `videoscale video/x-raw,format=BGRA,width=WIDTH,height=HEIGHT` chain was missing so `pipewiresrc` negotiated its own resolution and `videoconvert` overhead ballooned. Added explicit caps plus stride-mismatch detection that drops frames whose buffer size doesn't match `W*H*4`.
+- **`/api/info` and `/api/control` 404:** Routes weren't registered with the axum `Router` at all. Added fully wired handlers backed by `AppState` so the Android client can discover resolution / encoder / version and trigger host control actions.
+- **SPS/PPS visibility:** Added `h264parse config-interval=1` in the encoder pipeline so parameter sets are reattached to every keyframe, letting clients that join mid-stream sync immediately.
+- **Encoder push starvation:** Reduced x264 `key-int-max` to 30 (0.5 s at 60 fps) so clients joining mid-stream get a keyframe within half a second instead of waiting 8+ s for the next IDR.
+- **Android launcher icon (legacy PNGs):** Regenerated all five density PNGs from the freshly restyled vector so the install screen and pre-Oreo launchers see the same shape as Android 8+ adaptive icons.
+- **Android launcher icon (adaptive):** Artwork group scaled by 1.08 in `ic_launcher_foreground.xml` around the canvas centre so the brand mark reads bigger at small sizes without clipping the safe zone.
+
 ## [v0.10.5] - 2026-08-11
 
 ### 🐛 Fixed

@@ -119,10 +119,17 @@ impl WaylandCapture {
 
         gstreamer::init().map_err(|e| WaylandCaptureError::Dbus(format!("gst init: {}", e)))?;
 
-        // pipewiresrc path=node_id fd=pipe_fd
+        // Negotiate a specific BGRA frame size matching the requested display
+        // dims so the encoder never sees a stride-mismatched surprise buffer.
+        // PipeWire portals typically deliver BGRx or RGBx; we let videoconvert
+        // normalize, then force video/x-raw BGRA at our dimensions.
         let pipeline_str = format!(
-            "pipewiresrc fd={} path={} ! videoconvert ! video/x-raw,format=BGRA ! appsink name=sink drop=true max-buffers=1",
-            stream.fd, stream.node_id
+            "pipewiresrc fd={} path={} do-timestamp=true \
+             ! videoconvert \
+             ! videoscale \
+             ! video/x-raw,format=BGRA,width={},height={} \
+             ! appsink name=sink drop=true sync=false max-buffers=2 emit-signals=false",
+            stream.fd, stream.node_id, spec.width, spec.height
         );
         let pipeline = gstreamer::parse::launch(&pipeline_str)?
             .downcast::<gstreamer::Pipeline>()
@@ -171,6 +178,19 @@ impl WaylandCapture {
                         tracing::warn!("buffer not readable; skipping sample");
                         return Ok(gstreamer::FlowSuccess::Ok);
                     };
+                    let expected = (width as usize) * (height as usize) * 4;
+                    let incoming = map.size();
+                    if incoming != expected {
+                        // Frame size mismatch is the classic black-screen cause:
+                        // stride (row padding) makes the buffer larger than
+                        // width*height*4, or the pipeline negotiated a different
+                        // resolution. Forwarding it raw shows up as garbled or
+                        // all-zero on the encoder side.
+                        tracing::warn!(
+                            "frame size mismatch: got {incoming} B, expected {expected} B ({width}x{height}); dropping",
+                        );
+                        return Ok(gstreamer::FlowSuccess::Ok);
+                    }
                     let data = map.to_vec();
 
                     let _ = tx.send(CapturedFrame {

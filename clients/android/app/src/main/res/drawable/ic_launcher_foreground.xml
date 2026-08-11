@@ -9,7 +9,11 @@
         android:scaleY="0.50"
         android:translateX="128"
         android:translateY="124">
-        <group android:translateX="0" android:translateY="16">
+        <group
+            android:scaleX="1.08"
+            android:scaleY="1.08"
+            android:translateX="-20.48"
+            android:translateY="-20.8">
             <!-- Outer monitor shell: dark fill + blue stroke, exactly like the SVG -->
             <path
                 android:fillColor="#1E1E2E"

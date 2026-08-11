@@ -286,12 +286,18 @@ async fn run_start(
     });
 
     let cap_dims = (capture.width(), capture.height());
+    let frame_count = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let fc = frame_count.clone();
     let cap_pump = tokio::spawn(async move {
         let mut pts: u64 = 0;
         loop {
             match capture.next_frame().await {
                 Ok(frame) => {
                     let _ = encoder.push_frame(&frame.data, frame.width, frame.height, pts);
+                    let n = fc.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                    if n % 60 == 0 || n == 1 {
+                        info!("capture frame #{n} pushed ({}x{}, {} B)", frame.width, frame.height, frame.data.len());
+                    }
                     let delay = std::time::Duration::from_nanos(Encoder::frame_duration_ns(
                         spec.refresh_rate_hz,
                     ));
@@ -302,6 +308,19 @@ async fn run_start(
                     warn!("capture error: {e}");
                     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
                 }
+            }
+        }
+    });
+
+    // Watchdog: log if the pipeline stops producing encoded packets.
+    let enc_check = frame_count.clone();
+    let _watchdog = tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            let n = enc_check.load(std::sync::atomic::Ordering::Relaxed);
+            info!("watchdog: {n} frames pushed so far");
+            if n == 0 {
+                warn!("no frames captured yet - Wayland portal may not be delivering buffers");
             }
         }
     });
@@ -409,7 +428,17 @@ async fn run_start(
         }
     }
 
-    let serve_fut = transport.serve(video_rx);
+    let serve_fut = transport.serve(
+        video_rx,
+        spec.width,
+        spec.height,
+        spec.refresh_rate_hz,
+        match encoder_kind {
+            EncoderKind::Vaapi => "vaapi",
+            EncoderKind::Nvenc => "nvenc",
+            EncoderKind::X264 => "x264",
+        },
+    );
 
     let serve_res = tokio::select! {
         res = serve_fut => res,
