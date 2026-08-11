@@ -4,7 +4,7 @@
 
 # Orbiscreen
 
-Real virtual secondary displays for Linux, streamed to Android — one command, zero hassle
+Real virtual secondary displays for Linux, streamed to Android - one command, zero hassle
 
 [![Version](https://img.shields.io/badge/version-0.10.3-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
@@ -28,7 +28,7 @@ Real virtual secondary displays for Linux, streamed to Android — one command, 
 - [Why Orbiscreen Exists](#why-orbiscreen-exists)
 - [Highlights](#highlights)
 - [Status](#status)
-- [Quick Start & Multi-Distro Installation](#quick-start)
+- [Quick Start](#quick-start)
 - [Commands](#commands)
 - [Android App](#android-app)
 - [Architecture](#architecture)
@@ -61,16 +61,15 @@ Real virtual secondary displays for Linux, streamed to Android — one command, 
 <a id="highlights"></a>
 ## ✨ Highlights
 
-- Real virtual display via `evdi` (X11 *and* Wayland).
-- **Material 3 Android client** — Jetpack Compose, Catppuccin Mocha / Latte brand palette matching `data/orbiscreen-app.svg`, light/dark theme.
-- **Brand UI Chrome & Splash** — SplashScreen with brand background and vector adaptive launcher icon mirroring the white-background SVG.
-- **Live discovery** — NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner.
-- **Native streaming** — Main-thread ExoPlayer construction with `OkHttpDataSource` + `DefaultLoadControl` for low-latency MPEG-TS / H.264.
-- **Reverse touch** — absolute pointer / keyboard / stylus / wheel events flow Android → host.
-- **Host control panel** — keyboard, lock, blank, Ctrl+Alt+Del, file manager, and retry actions.
-- **USB transport** via `adb reverse`, no special drivers.
-- **Hardware encoding** — VAAPI, NVENC, x264 software fallback.
-- **Cryptographic signing** of every Linux and Android artifact.
+- Real virtual display via `evdi` (X11 *and* Wayland)
+- **Material 3 Android client** - Jetpack Compose, Catppuccin Mocha / Latte brand palette, light/dark theme
+- **Live discovery** - NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner
+- **Native streaming** - ExoPlayer with `OkHttpDataSource` + `DefaultLoadControl` for low-latency MPEG-TS / H.264
+- **Reverse touch** - absolute pointer / keyboard / stylus / wheel events flow Android → host
+- **Host control panel** - keyboard, lock, blank, Ctrl+Alt+Del, file manager, and retry actions
+- **USB transport** via `adb reverse`, no special drivers
+- **Hardware encoding** - VAAPI, NVENC, x264 software fallback
+- **Cryptographic signing** of every Linux and Android artifact
 
 ---
 
@@ -91,7 +90,7 @@ Real virtual secondary displays for Linux, streamed to Android — one command, 
 ---
 
 <a id="quick-start"></a>
-## 🚀 Quick Start & Multi-Distro Installation
+## 🚀 Quick Start
 
 ### 1. Official Packages & Pre-built Artifacts (GitHub Releases)
 
@@ -159,75 +158,32 @@ orbiscreen start
 orbiscreen --config orbiscreen.toml --verbose probe
 ```
 
+To remove everything, including saved config and evdi module state:
+
+```bash
+orbiscreen uninstall && ./scripts/uninstall.sh
+```
+
 ---
 
 <a id="android-app"></a>
 ## 📱 Android App
 
-The Android client is a **Material 3 + Jetpack Compose** single-Activity app. Three screens are wired through Compose Navigation:
+The Android client is a **Material 3 + Jetpack Compose** single-Activity app with three screens wired through Compose Navigation:
 
-### Discovery screen
+| Screen | What it does |
+|--------|--------------|
+| **Discovery** | Live NSD scan of `_orbiscreen._tcp.` hosts, quick-connect chips, manual `host:port` entry, USB mode via `adb reverse`, recent host pinned on top |
+| **Stream** | Full-screen ExoPlayer (MPEG-TS over HTTP) with a floating control toolbar: keyboard, lock, blank, Ctrl+Alt+Del, files, retry |
+| **Settings** | Theme (System / Light / Dark), force software decoder, advanced subnet scanner, recent host, about |
 
-- Status banner that reports the active scan and the number of hosts found.
-- **Live list** of `_orbiscreen._tcp.` services discovered via `NsdManager`, with name, IP, and port.
-- **Quick chips** for each host: tap to connect, or long-press for details.
-- **Add manually** card — expand to reveal an `OutlinedTextField` that validates `host:port`.
-- **USB mode** card — pre-fills `127.0.0.1:8788` for `adb reverse tcp:8788 tcp:8788`.
-- Refresh button that cancels the running NSD session and restarts the scan.
-- **Recent host** persisted in `SharedPreferences` and surfaced at the top of the list with a "Recent" chip.
+Reverse touch works out of the box: `InputDispatcher` maps Android touch to absolute host coordinates over the `/input` endpoint, debounced so the network never backs up during a fast drag.
 
-### Stream screen
-
-- Background-black `Scaffold` with Catppuccin Mocha/Latte themed top app bar and a `ControlToolbar` rail.
-- **ExoPlayer** construction runs safely on the Main thread (`withContext(Dispatchers.Main)`), wrapped in `PlayerView` (via `AndroidView`) with `useController = false` so the in-app bar is the single source of UI.
-- A hardened `PlayerHolder.build()` wraps all initialization steps in a try-catch block to surface construction errors cleanly as `StreamEvent.Error` retry cards rather than crashing.
-- `StreamUrl` targets `/stream` with `setMimeType(MimeTypes.VIDEO_MP2T)` so MPEG-TS over HTTP is decoded without sniffing.
-- `OkHttpDataSource` uses zero read-timeout for live streams and a tuned `DefaultLoadControl` for stable buffering.
-
-### Control toolbar
-
-A floating action rail over the player surface with:
-
-| Action | Effect |
-|--------|--------|
-| Keyboard | Show soft keyboard overlay + system-IME handoff |
-| Lock | `POST /api/control {action:"lock"}` |
-| Blank | Toggle `POST /api/control {action:"blank", state:"on"|"off"}` |
-| Ctrl+Alt+Del | `POST /api/control {action:"ctrl_alt_del"}` |
-| Files | `POST /api/control {action:"open", target:"files"}` |
-| Retry | Re-prepare the player |
-
-### Settings screen
-
-- Theme: System / Light / Dark (System default).
-- Streaming: force software decoder; enable advanced subnet scanner.
-- Recent host: view and forget the last successful connection.
-- About: app version, SDK level, and copy-to-clipboard version info.
-
-### Input model
-
-`InputDispatcher` translates Android touch events into absolute host coordinates using the host's reported display dimensions and POSTs protocol envelopes the daemon deserializes directly:
-
-```kotlin
-fun move(localX: Float, localY: Float, containerW: Int, containerH: Int) {
-    val (x, y) = map(localX, localY, containerW, containerH)
-    moves.tryEmit(JSONObject().apply {
-        put("Pointer", JSONObject().apply {
-            put("Move", JSONObject().apply { put("x", x); put("y", y) })
-        })
-    })
-}
-```
-
-Pointer events are debounced through a `MutableSharedFlow` with `BufferOverflow.DROP_OLDEST` so the network never backs up during a fast drag.
-
-### Host control endpoints (Rust side)
-
-The Android client uses three lightweight JSON endpoints in addition to `/stream` and `/input`:
+The client talks to the daemon through three lightweight JSON endpoints in addition to `/stream` and `/input`:
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/info` | GET | Returns display resolution, encoder, and version |
+| `/api/info` | GET | Display resolution, encoder, and version |
 | `/api/control` | POST | Host-side actions (blank, lock, ctrl-alt-del, open) |
 | `/health` | GET | Liveness probe |
 

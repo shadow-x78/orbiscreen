@@ -106,9 +106,9 @@ com.orbiscreen.android/
 
 | Endpoint | Method | Body | Response |
 |----------|--------|------|----------|
-| `/stream` | GET | — | `video/mp2t` MPEG-TS stream |
-| `/health` | GET | — | `200 OK "ok"` |
-| `/api/info` | GET | — | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.10.2"}` |
+| `/stream` | GET | - | `video/mp2t` MPEG-TS stream |
+| `/health` | GET | - | `200 OK "ok"` |
+| `/api/info` | GET | - | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.10.2"}` |
 | `/api/control` | POST | `{"action":"lock"\|"blank\|"unblank"\|"ctrl_alt_del"\|"open","state":"on\|off","target":"files"}` | `200 OK` |
 
 Input events (`/input`) accept the same payload schema as the existing web client: `Move{x,y}`, `Button{button,pressed,x?,y?}`, `Wheel{deltaY}`, `Key{code,pressed}`, `Stylus{x,y,pressure,tilt_x,tilt_y}`.

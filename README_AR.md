@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="data/orbiscreen.svg" alt="Orbiscreen" width="180" style="display: block; margin: 0 auto;" />
+<img src="data/orbiscreen.svg" alt="Orbiscreen" width="160" />
 
 # Orbiscreen
 
-شاشة افتراضية ثانية حقيقية لنظام Linux، تُبَثّ إلى Android — أمر واحد، بلا تعقيد
+شاشة افتراضية ثانية حقيقية لنظام Linux، تُبَثّ إلى Android - أمر واحد، بلا تعقيد
 
 [![الإصدار](https://img.shields.io/badge/version-0.10.3-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
@@ -22,13 +22,13 @@
 
 ---
 
-## 📋 المحتويات
+## 📋 فهرس المحتويات
 
 - [ما هو Orbiscreen؟](#what-is-orbiscreen)
 - [لماذا وُجد Orbiscreen](#why-orbiscreen-exists)
-- [المميّزات](#highlights)
+- [المميزات](#highlights)
 - [الحالة](#status)
-- [البدء السريع والتثبيت متعدد التوزيعات](#quick-start)
+- [البدء السريع](#quick-start)
 - [الأوامر](#commands)
 - [تطبيق Android](#android-app)
 - [المعمارية](#architecture)
@@ -49,7 +49,7 @@
 ## 🧭 لماذا وُجد Orbiscreen
 
 | المشكلة | المشاريع الأخرى | Orbiscreen |
-|---------|---------------|------------|
+|---------|----------------|------------|
 | لا يوجد دعم Host على Linux | ❌ spacedesk يرفض رسمياً | ✅ شاشة افتراضية حقيقية على مستوى النواة |
 | حل مؤقت محصور بـ X11 | ❌ VirtScreen غير محدّث منذ 2018 | ✅ X11 **و** Wayland عبر evdi/DRM |
 | غياب شاشة ثانية على Wayland | ❌ Weylus محدود بـ X11 | ✅ مسار Wayland كامل عبر ashpd + PipeWire |
@@ -59,18 +59,17 @@
 ---
 
 <a id="highlights"></a>
-## ✨ المميّزات
+## ✨ المميزات
 
-- شاشة افتراضية حقيقية عبر `evdi` (X11 *و* Wayland).
-- **عميل Android بواجهة Material 3** — Jetpack Compose، لوحة ألوان Catppuccin Mocha / Latte مطابقة لـ `data/orbiscreen-app.svg`، مع سمة فاتحة/داكنة.
-- **شاشة بداية وأيقونة لونية** — SplashScreen بخلفية العلامة وأيقونة مُكيّفة (adaptive) بخلفية بيضاء تعكس شعار SVG.
-- **اكتشاف مباشر** — مسح NSD للمضيفين القريبين، إدخال يدوي `host:port`، وماسح Subnet اختياري.
-- **بث أصلي** — بناء ExoPlayer على الخيط الرئيسي مع `OkHttpDataSource` + `DefaultLoadControl` لبث MPEG-TS / H.264 منخفض الكمون.
-- **لمس عكسي** — مؤشر مطلق / لوحة مفاتيح / قلم / عجلة يتدفق من Android إلى المضيف.
-- **لوحة تحكم بالمضيف** — لوحة مفاتيح، قفل، تعتيم، Ctrl+Alt+Del، مدير الملفات، وإعادة المحاولة.
-- **نقل عبر USB** بواسطة `adb reverse`، دون مشغلات خاصة.
-- **ترميز عتادي** — VAAPI، NVENC، وتراجع برمجي x264.
-- **توقيع تشفيري** لكل حزم Linux و Android.
+- شاشة افتراضية حقيقية عبر `evdi` (X11 *و* Wayland)
+- **عميل Android بواجهة Material 3** - Jetpack Compose، لوحة ألوان Catppuccin Mocha / Latte، بسمة فاتحة وداكنة
+- **اكتشاف مباشر** - مسح NSD للمضيفين القريبين، إدخال يدوي `host:port`، وماسح Subnet اختياري
+- **بث أصلي** - ExoPlayer مع `OkHttpDataSource` + `DefaultLoadControl` لبث MPEG-TS / H.264 منخفض الكمون
+- **لمس عكسي** - مؤشر مطلق / لوحة مفاتيح / قلم / عجلة يتدفق من Android إلى المضيف
+- **لوحة تحكم بالمضيف** - لوحة مفاتيح، قفل، تعتيم، Ctrl+Alt+Del، مدير الملفات، وإعادة المحاولة
+- **نقل عبر USB** بواسطة `adb reverse`، دون مشغلات خاصة
+- **ترميز عتادي** - VAAPI، NVENC، وتراجع برمجي x264
+- **توقيع تشفيري** لكل حزم Linux و Android
 
 ---
 
@@ -86,12 +85,12 @@
 | 4 | التغليف + واجهة GTK4 + خدمة D-Bus + التثبيت المستقل | ✅ مكتملة |
 | 5 | واجهة Material 3 + الاكتشاف المباشر + لوحة التحكم | ✅ مكتملة |
 
-> راجع `CHANGELOG.md` لسِجل الإصدارات الكامل.
+> راجع `CHANGELOG.md` لسجل الإصدارات الكامل.
 
 ---
 
 <a id="quick-start"></a>
-## 🚀 البدء السريع والتثبيت متعدد التوزيعات
+## 🚀 البدء السريع
 
 ### 1. الحزم الرسمية والملفات الجاهزة (GitHub Releases)
 
@@ -159,71 +158,28 @@ orbiscreen start
 orbiscreen --config orbiscreen.toml --verbose probe
 ```
 
+لإزالة كل شيء، بما فيها الإعدادات المحفوظة وحالة وحدة evdi:
+
+```bash
+orbiscreen uninstall && ./scripts/uninstall.sh
+```
+
 ---
 
 <a id="android-app"></a>
 ## 📱 تطبيق Android
 
-عميل Android هو تطبيق **Material 3 + Jetpack Compose** بنشاط واحد (single-Activity). ثلاث شاشات مربوطة عبر Compose Navigation:
+عميل Android هو تطبيق **Material 3 + Jetpack Compose** بنشاط واحد (single-Activity)، مع ثلاث شاشات مربوطة عبر Compose Navigation:
 
-### شاشة الاكتشاف
+| الشاشة | ماذا تفعل |
+|--------|-----------|
+| **Discovery** | مسح NSD مباشر لخدمات `_orbiscreen._tcp.`، شرائح اتصال سريعة، إدخال يدوي `host:port`، وضع USB عبر `adb reverse`، والمضيف الأخير في الأعلى |
+| **Stream** | ExoPlayer بملء الشاشة (MPEG-TS عبر HTTP) مع شريط تحكم عائم: لوحة مفاتيح، قفل، تعتيم، Ctrl+Alt+Del، ملفات، إعادة محاولة |
+| **Settings** | السمة (النظام / فاتح / داكن)، إجبار المُرمّز البرمجي، ماسح Subnet المتقدم، المضيف الأخير، حول |
 
-- شريط حالة يعرض المسح النشط وعدد المضيفين المكتشفين.
-- **قائمة مباشرة** بخدمات `_orbiscreen._tcp.` المكتشفة عبر `NsdManager`، مع الاسم وIP والمنفذ.
-- **شرائح سريعة** لكل مضيف: انقر للاتصال، أو اضغط مطوّلاً للتفاصيل.
-- بطاقة **إضافة يدوية** — تتوسع لإظهار `OutlinedTextField` يتحقق من صيغة `host:port`.
-- بطاقة **وضع USB** — تملأ مسبقاً `127.0.0.1:8788` لأجل `adb reverse tcp:8788 tcp:8788`.
-- زر تحديث يلغي جلسة NSD الحالية ويعيد المسح.
-- **المضيف الأخير** محفوظ في `SharedPreferences` ويظهر أعلى القائمة بشريحة "Recent".
+اللمس العكسي يعمل مباشرة: يحوّل `InputDispatcher` لمس Android إلى إحداثيات مطلقة للمضيف عبر نقطة `/input`، مع إزالة تكرار حتى لا تتراكم الشبكة أثناء السحب السريع.
 
-### شاشة البث
-
-- `Scaffold` بخلفية سوداء مع شريط علوي بألوان Catppuccin Mocha/Latte وشريط `ControlToolbar`.
-- **ExoPlayer** يُبنى بأمان على الخيط الرئيسي (`withContext(Dispatchers.Main)`)، مغلَّفاً بـ `PlayerView` (عبر `AndroidView`) مع `useController = false` حتى يكون الشريط الداخلي هو الواجهة الوحيدة.
-- `PlayerHolder.build()` المحصَّن يغلّف كل خطوات التهيئة بـ try-catch لتظهر أخطاء البناء كبطاقات `StreamEvent.Error` قابلة لإعادة المحاولة بدل الانهيار.
-- `StreamUrl` يستهدف `/stream` مع `setMimeType(MimeTypes.VIDEO_MP2T)` ليفك ترميز MPEG-TS عبر HTTP دون sniffing.
-- `OkHttpDataSource` يستخدم مهلة قراءة صفرية للبث المباشر مع `DefaultLoadControl` مضبوط للتخزين المستقر.
-
-### شريط التحكم
-
-شريط إجراءات عائم فوق سطح المشغّل:
-
-| الإجراء | التأثير |
-|---------|---------|
-| Keyboard | إظهار لوحة المفاتيح المرنة + تمرير IME النظام |
-| Lock | `POST /api/control {action:"lock"}` |
-| Blank | تبديل `POST /api/control {action:"blank", state:"on"|"off"}` |
-| Ctrl+Alt+Del | `POST /api/control {action:"ctrl_alt_del"}` |
-| Files | `POST /api/control {action:"open", target:"files"}` |
-| Retry | إعادة تهيئة المشغّل |
-
-### شاشة الإعدادات
-
-- السمة: النظام / فاتح / داكن (النظام افتراضياً).
-- البث: إجبار المُرمّز البرمجي؛ تفعيل ماسح Subnet المتقدم.
-- المضيف الأخير: عرض ونسيان آخر اتصال ناجح.
-- حول: إصدار التطبيق، مستوى SDK، ونسخ معلومات الإصدار.
-
-### نموذج الإدخال
-
-`InputDispatcher` يحوّل أحداث اللمس على Android إلى إحداثيات مطلقة للمضيف باستخدام أبعاد الشاشة المُبلَّغ عنها ويُرسل مغلّفات بروتوكول يفككها الـ daemon مباشرة:
-
-```kotlin
-fun move(localX: Float, localY: Float, containerW: Int, containerH: Int) {
-    val (x, y) = map(localX, localY, containerW, containerH)
-    moves.tryEmit(JSONObject().apply {
-        put("Pointer", JSONObject().apply {
-            put("Move", JSONObject().apply { put("x", x); put("y", y) })
-        })
-    })
-}
-```
-
-أحداث المؤشر تُزال تكرارها عبر `MutableSharedFlow` مع `BufferOverflow.DROP_OLDEST` حتى لا تتراكم الشبكة أثناء السحب السريع.
-
-### نقاط تحكم المضيف (جانب Rust)
-
-يستخدم عميل Android ثلاث نقاط JSON خفيفة إضافةً إلى `/stream` و `/input`:
+يتصل العميل بالخدمة عبر ثلاث نقاط JSON خفيفة إضافةً إلى `/stream` و `/input`:
 
 | النقطة | الطريقة | الغرض |
 |--------|---------|-------|
@@ -241,7 +197,7 @@ orbiscreen/
 ├── crates/
 │   ├── orbiscreen-core/        # الأنواع والإعدادات والأخطاء
 │   ├── orbiscreen-display/     # شاشات افتراضية مدعومة بـ evdi
-│   ├── orbiscreen-capture/     # X11 (x11rb) + Wayland (ashpd + PipeWire)
+│   ├── orbiscreen-capture/     # X11 ‏(x11rb) + Wayland ‏(ashpd + PipeWire)
 │   ├── orbiscreen-encode/      # خط أنابيب GStreamer ‏(VAAPI / NVENC / x264)
 │   ├── orbiscreen-input/       # evdevil + ashpd RemoteDesktop
 │   ├── orbiscreen-transport/   # axum + mDNS + /api/info + /api/control
@@ -251,7 +207,7 @@ orbiscreen/
 │   └── android/                # تطبيق Material 3 Compose
 │       └── app/src/main/java/com/orbiscreen/android/
 │           ├── MainActivity.kt
-│           ├── data/           # PrefsStore (المضيف الأخير + الإعدادات)
+│           ├── data/           # PrefsStore ‏(المضيف الأخير + الإعدادات)
 │           ├── net/            # DiscoveryService, SubnetScanner, HostApi
 │           ├── player/         # PlayerHolder, StreamUrl
 │           ├── input/          # InputDispatcher
@@ -295,13 +251,13 @@ orbiscreen/
 
 | المستند | الوصف |
 |---------|-------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [عربي](docs/ARCHITECTURE_AR.md) | طوبولوجيا النظام وخط الأنابيب zero-copy ومعمارية D-Bus |
-| [docs/INSTALL.md](docs/INSTALL.md) · [عربي](docs/INSTALL_AR.md) | خطوات التثبيت عبر التوزيعات |
-| [docs/PACKAGING.md](docs/PACKAGING.md) · [عربي](docs/PACKAGING_AR.md) | مواصفات التغليف متعدد التوزيعات ‏(.deb، .rpm، AppImage، Flatpak)‏ |
-| [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) · [عربي](docs/DBUS_SPEC_AR.md) | مواصفات واجهة D-Bus Session Bus |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) · [عربي](docs/TROUBLESHOOTING_AR.md) | المشاكل الشائعة والتشخيص وإصلاحات التسريع العتادي |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | طوبولوجيا النظام وخط الأنابيب zero-copy ومعمارية D-Bus |
+| [docs/INSTALL.md](docs/INSTALL.md) · [AR](docs/INSTALL_AR.md) | خطوات التثبيت عبر التوزيعات |
+| [docs/PACKAGING.md](docs/PACKAGING.md) · [AR](docs/PACKAGING_AR.md) | مواصفات التغليف متعدد التوزيعات ‏(.deb، .rpm، AppImage، Flatpak)‏ |
+| [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) · [AR](docs/DBUS_SPEC_AR.md) | مواصفات واجهة D-Bus Session Bus |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) · [AR](docs/TROUBLESHOOTING_AR.md) | المشاكل الشائعة والتشخيص وإصلاحات التسريع العتادي |
 | [SECURITY.md](SECURITY.md) | نموذج الأمان وسلامة النقل وسياسات الشبكة |
-| [CHANGELOG.md](CHANGELOG.md) | سِجل الإصدارات الكامل |
+| [CHANGELOG.md](CHANGELOG.md) | سجل الإصدارات الكامل |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | إرشادات المساهمة والبناء من المصدر |
 
 ---

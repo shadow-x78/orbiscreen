@@ -64,10 +64,10 @@ cd release-bundle
 Install `orbiscreen-android-release.apk` (signed release build to bypass Play Protect warnings) from the releases page.
 
 **Permissions requested on first launch:**
-- `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_LOCK` — NSD discovery + streaming.
-- `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` — required by Android for Wi-Fi scanning on API 33+.
-- `INTERNET` — video stream and `/api/control` calls.
-- `VIBRATE` — soft keyboard feedback.
+- `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_LOCK` - NSD discovery + streaming.
+- `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` - required by Android for Wi-Fi scanning on API 33+.
+- `INTERNET` - video stream and `/api/control` calls.
+- `VIBRATE` - soft keyboard feedback.
 
 ---
 
