@@ -169,7 +169,12 @@ impl Encoder {
         if kind == EncoderKind::X264 {
             encoder.set_property_from_str("tune", "zerolatency");
             encoder.set_property_from_str("speed-preset", "ultrafast");
-            encoder.set_property_from_str("repeat-headers", "true");
+            // Zero-latency tuning already sets repeat-headers=1. Setting it again
+            // here crashes on newer GStreamer builds where the property was
+            // removed from GstX264Enc, so only touch it when present.
+            if encoder.find_property("repeat-headers").is_some() {
+                encoder.set_property_from_str("repeat-headers", "true");
+            }
         }
 
         let (tx, rx) = mpsc::unbounded_channel::<EncodedChunk>();

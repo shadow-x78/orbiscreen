@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.10.5] - 2026-08-11
+
+### 🐛 Fixed
+- **Android Launcher Icon Distortion:** The previous `ic_launcher_foreground.xml` used corner-radius arcs (`A24,24`) on the monitor outline which the VectorDrawable renderer stretched, making the icon look rubbery and off from the brand SVG. Rebuilt all pathData with explicit `h`/`v`/`a` commands matching `data/orbiscreen-app.svg` exactly (monitor fill `#1E1E2E` with blue stroke, inner screen bezel, white accent arc, blue stand neck, slate base). Art now scales to 0.50 within a centered `(128, 124)` translate so it sits perfectly inside the adaptive safe zone.
+- **Legacy Launcher PNGs:** Regenerated all `mipmap-*dpi/ic_launcher.png` from the corrected vector so the install-time icon (used by launchers that don't support adaptive icons) renders sharp and non-stretched.
+- **x264 `repeat-headers` Crash:** Setting the property unconditionally panicked on newer GStreamer builds where `GstX264Enc` no longer exposes it. Wrapped in `find_property(...).is_some()` since `tune=zerolatency` already enables repeat headers internally.
+
 ## [v0.10.4] - 2026-08-11
 
 ### 🐛 Fixed
