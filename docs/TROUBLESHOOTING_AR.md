@@ -21,7 +21,7 @@
 
 ### وقت التشغيل
 
-- [وقت التشغيل: فشل `orbiscreen start` — `kernel module is not installed`](#runtime-evdi)
+- [وقت التشغيل: فشل `orbiscreen start` - `kernel module is not installed`](#runtime-evdi)
 - [وقت التشغيل: واجهة الالتقاط غير متاحة على Wayland](#runtime-wayland)
 - [وقت التشغيل: تحذيرات lint `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`](#runtime-lints)
 
@@ -143,7 +143,7 @@ sudo dnf install gstreamer1.0-plugins-{good,bad,ugly,libav}
 ---
 
 <a id="runtime-evdi"></a>
-## 🚀 وقت التشغيل: فشل `orbiscreen start` — `kernel module is not installed`
+## 🚀 وقت التشغيل: فشل `orbiscreen start` - `kernel module is not installed`
 
 **العرَض:**
 ```
@@ -272,7 +272,7 @@ sudo orbiscreen start
 ملف `index.html` معطوب (وجود `-->` زائد) أسقط WebView.
 
 **الإصلاح:**
-يستخدم v0.10.3 Compose + `PlayerView` حصراً — لا يوجد WebView. إذا استمر تعطل APK الجديد، التقط logcat عبر `adb logcat *:E | grep orbiscreen` وافتح issue.
+يستخدم v0.10.3 Compose + `PlayerView` حصراً - لا يوجد WebView. إذا استمر تعطل APK الجديد، التقط logcat عبر `adb logcat *:E | grep orbiscreen` وافتح issue.
 
 ---
 

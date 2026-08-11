@@ -64,10 +64,10 @@ cd release-bundle
 ثبّت `orbiscreen-android-release.apk` (نسخة موقّعة لتجاوز تحذيرات Play Protect) من صفحة الإصدارات.
 
 **الأذونات المطلوبة عند أول تشغيل:**
-- `ACCESS_NETWORK_STATE`، `ACCESS_WIFI_STATE`، `CHANGE_WIFI_MULTICAST_LOCK` — اكتشاف NSD + البث.
-- `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` — يفرضها Android لمسح Wi-Fi على API 33+.
-- `INTERNET` — بث الفيديو ونداءات `/api/control`.
-- `VIBRATE` — اهتزاز لوحة المفاتيح المرنة.
+- `ACCESS_NETWORK_STATE`، `ACCESS_WIFI_STATE`، `CHANGE_WIFI_MULTICAST_LOCK` - اكتشاف NSD + البث.
+- `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` - يفرضها Android لمسح Wi-Fi على API 33+.
+- `INTERNET` - بث الفيديو ونداءات `/api/control`.
+- `VIBRATE` - اهتزاز لوحة المفاتيح المرنة.
 
 ---
 

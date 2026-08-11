@@ -21,7 +21,7 @@
 
 ### Runtime
 
-- [Runtime: `orbiscreen start` fails — `kernel module is not installed`](#runtime-evdi)
+- [Runtime: `orbiscreen start` fails - `kernel module is not installed`](#runtime-evdi)
 - [Runtime: capture backend unavailable on Wayland](#runtime-wayland)
 - [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations` lint warnings](#runtime-lints)
 
@@ -143,7 +143,7 @@ The Android workflow runs `./gradlew :app:assembleDebug :app:lintDebug`. Common 
 ---
 
 <a id="runtime-evdi"></a>
-## 🚀 Runtime: `orbiscreen start` fails — `kernel module is not installed`
+## 🚀 Runtime: `orbiscreen start` fails - `kernel module is not installed`
 
 **Symptom:**
 ```
@@ -272,7 +272,7 @@ You open the Orbiscreen app on Android and it immediately crashes back to the ho
 Malformed `index.html` (stray `-->`) crashed the WebView.
 
 **Fix:**
-v0.10.3 uses Compose + `PlayerView` exclusively — there is no WebView. If the new APK still crashes, capture a logcat with `adb logcat *:E | grep orbiscreen` and open an issue.
+v0.10.3 uses Compose + `PlayerView` exclusively - there is no WebView. If the new APK still crashes, capture a logcat with `adb logcat *:E | grep orbiscreen` and open an issue.
 
 ---
 
