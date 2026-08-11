@@ -86,7 +86,9 @@ impl Transport {
     ) -> Result<(), TransportError> {
         let (fallback_tx, _fallback_rx) = mpsc::unbounded_channel();
         let input_tx = self.input_tx.unwrap_or(fallback_tx);
-        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(32);
+        // Large enough that a slow consumer only loses a second of video,
+        // not the whole backlog leading to Lagged.
+        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(360);
         let app = build_router(
             self.cfg.clone(),
             input_tx,
@@ -287,15 +289,18 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     gstreamer::init().ok();
 
-    // do-timestamp lets appsrc set PTS from arrival clock so mpegtsmux doesn't
-    // see wildly old (or zero) timestamps from frames pushed before the sink
-    // started leaking. mpegtsmux is greedy: it requires PAT/PMT emission before
-    // it produces output, so `pat-interval=0 pmt-interval=0` means "emit on
-    // every keyframe". Without these we'd see zero bytes until mpegtsmux's
-    // internal default interval fires.
-    let pipeline_str = "appsrc name=src format=time is-live=true do-timestamp=true block=false \
+    // Stream pipeline: h264parse converts byte-stream NAL units into a
+    // properly framed AU stream, then mpegtsmux writes PES+TS. Setting
+    // config-interval=1 requests SPS/PPS per keyframe, which lets clients
+    // joining mid-stream decode immediately.
+    // The encoder already strips avc headers via h264parse inside the encode
+    // crate. On the read side we just need to feed TS packets. Skip h264parse
+    // here so we don't double-process or crash on convoluted state.
+    let pipeline_str = "appsrc name=src format=time block=false do-timestamp=true \
+                        ! video/x-h264,stream-format=byte-stream,alignment=au \
                         ! h264parse config-interval=-1 \
-                        ! mpegtsmux alignment=7 pat-interval=500000000 pmt-interval=500000000 \
+                        ! video/x-h264,stream-format=byte-stream,alignment=au \
+                        ! mpegtsmux alignment=7 \
                         ! appsink name=sink drop=false sync=false max-buffers=0";
     let pipeline = match gstreamer::parse::launch(pipeline_str) {
         Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
@@ -381,6 +386,16 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     let appsrc_clone = appsrc.clone();
     tokio::spawn(async move {
         while let Ok(pkt) = video_rx.recv().await {
+            // Sanity check: H.264 NAL units start with 00 00 00 01 (or 00 00 01).
+            // Filter out anything that doesn't so mpegtsmux never sees garbage
+            // and crashes in gst_base_parse_handle_buffer.
+            let valid = pkt.bytes.len() >= 4
+                && (pkt.bytes[0] == 0 && pkt.bytes[1] == 0 && (pkt.bytes[2] == 1 || pkt.bytes[2..4] == [0, 1]));
+            if !valid {
+                debug!("skipping non-NAL packet: {} B (header={:02x?})", pkt.bytes.len(), &pkt.bytes[..4]);
+                continue;
+            }
+
             let Ok(mut buffer) = gstreamer::Buffer::with_size(pkt.bytes.len()) else {
                 warn!("failed to allocate gstreamer buffer for packet");
                 break;
@@ -394,11 +409,10 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                     warn!("packet larger than allocated gstreamer buffer");
                     break;
                 }
-                // Tag keyframes so h264parse knows to copy SPS/PPS onto them,
-                // and so mpegtsmux can write them as random-access points.
                 if pkt.is_keyframe {
                     buffer_mut.set_flags(gstreamer::BufferFlags::MARKER);
                 }
+                buffer_mut.set_pts(gstreamer::ClockTime::from_nseconds(pkt.pts_ns));
             }
             if let Err(e) = appsrc_clone.push_buffer(buffer) {
                 debug!("push_buffer (client gone or EOS): {e}");

@@ -94,6 +94,7 @@ fn make_element(name: &str) -> Result<gstreamer::Element, EncodeError> {
 pub struct EncodedChunk {
     pub bytes: Vec<u8>,
     pub is_keyframe: bool,
+    pub pts_ns: u64,
 }
 
 #[allow(missing_debug_implementations)]
@@ -221,7 +222,8 @@ impl Encoder {
                         .map_err(|_| gstreamer::FlowError::Eos)?;
                     let bytes = map.to_vec();
                     let is_keyframe = !buffer.flags().contains(gstreamer::BufferFlags::DELTA_UNIT);
-                    tx.send(EncodedChunk { bytes, is_keyframe }).ok();
+                    let pts_ns = buffer.pts().map(|t| t.nseconds()).unwrap_or(0);
+                    tx.send(EncodedChunk { bytes, is_keyframe, pts_ns }).ok();
                     Ok(gstreamer::FlowSuccess::Ok)
                 })
                 .eos(move |_| {

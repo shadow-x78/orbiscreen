@@ -272,17 +272,24 @@ async fn run_start(
     let mut encoded_rx = encoder.subscribe().ok_or("encoder returned no rx")?;
 
     let (video_tx, video_rx) = mpsc::unbounded_channel::<H264Packet>();
+    let vid_pump_count = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let vpp = vid_pump_count.clone();
     let frame_pump = tokio::spawn(async move {
         while let Some(chunk) = encoded_rx.recv().await {
+            let n = vpp.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+            if n <= 5 || n % 60 == 0 {
+                info!("frame_pump: chunk #{n} ({} B, kf={}, pts={})", chunk.bytes.len(), chunk.is_keyframe, chunk.pts_ns);
+            }
             let pkt = H264Packet {
                 bytes: chunk.bytes,
                 is_keyframe: chunk.is_keyframe,
-                pts_ns: 0,
+                pts_ns: chunk.pts_ns,
             };
             if video_tx.send(pkt).is_err() {
                 break;
             }
         }
+        info!("frame_pump exited");
     });
 
     let cap_dims = (capture.width(), capture.height());

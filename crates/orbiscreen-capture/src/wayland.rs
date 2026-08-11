@@ -62,6 +62,10 @@ impl From<gstreamer::glib::BoolError> for WaylandCaptureError {
 }
 
 fn virtual_only_options() -> SelectSourcesOptions {
+    // Defaults already: Monitor source, no cursor, single stream. We explicitly
+    // avoid setting `persist_mode` because doing so requires an extra "persist"
+    // permission granted by gnome-remote-desktop; without it the dialog
+    // silently stays open or the compositor returns PermissionDenied.
     SelectSourcesOptions::default()
         .set_sources(Some(BitFlags::from(SourceType::Monitor)))
         .set_cursor_mode(CursorMode::Hidden)
@@ -119,16 +123,18 @@ impl WaylandCapture {
 
         gstreamer::init().map_err(|e| WaylandCaptureError::Dbus(format!("gst init: {}", e)))?;
 
-        // Negotiate a specific BGRA frame size matching the requested display
-        // dims so the encoder never sees a stride-mismatched surprise buffer.
-        // PipeWire portals typically deliver BGRx or RGBx; we let videoconvert
-        // normalize, then force video/x-raw BGRA at our dimensions.
+        // Wayland portals can switch resolutions between streams if the source
+        // monitor scales or rotates, so we always normalize through videoconvert
+        // + videoscale to the configured dims. We deliberately DON'T gate on
+        // "if width or height is None" because that leaves pixformat to default
+        // (BGRx in most compositors today), which then mismatches the encoder
+        // appsrc caps of BGRA.
         let pipeline_str = format!(
             "pipewiresrc fd={} path={} do-timestamp=true \
              ! videoconvert \
              ! videoscale \
              ! video/x-raw,format=BGRA,width={},height={} \
-             ! appsink name=sink drop=true sync=false max-buffers=2 emit-signals=false",
+             ! appsink name=sink drop=false sync=false max-buffers=2 emit-signals=false",
             stream.fd, stream.node_id, spec.width, spec.height
         );
         let pipeline = gstreamer::parse::launch(&pipeline_str)?
