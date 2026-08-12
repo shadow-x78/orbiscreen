@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.10.7] - 2026-08-12
+
+### 🐛 Fixed
+- **Wayland portal stall (1-5 fps):** Encoder `appsrc` was missing `is-live=true` and `do-timestamp=true`. With Wayland's bursty deliverable from `pipewiresrc` and x264's `tune=zerolatency` assumptions, frames backed up in the encoder queue and never reached the appsink. Watchdog showed constant "N frames pushed" with no growth. Now the appsrc timestamps each buffer on arrival, so the encoder treats live input as a stream rather than one giant blob.
+- **Stream PTS jumping:** The transport's appsrc previously had `do-timestamp=true` which overrode the encoder's real PTS values, causing mpegtsmux to see wildly out-of-order timestamps and emit nothing. Now we use the real PTS emitted by `h264parse` (after `config-interval=1` ensures SPS/PPS lands on each IDR).
+- **NAL garbage filter:** Added a strict H264 start-code validator on the streaming push path so out-of-band packets never reach `gst_base_parse_handle_buffer`, eliminating the `SIGSEGV` seen when a client disconnected mid-frame.
+
 ## [v0.10.6] - 2026-08-11
 
 ### 🐛 Fixed
