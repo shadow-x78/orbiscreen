@@ -155,6 +155,8 @@ impl Encoder {
             .build();
         appsrc.set_caps(Some(&caps));
         appsrc.set_format(gstreamer::Format::Time);
+        appsrc.set_is_live(true);
+        appsrc.set_do_timestamp(true);
         appsrc.set_max_bytes((params.width as u64) * params.height as u64 * 4 * 60);
 
         if encoder.find_property("bitrate").is_some() {
@@ -223,7 +225,12 @@ impl Encoder {
                     let bytes = map.to_vec();
                     let is_keyframe = !buffer.flags().contains(gstreamer::BufferFlags::DELTA_UNIT);
                     let pts_ns = buffer.pts().map(|t| t.nseconds()).unwrap_or(0);
-                    tx.send(EncodedChunk { bytes, is_keyframe, pts_ns }).ok();
+                    tx.send(EncodedChunk {
+                        bytes,
+                        is_keyframe,
+                        pts_ns,
+                    })
+                    .ok();
                     Ok(gstreamer::FlowSuccess::Ok)
                 })
                 .eos(move |_| {

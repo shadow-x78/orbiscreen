@@ -296,10 +296,15 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     // The encoder already strips avc headers via h264parse inside the encode
     // crate. On the read side we just need to feed TS packets. Skip h264parse
     // here so we don't double-process or crash on convoluted state.
-    let pipeline_str = "appsrc name=src format=time block=false do-timestamp=true \
-                        ! video/x-h264,stream-format=byte-stream,alignment=au \
-                        ! h264parse config-interval=-1 \
-                        ! video/x-h264,stream-format=byte-stream,alignment=au \
+    // Reset the transport to the most standard mpegts-writer pipeline:
+    // appsrc accepts already-encoded byte-stream AU H.264 from x264enc. We
+    // explicitly anchor caps, hand PTS ourselves (encoder emits valid PTS),
+    // and ask h264parse to add SPS/PPS to every IDR via config-interval=1.
+    // Then mpegtsmux writes proper TS packets with PAT/PMT rebuilt per
+    // keyframe, so any client that connects mid-stream can sync.
+    let pipeline_str = "appsrc name=src format=time is-live=false \
+                        ! video/x-h264,stream-format=byte-stream,alignment=au,framerate=0/1 \
+                        ! h264parse config-interval=1 \
                         ! mpegtsmux alignment=7 \
                         ! appsink name=sink drop=false sync=false max-buffers=0";
     let pipeline = match gstreamer::parse::launch(pipeline_str) {
@@ -333,6 +338,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     let caps = gstreamer::Caps::builder("video/x-h264")
         .field("stream-format", "byte-stream")
         .field("alignment", "au")
+        .field("framerate", gstreamer::Fraction::new(0, 1))
         .build();
     appsrc.set_caps(Some(&caps));
     appsrc.set_format(gstreamer::Format::Time);
@@ -390,9 +396,15 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
             // Filter out anything that doesn't so mpegtsmux never sees garbage
             // and crashes in gst_base_parse_handle_buffer.
             let valid = pkt.bytes.len() >= 4
-                && (pkt.bytes[0] == 0 && pkt.bytes[1] == 0 && (pkt.bytes[2] == 1 || pkt.bytes[2..4] == [0, 1]));
+                && (pkt.bytes[0] == 0
+                    && pkt.bytes[1] == 0
+                    && (pkt.bytes[2] == 1 || pkt.bytes[2..4] == [0, 1]));
             if !valid {
-                debug!("skipping non-NAL packet: {} B (header={:02x?})", pkt.bytes.len(), &pkt.bytes[..4]);
+                debug!(
+                    "skipping non-NAL packet: {} B (header={:02x?})",
+                    pkt.bytes.len(),
+                    &pkt.bytes[..4]
+                );
                 continue;
             }
 
