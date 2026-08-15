@@ -154,8 +154,8 @@ fn apply_status(handles: &UiHandles, status: &DaemonStatus, busy: &Mutex<bool>) 
 }
 
 /// Run a one-shot async D-Bus call on a scratch thread with its own
-/// current-thread runtime, returning the result to the GTK main context via a
-/// GLib channel (never blocking the UI thread).
+/// current-thread runtime, delivering the result back to the GTK main
+/// context (never blocking the UI thread).
 fn run_dbus_oneshot(
     call: impl FnOnce(
             DaemonProxy,
@@ -165,7 +165,7 @@ fn run_dbus_oneshot(
         + 'static,
     on_done: impl Fn(String) + Send + 'static,
 ) {
-    let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+    let ctx = glib::MainContext::default();
     std::thread::Builder::new()
         .name("orbiscreen-gtk-stop".into())
         .spawn(move || {
@@ -183,61 +183,9 @@ fn run_dbus_oneshot(
                     Err(e) => format!("stop failed: {e}"),
                 }
             });
-            let _ = tx.send(result);
+            ctx.invoke(move || on_done(result));
         })
         .expect("spawn stop-call thread");
-    rx.attach(None, move |message| {
-        on_done(message);
-        glib::ControlFlow::Break
-    });
-}
-
-/// Kick off the background D-Bus poller on a dedicated OS thread; snapshots
-/// are delivered to the GTK main context over a GLib channel.
-fn start_status_poller(handles: Arc<UiHandles>) {
-    let (tx, rx) = glib::MainContext::channel::<DaemonStatus>(glib::PRIORITY_DEFAULT);
-
-    std::thread::Builder::new()
-        .name("orbiscreen-gtk-dbus".into())
-        .spawn(move || {
-            let runtime = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .expect("glib dbus poller runtime");
-            runtime.block_on(async move {
-                loop {
-                    let update = match DaemonProxy::connect().await {
-                        Ok(proxy) => match proxy.get_status().await {
-                            Ok(json) => match DaemonStatus::parse(&json) {
-                                Some(status) => status,
-                                None => {
-                                    warn!("unparseable daemon status JSON: {json}");
-                                    DaemonStatus::default()
-                                }
-                            },
-                            Err(e) => {
-                                debug!("GetStatus failed: {e}");
-                                DaemonStatus::default()
-                            }
-                        },
-                        Err(e) => {
-                            debug!("D-Bus connect failed: {e}");
-                            DaemonStatus::default()
-                        }
-                    };
-                    if tx.send(update).is_err() {
-                        break;
-                    }
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                }
-            });
-        })
-        .expect("spawn dbus poller thread");
-
-    rx.attach(None, move |status| {
-        apply_status(&handles, &status);
-        glib::ControlFlow::Continue
-    });
 }
 
 fn build_ui(app: &Application) {
@@ -386,9 +334,11 @@ fn build_ui(app: &Application) {
 }
 
 /// Status poller that also clears the busy guard after every snapshot lands,
-/// keeping the switch responsive even when a stop call fails.
+/// keeping the switch responsive even when a stop call fails. Snapshots are
+/// delivered to the GTK main context via `MainContext::invoke` from a
+/// dedicated OS thread.
 fn start_status_poller(handles: Arc<UiHandles>, busy: Arc<Mutex<bool>>) {
-    let (tx, rx) = glib::MainContext::channel::<DaemonStatus>(glib::PRIORITY_DEFAULT);
+    let ctx = glib::MainContext::default();
 
     std::thread::Builder::new()
         .name("orbiscreen-gtk-dbus".into())
@@ -418,19 +368,16 @@ fn start_status_poller(handles: Arc<UiHandles>, busy: Arc<Mutex<bool>>) {
                             DaemonStatus::default()
                         }
                     };
-                    if tx.send(update).is_err() {
-                        break;
-                    }
+                    let handles = Arc::clone(&handles);
+                    let busy = Arc::clone(&busy);
+                    ctx.invoke(move || {
+                        apply_status(&handles, &update, &busy);
+                    });
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 }
             });
         })
         .expect("spawn dbus poller thread");
-
-    rx.attach(None, move |status| {
-        apply_status(&handles, &status, &busy);
-        glib::ControlFlow::Continue
-    });
 }
 
 fn main() -> gtk4::glib::ExitCode {

@@ -42,13 +42,13 @@ android {
             val storePw: String? =
                 System.getenv("ORBISCREEN_STORE_PASSWORD")
                     ?: (project.findProperty("orbiscreen.storePassword") as String?)
-            val keyAlias: String? =
+            val alias: String? =
                 System.getenv("ORBISCREEN_KEY_ALIAS")
                     ?: (project.findProperty("orbiscreen.keyAlias") as String?)
             val keyPw: String? =
                 System.getenv("ORBISCREEN_KEY_PASSWORD")
                     ?: (project.findProperty("orbiscreen.keyPassword") as String?)
-            if (storePw == null || keyAlias == null || keyPw == null) {
+            if (storePw == null || alias == null || keyPw == null) {
                 throw GradleException(
                     "Missing signing secrets. Provide ORBISCREEN_STORE_PASSWORD, " +
                         "ORBISCREEN_KEY_ALIAS and ORBISCREEN_KEY_PASSWORD."
@@ -56,7 +56,7 @@ android {
             }
             storeFile = file(ksPath)
             storePassword = storePw
-            keyAlias = keyAlias
+            keyAlias = alias
             keyPassword = keyPw
             enableV1Signing = true
             enableV2Signing = true
