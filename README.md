@@ -219,7 +219,7 @@ orbiscreen/
 │               └── settings/   # SettingsScreen
 ├── packaging/{flatpak,appimage,debian}/
 ├── scripts/{setup-dev-env.sh,test-evdi.sh,install.sh,uninstall.sh}
-├── .github/{workflows/,ISSUE_TEMPLATE/,dependabot.yml}
+├── .github/{workflows/,ISSUE_TEMPLATE/,PULL_REQUEST_TEMPLATE.md}
 └── .editorconfig, .gitignore, .gitattributes, deny.toml, rustfmt.toml
 ```
 
