@@ -1,8 +1,8 @@
 # مواصفات المعمارية - Orbiscreen
 
-> ينطبق على **v0.10.3** والإصدارات الأحدث.
+> ينطبق على **v0.11.0** والإصدارات الأحدث.
 
-بُني Orbiscreen كمساحة عمل Rust متعددة الحزم (crates) نمطية تفصل بين مشغّلات شاشات النظام، ومحركات التقاط الإطارات، ومُرمّزات الفيديو المسرَّعة عتادياً، والاتصال بين العمليات (D-Bus)، ونواقل الشبكة متعددة البروتوكولات.
+بُني Orbiscreen كمساحة عمل Rust متعددة الحزم (crates) نمطية تفصل بين مشغّلات الشاشة الافتراضية (evdi أساساً مع تراجع portal)، ومُرمَّزات الفيديو المسرَّعة، والاتصال بين العمليات (D-Bus)، ونقل MPEG-TS عبر HTTP مع توكن جلسة.
 
 ---
 
@@ -12,8 +12,10 @@
 graph TD
     subgraph Host Linux Machine
         A[evdi Kernel Module] -->|Virtual DRM Device| B(Display Server X11/Wayland)
-        B -->|Screen Content| C(orbiscreen-capture)
-        C -->|Raw BGRA Frames| D(orbiscreen-encode)
+        B -->|evdi framebuffer| C1(orbiscreen-display EvdiFramePump)
+        B -.->|portal fallback only| C0(orbiscreen-capture portal/X11)
+        C1 -->|Tight BGRA frames| D(orbiscreen-encode)
+        C0 -.->|BGRA frames (primary desktop)| D
         D -->|GStreamer HW Encode| E(H.264 Stream)
         E --> F(orbiscreen-transport)
         F -->|MPEG-TS HTTP /stream| G((Network/USB))
@@ -23,15 +25,15 @@ graph TD
         F -->|GET /health| G
     end
 
-    subgraph Android Device
-        G -->|NSD discovery| H(DiscoveryService)
-        H -->|LazyColumn of hosts| I(DiscoveryScreen)
-        I -->|onConnect| J(StreamViewModel)
+    subgraph Clients
+        G -->|MPEG-TS + token| W(Web client - mpegts.js MSE)
+        W -->|POST /input| F
+        G -->|NSD discovery + token| H(Android DiscoveryService)
+        H -->|onConnect| J(StreamViewModel)
         J -->|PlayerHolder.build| K(OkHttpDataSource)
-        K -->|MPEG-TS| L(ExoPlayer + MediaCodec)
-        L -->|Surface| M(PlayerView)
-        M -->|Touch| N(InputDispatcher)
-        N -->|POST /input| F
+        K -->|MPEG-TS + Bearer token| L(ExoPlayer + MediaCodec)
+        L -->|Touch| N(InputDispatcher)
+        N -->|POST /input + Bearer token| F
         J -->|POST /api/control| F
     end
 ```
@@ -68,7 +70,7 @@ com.orbiscreen.android/
 │   └── DiscoveryModel.kt          # HostSpec regex validator
 ├── player/
 │   ├── PlayerHolder.kt            # ExoPlayer + OkHttpDataSource + DefaultLoadControl
-│   └── StreamUrl.kt               # Builds http://host:port/stream.ts?fmt=mp2t
+│   └── StreamUrl.kt               # Builds http://host:port/stream?token=...
 ├── input/
 │   └── InputDispatcher.kt         # Absolute-coord pointer / wheel / keyboard / stylus
 └── ui/
@@ -81,13 +83,13 @@ com.orbiscreen.android/
 
 ---
 
-## ⚡ خط أنابيب البث Zero-Copy
+## ⚡ خط أنابيب البث
 
-1. **تهيئة الشاشة الافتراضية:** يخصّص `orbiscreen-display` موصّل DRM افتراضي عبر EVDI (أو يتراجع إلى جلسة ScreenCast في `xdg-desktop-portal`).
-2. **التقاط الإطارات:** تُلتقط مخازن الإطارات الخام BGRA عبر PipeWire DMA-BUF / X11 Shared Memory.
-3. **الترميز العتادي:**
-   - يستهلك `orbiscreen-encode` مخازن إطارات X11 / PipeWire الخام ويرمّزها إلى H.264 باستخدام خطوط أنابيب GStreamer المسرَّعة عتادياً (VAAPI أو NVENC أو التراجع إلى x264).
-   - يغلّف `orbiscreen-transport` وحدات NAL المرمّزة بـ H.264 داخل حاوية MPEG-TS ويقدّمها عبر `http://host:port/stream.ts`.
+1. **تهيئة الشاشة الافتراضية:** يفتح `orbiscreen-display` شاشة افتراضية EVDI DRM ويقرأ ذاكرتها الإطارية مباشرة (EvdiFramePump) - هذه هي الشاشة الثانية الحقيقية التي يرسم عليها المنشئ. إذا غابت وحدة النواة يتراجع الدامن إلى التقاط سطح المكتب الرئيسي عبر portal (Wayland) أو جذر X11.
+2. **التقاط الإطارات:** إطارات BGRA خام من ذاكرة evdi الإطارية (أو PipeWire / X11 Shared Memory في وضع التراجع).
+3. **الترميز:**
+   - يرمَّز `orbiscreen-encode` الإطارات إلى H.264 عبر خطوط أنابيب GStreamer المسرَّعة عتادياً (أوالاً VAAPI ثم NVENC ثم التراجع إلى x264).
+   - لكل عميل يغلّف `orbiscreen-transport` وحدات NAL المرمَّزة بـ H.264 في خط `h264parse + mpegtsmux` مستقل ويقدّمها عبر `http://host:port/stream?token=...`.
 4. **التشغيل على Android:**
    - تعمل `PlayerHolder.build()` على الخيط الرئيسي (`withContext(Dispatchers.Main)`) لمنع انهيارات التنافس الخيطي عند الاتصال.
    - جميع تهيئات builder وdataSource داخل `PlayerHolder.build()` مغلّفة بكتلة try-catch لتظهر أخطاء البناء كبطاقات `StreamEvent.Error` قابلة لإعادة المحاولة.
@@ -98,20 +100,21 @@ com.orbiscreen.android/
    - يربط `InputDispatcher` أحداث المؤشر / العجلة / القلم / لوحة المفاتيح من مستطيل `PlayerView` في Android بإحداثيات مطلقة للمضيف باستخدام دقة الشاشة المُبلَّغ عنها من `/api/info`.
    - تُزال تكرارات الأحداث عبر `MutableSharedFlow` مع `BufferOverflow.DROP_OLDEST` لمنع التراكم أثناء السحب السريع.
 6. **التحكم بالمضيف:**
-   - يُرسل `HostApi.sendControl` إجراءات JSON إلى `/api/control` لطلبات القفل والتعتيم وctrl-alt-del ومدير الملفات.
+   - يُرسل `HostApi.sendControl` إجراءات JSON إلى `/api/control` لطلبات القفل والتعتيم وctrl-alt-del، مع توكن الجلسة المنتزَع من الـ TXT المُعلن عبر mDNS.
 
 ---
 
 ## 🌐 عقد HTTP API
 
-| النقطة | الطريقة | الجسم | الاستجابة |
-|----------|--------|------|----------|
-| `/stream` | GET | - | بث `video/mp2t` MPEG-TS |
-| `/health` | GET | - | `200 OK "ok"` |
-| `/api/info` | GET | - | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.10.2"}` |
-| `/api/control` | POST | `{"action":"lock"\|"blank\|"unblank"\|"ctrl_alt_del"\|"open","state":"on\|off","target":"files"}` | `200 OK` |
+| النقطة | الطريقة | المصادقة | الاستجابة |
+|----------|--------|----------|----------|
+| `/stream` | GET | توكن | بث `video/mp2t` MPEG-TS |
+| `/health` | GET | عامة | `200 OK "ok"` |
+| `/api/info` | GET | عامة | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.11.0"}` |
+| `/api/control` | POST | توكن | `200 OK`; الإجراءات: `lock`، `blank`، `unblank`، `ctrl_alt_del` (يُرفض `open` برفض 400) |
+| `/client/config.json` | GET | عامة | `{"token":"...","display_width":1920,"display_height":1080}` - تمهيد عميل الويب |
 
-أحداث الإدخال (`/input`) تقبل نفس مخطط الحمولة المستخدم لدى عميل الويب الحالي: `Move{x,y}`، `Button{button,pressed,x?,y?}`، `Wheel{deltaY}`، `Key{code,pressed}`، `Stylus{x,y,pressure,tilt_x,tilt_y}`.
+أحداث الإدخال (`/input`، تتطلب توكن) تقبل مخطط الحمولة المستخدم لدى عميل الويب: `Move{x,y}`، `Button{button,pressed,x?,y?}`، `Wheel{delta_y}`، `Key{code,pressed}`، `Stylus{x,y,pressure,tilt_x_deg,tilt_y_deg}`. يُقدم التوكن عبر ترويسة `Authorization: Bearer <token>` أو معامل `?token=`.
 
 ---
 

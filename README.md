@@ -6,7 +6,7 @@
 
 Real virtual secondary displays for Linux, streamed to Android - one command, zero hassle
 
-[![Version](https://img.shields.io/badge/version-0.10.7-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.11.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -61,12 +61,14 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 <a id="highlights"></a>
 ## ✨ Highlights
 
-- Real virtual display via `evdi` (X11 *and* Wayland)
+- Real virtual display via `evdi` (X11 *and* Wayland), with portal capture fallback
 - **Material 3 Android client** - Jetpack Compose, Catppuccin Mocha / Latte brand palette, light/dark theme
+- **Built-in web client** - watch from any browser at `http://<host>:8788/` (MSE via the locally bundled `mpegts.js`, no CDN)
 - **Live discovery** - NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner
 - **Native streaming** - ExoPlayer with `OkHttpDataSource` + `DefaultLoadControl` for low-latency MPEG-TS / H.264
+- **Token protection** - `/stream`, `/input` and `/api/control` require a per-session token (mDNS TXT / `/client/config.json`), rotated on every daemon start
 - **Reverse touch** - absolute pointer / keyboard / stylus / wheel events flow Android → host
-- **Host control panel** - keyboard, lock, blank, Ctrl+Alt+Del, file manager, and retry actions
+- **Host control panel** - keyboard, lock, blank, Ctrl+Alt+Del, and retry actions
 - **USB transport** via `adb reverse`, no special drivers
 - **Hardware encoding** - VAAPI, NVENC, x264 software fallback
 - **Cryptographic signing** of every Linux and Android artifact
@@ -133,12 +135,23 @@ cd ~/Orbiscreen
 # One-command installation for Linux
 ./scripts/install.sh
 
+# evdi kernel module (DKMS) - required for a real second monitor;
+# without it Orbiscreen degrades to streaming the primary desktop.
+# See docs/TROUBLESHOOTING.md for per-distro steps. Then:
+sudo modprobe evdi
+
 # Probe local capture, input, and display backends
 orbiscreen probe
 
 # Start the Orbiscreen daemon (EVDI DRM or Wayland Portal auto-fallback)
 orbiscreen start
 ```
+
+### 3. Connect
+
+- **Android:** tap the discovered host (mDNS) or add it manually.
+- **Web browser:** open `http://<host-ip>:8788/` - the daemon serves the MPEG-TS client directly (MSE + bundled `mpegts.js`).
+- **Token:** every daemon start generates a session token. Android gets it automatically from mDNS discovery; the web client fetches it from `/client/config.json`. If a client gets `401 Unauthorized`, re-discover the host or restart the client - the token may have rotated.
 
 ---
 
@@ -149,6 +162,7 @@ orbiscreen start
 |---------|-------------|
 | `orbiscreen start` | Create the virtual display and start streaming |
 | `orbiscreen start --no-mdns` | Start without mDNS advertising |
+| `orbiscreen stop` | Gracefully stop a running daemon via D-Bus |
 | `orbiscreen list-displays` | List configured virtual displays |
 | `orbiscreen probe` | Report capture / input / display backends |
 | `orbiscreen print-config` | Print the resolved configuration |
@@ -174,7 +188,7 @@ The Android client is a **Material 3 + Jetpack Compose** single-Activity app wit
 | Screen | What it does |
 |--------|--------------|
 | **Discovery** | Live NSD scan of `_orbiscreen._tcp.` hosts, quick-connect chips, manual `host:port` entry, USB mode via `adb reverse`, recent host pinned on top |
-| **Stream** | Full-screen ExoPlayer (MPEG-TS over HTTP) with a floating control toolbar: keyboard, lock, blank, Ctrl+Alt+Del, files, retry |
+| **Stream** | Full-screen ExoPlayer (MPEG-TS over HTTP) with a floating control toolbar: keyboard, lock, blank, Ctrl+Alt+Del, retry |
 | **Settings** | Theme (System / Light / Dark), force software decoder, advanced subnet scanner, recent host, about |
 
 Reverse touch works out of the box: `InputDispatcher` maps Android touch to absolute host coordinates over the `/input` endpoint, debounced so the network never backs up during a fast drag.
@@ -184,7 +198,7 @@ The client talks to the daemon through three lightweight JSON endpoints in addit
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/api/info` | GET | Display resolution, encoder, and version |
-| `/api/control` | POST | Host-side actions (blank, lock, ctrl-alt-del, open) |
+| `/api/control` | POST | Host-side actions (blank, unblank, lock, ctrl-alt-del); token required |
 | `/health` | GET | Liveness probe |
 
 ---
@@ -251,7 +265,7 @@ orbiscreen/
 
 | Document | Description |
 |----------|-------------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | System topology, zero-copy pipeline & D-Bus architecture |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | System topology, frame pipeline & D-Bus architecture |
 | [docs/INSTALL.md](docs/INSTALL.md) · [AR](docs/INSTALL_AR.md) | Multi-distro installation walkthroughs |
 | [docs/PACKAGING.md](docs/PACKAGING.md) · [AR](docs/PACKAGING_AR.md) | Multi-distro packaging specs (.deb, .rpm, AppImage, Flatpak) |
 | [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) · [AR](docs/DBUS_SPEC_AR.md) | D-Bus Session Bus IPC interface specifications |
@@ -278,7 +292,7 @@ For example:
 ```text
 orbiscreen | android | player: retry on transient network errors
 orbiscreen | docs | readme: clarify mDNS discovery flow
-orbiscreen | v0.10.3 | release: host-input protocol alignment
+orbiscreen | v0.11.0 | release: token auth + evdi primary frame source
 ```
 
 ---

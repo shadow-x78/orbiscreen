@@ -103,6 +103,9 @@ impl EncodeConfig {
 #[serde(default)]
 pub struct TransportConfig {
     pub signaling_port: u16,
+    /// Unused placeholder kept for config-file compatibility: WebRTC was
+    /// removed in favor of MPEG-TS over HTTP, and no ports are bound from
+    /// this range.
     pub webrtc_port_range: (u16, u16),
     pub mdns_advertise: bool,
 }

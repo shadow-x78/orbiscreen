@@ -6,7 +6,7 @@
 
 شاشة افتراضية ثانية حقيقية لنظام Linux، تُبَثّ إلى Android - أمر واحد، بلا تعقيد
 
-[![الإصدار](https://img.shields.io/badge/version-0.10.7-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.11.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -61,12 +61,14 @@
 <a id="highlights"></a>
 ## ✨ المميزات
 
-- شاشة افتراضية حقيقية عبر `evdi` (X11 *و* Wayland)
+- شاشة افتراضية حقيقية عبر `evdi` (X11 *و* Wayland)، مع تراجع التقاط portal
 - **عميل Android بواجهة Material 3** - Jetpack Compose، لوحة ألوان Catppuccin Mocha / Latte، بسمة فاتحة وداكنة
+- **عميل ويب مبنّى داخلياً** - شاهد من أي متصفح على `http://<host>:8788/` (MSE عبر `mpegts.js` المضمنة محلياً، دون CDN)
 - **اكتشاف مباشر** - مسح NSD للمضيفين القريبين، إدخال يدوي `host:port`، وماسح Subnet اختياري
 - **بث أصلي** - ExoPlayer مع `OkHttpDataSource` + `DefaultLoadControl` لبث MPEG-TS / H.264 منخفض الكمون
+- **حماية بالتوكن** - `/stream` و`/input` و`/api/control` تتطلب توكن بخاص للجلسة (mDNS TXT / `/client/config.json`)، يدور مع كل تشغيل للدامن
 - **لمس عكسي** - مؤشر مطلق / لوحة مفاتيح / قلم / عجلة يتدفق من Android إلى المضيف
-- **لوحة تحكم بالمضيف** - لوحة مفاتيح، قفل، تعتيم، Ctrl+Alt+Del، مدير الملفات، وإعادة المحاولة
+- **لوحة تحكم بالمضيف** - لوحة مفاتيح، قفل، تعتيم، Ctrl+Alt+Del، وإعادة المحاولة
 - **نقل عبر USB** بواسطة `adb reverse`، دون مشغلات خاصة
 - **ترميز عتادي** - VAAPI، NVENC، وتراجع برمجي x264
 - **توقيع تشفيري** لكل حزم Linux و Android
@@ -136,9 +138,23 @@ cd ~/Orbiscreen
 # فحص واجهات الالتقاط والإدخال والشاشة المحلية
 orbiscreen probe
 
+# وحدة النواة evdi عبر DKMS - مطلوب لشاشة ثانية حقيقية؛
+# بدونها يتدهور Orbiscreen إلى بث سطح المكتب الرئيسي.
+# راجع docs/TROUBLESHOOTING_AR.md لخطوات التوزيعات. ثم:
+sudo modprobe evdi
+
+# فحص واجهات الالتقاط والإدخال والشاشة المحلية
+orbiscreen probe
+
 # تشغيل خدمة Orbiscreen (مع تراجع تلقائي EVDI DRM أو Wayland Portal)
 orbiscreen start
 ```
+
+### 3. الاتصال
+
+- **Android:** انقر المضيف المكتشف (عبر mDNS) أو أضفه يدوياً.
+- **متصفح الويب:** افتح `http://<host-ip>:8788/` - يخدم الدامن عميل MPEG-TS مباشرةً (MSE + حزمة `mpegts.js` المضمنة محلياً).
+- **التوكن:** تُولد كل بدءة للدامن توكن جلسة. يحصل Android عليه تلقائياً من الاكتشاف؛ عميل الويب يجلبه من `/client/config.json`. إذا رفض العميل برفض `401 Unauthorized`، أعد الاكتشاف أو أعد تشغيل العميل - قد يكون التوكن قد دار.
 
 ---
 
@@ -149,6 +165,7 @@ orbiscreen start
 |-------|-------|
 | `orbiscreen start` | ينشئ الشاشة الافتراضية ويبدأ البث |
 | `orbiscreen start --no-mdns` | تشغيل دون إعلان mDNS |
+| `orbiscreen stop` | إيقاف دامن قيد التشغيل رشيقاً عبر D-Bus |
 | `orbiscreen list-displays` | سرد الشاشات الافتراضية المُهيّأة |
 | `orbiscreen probe` | فحص واجهات الالتقاط / الإدخال / الشاشة |
 | `orbiscreen print-config` | طباعة الإعدادات الفعلية |
@@ -174,7 +191,7 @@ orbiscreen uninstall && ./scripts/uninstall.sh
 | الشاشة | ماذا تفعل |
 |--------|-----------|
 | **Discovery** | مسح NSD مباشر لخدمات `_orbiscreen._tcp.`، شرائح اتصال سريعة، إدخال يدوي `host:port`، وضع USB عبر `adb reverse`، والمضيف الأخير في الأعلى |
-| **Stream** | ExoPlayer بملء الشاشة (MPEG-TS عبر HTTP) مع شريط تحكم عائم: لوحة مفاتيح، قفل، تعتيم، Ctrl+Alt+Del، ملفات، إعادة محاولة |
+| **Stream** | ExoPlayer بملء الشاشة (MPEG-TS عبر HTTP) مع شريط تحكم عائم: لوحة مفاتيح، قفل، تعتيم، Ctrl+Alt+Del، إعادة محاولة |
 | **Settings** | السمة (النظام / فاتح / داكن)، إجبار المُرمّز البرمجي، ماسح Subnet المتقدم، المضيف الأخير، حول |
 
 اللمس العكسي يعمل مباشرة: يحوّل `InputDispatcher` لمس Android إلى إحداثيات مطلقة للمضيف عبر نقطة `/input`، مع إزالة تكرار حتى لا تتراكم الشبكة أثناء السحب السريع.
@@ -184,7 +201,7 @@ orbiscreen uninstall && ./scripts/uninstall.sh
 | النقطة | الطريقة | الغرض |
 |--------|---------|-------|
 | `/api/info` | GET | دقة الشاشة والمُرمّز والإصدار |
-| `/api/control` | POST | أوامر المضيف (blank، lock، ctrl-alt-del، open) |
+| `/api/control` | POST | أوامر المضيف (blank، unblank، lock، ctrl-alt-del)؛ يتطلب توكن |
 | `/health` | GET | فحص الحيوية |
 
 ---
@@ -251,7 +268,7 @@ orbiscreen/
 
 | المستند | الوصف |
 |---------|-------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | طوبولوجيا النظام وخط الأنابيب zero-copy ومعمارية D-Bus |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | طوبولوجيا النظام وخط أنابيب الإطارات ومعمارية D-Bus |
 | [docs/INSTALL.md](docs/INSTALL.md) · [AR](docs/INSTALL_AR.md) | خطوات التثبيت عبر التوزيعات |
 | [docs/PACKAGING.md](docs/PACKAGING.md) · [AR](docs/PACKAGING_AR.md) | مواصفات التغليف متعدد التوزيعات ‏(.deb، .rpm، AppImage، Flatpak)‏ |
 | [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) · [AR](docs/DBUS_SPEC_AR.md) | مواصفات واجهة D-Bus Session Bus |

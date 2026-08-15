@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.11.0] - 2026-08-16
+
+### 💥 Breaking
+- **Token auth for media & control endpoints:** `/stream`, `/input`, and `/api/control` now require a per-session access token (32 random bytes, regenerated on every daemon start). Clients present it via `Authorization: Bearer <token>` or `?token=<token>`. Android clients get it from mDNS discovery TXT / `/client/config.json`; the bundled web client bootstraps from `/client/config.json`. `/health`, `/api/info`, `/client/*` remain public.
+- **Keystore removed from the repository:** the Android release signing key is no longer shipped with the source (it remains in git history for anyone who pulled earlier). Builders must supply their own signing key; APKs signed with the old key have a different signature, so uninstall the old app before installing newly signed releases.
+- **Dead transport paths removed:** the legacy `/ws` WebSocket and WebRTC `/sdp` signaling endpoints are gone. WebRTC is fully replaced by MPEG-TS over HTTP; `webrtc_port_range` is kept only as a compatibility placeholder.
+- **`orbiscreen stop` is now real:** instead of a no-op, it asks the running daemon to shut itself down gracefully through the D-Bus session service (`Stop()`), reporting "daemon is not running" when the service is absent.
+- **Android Stream toolbar:** the dead "Open files" action (no backend since the WebRTC era) was removed from the control toolbar.
+
+### ✨ Added
+- **evdi is now the primary frame source:** `orbiscreen-display` reads the real virtual-display framebuffer through the evdi DRM interface, so clients see the actual second monitor the compositor draws on (previously the capture fallback was always used). On hosts without the evdi kernel module the daemon degrades gracefully to Wayland portal / X11 capture of the primary desktop and logs a clear warning.
+- **Web client:** a browser client is bundled and served by the daemon at `http://<host>:8788/`, playing MPEG-TS live via MediaSource Extensions using the locally vendored `mpegts.js` (no CDN dependency, works offline on the LAN).
+- **D-Bus live status:** `GetStatus()` returns a JSON object with live fields (`running`, `frames_forwarded`, `active_clients`, `total_clients`, `encoder`, `capture_backend`); `ListClients()` reports real counts from transport stats; `GetConfig()` dumps the sanitized TOML config; `Stop()` triggers a graceful shutdown.
+- **Client statistics:** the transport tracks active/total stream clients and forwarded frames, surfaced via D-Bus and used by the GTK panel.
+- **`/api/control` real host tools:** lock (`loginctl`/`xdg-screensaver`), blank/unblank (DPMS via sway/hyprland/xset), and `ctrl_alt_del` injection; arbitrary URL `open` is explicitly rejected.
+- **GTK panel rewrite:** the GTK4 app now talks to the daemon over zbus with live status polling, honest Stop-only behavior with toast feedback, and real settings from the daemon config.
+
+### 🐛 Fixed
+- **Stream/input dimension alignment:** pointer coordinates are scaled through the capture region reported to clients, so touch and mouse land in the right place regardless of display scaling.
+- **Bounded channels:** the per-client MPEG-TS path uses a bounded channel and drops chunks for stalled consumers instead of growing daemon memory without limit; stream lag tolerates `Lagged` broadcast errors until the next keyframe instead of disconnecting.
+- **Android translation breakage:** removed the dangling `onOpenFiles` reference in StreamScreen/ControlToolbar/strings.xml that kept Kotlin resources out of sync.
+- **Packaging:** deb/rpm/AppImage/Flatpak specs and `install.sh` updated to match the current binary layout, client directory, and service unit.
+
+### 🔒 Security
+- Corrected SECURITY.md: the daemon binds `0.0.0.0:8788` (not `127.0.0.1`), endpoints are now token-protected (not "unauthenticated by design"), and the token model + keystore rotation are documented, including limitations against a determined LAN attacker.
+
+### 📚 Docs
+- Rewrote `docs/DBUS_SPEC.md` to match the real interface (JSON GetStatus, TOML GetConfig, systemd-only Start); added streaming/client troubleshooting guides (wrong screen via missing evdi, no picture without MSE, missing x264 plugin, 401 token flow, D-Bus service absent); refreshed READMEs for the web client, token model, and evdi requirement.
+
 ## [v0.10.7] - 2026-08-12
 
 ### 🐛 Fixed

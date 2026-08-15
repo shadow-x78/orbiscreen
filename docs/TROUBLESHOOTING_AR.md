@@ -6,7 +6,7 @@
 
 ---
 
-> ينطبق على **v0.10.3** والإصدارات الأحدث.
+> ينطبق على **v0.11.0** والإصدارات الأحدث.
 
 ## 📋 المحتويات
 
@@ -34,6 +34,14 @@
 - [Android: إجراءات شريط التحكم تُرجع 404](#android-control-404)
 - [Android: التطبيق يتعطل فوراً عند التشغيل](#android-crash)
 - [Android: اتصال USB يعرض "Looking for host…"](#android-usb)
+
+### البث والعملاء
+
+- [العميل يعرض الشاشة الخطأ (سطح المكتب الرئيسي بدل الشاشة الافتراضية)](#wrong-screen)
+- [عميل الويب يُحمَّل لكن بلا صورة](#web-no-picture)
+- [لا يوجد مُرمَّز - البث يبدأ لكنه يفشل (غياب x264)](#no-encoder)
+- [رفض 401 من `/stream` أو `/input` أو `/api/control` التوكن](#token-401)
+- [الـ daemon غير موجود على D-Bus / واجهة GTK تعرض "not running"](#dbus-missing)
 
 ### الـ Daemon
 
@@ -289,6 +297,117 @@ sudo orbiscreen start
    adb reverse tcp:8788 tcp:8788
    ```
 4. انقر بطاقة **USB mode** في شاشة Discovery.
+
+---
+
+<a id="wrong-screen"></a>
+## 🖥 العميل يعرض الشاشة الخطأ (سطح المكتب الرئيسي بدل الشاشة الافتراضية)
+
+**العرض:**
+يتصل عميل Android/الويب ويعرض فيديو، لكنه يعكس سطح مكتب المضيف الرئيسي بدل شاشة ثانية نظيفة. سحب النوافذ إلى شاشة ثانية لا يفعل شيئاً.
+
+**السبب:**
+وحدة النواة `evdi` غير محملة، فيتراجع Orbiscreen إلى التقاط سطح المكتب الرئيسي (Wayland portal أو نافذة جذر X11). هذا الوضع المتدهور مقصود: يبلغ `GetStatus.capture_backend` عن `wayland-portal-fallback` أو `x11-portal-fallback` بدل `evdi`، ويسجل الدامن تحذير `EVDI kernel module missing/inactive ... Falling back` عند البدء.
+
+**الإصلاح:**
+1. ثبّت وحمّل `evdi` عبر DKMS - راجع [وقت التشغيل: فشل `orbiscreen start`](#runtime-evdi)، ثم:
+   ```bash
+   sudo modprobe evdi && lsmod | grep evdi
+   ```
+2. أعد تشغيل الدامن (`orbiscreen stop && orbiscreen start`) وتحقق:
+   ```bash
+   busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon GetStatus
+   # "capture_backend":"evdi"
+   ```
+3. انقل نافذة إلى مخرج Orbiscreen (‏`EVDI-0`) من إعدادات الشاشات في المنشئ.
+
+---
+
+<a id="web-no-picture"></a>
+## 🌐 عميل الويب يُحمَّل لكن بلا صورة
+
+**العرض:**
+`http://<host>:8788/` يُحمل، وشريط الحالة يظل يعرض "Connecting to stream…" أو يبلغ فوراً "This browser does not support MSE playback".
+
+**السبب:**
+عميل الويب يفك MPEG-TS عبر `mpegts.js` المورّدة محلياً ويضخ H.264 إلى MediaSource Extensions (MSE). المتصفحات بدون MSE أو مع حظر التشغيل التلقائي لن تستطيع فك البث. لا يوجد مسار WebRTC.
+
+**الإصلاح:**
+1. استخدم متصفحاً يدعم البث الحي عبر MSE: Chrome أو Firefox أو Edge على سطح المكتب. لا يدعم Safari على iOS فيديو MSE، وFirefox على الهاتف بدون MSE أيضاً.
+2. إذا حظر المتصفح التشغيل التلقائي، انقر على الفيديو مرة لبدء التشغيل.
+3. تأكد أن الصفحة خدمها الدامن نفسه (يُحمل `vendor/mpegts.js` من `/client/vendor/mpegts.js`) - ليس نسخة قديمة مخزونة مؤقتاً.
+4. تحقق من وحدة التحكم/الشبكة في أدوات المطوّر: 401 على `/stream` تعني فشل مسار التوكن - راجع [رفض 401](#token-401).
+
+---
+
+<a id="no-encoder"></a>
+## 🎞 لا يوجد مُرمَّز - البث يبدأ لكنه يفشل (غياب x264)
+
+**العرض:**
+يبدأ الدامن ويتصل العملاء، لكن الفيديو لا يصل أو يظهر في السجل خطأ ربط عناصر GStreamer يذكر `x264enc` / `no element found`.
+
+**السبب:**
+الترميز يمر عبر GStreamer. عنصر التراجع البرمجي `x264enc` يأتي في حزمة الإضافات `ugly`؛ والمرمزات العتادية تحتاج `vaapih264enc` أو `nvh264enc` (حزمة `bad`). بدونها لا يمكن إنتاج H.264.
+
+**الإصلاح:**
+```bash
+# Fedora / Nobara
+sudo dnf install gstreamer1-plugins-ugly gstreamer1-plugins-bad-free gstreamer1-plugins-good
+
+# Ubuntu / Debian
+sudo apt install gstreamer1.0-plugins-ugly gstreamer1.0-plugins-bad gstreamer1.0-plugins-good
+
+# تحقق من وجود عنصر الترميز
+gst-inspect-1.0 x264enc
+```
+ثم أعد تشغيل الدامن؛ يبلغ `GetStatus.encoder` عن المُرمَّز المستخدم فعلياً.
+
+---
+
+<a id="token-401"></a>
+## 🔑 رفض 401 من `/stream` أو `/input` أو `/api/control` (التوكن)
+
+**العرض:**
+يحصل العملاء (Android أو الويب أو سكربتات مكتوبة يدوياً) على `401 Unauthorized`. ‏`curl http://host:8788/health` يعمل بشكل طبيعي، لكن `/stream` و`/input` و`/api/control` ترفض الطلب.
+
+**السبب:**
+منذ v0.11.0 تشترط هذه النقاط الثلاث توكن الوصول الخاص بالجلسة. يُعاد توليده مع كل تشغيل للدامن ويوصل بطريقتين:
+- **mDNS:** يحمل سجل TXT للخدمة المعلنة `token=...`
+- **HTTP:** ‏`GET /client/config.json` يعيد `{"token": ..., "display_width": ..., "display_height": ...}`
+
+**الإصلاح:**
+1. انتزع التوكن الحالي ومرره بأي من الطريقتين:
+   ```bash
+   curl -s http://host:8788/client/config.json
+   TOKEN=*** -c "import json,sys;print(json.load(sys.stdin)['token'])")
+   curl -H "Authorization: Bearer $TOKEN" http://host:8788/stream --output - | head -c 1000
+   # أو: curl "http://host:8788/stream?token=***"
+   ```
+2. يحصل عملاء Android على التوكن تلقائياً من اكتشاف mDNS أو من نقطة الإعداد؛ إذا رفض مضيف مضاف يدوياً الطلب برفض 401، أزله وأضفه من جديد بعد إعادة تشغيل الدامن (التوكن القديم انتهى).
+3. ‏`/health` و`/api/info` و`/client/config.json` و`/` و`/client/*` عامة عمداً - رفض 401 عليها يشير إلى وكيل سيئ التوصيف وليس الدامن.
+
+---
+
+<a id="dbus-missing"></a>
+## 🚌 الـ daemon غير موجود على D-Bus / واجهة GTK تعرض "not running"
+
+**العرض:**
+يطبع `orbiscreen stop` الرسالة `daemon is not running (no com.orbiscreen.Daemon on the session bus)`، أو تعرض لوحة GTK إشعار "not running" رغم أن `orbiscreen start` يبدو قيد التشغيل في مكان آخر.
+
+**السبب:**
+خدمة D-Bus (‏`com.orbiscreen.Daemon`) تُسجل على **ناقل جلسة المستخدم** من طرف عملية الدامن طالما هي قيد التشغيل. أسباب غيابها الشائعة:
+- الدامن لم يبدأ (أو انهار) في جلسة المستخدم الحالية.
+- بدأ `orbiscreen start` بمستخدم آخر أو بـ `sudo` - ناقل النظام/المستخدم الآخر ليس ناقل جلستك.
+- ‏`DBUS_SESSION_BUS_ADDRESS` غير مضبوط أو متجاوز في الصدفة التي يُشغَّل فيها `orbiscreen stop`.
+
+**الإصلاح:**
+1. تحقق من الخدمة والحالة:
+   ```bash
+   busctl --user status com.orbiscreen.Daemon 2>&1 || echo "not on the bus"
+   systemctl --user status orbiscreen
+   ```
+2. شغله بمستخدمك العادي: `orbiscreen start` (دون `sudo`) أو `systemctl --user start orbiscreen`.
+3. إذا شُغل تحت systemd فضل `systemctl --user stop orbiscreen` لإيقافه (يعمل `orbiscreen stop` أيضاً ويتراجع إلى تابع D-Bus `Stop`).
 
 ---
 

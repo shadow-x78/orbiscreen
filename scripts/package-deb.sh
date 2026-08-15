@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-VERSION="${1:-0.6.0}"
+VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
 ARCH="amd64"
 BUILD_DIR="target/deb-staging"
 DEB_NAME="orbiscreen_${VERSION}_${ARCH}.deb"
@@ -16,7 +16,7 @@ mkdir -p "${BUILD_DIR}/usr/bin"
 mkdir -p "${BUILD_DIR}/usr/share/applications"
 mkdir -p "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps"
 mkdir -p "${BUILD_DIR}/usr/lib/systemd/user"
-mkdir -p "${BUILD_DIR}/usr/share/orbiscreen/client"
+mkdir -p "${BUILD_DIR}/usr/share/orbiscreen/client/vendor"
 
 cp -f target/release/orbiscreen "${BUILD_DIR}/usr/bin/"
 
@@ -26,6 +26,7 @@ cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/co
 cp -f clients/web/index.html "${BUILD_DIR}/usr/share/orbiscreen/client/"
 cp -f clients/web/style.css "${BUILD_DIR}/usr/share/orbiscreen/client/"
 cp -f clients/web/app.js "${BUILD_DIR}/usr/share/orbiscreen/client/"
+cp -rf clients/web/vendor/. "${BUILD_DIR}/usr/share/orbiscreen/client/vendor/"
 
 cat << 'EOF' > "${BUILD_DIR}/usr/lib/systemd/user/orbiscreen.service"
 [Unit]
@@ -35,7 +36,7 @@ After=graphical-session.target
 
 [Service]
 Type=exec
-ExecStart=/usr/bin/orbiscreen
+ExecStart=/usr/bin/orbiscreen start
 Restart=on-failure
 RestartSec=3s
 
@@ -48,13 +49,16 @@ Package: orbiscreen
 Version: ${VERSION}
 Architecture: ${ARCH}
 Maintainer: shadow-x78 <https://github.com/shadow-x78/orbiscreen>
-Depends: libgtk-4-1, libadwaita-1-0, libgstreamer1.0-0, libevdev2, libxkbcommon0
+Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, libgstreamer-plugins-good1.0-0, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, libxkbcommon0, libevdev2
 Section: utils
 Priority: optional
 Homepage: https://github.com/shadow-x78/orbiscreen
 Description: Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB
  Orbiscreen provides high-performance virtual secondary displays for Linux desktops,
- streaming low-latency video to Android tablets/phones over WebRTC and Wi-Fi/USB.
+ streaming low-latency H.264 video to Android tablets/phones over HTTP (Wi-Fi/USB).
+ .
+ Requires the evdi kernel module (DKMS) for a real virtual display; without it
+ the daemon falls back to streaming the primary desktop.
 EOF
 
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/prerm"

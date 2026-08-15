@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CropDin
 import androidx.compose.material.icons.filled.CropSquare
 import androidx.compose.material.icons.filled.Keyboard
@@ -55,7 +54,6 @@ fun ControlToolbar(
     onLock: () -> Unit,
     onBlank: () -> Unit,
     onCtrlAltDel: () -> Unit,
-    onOpenFiles: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -73,7 +71,6 @@ fun ControlToolbar(
                 onLock = onLock,
                 onBlank = onBlank,
                 onCtrlAltDel = onCtrlAltDel,
-                onOpenFiles = onOpenFiles,
                 onRetry = onRetry,
             )
         }
@@ -115,7 +112,6 @@ private fun Actions(
     onLock: () -> Unit,
     onBlank: () -> Unit,
     onCtrlAltDel: () -> Unit,
-    onOpenFiles: () -> Unit,
     onRetry: () -> Unit,
 ) {
     Surface(
@@ -132,7 +128,6 @@ private fun Actions(
             item { ChipAction(Icons.Filled.Lock, stringResource(R.string.lock_screen), onLock) }
             item { ChipAction(Icons.Filled.VisibilityOff, stringResource(R.string.blank_screen), onBlank) }
             item { ChipAction(Icons.Filled.Mouse, stringResource(R.string.send_ctrl_alt_del), onCtrlAltDel) }
-            item { ChipAction(Icons.Filled.Apps, stringResource(R.string.open_files), onOpenFiles) }
             item { ChipAction(Icons.Filled.Refresh, stringResource(R.string.retry), onRetry) }
         }
     }

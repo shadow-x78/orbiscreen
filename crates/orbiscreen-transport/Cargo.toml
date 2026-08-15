@@ -7,7 +7,7 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 homepage.workspace = true
-description = "WebRTC streaming, signaling, and mDNS host discovery"
+description = "HTTP MPEG-TS streaming with token auth, and mDNS host discovery"
 
 [lints]
 workspace = true
@@ -27,3 +27,5 @@ orbiscreen-input = { path = "../orbiscreen-input" }
 tokio-stream = { version = "0.1", features = ["sync"] }
 gstreamer = { workspace = true }
 gstreamer-app = { workspace = true }
+rand = "0.8"
+base64 = "0.22"

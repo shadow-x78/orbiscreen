@@ -22,7 +22,6 @@
     <string name="blank_screen">Blank</string>
     <string name="unblank_screen">Unblank</string>
     <string name="send_ctrl_alt_del">Send Ctrl+Alt+Del</string>
-    <string name="open_files">Open file manager</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>

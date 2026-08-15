@@ -16,9 +16,9 @@ pub enum AdbError {
     NoDevice,
 }
 
-/// Returns the serial of the first USB-debugging-authorized device, or None.
-/// Using `?` inside the loop would abort on any malformed line, so parse failures skip.
-fn first_device_serial(out: &str) -> Option<&str> {
+/// Returns the serials of every USB-debugging-authorized device (state ==
+/// "device"). Parse failures skip a line rather than aborting.
+fn device_serials(out: &str) -> Vec<&str> {
     out.lines()
         .skip(1)
         .filter_map(|line| {
@@ -27,7 +27,13 @@ fn first_device_serial(out: &str) -> Option<&str> {
             let state = parts.next()?;
             (state == "device").then_some(serial)
         })
-        .next()
+        .collect()
+}
+
+/// Returns the serial of the first authorized device, kept for callers that
+/// only target a single device.
+fn first_device_serial(out: &str) -> Option<&str> {
+    device_serials(out).into_iter().next()
 }
 
 pub fn find_usb_device(adb_path: &Path) -> Result<String, AdbError> {
@@ -78,7 +84,13 @@ pub fn setup_reverse_for_all(adb_path: &Path, host_port: u16) -> Result<Vec<Stri
         .arg("devices")
         .output()
         .map_err(|_| AdbError::NotInstalled)?;
-    let serials: Vec<String> = first_device_serial(&String::from_utf8_lossy(&out.stdout))
+    if !out.status.success() {
+        return Err(AdbError::Failed(
+            String::from_utf8_lossy(&out.stderr).into_owned(),
+        ));
+    }
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let serials: Vec<String> = device_serials(&stdout)
         .into_iter()
         .map(str::to_owned)
         .collect();
@@ -103,6 +115,12 @@ mod tests {
     fn parses_devices_output() {
         let output = "List of devices attached\nABCDEFGH\tdevice\nXYZ12345\tunauthorized\n";
         assert_eq!(first_device_serial(output), Some("ABCDEFGH"));
+    }
+
+    #[test]
+    fn parses_all_authorized_devices() {
+        let output = "List of devices attached\nAAAA\tdevice\nBBBB\tdevice\nCCCC\tunauthorized\n";
+        assert_eq!(device_serials(output), vec!["AAAA", "BBBB"]);
     }
 
     #[test]

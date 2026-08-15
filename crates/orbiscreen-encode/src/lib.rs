@@ -63,6 +63,13 @@ pub enum EncodeError {
     Pipeline(String),
     #[error("failed to initialize gstreamer: {0}")]
     Init(String),
+    #[error("frame size {got} B does not match encoder config {expected} B ({width}x{height}x4)")]
+    FrameSizeMismatch {
+        got: usize,
+        expected: usize,
+        width: u32,
+        height: u32,
+    },
 }
 
 pub fn init() -> Result<(), EncodeError> {
@@ -102,7 +109,9 @@ pub struct Encoder {
     pipeline: Pipeline,
     appsrc: AppSrc,
     kind: EncoderKind,
-    rx: Option<mpsc::UnboundedReceiver<EncodedChunk>>,
+    width: u32,
+    height: u32,
+    rx: Option<mpsc::Receiver<EncodedChunk>>,
 }
 
 impl Drop for Encoder {
@@ -197,10 +206,7 @@ impl Encoder {
         ])
         .map_err(|e| EncodeError::Pipeline(format!("link parse: {e}")))?;
 
-        let (tx, rx) = mpsc::unbounded_channel::<EncodedChunk>();
-        let enc_samples = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
-        let enc_samples_cb = enc_samples.clone();
-        let enc_samples_pub = enc_samples.clone();
+        let (tx, rx) = mpsc::channel::<EncodedChunk>(64);
         appsink.set_callbacks(
             AppSinkCallbacks::builder()
                 .new_sample(move |sink| {
@@ -211,10 +217,6 @@ impl Encoder {
                             return Err(gstreamer::FlowError::Eos);
                         }
                     };
-                    let n = enc_samples_cb.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-                    if n <= 5 || n % 60 == 0 {
-                        info!("encoder sample #{n}");
-                    }
                     let buffer = sample.buffer().ok_or_else(|| {
                         warn!("sample had no buffer");
                         gstreamer::FlowError::Eos
@@ -225,12 +227,18 @@ impl Encoder {
                     let bytes = map.to_vec();
                     let is_keyframe = !buffer.flags().contains(gstreamer::BufferFlags::DELTA_UNIT);
                     let pts_ns = buffer.pts().map(|t| t.nseconds()).unwrap_or(0);
-                    tx.send(EncodedChunk {
-                        bytes,
-                        is_keyframe,
-                        pts_ns,
-                    })
-                    .ok();
+                    // Bounded channel: drop (not block) when the consumer is
+                    // stalled so a slow client cannot grow memory unbounded.
+                    if tx
+                        .try_send(EncodedChunk {
+                            bytes,
+                            is_keyframe,
+                            pts_ns,
+                        })
+                        .is_err()
+                    {
+                        tracing::debug!("encoded chunk dropped: consumer channel full");
+                    }
                     Ok(gstreamer::FlowSuccess::Ok)
                 })
                 .eos(move |_| {
@@ -238,14 +246,6 @@ impl Encoder {
                 })
                 .build(),
         );
-        let enc_samples_alive = enc_samples_pub;
-        std::thread::spawn(move || loop {
-            std::thread::sleep(std::time::Duration::from_secs(3));
-            let n = enc_samples_alive.load(std::sync::atomic::Ordering::Relaxed);
-            if n > 0 {
-                info!("encoder alive: {n} samples emitted");
-            }
-        });
 
         pipeline
             .set_state(gstreamer::State::Playing)
@@ -255,23 +255,36 @@ impl Encoder {
             pipeline,
             appsrc,
             kind,
+            width: params.width,
+            height: params.height,
             rx: Some(rx),
         })
     }
 
-    pub fn subscribe(&mut self) -> Option<mpsc::UnboundedReceiver<EncodedChunk>> {
+    pub fn subscribe(&mut self) -> Option<mpsc::Receiver<EncodedChunk>> {
         self.rx.take()
     }
 
-    /// Push one BGRA frame with the given timestamp; block-free unless the
-    /// appsrc queue is full, in which case a flow error is returned.
+    /// Push one tightly-packed BGRA frame. The frame must be exactly
+    /// `width*height*4` bytes matching the encoder's configured input
+    /// dimensions — a mis-sized buffer would be handed to GStreamer raw and
+    /// show up as a garbled/black stream.
     pub fn push_frame(
         &self,
         frame: &[u8],
-        _width: u32,
-        _height: u32,
+        width: u32,
+        height: u32,
         pts_ns: u64,
     ) -> Result<(), EncodeError> {
+        let expected = self.width as usize * self.height as usize * 4;
+        if frame.len() != expected || width != self.width || height != self.height {
+            return Err(EncodeError::FrameSizeMismatch {
+                got: frame.len(),
+                expected,
+                width: self.width,
+                height: self.height,
+            });
+        }
         let mut buffer = gstreamer::Buffer::with_size(frame.len())
             .map_err(|e| EncodeError::Pipeline(format!("alloc buffer: {e}")))?;
         {
@@ -299,8 +312,10 @@ impl Encoder {
     }
 
     /// Duration of one frame in nanoseconds at `framerate` fps.
+    /// Returns 1 s for a degenerate (zero) framerate instead of dividing
+    /// by zero; config sanitization normally prevents zero from arriving.
     pub fn frame_duration_ns(framerate: u32) -> u64 {
-        1_000_000_000 / u64::from(framerate)
+        1_000_000_000 / u64::from(framerate).max(1)
     }
 
     pub fn kind(&self) -> EncoderKind {

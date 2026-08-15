@@ -22,7 +22,6 @@ pub struct WaylandCaptureSpec {
     pub width: u32,
     pub height: u32,
 }
-
 #[derive(Debug, Clone)]
 pub struct PipeWireStream {
     pub node_id: u32,
@@ -80,6 +79,10 @@ pub struct WaylandCapture {
     stream: PipeWireStream,
     _pipeline: gstreamer::Pipeline,
     rx: tokio::sync::Mutex<mpsc::UnboundedReceiver<CapturedFrame>>,
+    /// Output dimensions forced by the GStreamer pipeline caps (videoconvert
+    /// + videoscale normalize every portal frame to exactly this size).
+    width: u32,
+    height: u32,
 }
 
 impl WaylandCapture {
@@ -220,7 +223,14 @@ impl WaylandCapture {
             stream,
             _pipeline: pipeline,
             rx: tokio::sync::Mutex::new(rx),
+            width: spec.width,
+            height: spec.height,
         })
+    }
+
+    /// Output dimensions forced by the pipeline caps.
+    pub fn dimensions(&self) -> (u32, u32) {
+        (self.width, self.height)
     }
 
     pub fn stream(&self) -> &PipeWireStream {

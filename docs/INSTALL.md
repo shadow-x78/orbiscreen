@@ -6,7 +6,7 @@
 
 ---
 
-> Latest release: **v0.10.3** (Material 3 Android client, fixed black screen, live discovery).
+> Latest release: **v0.11.0** (token-protected streaming, evdi primary + portal fallback, web client).
 
 ## 🚀 Quick Start & Multi-Distro Installation
 

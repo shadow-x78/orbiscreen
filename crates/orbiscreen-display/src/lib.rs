@@ -2,14 +2,20 @@
 // https://github.com/shadow-x78/orbiscreen
 
 use std::path::Path;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use std::time::Duration;
 
+use evdi::device_node::DeviceNodeStatus;
 use evdi::prelude::*;
 use thiserror::Error;
 use tracing::{info, instrument, warn};
 
 pub const AWAIT_MODE_TIMEOUT: Duration = Duration::from_millis(250);
-pub const UPDATE_BUFFER_TIMEOUT: Duration = Duration::from_millis(20);
+/// Long mode wait used at open time: compositors can take a couple of seconds
+/// to complete the first modeset on a freshly connected evdi head.
+pub const OPEN_MODE_TIMEOUT: Duration = Duration::from_secs(3);
+pub const UPDATE_BUFFER_TIMEOUT: Duration = Duration::from_millis(50);
 
 #[derive(Debug, Error)]
 pub enum DisplayError {
@@ -27,6 +33,8 @@ pub enum DisplayError {
     ChannelClosed,
     #[error("no evdi buffer registered: {0}")]
     NoBuffer(String),
+    #[error("unsupported evdi pixel format: {0}")]
+    UnsupportedFormat(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,13 +80,61 @@ pub fn device_config_for(spec: VirtualDisplaySpec) -> DeviceConfig {
     }
 }
 
+/// Owned single frame in tightly-packed BGRA (width*height*4 bytes, no
+/// stride padding) — the exact format the encoder appsrc caps expect.
+#[derive(Debug, Clone)]
+pub struct OwnedFrame {
+    pub width: u32,
+    pub height: u32,
+    pub data: Vec<u8>,
+}
+
+impl OwnedFrame {
+    pub fn size_in_bytes(width: u32, height: u32) -> usize {
+        (width as usize) * (height as usize) * 4
+    }
+}
+
+/// Pick the evdi device node to open.
+///
+/// Without an explicit index this mirrors `DeviceNode::get()` semantics: it
+/// pops the last element of the ascending-sorted available list, i.e. the
+/// highest-id available card. evdi 0.8 exposes no id accessor on
+/// `DeviceNode`, so the numeric id is recovered by scanning /dev/dri/card*
+/// with the same Available filter and sort order `list_available()` applies.
+fn pick_node(index: Option<u32>) -> Result<(DeviceNode, u32), DisplayError> {
+    match index {
+        Some(i) => Ok((DeviceNode::new(i as i32), i)),
+        None => {
+            let mut ids: Vec<i32> = std::fs::read_dir("/dev/dri")
+                .map_err(|e| DisplayError::OpenDevice(format!("/dev/dri: {e:?}")))?
+                .flatten()
+                .filter_map(|entry| {
+                    let name = entry.file_name().into_string().ok()?;
+                    let id = name.strip_prefix("card")?.parse::<i32>().ok()?;
+                    (DeviceNode::new(id).status() == DeviceNodeStatus::Available).then_some(id)
+                })
+                .collect();
+            ids.sort_unstable();
+            let id = ids
+                .into_iter()
+                .next_back()
+                .ok_or(DisplayError::NoDeviceNode)?;
+            Ok((DeviceNode::new(id), id as u32))
+        }
+    }
+}
+
 #[allow(missing_debug_implementations)]
 pub struct VirtualDisplay {
     spec: VirtualDisplaySpec,
     handle: Handle,
     buffer_id: BufferId,
-    /// Actual evdi device node id (0-based), taken from the opened `DeviceNode`.
+    /// evdi device node id (the N in /dev/dri/cardN) actually opened.
     device_index: u32,
+    /// Mode the currently registered buffer was allocated for; used to detect
+    /// mid-stream modesets (rotation, resolution changes).
+    buffer_mode: Mode,
 }
 
 impl VirtualDisplay {
@@ -99,12 +155,8 @@ impl VirtualDisplay {
             _ => {}
         }
 
-        let node = match index {
-            Some(i) => DeviceNode::new(i as i32),
-            None => DeviceNode::get().ok_or(DisplayError::NoDeviceNode)?,
-        };
-        let device_index = index.unwrap_or(0);
-        info!(node = ?node, "Opening evdi device node");
+        let (node, device_index) = pick_node(index)?;
+        info!(node = ?node, card = device_index, "Opening evdi device node");
         #[allow(unsafe_code)]
         let unconnected =
             unsafe { node.open() }.map_err(|e| DisplayError::OpenDevice(format!("{e:?}")))?;
@@ -114,7 +166,7 @@ impl VirtualDisplay {
 
         let mode = handle
             .events
-            .await_mode(AWAIT_MODE_TIMEOUT)
+            .await_mode(OPEN_MODE_TIMEOUT)
             .await
             .map_err(|e| match e {
                 evdi::events::AwaitEventError::Timeout => DisplayError::ModeTimeout,
@@ -128,14 +180,14 @@ impl VirtualDisplay {
             handle,
             buffer_id,
             device_index,
+            buffer_mode: mode,
         })
     }
 
     pub async fn open_many(count: u32, spec: VirtualDisplaySpec) -> Vec<Self> {
         let mut out = Vec::with_capacity(count as usize);
         for i in 0..count {
-            let device_index = i;
-            match Self::open_at(spec, Some(device_index)).await {
+            match Self::open_at(spec, Some(i)).await {
                 Ok(display) => out.push(display),
                 Err(error) => {
                     warn!(index = i, error = %error, "open_many short-circuiting");
@@ -158,26 +210,67 @@ impl VirtualDisplay {
         self.handle.events.current_mode()
     }
 
-    pub async fn next_frame(&mut self) -> Result<FrameRef<'_>, DisplayError> {
-        self.handle
+    /// Dimensions the compositor actually negotiated. May differ from the
+    /// requested spec when the compositor clamps or rounds the mode.
+    pub fn actual_dimensions(&self) -> (u32, u32) {
+        (self.buffer_mode.width, self.buffer_mode.height)
+    }
+
+    /// Grab the next screen update and convert it to tightly-packed BGRA.
+    ///
+    /// `Ok(None)` means the virtual display has no new content yet (the
+    /// compositor hasn't pushed an update within the update timeout) — the
+    /// caller should keep polling rather than treat this as an error.
+    pub async fn next_frame(&mut self) -> Result<Option<OwnedFrame>, DisplayError> {
+        let Some(current) = self.current_mode() else {
+            return Ok(None);
+        };
+        if current.width != self.buffer_mode.width || current.height != self.buffer_mode.height {
+            // Modeset happened (rotation/resolution change): evdi requires
+            // buffers to be re-registered to match the new mode.
+            info!(
+                from = ?self.buffer_mode,
+                to = ?current,
+                "evdi mode change: reallocating buffer"
+            );
+            self.handle.unregister_buffer(self.buffer_id);
+            self.buffer_id = self.handle.new_buffer(&current);
+            self.buffer_mode = current;
+        }
+
+        match self
+            .handle
             .request_update(self.buffer_id, UPDATE_BUFFER_TIMEOUT)
             .await
-            .map_err(|e| match e {
-                evdi::handle::RequestUpdateError::AwaitUpdate(_) => DisplayError::ChannelClosed,
-                evdi::handle::RequestUpdateError::UnregisteredBuffer => DisplayError::ModeTimeout,
-            })?;
+        {
+            Ok(()) => {}
+            Err(evdi::handle::RequestUpdateError::AwaitUpdate(
+                evdi::events::AwaitEventError::Timeout,
+            )) => return Ok(None),
+            Err(evdi::handle::RequestUpdateError::AwaitUpdate(
+                evdi::events::AwaitEventError::ChannelClosed,
+            )) => return Err(DisplayError::ChannelClosed),
+            Err(evdi::handle::RequestUpdateError::UnregisteredBuffer) => {
+                return Err(DisplayError::NoBuffer(
+                    "registered buffer was unregistered by the kernel".into(),
+                ))
+            }
+        }
+
         let buffer = self
             .handle
             .get_buffer(self.buffer_id)
             .ok_or(DisplayError::NoBuffer("registered buffer vanished".into()))?;
-        Ok(FrameRef {
-            bytes: buffer.bytes(),
-            width: self.current_mode().map_or(self.spec.width, |m| m.width),
-            height: self.current_mode().map_or(self.spec.height, |m| m.height),
-            stride: self
-                .current_mode()
-                .map_or(self.spec.width * 4, |m| m.stride()),
-        })
+        let width = buffer.width as u32;
+        let height = buffer.height as u32;
+        to_tight_bgra(
+            buffer.bytes(),
+            buffer.stride as u32,
+            width,
+            height,
+            self.buffer_mode.pixel_format,
+        )
+        .map(Some)
     }
 
     pub fn remove_all_nodes() -> std::io::Result<()> {
@@ -225,12 +318,192 @@ impl VirtualDisplay {
     }
 }
 
-#[derive(Debug)]
-pub struct FrameRef<'a> {
-    pub bytes: &'a [u8],
+/// Convert an evdi framebuffer (possibly stride-padded, XRGB8888/RGB565) to
+/// tightly-packed BGRA. evdi's legacy formats store pixels little-endian, so
+/// the in-memory byte order of XRGB8888 is B,G,R,X — already BGRA-shaped.
+fn to_tight_bgra(
+    bytes: &[u8],
+    stride: u32,
+    width: u32,
+    height: u32,
+    pixel_format: Result<drm_fourcc::DrmFourcc, evdi::UnrecognizedFourcc>,
+) -> Result<OwnedFrame, DisplayError> {
+    let expected = OwnedFrame::size_in_bytes(width, height);
+    match pixel_format {
+        Ok(drm_fourcc::DrmFourcc::Xrgb8888) | Ok(drm_fourcc::DrmFourcc::Argb8888) => {
+            let row_bytes = (width * 4) as usize;
+            let mut data = Vec::with_capacity(expected);
+            for row in 0..height as usize {
+                let start = row * stride as usize;
+                if start + row_bytes > bytes.len() {
+                    return Err(DisplayError::NoBuffer(format!(
+                        "framebuffer truncated: need {} B, have {}",
+                        start + row_bytes,
+                        bytes.len()
+                    )));
+                }
+                data.extend_from_slice(&bytes[start..start + row_bytes]);
+            }
+            Ok(OwnedFrame {
+                width,
+                height,
+                data,
+            })
+        }
+        Ok(drm_fourcc::DrmFourcc::Rgb565) => {
+            let mut data = Vec::with_capacity(expected);
+            for row in 0..height as usize {
+                let start = row * stride as usize;
+                for col in 0..width as usize {
+                    let off = start + col * 2;
+                    if off + 2 > bytes.len() {
+                        return Err(DisplayError::NoBuffer("framebuffer truncated".into()));
+                    }
+                    let pixel = u16::from_le_bytes([bytes[off], bytes[off + 1]]);
+                    let r = ((pixel >> 11) & 0x1F) as u8;
+                    let g = ((pixel >> 5) & 0x3F) as u8;
+                    let b = (pixel & 0x1F) as u8;
+                    let r8 = (r << 3) | (r >> 2);
+                    let g8 = (g << 2) | (g >> 4);
+                    let b8 = (b << 3) | (b >> 2);
+                    data.extend_from_slice(&[b8, g8, r8, 0xFF]);
+                }
+            }
+            Ok(OwnedFrame {
+                width,
+                height,
+                data,
+            })
+        }
+        Ok(other) => Err(DisplayError::UnsupportedFormat(other.to_string())),
+        Err(e) => Err(DisplayError::UnsupportedFormat(format!(
+            "unknown fourcc: {e:?}"
+        ))),
+    }
+}
+
+/// Dimensions and identity of an opened pump, reported once the display is
+/// up so callers size the encoder before the first frame arrives.
+#[derive(Debug, Clone)]
+pub struct EvdiPumpInfo {
     pub width: u32,
     pub height: u32,
-    pub stride: u32,
+    pub connector: Option<String>,
+    pub device_index: u32,
+}
+
+/// Drives a [`VirtualDisplay`] on a dedicated OS thread running its own
+/// current-thread tokio runtime.
+///
+/// evdi's `Handle` is `!Send` (it wraps a raw libevdi pointer), so a
+/// `next_frame()` future holding `&mut Handle` across `.await` points cannot
+/// be spawned onto a multithreaded runtime. This pump isolates the unsendable
+/// handle to a single thread and forwards fully-owned, `Send`
+/// [`OwnedFrame`]s across a channel instead.
+#[allow(missing_debug_implementations)]
+pub struct EvdiFramePump {
+    rx: tokio::sync::mpsc::UnboundedReceiver<OwnedFrame>,
+    stop: Arc<AtomicBool>,
+    info: EvdiPumpInfo,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl EvdiFramePump {
+    /// Open the virtual display and start reading frames on a background
+    /// thread. Blocks until the display reports its negotiated mode (or
+    /// fails), so callers learn immediately whether evdi is usable and what
+    /// resolution the compositor actually picked.
+    pub fn spawn(spec: VirtualDisplaySpec) -> Result<Self, DisplayError> {
+        let (done_tx, done_rx) = std::sync::mpsc::channel::<Result<EvdiPumpInfo, DisplayError>>();
+        let (frames_tx, frames_rx) = tokio::sync::mpsc::unbounded_channel::<OwnedFrame>();
+        let stop = Arc::new(AtomicBool::new(false));
+        let stop_for_thread = Arc::clone(&stop);
+
+        let thread = std::thread::Builder::new()
+            .name("orbiscreen-evdi-pump".into())
+            .spawn(move || {
+                let runtime = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("evdi pump current-thread runtime");
+                runtime.block_on(async move {
+                    let mut display = match VirtualDisplay::open(spec).await {
+                        Ok(display) => display,
+                        Err(e) => {
+                            let _ = done_tx.send(Err(e));
+                            return;
+                        }
+                    };
+                    let (width, height) = display.actual_dimensions();
+                    let info = EvdiPumpInfo {
+                        width,
+                        height,
+                        connector: display.drm_connector_name(),
+                        device_index: display.device_index(),
+                    };
+                    let _ = done_tx.send(Ok(info));
+
+                    loop {
+                        if stop_for_thread.load(std::sync::atomic::Ordering::Relaxed) {
+                            break;
+                        }
+                        match display.next_frame().await {
+                            Ok(Some(frame)) => {
+                                // Receiver dropped means the daemon is shutting
+                                // down; nothing left to feed.
+                                if frames_tx.send(frame).is_err() {
+                                    break;
+                                }
+                            }
+                            Ok(None) => {
+                                // No new content yet; next_frame already waited
+                                // up to UPDATE_BUFFER_TIMEOUT, so no extra sleep.
+                            }
+                            Err(e) => {
+                                warn!("evdi frame error: {e}");
+                                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+                            }
+                        }
+                    }
+                });
+            })
+            .map_err(|e| DisplayError::OpenDevice(format!("spawn pump thread: {e}")))?;
+
+        let info = done_rx
+            .recv_timeout(Duration::from_secs(10))
+            .map_err(|_| DisplayError::ModeTimeout)??;
+
+        Ok(Self {
+            rx: frames_rx,
+            stop,
+            info,
+            thread: Some(thread),
+        })
+    }
+
+    /// The next frame, or `None` when the pump thread has ended.
+    pub async fn next_frame(&mut self) -> Option<OwnedFrame> {
+        self.rx.recv().await
+    }
+
+    pub fn info(&self) -> &EvdiPumpInfo {
+        &self.info
+    }
+
+    pub fn actual_dimensions(&self) -> (u32, u32) {
+        (self.info.width, self.info.height)
+    }
+}
+
+impl Drop for EvdiFramePump {
+    fn drop(&mut self) {
+        self.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+        // Drop the receiver so the pump's `recv` returns `None` even if it is
+        // mid-wait, letting the thread exit promptly.
+        if let Some(handle) = self.thread.take() {
+            let _ = handle.join();
+        }
+    }
 }
 
 fn build_edid(width: u32, height: u32) -> [u8; 128] {
@@ -301,6 +574,20 @@ fn build_edid(width: u32, height: u32) -> [u8; 128] {
 mod tests {
     use super::*;
 
+    fn xrgb_frame(width: u32, height: u32, stride: usize) -> Vec<u8> {
+        let mut bytes = vec![0u8; height as usize * stride];
+        for row in 0..height as usize {
+            for col in 0..width as usize {
+                let off = row * stride + col * 4;
+                // XRGB8888 little-endian: bytes are B,G,R,X.
+                bytes[off] = 10; // B
+                bytes[off + 1] = 20; // G
+                bytes[off + 2] = 30; // R
+            }
+        }
+        bytes
+    }
+
     #[test]
     fn spec_full_hd_60_has_expected_dimensions() {
         let s = VirtualDisplaySpec::FULL_HD_60;
@@ -359,5 +646,42 @@ mod tests {
     #[test]
     fn drm_connector_name_uses_device_index() {
         assert_eq!(format!("DVI-I-{}", 3), "DVI-I-3");
+    }
+
+    #[test]
+    fn to_tight_bgra_removes_stride_padding() {
+        // 2x2 with stride 12 (3 extra pixels of padding per row).
+        let bytes = xrgb_frame(2, 2, 12);
+        let frame =
+            to_tight_bgra(&bytes, 12, 2, 2, Ok(drm_fourcc::DrmFourcc::Xrgb8888)).expect("convert");
+        assert_eq!(frame.width, 2);
+        assert_eq!(frame.height, 2);
+        assert_eq!(frame.data.len(), 16);
+        // Packed order: B,G,R,A per pixel.
+        assert_eq!(&frame.data[0..4], &[10, 20, 30, 0]);
+    }
+
+    #[test]
+    fn to_tight_bgra_tolerates_unpadded_stride() {
+        let bytes = xrgb_frame(4, 3, 16);
+        let frame =
+            to_tight_bgra(&bytes, 16, 4, 3, Ok(drm_fourcc::DrmFourcc::Xrgb8888)).expect("convert");
+        assert_eq!(frame.data.len(), OwnedFrame::size_in_bytes(4, 3));
+    }
+
+    #[test]
+    fn to_tight_bgra_rejects_truncated_buffer() {
+        let bytes = vec![0u8; 8];
+        let result = to_tight_bgra(&bytes, 8, 4, 2, Ok(drm_fourcc::DrmFourcc::Xrgb8888));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn to_tight_bgra_converts_rgb565() {
+        // 1x1 white in RGB565 = 0xFFFF -> r=31->255, g=63->255, b=31->255.
+        let bytes = [0xFF, 0xFF];
+        let frame =
+            to_tight_bgra(&bytes, 2, 1, 1, Ok(drm_fourcc::DrmFourcc::Rgb565)).expect("convert");
+        assert_eq!(frame.data, vec![0xFF, 0xFF, 0xFF, 0xFF]);
     }
 }

@@ -91,7 +91,6 @@ fun StreamScreen(
                 onLock = viewModel::lock,
                 onBlank = viewModel::blank,
                 onCtrlAltDel = viewModel::ctrlAltDel,
-                onOpenFiles = viewModel::openFileManager,
                 onRetry = viewModel::retry,
             )
         },

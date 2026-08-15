@@ -1,5 +1,10 @@
 // Orbiscreen - web client (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
+//
+// Playback uses MSE via the locally-vendored mpegts.js (no CDN): browsers
+// cannot feed a raw MPEG-TS HTTP stream to <video src>, so we demux it here
+// and push H.264 into a MediaSource. On any failure we tear the player down
+// and reconnect with exponential backoff.
 
 const statusEl = document.getElementById("status");
 const resolutionEl = document.getElementById("resolution");
@@ -9,17 +14,22 @@ const touchIndicator = document.getElementById("touchIndicator");
 
 let displayWidth = 1920;
 let displayHeight = 1080;
+let authToken = "";
+let mpegtsPlayer = null;
+let reconnectTimer = null;
+let reconnectDelay = 1000;
+const MAX_RECONNECT_DELAY = 10000;
 
 function setStatus(text) {
     statusEl.textContent = text;
 }
 
-// Protocol payloads mirror the Rust `IncomingInput` enum in
-// crates/orbiscreen-transport: tagged Pointer/Key/Stylus variants.
 function sendInput(payload) {
+    const headers = { "content-type": "application/json" };
+    if (authToken) headers.authorization = `Bearer ${authToken}`;
     fetch("/input", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers,
         body: JSON.stringify(payload),
     }).catch((err) => console.warn("sendInput failed:", err));
 }
@@ -47,7 +57,10 @@ const KEYCODE_MAP = {
     ScrollLock: 70, PrintScreen: 99, Pause: 119, ContextMenu: 127,
 };
 
-for (let i = 0; i < 12; i += 1) KEYCODE_MAP[`F${i + 1}`] = 59 + i;
+// F1..F10 start at evdev code 59, then jump: F11=87, F12=88.
+for (let i = 0; i < 10; i += 1) KEYCODE_MAP[`F${i + 1}`] = 59 + i;
+KEYCODE_MAP.F11 = 87;
+KEYCODE_MAP.F12 = 88;
 for (let i = 0; i < 10; i += 1) {
     KEYCODE_MAP[`Digit${(i + 1) % 10}`] = 2 + i;
     KEYCODE_MAP[`Numpad${i}`] = i === 0 ? 82 : 71 + (i - 1);
@@ -109,8 +122,100 @@ function hideTouch() {
     touchIndicator.classList.add("hidden");
 }
 
-async function start() {
+// ---------------------------------------------------------------------------
+// Stream playback (MSE)
+// ---------------------------------------------------------------------------
+
+function canPlayMpegTs() {
+    return typeof mpegts !== "undefined"
+        && mpegts.getFeatureList().mseLivePlayback;
+}
+
+function destroyPlayer() {
+    if (mpegtsPlayer) {
+        mpegtsPlayer.destroy();
+        mpegtsPlayer = null;
+    }
+    if (videoEl.src) {
+        videoEl.pause();
+        videoEl.removeAttribute("src");
+        videoEl.load();
+    }
+    streamActive = false;
+}
+
+function scheduleReconnect(reason) {
+    if (reconnectTimer) return;
+    destroyPlayer();
+    setStatus(`Stream lost (${reason}) — retrying in ${reconnectDelay / 1000}s…`);
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        startStream();
+    }, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
+}
+
+function startStream() {
+    if (!canPlayMpegTs()) {
+        setStatus("This browser does not support MSE playback (Chrome/Firefox/Edge required)");
+        return;
+    }
+    destroyPlayer();
     setStatus("Connecting to stream…");
+
+    const streamUrl = authToken
+        ? `/stream?token=${encodeURIComponent(authToken)}`
+        : "/stream";
+    mpegtsPlayer = mpegts.createPlayer({
+        type: "mpegts",
+        isLive: true,
+        url: streamUrl,
+    }, {
+        // Live tuning: chase the live edge instead of buffering up.
+        autoCleanupSourceBuffer: true,
+        liveBufferLatencyChasing: true,
+        lazyLoad: false,
+        lazyLoadMaxDuration: 0,
+        seekType: "range",
+    });
+
+    mpegtsPlayer.attachMediaElement(videoEl);
+
+    mpegtsPlayer.on(mpegts.Events.ERROR, (errorType, errorDetail, errorInfo) => {
+        console.error("mpegts error:", errorType, errorDetail, errorInfo);
+        scheduleReconnect(errorDetail || errorType || "unknown error");
+    });
+    mpegtsPlayer.on(mpegts.Events.MEDIA_INFO, (mediaInfo) => {
+        if (mediaInfo && mediaInfo.width && mediaInfo.height) {
+            displayWidth = mediaInfo.width;
+            displayHeight = mediaInfo.height;
+            resolutionEl.textContent = `${displayWidth} × ${displayHeight}`;
+        }
+    });
+
+    mpegtsPlayer.load();
+    mpegtsPlayer.play().catch((error) => {
+        console.error("play() failed:", error);
+    });
+}
+
+async function start() {
+    setStatus("Reading host info…");
+
+    // Bootstrap: resolution + session token (served by the daemon itself).
+    try {
+        const cfg = await fetch("/client/config.json");
+        if (cfg.ok) {
+            const info = await cfg.json();
+            if (typeof info.token === "string" && info.token.length > 0) {
+                authToken = info.token;
+            }
+            if (Number.isFinite(info.display_width)) displayWidth = info.display_width;
+            if (Number.isFinite(info.display_height)) displayHeight = info.display_height;
+        }
+    } catch (error) {
+        console.warn("config.json fetch failed:", error);
+    }
     try {
         const response = await fetch("/api/info");
         if (response.ok) {
@@ -119,23 +224,38 @@ async function start() {
                 && Number.isFinite(info?.display_height)) {
                 displayWidth = info.display_width;
                 displayHeight = info.display_height;
-                resolutionEl.textContent =
-                    `${displayWidth} × ${displayHeight}`;
             }
         }
     } catch (error) {
-        // Keep the default resolution if host info is unavailable.
         console.warn("api/info fetch failed:", error);
     }
+    resolutionEl.textContent = `${displayWidth} × ${displayHeight}`;
 
-    videoEl.src = "/stream";
-    videoEl.play().catch((error) => {
-        setStatus(`Playback error: ${error.message}`);
-        console.error(error);
-    });
+    overlayEl.classList.add("hidden");
+    startStream();
+}
+
+videoEl.addEventListener("playing", () => {
+    streamActive = true;
+    reconnectDelay = 1000; // reset backoff after successful playback
     overlayEl.classList.add("hidden");
     setStatus("Streaming");
-}
+});
+
+// If the live connection stalls (daemon restart, network drop) the stream
+// element errors out — kick off the reconnect loop.
+videoEl.addEventListener("error", () => {
+    if (streamActive || mpegtsPlayer) {
+        scheduleReconnect("media error");
+    }
+});
+
+// Detect the daemon closing our HTTP body (reached end of stream).
+videoEl.addEventListener("ended", () => {
+    if (streamActive || mpegtsPlayer) {
+        scheduleReconnect("stream ended");
+    }
+});
 
 videoEl.addEventListener("pointerdown", (event) => {
     event.preventDefault();
@@ -193,14 +313,6 @@ window.addEventListener("keydown", (event) => {
 window.addEventListener("keyup", (event) => {
     if (streamActive) event.preventDefault();
     sendKey(event.code, false);
-});
-
-videoEl.addEventListener("playing", () => {
-    streamActive = true;
-});
-videoEl.addEventListener("error", () => {
-    streamActive = false;
-    setStatus("Stream error — check that the daemon is running");
 });
 
 start().catch((error) => {

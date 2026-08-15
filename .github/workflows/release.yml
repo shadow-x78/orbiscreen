@@ -135,13 +135,25 @@ jobs:
 
       - name: Build Android Release APK
         env:
-          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          # Signing material comes from repo secrets, never from the repo.
+          # ANDROID_KEYSTORE_B64 must contain the NEW keystore generated after
+          # the old one (committed with a plaintext password) was rotated out.
+          ORBISCREEN_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ORBISCREEN_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ORBISCREEN_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ORBISCREEN_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cd clients/android
-          echo "$ANDROID_KEYSTORE_B64" | base64 -d > orbiscreen-release.keystore
+          if [ -z "${ORBISCREEN_KEYSTORE_B64:-}" ]; then
+            echo "::error::ANDROID_KEYSTORE_B64 secret is not set in the repository"
+            exit 1
+          fi
+          echo "$ORBISCREEN_KEYSTORE_B64" | base64 -d > /tmp/orbiscreen-release.keystore
+          export ORBISCREEN_KEYSTORE_PATH=/tmp/orbiscreen-release.keystore
           chmod +x gradlew
           ./gradlew assembleRelease
           cp app/build/outputs/apk/release/app-release.apk ../../orbiscreen-android-release.apk
+          rm -f /tmp/orbiscreen-release.keystore
 
       - name: Generate SHA256 sums
         run: |

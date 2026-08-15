@@ -6,81 +6,141 @@
 
 ---
 
-> ينطبق على **v0.10.3** والإصدارات الأحدث.
+> ينطبق على **v0.11.0** والإصدارات الأحدث.
 
-يكشف Orbiscreen واجهة D-Bus Session Service تتيح للوحات تحكم سطح المكتب (واجهة GTK4)، وسكربتات CLI، ومؤشرات شريط النظام فحص الحالة وضبط إعدادات الشاشة والتحكم في عملية الـ daemon.
+يكشف Orbiscreen واجهة D-Bus Session Service تتيح للوحات تحكم سطح المكتب (واجهة GTK4)، وسكربتات CLI، ومؤشرات شريط النظام فحص الحالة الحية والتحكم في عملية الـ daemon. التطبيق الفعلي موجود في `crates/orbiscreen-daemon/src/dbus.rs` - توثّق هذه المواصفات بالضبط ما يعرضه ذلك الكود.
 
-- **نوع الناقل:** Session Bus
+- **نوع الناقل:** Session Bus (ناقل *المستخدم* وليس ناقل النظام)
 - **اسم الخدمة:** `com.orbiscreen.Daemon`
 - **مسار الكائن:** `/com/orbiscreen/Daemon`
 - **اسم الواجهة:** `com.orbiscreen.Daemon`
+
+تُسجَّل الخدمة بواسطة عملية daemon *قيد التشغيل*. إذا كان اسم الخدمة غائباً (`ServiceUnknown`)، فالدايمن ببساطة غير شغال - لا يوجد تفعيل أو إطلاق عبر D-Bus.
 
 ---
 
 ## 🛰 سطح تحكم HTTP المرافق
 
-يتواصل عميل Android (v0.10.3) مع الـ daemon عبر HTTP بسيط وليس D-Bus. النقاط التي يستخدمها هي:
+يتواصل عميلا Android والويب مع الـ daemon عبر HTTP وليس D-Bus. جدول التوجيه الحالي (راجع `orbiscreen-transport`):
 
-| النقطة | الغرض |
-|----------|---------|
-| `GET /health` | فحص الحيوية |
-| `GET /api/info` | أبعاد الشاشة والمُرمّز والإصدار |
-| `POST /api/control` | إجراءات القفل والتعتيم وctrl-alt-del والفتح |
-| `GET /stream` | بث فيديو MPEG-TS |
+| النقطة | المصادقة | الغرض |
+|--------|----------|-------|
+| `GET /health` | عامة | فحص الحيوية |
+| `GET /api/info` | عامة | أبعاد الشاشة والمُرمّز والإصدار |
+| `GET /stream?token=…` | توكن | بث فيديو MPEG-TS ‏(H.264)‏ |
+| `POST /input` | توكن | أحداث المؤشر / لوحة المفاتيح / القلم |
+| `POST /api/control` | توكن | إجراءات المضيف `lock`، `blank`، `unblank`، `ctrl_alt_del` |
+| `GET /client/config.json` | عامة | تمهيد عميل الويب: `{token, display_width, display_height}` |
+| `GET /` | عامة | إعادة توجيه إلى عميل الويب المضمّن |
+| `GET /client/*` | عامة | ملفات عميل الويب الساكنة ‏(MSE عبر mpegts.js المُورَّدة محليا)‏ |
 
-يبقى D-Bus الواجهة المرجعية لعملاء Linux الأصليين (واجهة GTK وسكربتات CLI). يتشارك السطحان مصدر الحقيقة نفسه في `orbiscreen-transport`.
+**نموذج التوكن:** يولَّد توكن عشوائي جديد مع كل تشغيل للدايمن (32 بايت، base64url). المسارات المحمية تشترطه عبر ترويسة `Authorization: Bearer <token>` أو معامل `?token=<token>`. يحصل العملاء عليه من سجل mDNS TXT أو من `/client/config.json`. وبما أن التوكن قابل للقراءة من أي طرف يستطيع الوصول إلى المنفذ، فهذه حماية من الاستخدام العرضي وليست مصادقة قوية - راجع `SECURITY.md`.
+
+يبقى D-Bus الواجهة المرجعية لعملاء Linux الأصليين (واجهة GTK، سكربتات CLI، `orbiscreen stop`). يتشارك السطحان مصدر الحقيقة نفسه في `orbiscreen-transport` (‏`Stats`).
 
 ---
 
 ## 🛠 توابع D-Bus
 
-### 1. `GetStatus() -> String`
-تُرجع حالة تنفيذ الـ daemon الحالية.
-- **القيمة المُرجعة:** `"Running"` أو `"Stopped"`
+جميع التوابع معروضة على ناقل الجلسة. يحوّل zbus أسماء Rust إلى PascalCase على السلك.
 
-### 2. `Start() -> String`
-تبدأ محرك التقاط الشاشة والترميز والنقل في Orbiscreen.
-- **القيمة المُرجعة:** `"Orbiscreen daemon started via D-Bus"`
+### 1. `GetStatus() -> String` (التوقيع `s`)
 
-### 3. `Stop() -> String`
-توقف التقاط الشاشة وتفصل البثوث النشطة.
-- **القيمة المُرجعة:** `"Orbiscreen daemon stopped via D-Bus"`
+تُرجع حالة الـ daemon الحية كنص **كائن JSON**:
 
-### 4. `ListClients() -> Vec<String>`
-تُرجع قائمة بعملاء الويب وAndroid المتصلين حالياً.
-- **القيمة المُرجعة:** `["HTTP Direct /stream", "NSD / WebRTC Signaling Active"]`
-
-### 5. `GetConfig() -> String`
-تُرجع الإعدادات الفعلية منسّقةً كنص JSON.
-- **القيمة المُرجعة:** `{"width":1920,"height":1080,"refresh_rate":60,"encoder":"auto"}`
-
----
-
-## 🔄 تابع مرافق: `SetScreenState(state: String) -> String` (مقترح لـ v0.10.3)
-
-يعكس إجراءات `/api/control` عبر D-Bus بحيث تستطيع لوحة تحكم طرف المضيف أيضاً تبديل حالة الشاشة دون المرور بـ HTTP.
-
-التوقيع المقترح:
-
-```dbus
-SetScreenState(IN String state) -> String
+```json
+{
+  "running": true,
+  "frames_forwarded": 184320,
+  "active_clients": 2,
+  "total_clients": 5,
+  "encoder": "x264",
+  "capture_backend": "evdi"
+}
 ```
 
-حيث `state ∈ {"on", "off", "lock"}`.
+| الحقل | النوع | المعنى |
+|-------|-------|--------|
+| `running` | bool | علم تشغيل خط الأنابيب (‏`false` لفترة قصيرة بعد طلب `Stop`)‏ |
+| `frames_forwarded` | u64 | عدد الإطارات المسلّمة إلى النقل منذ البدء |
+| `active_clients` | u64 | عملاء `/stream` المتصلون حالياً |
+| `total_clients` | u64 | إجمالي اتصالات `/stream` منذ البدء |
+| `encoder` | string | المُرمّز الفعلي قيد الاستخدام ‏(`x264`، `vaapi`، `nvenc`)‏ |
+| `capture_backend` | string | `evdi` للشاشة الافتراضية؛ `x11-portal-fallback` / `wayland-portal-fallback` عند غياب وحدة evdi |
+
+### 2. `Stop() -> String` (التوقيع `s`)
+
+تطلب إطفاءاً رشيقا للدايمن. يقلب المعالج علم التشغيل ويرسل إشارة إلى الحلقة الرئيسية عبر قناة watch داخلية؛ ثم يهدم الـ daemon الالتقاط والترميز والنقل ويخرج.
+
+- **القيمة المُرجعة:** `"Orbiscreen daemon shutting down"`
+- **إن كان متوقفاً أصلاً:** `"Orbiscreen is not running"`
+
+أمر `orbiscreen stop` عميل رقيق لهذا التابع تحديداً: يستدعي `Stop()` عبر ناقل الجلسة، يطبع الرد، ويخرج بالرمز 1 مع تلميح `systemctl --user stop orbiscreen` عندما لا يُعثر على اسم الخدمة.
+
+### 3. `Start() -> String` (التوقيع `s`)
+
+**لا تُشغّل خط أنابيب داخل العملية الجارية.** بدء الالتقاط/الترميز/النقل داخل daemon شغال غير مدعوم؛ على المستدعين إدارة وحدة الخدمة بأنفسهم.
+
+- **إن كان شغالاً:** `"Orbiscreen is already running"`
+- **وإلا:** `"Start the daemon via systemd: systemctl --user start orbiscreen"`
+
+### 4. `ListClients() -> Array of String` (التوقيع `as`)
+
+عدادات حية للعملاء عبر نقل البث الوحيد (كانت سابقا تعيد سلاسل ثابتة):
+
+```json
+["HTTP MPEG-TS /stream: 2 active client(s), 5 total connection(s)"]
+```
+
+### 5. `GetConfig() -> String` (التوقيع `s`)
+
+تُرجع الإعدادات المعقّمة التي بُدئ بها الـ daemon، مسلسلة بصيغة **TOML** (وليس JSON) عبر `orbiscreen-core::dump_config`:
+
+```toml
+[display]
+width = 1920
+height = 1080
+refresh_rate_hz = 60
+count = 1
+
+[encode]
+bitrate_kbps = 8000
+preferred_encoder = "x264"
+
+[transport]
+signaling_port = 8788
+webrtc_port_range = [50000, 50100]
+mdns_advertise = true
+```
+
+عند فشل التسلسل تعيد `config serialize error: <تفاصيل>`.
+
+### غير منفّذ
+
+كان `SetScreenState` مقترحاً سابقاً لكنه **غير منفّذ**. حالة شاشة المضيف (`blank` / `unblank`) لا يمكن الوصول إليها إلا عبر نقطة HTTP المصادَقة `POST /api/control`.
 
 ---
 
-## 💻 مثال استخدام من CLI (`busctl`)
+## 💻 مثال استخدام من CLI ‏(`busctl`)
 
 ```bash
 # فحص واجهة Orbiscreen على D-Bus
 busctl --user introspect com.orbiscreen.Daemon /com/orbiscreen/Daemon
 
-# الحصول على حالة الـ daemon
+# الحصول على حالة الـ daemon (سلسلة JSON)
 busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon GetStatus
 
-# سرد العملاء المتصلين
+# سرد العملاء المتصلين (مصفوفة سلاسل)
 busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon ListClients
+
+# طباعة الإعدادات الجارية (سلسلة TOML)
+busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon GetConfig
+
+# إيقاف الـ daemon رشيقاً
+busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon Stop
+
+# "Start" تلميح systemd وليس مشغّلاً داخلياً
+busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon Start
 ```
 
 ---

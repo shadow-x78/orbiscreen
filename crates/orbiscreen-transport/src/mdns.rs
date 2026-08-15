@@ -39,13 +39,19 @@ impl Advertiser {
         };
         let instance = desc.instance.clone();
 
+        let mut properties = std::collections::HashMap::new();
+        properties.insert("version".to_string(), env!("CARGO_PKG_VERSION").to_string());
+        if let Some(token) = &desc.token {
+            properties.insert("token".to_string(), token.clone());
+        }
+
         let service_info = ServiceInfo::new(
             SERVICE_TYPE,
             &instance,
             &host_domain,
             "0.0.0.0",
             desc.port,
-            None,
+            Some(properties),
         )
         .map_err(|e| MdnsError::Register(e.to_string()))?
         .enable_addr_auto();
@@ -97,6 +103,7 @@ mod tests {
         let desc = ServiceDescriptor {
             instance: "test-laptop".into(),
             port: 8788,
+            token: None,
         };
         assert_eq!(desc.port, 8788);
         assert_eq!(desc.instance, "test-laptop");

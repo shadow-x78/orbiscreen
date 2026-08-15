@@ -18,24 +18,49 @@ android {
         applicationId = "com.orbiscreen.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 15
-        versionName = "0.10.7"
+        versionCode = 16
+        versionName = "0.11.0"
     }
 
     signingConfigs {
         create("release") {
-            val ksFile = file("orbiscreen-release.keystore")
-            if (ksFile.exists()) {
-                storeFile = ksFile
-                storePassword = "orbiscreen123"
-                keyAlias = "orbiscreen"
-                keyPassword = "orbiscreen123"
-                enableV1Signing = true
-                enableV2Signing = true
-                enableV3Signing = true
-            } else {
-                throw GradleException("orbiscreen-release.keystore not found; cannot build release APK without it")
+            // NEVER commit a keystore or its password. Signing material is
+            // supplied out-of-band via environment variables or
+            // ~/.gradle/gradle.properties:
+            //   ORBISCREEN_KEYSTORE_PATH / ORBISCREEN_STORE_PASSWORD
+            //   ORBISCREEN_KEY_ALIAS     / ORBISCREEN_KEY_PASSWORD
+            val ksPath: String? =
+                System.getenv("ORBISCREEN_KEYSTORE_PATH")
+                    ?: (project.findProperty("orbiscreen.keystorePath") as String?)
+            if (ksPath == null || !file(ksPath).exists()) {
+                throw GradleException(
+                    "No signing keystore. Set ORBISCREEN_KEYSTORE_PATH (or " +
+                        "orbiscreen.keystorePath in ~/.gradle/gradle.properties) to build a " +
+                        "release APK. Debug builds do not need it."
+                )
             }
+            val storePw: String? =
+                System.getenv("ORBISCREEN_STORE_PASSWORD")
+                    ?: (project.findProperty("orbiscreen.storePassword") as String?)
+            val keyAlias: String? =
+                System.getenv("ORBISCREEN_KEY_ALIAS")
+                    ?: (project.findProperty("orbiscreen.keyAlias") as String?)
+            val keyPw: String? =
+                System.getenv("ORBISCREEN_KEY_PASSWORD")
+                    ?: (project.findProperty("orbiscreen.keyPassword") as String?)
+            if (storePw == null || keyAlias == null || keyPw == null) {
+                throw GradleException(
+                    "Missing signing secrets. Provide ORBISCREEN_STORE_PASSWORD, " +
+                        "ORBISCREEN_KEY_ALIAS and ORBISCREEN_KEY_PASSWORD."
+                )
+            }
+            storeFile = file(ksPath)
+            storePassword = storePw
+            keyAlias = keyAlias
+            keyPassword = keyPw
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
 

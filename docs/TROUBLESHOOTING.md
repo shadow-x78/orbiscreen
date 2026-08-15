@@ -6,7 +6,7 @@
 
 ---
 
-> Applies to **v0.10.3** and later.
+> Applies to **v0.11.0** and later.
 
 ## 📋 Table of Contents
 
@@ -34,6 +34,14 @@
 - [Android: control toolbar actions return 404](#android-control-404)
 - [Android: app crashes immediately on launch](#android-crash)
 - [Android: USB connection shows "Looking for host…"](#android-usb)
+
+### Streaming & Clients
+
+- [Client shows the wrong screen (primary desktop instead of virtual display)](#wrong-screen)
+- [Web client loads but shows no picture](#web-no-picture)
+- [No encoder available - stream starts but errors out (x264 missing)](#no-encoder)
+- [401 Unauthorized from `/stream`, `/input` or `/api/control` (token)](#token-401)
+- [Daemon not found on D-Bus / GTK app says "not running"](#dbus-missing)
 
 ### Daemon
 
@@ -289,6 +297,117 @@ Orbiscreen automatically configures `adb reverse tcp:8788 tcp:8788` when started
    adb reverse tcp:8788 tcp:8788
    ```
 4. Tap the **USB mode** card on the Discovery screen.
+
+---
+
+<a id="wrong-screen"></a>
+## 🖥 Client shows the wrong screen (primary desktop instead of virtual display)
+
+**Symptom:**
+The Android/web client connects and displays video, but it mirrors the host's main desktop instead of a clean second monitor. Dragging windows "ac" onto a second screen does nothing.
+
+**Cause:**
+The `evdi` kernel module is not loaded, so Orbiscreen falls back to primary-desktop capture (Wayland portal or X11 root window). This degraded mode is intentional: `GetStatus.capture_backend` reports `wayland-portal-fallback` or `x11-portal-fallback` instead of `evdi`, and the daemon logs a `EVDI kernel module missing/inactive ... Falling back` warning at start.
+
+**Fix:**
+1. Install and load `evdi` (DKMS) - see [Runtime: `orbiscreen start` fails](#runtime-evdi), then:
+   ```bash
+   sudo modprobe evdi && lsmod | grep evdi
+   ```
+2. Restart the daemon (`orbiscreen stop && orbiscreen start`) and verify:
+   ```bash
+   busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon GetStatus
+   # "capture_backend":"evdi"
+   ```
+3. Move a window onto the Orbiscreen output (`EVDI-0`) in your compositor's display settings.
+
+---
+
+<a id="web-no-picture"></a>
+## 🌐 Web client loads but shows no picture
+
+**Symptom:**
+`http://<host>:8788/` loads, the status bar keeps saying "Connecting to stream…" or immediately reports "This browser does not support MSE playback".
+
+**Cause:**
+The web client demuxes MPEG-TS with the locally vendored `mpegts.js` and feeds H.264 to MediaSource Extensions (MSE). Browsers without MSE or with autoplay blocked never decode the stream. There is no WebRTC path.
+
+**Fix:**
+1. Use a browser with MSE live playback: desktop Chrome, Firefox, or Edge. iOS Safari does not support MSE, and Firefox on mobile has no MSE either.
+2. If autoplay was blocked, click/tap the video once to start playback.
+3. Confirm the tab was served by the daemon (vendor mpegts.js loads from `/client/vendor/mpegts.js`) - not a stale copy cached from an older deployment.
+4. Check DevTools console/network: a 401 on `/stream` means the token flow failed - see [401 Unauthorized](#token-401).
+
+---
+
+<a id="no-encoder"></a>
+## 🎞 No encoder available - stream starts but errors out (x264 missing)
+
+**Symptom:**
+The daemon starts, clients connect, but video never arrives or the log shows GStreamer element link errors mentioning `x264enc` / `no element found`.
+
+**Cause:**
+Encoding goes through GStreamer. The software fallback element `x264enc` ships in the `ugly` plugin set; hardware encoders need `vaapih264enc` (`bad`) or `nvh264enc` (`bad`). Without them, no H.264 is produced.
+
+**Fix:**
+```bash
+# Fedora / Nobara
+sudo dnf install gstreamer1-plugins-ugly gstreamer1-plugins-bad-free gstreamer1-plugins-good
+
+# Ubuntu / Debian
+sudo apt install gstreamer1.0-plugins-ugly gstreamer1.0-plugins-bad gstreamer1.0-plugins-good
+
+# Verify the encoder element exists
+gst-inspect-1.0 x264enc
+```
+Then restart the daemon; `GetStatus.encoder` reports which encoder is actually in use.
+
+---
+
+<a id="token-401"></a>
+## 🔑 401 Unauthorized from `/stream`, `/input` or `/api/control` (token)
+
+**Symptom:**
+Clients (Android, web, or hand-written scripts) get `401 Unauthorized`. `curl http://host:8788/health` works fine, but `/stream`, `/input` and `/api/control` all reject the request.
+
+**Cause:**
+Since v0.11.0 these three routes require the per-session access token. The token is regenerated on every daemon start and delivered two ways:
+- **mDNS:** TXT record of the advertised service carries `token=...`
+- **HTTP:** `GET /client/config.json` returns `{"token": ..., "display_width": ..., "display_height": ...}`
+
+**Fix:**
+1. Fetch the current token and pass it either way:
+   ```bash
+   curl -s http://host:8788/client/config.json
+   TOKEN=*** -c "import json,sys;print(json.load(sys.stdin)['token'])")
+   curl -H "Authorization: Bearer $TOKEN" http://host:8788/stream --output - | head -c 1000
+   # or: curl "http://host:8788/stream?token=***"
+   ```
+2. Android clients get the token automatically from mDNS discovery or the config endpoint; if a manually-added host 401s, remove it and add it again after a daemon restart (the old token is gone).
+3. `/health`, `/api/info`, `/client/config.json`, `/` and `/client/*` are intentionally public - a 401 on those indicates a misconfigured proxy, not the daemon.
+
+---
+
+<a id="dbus-missing"></a>
+## 🚌 Daemon not found on D-Bus / GTK app says "not running"
+
+**Symptom:**
+`orbiscreen stop` prints `daemon is not running (no com.orbiscreen.Daemon on the session bus)`, or the GTK panel shows a "daemon is not running" banner even though `orbiscreen start` appears to be running elsewhere.
+
+**Cause:**
+The D-Bus service (`com.orbiscreen.Daemon`) is registered on the **user session bus** by the daemon process only while it runs. Common reasons it is absent:
+- The daemon was never started (or crashed) in the current user session.
+- `orbiscreen start` was started as a different user or with `sudo` - the system/other user's bus is not your session bus.
+- `DBUS_SESSION_BUS_ADDRESS` is unset/overridden in the shell where you run `orbiscreen stop`.
+
+**Fix:**
+1. Check the service and status:
+   ```bash
+   busctl --user status com.orbiscreen.Daemon 2>&1 || echo "not on the bus"
+   systemctl --user status orbiscreen
+   ```
+2. Start it as your normal user: `orbiscreen start` (without `sudo`) or `systemctl --user start orbiscreen`.
+3. If started under systemd, prefer `systemctl --user stop orbiscreen` to stop it (`orbiscreen stop` also works and falls back to the D-Bus `Stop` method).
 
 ---
 

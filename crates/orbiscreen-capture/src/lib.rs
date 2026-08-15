@@ -68,12 +68,16 @@ enum CaptureInner {
 impl CaptureSession {
     pub fn open(width: u32, height: u32) -> Result<Self, CaptureError> {
         match detect_backend() {
-            CaptureBackend::X11 => Ok(Self {
-                backend_kind: CaptureBackend::X11,
-                inner: Arc::new(CaptureInner::X11(x11::X11Capture::open(width, height)?)),
-                width,
-                height,
-            }),
+            CaptureBackend::X11 => {
+                let capture = x11::X11Capture::open(width, height)?;
+                let (actual_w, actual_h) = capture.dimensions();
+                Ok(Self {
+                    backend_kind: CaptureBackend::X11,
+                    inner: Arc::new(CaptureInner::X11(capture)),
+                    width: actual_w,
+                    height: actual_h,
+                })
+            }
             CaptureBackend::Wayland => Err(CaptureError::BackendUnavailable(
                 "Wayland capture requires open_async",
             )),
@@ -87,11 +91,12 @@ impl CaptureSession {
                 let capture =
                     wayland::WaylandCapture::open(wayland::WaylandCaptureSpec { width, height })
                         .await?;
+                let (actual_w, actual_h) = capture.dimensions();
                 Ok(Self {
                     backend_kind: CaptureBackend::Wayland,
                     inner: Arc::new(CaptureInner::Wayland(capture)),
-                    width,
-                    height,
+                    width: actual_w,
+                    height: actual_h,
                 })
             }
         }
@@ -101,12 +106,15 @@ impl CaptureSession {
         self.backend_kind
     }
 
-    /// Width of the captured region in pixels (matches the encoder config).
+    /// Actual captured width in pixels. May be smaller than requested when the
+    /// backend clamps to the source size (X11), and is what every frame's
+    /// buffer is sized against — never use the requested config values for
+    /// encoder sizing when they differ.
     pub fn width(&self) -> u32 {
         self.width
     }
 
-    /// Height of the captured region in pixels (matches the encoder config).
+    /// Actual captured height in pixels (see [`Self::width`]).
     pub fn height(&self) -> u32 {
         self.height
     }

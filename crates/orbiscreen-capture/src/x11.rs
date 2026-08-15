@@ -24,12 +24,24 @@ impl X11Capture {
         let screen = conn.setup().roots[screen_num].clone();
         let cap_w = width.min(screen.width_in_pixels as u32);
         let cap_h = height.min(screen.height_in_pixels as u32);
+        if cap_w != width || cap_h != height {
+            tracing::warn!(
+                requested = format!("{width}x{height}"),
+                actual = format!("{cap_w}x{cap_h}"),
+                "capture region clamped to root window size"
+            );
+        }
         Ok(Self {
             conn: Arc::new(conn),
             screen,
             width: cap_w,
             height: cap_h,
         })
+    }
+
+    /// Actual capture dimensions after clamping to the screen size.
+    pub fn dimensions(&self) -> (u32, u32) {
+        (self.width, self.height)
     }
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, CaptureError> {

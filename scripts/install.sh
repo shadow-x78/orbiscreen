@@ -13,7 +13,6 @@ if command -v cargo >/dev/null 2>&1; then
     echo "[Orbiscreen] Building daemon..."
     cargo build --release -p orbiscreen-daemon
     cp target/release/orbiscreen ~/.local/bin/
-    cp data/orbiscreen.service ~/.config/systemd/user/
 
     echo "[Orbiscreen] Installing desktop entry and icon..."
     mkdir -p ~/.local/share/applications
@@ -22,10 +21,11 @@ if command -v cargo >/dev/null 2>&1; then
     cp data/orbiscreen.svg ~/.local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
 
     echo "[Orbiscreen] Installing web client files..."
-    mkdir -p ~/.local/share/orbiscreen/client
+    mkdir -p ~/.local/share/orbiscreen/client/vendor
     cp clients/web/index.html ~/.local/share/orbiscreen/client/
     cp clients/web/style.css ~/.local/share/orbiscreen/client/
     cp clients/web/app.js ~/.local/share/orbiscreen/client/
+    cp -r clients/web/vendor/. ~/.local/share/orbiscreen/client/vendor/
 
     echo "[Orbiscreen] Reloading systemd user daemon..."
     echo "[Orbiscreen] Binary installed to ${INSTALL_DIR}/orbiscreen"

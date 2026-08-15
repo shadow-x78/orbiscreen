@@ -6,7 +6,7 @@
 
 ---
 
-> ينطبق على **v0.10.3** والإصدارات الأحدث. مصفوفة الإصدار حالياً: `0.10.2` (مساحة العمل)، `versionCode = 10` (Android).
+> ينطبق على **v0.11.0** والإصدارات الأحدث. مصفوفة الإصدار: `0.11.0` (مساحة العمل)، `versionCode = 16` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع - راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
 
 يوفّر Orbiscreen تكوينات البناء وتعريفات الحزم لجميع توزيعات Linux الرئيسية وAndroid:
 

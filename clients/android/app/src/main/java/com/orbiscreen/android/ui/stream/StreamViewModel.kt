@@ -40,6 +40,7 @@ class StreamViewModel(
     private val hostApi = HostApi()
     private val playerHolder = PlayerHolder(context, prefs)
     private var inputDispatcher: InputDispatcher? = null
+    private var sessionToken: String? = null
 
     private val _state = MutableStateFlow(
         StreamState(
@@ -60,17 +61,28 @@ class StreamViewModel(
             }
         }
         viewModelScope.launch {
-            val info = withContext(Dispatchers.IO) { hostApi.info(host, port) }
-            if (info != null) {
+            val info = withContext(Dispatchers.IO) {
+                val t = hostApi.token(host, port)
+                val i = hostApi.info(host, port)
+                t to i
+            }
+            sessionToken = info.first
+            val hostInfo = info.second
+            if (hostInfo != null) {
                 _state.value = _state.value.copy(
-                    displayWidth = info.width,
-                    displayHeight = info.height,
-                    encoder = info.encoder,
-                    version = info.version,
+                    displayWidth = hostInfo.width,
+                    displayHeight = hostInfo.height,
+                    encoder = hostInfo.encoder,
+                    version = hostInfo.version,
                 )
             }
+            // Sync the input scaler with the negotiated stream dimensions.
+            inputDispatcher?.resize(
+                _state.value.displayWidth,
+                _state.value.displayHeight,
+            )
             withContext(Dispatchers.Main) {
-                playerHolder.build(host, port)
+                playerHolder.build(host, port, sessionToken ?: "")
             }
         }
         prefs.recentHost = com.orbiscreen.android.data.RecentHost(host = host, port = port, label = label)
@@ -82,10 +94,11 @@ class StreamViewModel(
             port = state.value.port,
             displayWidth = state.value.displayWidth,
             displayHeight = state.value.displayHeight,
+            token = sessionToken ?: "",
         ).also { inputDispatcher = it }
     }
 
-    fun retry() = playerHolder.retry(state.value.host, state.value.port)
+    fun retry() = playerHolder.retry(state.value.host, state.value.port, sessionToken ?: "")
 
     fun toggleToolbar() {
         _state.value = _state.value.copy(toolbarVisible = !_state.value.toolbarVisible)
@@ -96,21 +109,19 @@ class StreamViewModel(
     }
 
     fun blank() {
+        // The daemon implements blank/unblank as two distinct actions; the
+        // old {"state":"on"/"off"} payload was never honored.
         val blanked = !_state.value.blanked
-        inputDispatcher?.control("blank", org.json.JSONObject().apply { put("state", if (blanked) "on" else "off") })
+        ensureInput().control(if (blanked) "blank" else "unblank")
         _state.value = _state.value.copy(blanked = blanked)
     }
 
     fun lock() {
-        inputDispatcher?.control("lock")
+        ensureInput().control("lock")
     }
 
     fun ctrlAltDel() {
-        inputDispatcher?.control("ctrl_alt_del")
-    }
-
-    fun openFileManager() {
-        inputDispatcher?.control("open", org.json.JSONObject().apply { put("target", "files") })
+        ensureInput().control("ctrl_alt_del")
     }
 
     override fun onCleared() {

@@ -27,6 +27,28 @@ class HostApi {
         val version: String = "?",
     )
 
+    /**
+     * Fetch the per-session access token from /client/config.json. The daemon
+     * serves it unauthenticated next to the web client; LAN peers that can
+     * reach the HTTP port can read it, which is a documented convenience
+     * (not strong auth) rather than a secret.
+     */
+    suspend fun token(host: String, port: Int): String? = withContext(Dispatchers.IO) {
+        withTimeoutOrNull(1500) {
+            try {
+                val req = Request.Builder().url("http://$host:$port/client/config.json").build()
+                client.newCall(req).execute().use { resp ->
+                    if (!resp.isSuccessful) return@withTimeoutOrNull null
+                    val body = resp.body?.string() ?: return@withTimeoutOrNull null
+                    JSONObject(body).optString("token").takeIf { it.isNotBlank() }
+                }
+            } catch (e: Exception) {
+                Log.v(TAG, "token fetch failed: ${e.message}")
+                null
+            }
+        }
+    }
+
     suspend fun info(host: String, port: Int): HostInfo? = withContext(Dispatchers.IO) {
         withTimeoutOrNull(1500) {
             try {
@@ -59,7 +81,13 @@ class HostApi {
         } ?: false
     }
 
-    suspend fun sendControl(host: String, port: Int, action: String, payload: JSONObject = JSONObject()): Boolean = withContext(Dispatchers.IO) {
+    suspend fun sendControl(
+        host: String,
+        port: Int,
+        action: String,
+        payload: JSONObject = JSONObject(),
+        token: String? = null,
+    ): Boolean = withContext(Dispatchers.IO) {
         withTimeoutOrNull(1500) {
             try {
                 val body = JSONObject().apply {
@@ -70,11 +98,13 @@ class HostApi {
                         put(k, payload.get(k))
                     }
                 }.toString()
-                val req = Request.Builder()
+                val builder = Request.Builder()
                     .url("http://$host:$port/api/control")
                     .post(okhttp3.RequestBody.create("application/json; charset=utf-8".toMediaType(), body))
-                    .build()
-                client.newCall(req).execute().use { it.isSuccessful }
+                if (!token.isNullOrBlank()) {
+                    builder.header("Authorization", "Bearer $token")
+                }
+                client.newCall(builder.build()).execute().use { it.isSuccessful }
             } catch (e: Exception) { false }
         } ?: false
     }

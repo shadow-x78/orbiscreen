@@ -8,11 +8,12 @@ Summary:        Real virtual secondary displays for Linux, streamed to Android o
 License:        GPL-3.0-or-later
 URL:            https://github.com/shadow-x78/orbiscreen
 
-Requires:       gtk4 libadwaita gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good libevdev libxkbcommon
+Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad gstreamer1-plugins-ugly gstreamer1-libav libevdev libxkbcommon
 
 %description
 Orbiscreen provides high-performance virtual secondary displays for Linux desktops,
-streaming low-latency video to Android tablets/phones over WebRTC and Wi-Fi/USB.
+streaming low-latency MPEG-TS/H.264 video over HTTP (Wi-Fi or USB/adb reverse)
+to Android tablets/phones and web browsers.
 
 %prep
 
@@ -33,6 +34,8 @@ install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons
 install -m 0644 %{_projectroot}/clients/web/index.html %{buildroot}/usr/share/orbiscreen/client/index.html
 install -m 0644 %{_projectroot}/clients/web/style.css %{buildroot}/usr/share/orbiscreen/client/style.css
 install -m 0644 %{_projectroot}/clients/web/app.js %{buildroot}/usr/share/orbiscreen/client/app.js
+mkdir -p %{buildroot}/usr/share/orbiscreen/client/vendor
+install -m 0644 %{_projectroot}/clients/web/vendor/mpegts.js %{buildroot}/usr/share/orbiscreen/client/vendor/mpegts.js
 
 cat << 'EOF' > %{buildroot}/usr/lib/systemd/user/orbiscreen.service
 [Unit]
@@ -42,7 +45,7 @@ After=graphical-session.target
 
 [Service]
 Type=exec
-ExecStart=/usr/bin/orbiscreen
+ExecStart=/usr/bin/orbiscreen start
 Restart=on-failure
 RestartSec=3s
 
@@ -73,6 +76,7 @@ fi
 /usr/share/orbiscreen/client/index.html
 /usr/share/orbiscreen/client/style.css
 /usr/share/orbiscreen/client/app.js
+/usr/share/orbiscreen/client/vendor/mpegts.js
 
 %changelog
 * Fri Jul 24 2026 shadow-x78 <https://github.com/shadow-x78/orbiscreen> - %{_version}-1

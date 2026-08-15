@@ -21,14 +21,23 @@ private const val TAG = "Orbi.Input"
 class InputDispatcher(
     private val host: String,
     private val port: Int,
-    private val displayWidth: Int,
-    private val displayHeight: Int,
+    displayWidth: Int,
+    displayHeight: Int,
+    private val token: String = "",
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val http = OkHttpClient.Builder()
         .connectTimeout(2, TimeUnit.SECONDS)
         .readTimeout(2, TimeUnit.SECONDS)
         .build()
+
+    // The host negotates its real stream dimensions; they can change if the
+    // daemon restarts with a different config, so keep them updatable.
+    @Volatile
+    private var streamWidth: Int = displayWidth
+
+    @Volatile
+    private var streamHeight: Int = displayHeight
 
     private val moves = MutableSharedFlow<JSONObject>(
         replay = 0,
@@ -51,7 +60,11 @@ class InputDispatcher(
         }
     }
 
+    /** Update the stream dimensions used to scale pointer coordinates. */
     fun resize(newWidth: Int, newHeight: Int) {
+        if (newWidth <= 0 || newHeight <= 0) return
+        streamWidth = newWidth
+        streamHeight = newHeight
     }
 
     fun move(localX: Float, localY: Float, containerW: Int, containerH: Int) {
@@ -113,11 +126,13 @@ class InputDispatcher(
                     val it = args.keys()
                     while (it.hasNext()) { val k = it.next(); put(k, args.get(k)) }
                 }
-                val req = Request.Builder()
+                val builder = Request.Builder()
                     .url("http://$host:$port/api/control")
                     .post(body.toString().toRequestBody("application/json".toMediaType()))
-                    .build()
-                http.newCall(req).execute().close()
+                if (token.isNotBlank()) {
+                    builder.header("Authorization", "Bearer $token")
+                }
+                http.newCall(builder.build()).execute().close()
             } catch (e: Exception) {
                 Log.w(TAG, "control $action failed: ${e.message}")
             }
@@ -132,16 +147,18 @@ class InputDispatcher(
         if (w == 0 || h == 0) return 0 to 0
         val nx = (localX / w).coerceIn(0f, 1f)
         val ny = (localY / h).coerceIn(0f, 1f)
-        return (nx * displayWidth).roundToInt() to (ny * displayHeight).roundToInt()
+        return (nx * streamWidth).roundToInt() to (ny * streamHeight).roundToInt()
     }
 
     private fun send(payload: JSONObject) {
         try {
-            val req = Request.Builder()
+            val builder = Request.Builder()
                 .url("http://$host:$port/input")
                 .post(payload.toString().toRequestBody("application/json".toMediaType()))
-                .build()
-            http.newCall(req).execute().close()
+            if (token.isNotBlank()) {
+                builder.header("Authorization", "Bearer $token")
+            }
+            http.newCall(builder.build()).execute().close()
         } catch (e: Exception) {
             Log.v(TAG, "send failed: ${e.message}")
         }
