@@ -298,6 +298,7 @@ fn build_ui(app: &Application) {
     // instead of pretending to start it.
     let busy: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
     let busy_for_switch = busy.clone();
+    let busy_for_reply = busy.clone();
     let toast = toast_overlay.clone();
     server_switch.connect_state_set(move |_, requested| {
         let mut guard = match busy_for_switch.lock() {
@@ -316,7 +317,7 @@ fn build_ui(app: &Application) {
         }
         *guard = true;
         let toast_for_reply = toast.clone();
-        let busy_for_reply = busy.clone();
+        let busy_for_done = busy_for_reply.clone();
         run_dbus_oneshot(
             |proxy| {
                 Box::pin(async move {
@@ -329,7 +330,7 @@ fn build_ui(app: &Application) {
             move |message| {
                 info!("{message}");
                 toast_for_reply.add_toast(libadwaita::Toast::new(&message));
-                if let Ok(mut g) = busy_for_reply.lock() {
+                if let Ok(mut g) = busy_for_done.lock() {
                     *g = false;
                 }
             },

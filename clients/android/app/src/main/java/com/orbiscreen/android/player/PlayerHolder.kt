@@ -101,9 +101,10 @@ class PlayerHolder(
                 .setLoadControl(loadControl)
                 // Live tuning: track the live edge; the daemon serves a
                 // constant-rate MPEG-TS so this keeps latency near minimum.
+                // The actual target offset is set per-media via
+                // MediaItem.LiveConfiguration below.
                 .setLivePlaybackSpeedControl(
                     DefaultLivePlaybackSpeedControl.Builder()
-                        .setTargetLiveOffsetMs(1_000)
                         .build()
                 )
                 .build().apply {
