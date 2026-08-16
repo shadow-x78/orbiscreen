@@ -106,8 +106,8 @@ fun StreamScreen(
                 PlayerSurface(
                     player = player,
                     onMove = { x, y, w, h -> input.move(x, y, w, h) },
-                    onPointer = { x, y, w, h, _, pressed ->
-                        input.button(x, y, w, h, 1, pressed)
+                    onPointer = { _, _, _, _, _, pressed ->
+                        input.button(1, pressed)
                     },
                 )
             } else {

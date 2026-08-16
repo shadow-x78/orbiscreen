@@ -187,8 +187,6 @@ class PlayerHolder(
         if (reconnectJob?.isActive == true) return
         reconnectJob = scope.launch {
             delay(reconnectDelayMs)
-            reconnectJob = null
-            // Exponential backoff, capped.
             reconnectDelayMs = (reconnectDelayMs * 2).coerceAtMost(10_000L)
             build(target.first, target.second, target.third)
         }
@@ -199,6 +197,9 @@ class PlayerHolder(
         reconnectJob = null
         lastTarget = null
         releaseInternal()
+        scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        okHttp.dispatcher.executorService.shutdown()
+        okHttp.connectionPool.evictAll()
     }
 
     private fun releaseInternal() {

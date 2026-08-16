@@ -64,7 +64,7 @@ class DiscoveryService(private val context: Context) {
     }
 
     private fun listen(): Flow<ResolvedService> = callbackFlow {
-        val resolved = ConcurrentHashMap<String, Boolean>()
+        val resolved = ConcurrentHashMap<String, String>()
         val listener = object : NsdManager.DiscoveryListener {
             override fun onDiscoveryStarted(regType: String) {
                 Log.d(TAG, "discovery started: $regType")
@@ -81,16 +81,17 @@ class DiscoveryService(private val context: Context) {
                         val host = info.host?.hostAddress ?: return
                         val port = info.port
                         val name = info.serviceName
-                        resolved[name] = true
+                        resolved[name] = "$host:$port"
                         trySend(ResolvedService(name = name, host = host, port = port))
                     }
                 })
             }
             override fun onServiceLost(service: NsdServiceInfo) {
                 val name = service.serviceName
-                if (resolved.remove(name) != null) {
-                    trySend(ResolvedService(name = name, host = "", port = 0, lost = true))
-                }
+                val key = resolved.remove(name) ?: return
+                val host = key.substringBefore(':')
+                val port = key.substringAfter(':').toIntOrNull() ?: return
+                trySend(ResolvedService(name = name, host = host, port = port, lost = true))
             }
             override fun onDiscoveryStopped(serviceType: String) {}
             override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {

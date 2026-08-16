@@ -1,6 +1,7 @@
 package com.orbiscreen.android.net
 
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.awaitClose
@@ -38,6 +39,8 @@ class SubnetScanner {
                             if (probe(host, PORT)) {
                                 send(host)
                             }
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: Exception) {
                             Log.v(TAG, "probe failed: ${e.message}")
                         }

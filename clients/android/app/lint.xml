@@ -4,7 +4,6 @@
         <option name="opt-in" value="androidx.media3.common.util.UnstableApi" />
     </issue>
     <issue id="UnusedResources" severity="informational" />
-    <issue id="OldTargetApi" severity="informational" />
     <issue id="IconLauncherShape" severity="informational" />
     <issue id="DataExtractionRules" severity="informational" />
     <issue id="InsecureBaseConfiguration" severity="informational" />

@@ -6,7 +6,7 @@ import com.orbiscreen.android.data.PrefsStore
 import com.orbiscreen.android.data.RecentHost
 import com.orbiscreen.android.net.DiscoveredHost
 import com.orbiscreen.android.net.DiscoveryService
-import com.orbiscreen.android.net.HostSpec
+import com.orbiscreen.android.net.HostApi
 import com.orbiscreen.android.net.SubnetScanner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -23,7 +23,6 @@ data class DiscoveryState(
     val hosts: List<DiscoveredHost> = emptyList(),
     val recent: RecentHost? = null,
     val scanning: Boolean = true,
-    val error: String? = null,
 )
 
 class DiscoveryViewModel(
@@ -33,11 +32,12 @@ class DiscoveryViewModel(
     private val gatewayProvider: () -> String? = { null },
 ) : ViewModel() {
 
+    private val hostApi = HostApi()
+
     private val _state = MutableStateFlow(DiscoveryState(recent = prefs.recentHost))
     val state: StateFlow<DiscoveryState> = _state.asStateFlow()
 
     private val _scanTick = MutableStateFlow(0)
-    val scanTick: StateFlow<Int> = _scanTick
 
     init {
         discovery.start(viewModelScope)
@@ -69,24 +69,17 @@ class DiscoveryViewModel(
         }
     }
 
-    fun clearError() { _state.value = _state.value.copy(error = null) }
-
-    fun manualHostValid(text: String): Boolean = HostSpec.isValid(text)
-
     fun saveRecent(host: String, port: Int, label: String?) {
         prefs.recentHost = RecentHost(host = host, port = port, label = label)
         _state.value = _state.value.copy(recent = prefs.recentHost)
-    }
-
-    fun forgetRecent() {
-        prefs.clearRecent()
-        _state.value = _state.value.copy(recent = null)
     }
 
     private fun startSubnetSweep() {
         viewModelScope.launch(Dispatchers.IO) {
             val gateway = gatewayProvider() ?: return@launch
             subnetScanner.sweep(gateway).collect { host ->
+                if (_state.value.hosts.any { it.host == host }) return@collect
+                if (hostApi.info(host, 8788) == null) return@collect
                 val current = _state.value.hosts.toMutableList()
                 if (current.none { it.host == host }) {
                     current += DiscoveredHost(name = host, host = host, port = 8788)

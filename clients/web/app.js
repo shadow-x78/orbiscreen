@@ -19,6 +19,8 @@ let mpegtsPlayer = null;
 let reconnectTimer = null;
 let reconnectDelay = 1000;
 const MAX_RECONNECT_DELAY = 10000;
+let streamActive = false;
+const pressedButtons = new Set();
 
 function setStatus(text) {
     statusEl.textContent = text;
@@ -39,7 +41,20 @@ function sendPointerMove(x, y) {
 }
 
 function sendPointerButton(button, pressed) {
+    if (pressed) {
+        pressedButtons.add(button);
+    } else {
+        pressedButtons.delete(button);
+    }
     sendInput({ Pointer: { Button: { button, pressed } } });
+}
+
+function releaseAllButtons() {
+    for (const button of pressedButtons) {
+        sendInput({ Pointer: { Button: { button, pressed: false } } });
+    }
+    pressedButtons.clear();
+    hideTouch();
 }
 
 function sendWheel(deltaY) {
@@ -112,7 +127,6 @@ function mapPointer(event) {
 }
 
 function showTouch(x, y) {
-    touchIndicator.hidden = false;
     touchIndicator.style.left = `${x}px`;
     touchIndicator.style.top = `${y}px`;
     touchIndicator.classList.remove("hidden");
@@ -142,6 +156,7 @@ function destroyPlayer() {
         videoEl.load();
     }
     streamActive = false;
+    pressedButtons.clear();
 }
 
 function scheduleReconnect(reason) {
@@ -196,6 +211,7 @@ function startStream() {
     mpegtsPlayer.load();
     mpegtsPlayer.play().catch((error) => {
         console.error("play() failed:", error);
+        scheduleReconnect("play() rejected");
     });
 }
 
@@ -287,13 +303,12 @@ videoEl.addEventListener("pointerup", (event) => {
     hideTouch();
 });
 
-// Pointer cancelled (e.g. touch interrupted) — release every button or the
-// host is left with a stuck pressed button.
-videoEl.addEventListener("pointercancel", (event) => {
-    if (event.buttons > 0) {
-        sendPointerButton(1, false);
-    }
-    hideTouch();
+videoEl.addEventListener("pointercancel", () => {
+    releaseAllButtons();
+});
+
+videoEl.addEventListener("pointerleave", () => {
+    releaseAllButtons();
 });
 
 videoEl.addEventListener("wheel", (event) => {
@@ -301,17 +316,15 @@ videoEl.addEventListener("wheel", (event) => {
     sendWheel(event.deltaY);
 }, { passive: false });
 
-// Only swallow keys once the stream is up — before that, F5/DevTools etc.
-// must still reach the browser.
-let streamActive = false;
-
 window.addEventListener("keydown", (event) => {
-    if (streamActive) event.preventDefault();
+    if (!streamActive) return;
+    event.preventDefault();
     sendKey(event.code, true);
 });
 
 window.addEventListener("keyup", (event) => {
-    if (streamActive) event.preventDefault();
+    if (!streamActive) return;
+    event.preventDefault();
     sendKey(event.code, false);
 });
 

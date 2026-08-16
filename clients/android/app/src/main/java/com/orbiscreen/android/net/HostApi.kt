@@ -76,7 +76,7 @@ class HostApi {
         withTimeoutOrNull(1200) {
             try {
                 val req = Request.Builder().url("http://$host:$port/health").build()
-                client.newCall(req).execute().use { it.isSuccessful || it.code == 200 }
+                client.newCall(req).execute().use { it.isSuccessful }
             } catch (e: Exception) { false }
         } ?: false
     }

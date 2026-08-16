@@ -76,11 +76,10 @@ class InputDispatcher(
         })
     }
 
-    fun button(localX: Float?, localY: Float?, containerW: Int, containerH: Int, button: Int, pressed: Boolean) {
+    fun button(button: Int, pressed: Boolean) {
         val btn = JSONObject()
         btn.put("button", button)
         btn.put("pressed", pressed)
-        // Buttons don't carry coordinates; position already lives in the pointer track.
         val payload = JSONObject()
         payload.put("Pointer", JSONObject().apply { put("Button", btn) })
         discrete.tryEmit(payload)
@@ -141,6 +140,8 @@ class InputDispatcher(
 
     fun release() {
         scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        http.dispatcher.executorService.shutdown()
+        http.connectionPool.evictAll()
     }
 
     private fun map(localX: Float, localY: Float, w: Int, h: Int): Pair<Int, Int> {
