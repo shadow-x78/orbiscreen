@@ -25,7 +25,20 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Build
-        run: ./gradlew assembleRelease
+        env:
+          # Signing material comes from repo secrets, never from the repo.
+          ORBISCREEN_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ORBISCREEN_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ORBISCREEN_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ORBISCREEN_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "${ORBISCREEN_KEYSTORE_B64:-}" ]; then
+            echo "::error::ANDROID_KEYSTORE_B64 secret is not set in the repository"
+            exit 1
+          fi
+          echo "$ORBISCREEN_KEYSTORE_B64" | base64 -d > /tmp/orbiscreen-release.keystore
+          ORBISCREEN_KEYSTORE_PATH=/tmp/orbiscreen-release.keystore ./gradlew assembleRelease
+          rm -f /tmp/orbiscreen-release.keystore
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

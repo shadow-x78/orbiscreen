@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bounded channels:** the per-client MPEG-TS path uses a bounded channel and drops chunks for stalled consumers instead of growing daemon memory without limit; stream lag tolerates `Lagged` broadcast errors until the next keyframe instead of disconnecting.
 - **Android translation breakage:** removed the dangling `onOpenFiles` reference in StreamScreen/ControlToolbar/strings.xml that kept Kotlin resources out of sync.
 - **Packaging:** deb/rpm/AppImage/Flatpak specs and `install.sh` updated to match the current binary layout, client directory, and service unit.
+- **GTK panel build:** removed the duplicate `start_status_poller` definition, replaced the removed glib 0.20 `MainContext::channel`/`PRIORITY_DEFAULT` API with an mpsc channel drained on the GTK main loop via `timeout_add_local` (widget handles stay on the main thread, since they are `!Send`), and fixed the Gradle release signing block where the local `keyAlias` val shadowed the DSL property.
+- **CI Android signing:** the push-time Android workflow now feeds the keystore from the same repo secrets as the release matrix (`ANDROID_KEYSTORE_B64` etc.) instead of running `assembleRelease` against a missing keystore.
 
 ### 🔒 Security
 - Corrected SECURITY.md: the daemon binds `0.0.0.0:8788` (not `127.0.0.1`), endpoints are now token-protected (not "unauthenticated by design"), and the token model + keystore rotation are documented, including limitations against a determined LAN attacker.

@@ -70,6 +70,7 @@ impl DaemonStatus {
 
 /// D-Bus proxy bound to the orbiscreen daemon's session service. The zbus
 /// Connection is cloned into the proxy, so the proxy owns everything it needs.
+#[derive(Debug)]
 struct DaemonProxy {
     proxy: zbus::Proxy<'static>,
 }
@@ -98,6 +99,7 @@ impl DaemonProxy {
 }
 
 /// Widgets the poller updates once per second.
+#[derive(Debug)]
 struct UiHandles {
     switch: gtk4::Switch,
     daemon_row: ActionRow,
@@ -154,8 +156,10 @@ fn apply_status(handles: &UiHandles, status: &DaemonStatus, busy: &Mutex<bool>) 
 }
 
 /// Run a one-shot async D-Bus call on a scratch thread with its own
-/// current-thread runtime, delivering the result back to the GTK main
-/// context (never blocking the UI thread).
+/// current-thread runtime. The plain-data result travels back over an
+/// mpsc channel and is drained on the GTK main loop with
+/// `timeout_add_local`, so widgets captured by `on_done` (which are `!Send`)
+/// never cross thread boundaries.
 fn run_dbus_oneshot(
     call: impl FnOnce(
             DaemonProxy,
@@ -163,9 +167,9 @@ fn run_dbus_oneshot(
             -> std::pin::Pin<Box<dyn std::future::Future<Output = std::string::String> + Send>>
         + Send
         + 'static,
-    on_done: impl Fn(String) + Send + 'static,
+    on_done: impl Fn(String) + 'static,
 ) {
-    let ctx = glib::MainContext::default();
+    let (tx, rx) = std::sync::mpsc::channel::<String>();
     std::thread::Builder::new()
         .name("orbiscreen-gtk-stop".into())
         .spawn(move || {
@@ -183,9 +187,20 @@ fn run_dbus_oneshot(
                     Err(e) => format!("stop failed: {e}"),
                 }
             });
-            ctx.invoke(move || on_done(result));
+            let _ = tx.send(result);
         })
         .expect("spawn stop-call thread");
+
+    glib::timeout_add_local(std::time::Duration::from_millis(50), move || {
+        match rx.try_recv() {
+            Ok(message) => {
+                on_done(message);
+                glib::ControlFlow::Break
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => glib::ControlFlow::Continue,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => glib::ControlFlow::Break,
+        }
+    });
 }
 
 fn build_ui(app: &Application) {
@@ -335,10 +350,11 @@ fn build_ui(app: &Application) {
 
 /// Status poller that also clears the busy guard after every snapshot lands,
 /// keeping the switch responsive even when a stop call fails. Snapshots are
-/// delivered to the GTK main context via `MainContext::invoke` from a
-/// dedicated OS thread.
+/// plain data, travel back over an mpsc channel from a dedicated OS thread,
+/// and are drained on the GTK main loop with `timeout_add_local` so the
+/// `!Send` widget handles never leave the main thread.
 fn start_status_poller(handles: Arc<UiHandles>, busy: Arc<Mutex<bool>>) {
-    let ctx = glib::MainContext::default();
+    let (tx, rx) = std::sync::mpsc::channel::<DaemonStatus>();
 
     std::thread::Builder::new()
         .name("orbiscreen-gtk-dbus".into())
@@ -368,16 +384,25 @@ fn start_status_poller(handles: Arc<UiHandles>, busy: Arc<Mutex<bool>>) {
                             DaemonStatus::default()
                         }
                     };
-                    let handles = Arc::clone(&handles);
-                    let busy = Arc::clone(&busy);
-                    ctx.invoke(move || {
-                        apply_status(&handles, &update, &busy);
-                    });
+                    if tx.send(update).is_err() {
+                        break;
+                    }
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 }
             });
         })
         .expect("spawn dbus poller thread");
+
+    glib::timeout_add_local(std::time::Duration::from_millis(250), move || {
+        let mut latest = None;
+        for update in rx.try_iter() {
+            latest = Some(update);
+        }
+        if let Some(status) = latest {
+            apply_status(&handles, &status, &busy);
+        }
+        glib::ControlFlow::Continue
+    });
 }
 
 fn main() -> gtk4::glib::ExitCode {
