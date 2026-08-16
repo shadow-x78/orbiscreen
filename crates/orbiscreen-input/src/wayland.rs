@@ -116,11 +116,13 @@ impl WaylandInjector {
 impl Drop for WaylandInjector {
     fn drop(&mut self) {
         let session = self.session.clone();
-        tokio::spawn(async move {
-            if let Err(e) = session.close().await {
-                warn!("failed to close RemoteDesktop session: {e}");
-            }
-        });
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            handle.spawn(async move {
+                if let Err(e) = session.close().await {
+                    warn!("failed to close RemoteDesktop session: {e}");
+                }
+            });
+        }
     }
 }
 

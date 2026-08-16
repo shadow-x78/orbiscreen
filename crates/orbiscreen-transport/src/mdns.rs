@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use mdns_sd::{ServiceDaemon, ServiceInfo};
+use mdns_sd::{DaemonEvent, ServiceDaemon, ServiceInfo};
 use thiserror::Error;
 use tracing::{debug, info, warn};
 
@@ -64,8 +64,17 @@ impl Advertiser {
 
         if let Ok(rx) = daemon.monitor() {
             std::thread::spawn(move || {
-                while let Ok(event) = rx.recv_timeout(std::time::Duration::from_secs(60)) {
-                    debug!(?event, "mDNS daemon event");
+                while let Ok(event) = rx.recv() {
+                    let kind = match &event {
+                        DaemonEvent::Announce(..) => "announce",
+                        DaemonEvent::Error(_) => "error",
+                        DaemonEvent::IpAdd(_) => "ip-add",
+                        DaemonEvent::IpDel(_) => "ip-del",
+                        DaemonEvent::NameChange(_) => "name-change",
+                        DaemonEvent::Respond(_) => "respond",
+                        _ => "other",
+                    };
+                    debug!(kind, "mDNS daemon event");
                 }
             });
         }

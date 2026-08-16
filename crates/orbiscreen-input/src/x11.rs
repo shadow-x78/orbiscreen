@@ -88,6 +88,9 @@ impl UinputInjector {
                 ]
             }
             PointerEvent::Button { button, pressed } => {
+                if button == 0 || button > 8 {
+                    return Err(InputError::Uinput(format!("invalid button: {button}")));
+                }
                 let code = button_code(button);
                 let state = if pressed {
                     KeyState::PRESSED
@@ -101,11 +104,11 @@ impl UinputInjector {
             }
             PointerEvent::Wheel { delta_y } => {
                 let mut events: Vec<InputEvent> = Vec::new();
-                let delta = delta_y.round() as i32;
+                let delta = delta_y.clamp(i32::MIN as f64, i32::MAX as f64).round() as i32;
                 if delta != 0 {
                     events.push(RelEvent::new(Rel::WHEEL, delta).into());
+                    events.push(SynEvent::new(Syn::REPORT).into());
                 }
-                events.push(SynEvent::new(Syn::REPORT).into());
                 events
             }
         };

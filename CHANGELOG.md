@@ -30,8 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GTK panel build:** removed the duplicate `start_status_poller` definition, replaced the removed glib 0.20 `MainContext::channel`/`PRIORITY_DEFAULT` API with an mpsc channel drained on the GTK main loop via `timeout_add_local` (widget handles stay on the main thread, since they are `!Send`), and fixed the Gradle release signing block where the local `keyAlias` val shadowed the DSL property.
 - **CI Android signing:** the push-time Android workflow now feeds the keystore from the same repo secrets as the release matrix (`ANDROID_KEYSTORE_B64` etc.), rejects blank signing secrets at configure time, and validates the keystore password/alias with `keytool -list` before the build so mismatched secrets fail immediately instead of after packaging.
 - **Player build break:** removed the nonexistent `setTargetLiveOffsetMs` call (not part of media3 1.3.1's `DefaultLivePlaybackSpeedControl.Builder`); the live-edge target is set per media via `MediaItem.LiveConfiguration.setTargetOffsetMs`.
+- **Input injection hardening:** pointer buttons outside the registered range (0 or >8) are rejected instead of being silently mapped to left-click, wheel deltas are clamped before the integer cast, and a zero wheel delta no longer emits a bare SYN_REPORT; the Wayland portal injector teardown only spawns the session close when a Tokio runtime context exists, so dropping it outside the runtime can no longer panic from `drop`.
 
 ### 🔒 Security
+- **mDNS token redaction:** daemon events are now logged by kind only, never via `Debug` (whose `ServiceInfo` rendering can include the TXT record carrying the session access token); the monitor thread also switched from a 60 s receive-timeout to a blocking receive, so daemon events keep being consumed instead of dropping out after the first idle minute.
 - Corrected SECURITY.md: the daemon binds `0.0.0.0:8788` (not `127.0.0.1`), endpoints are now token-protected (not "unauthenticated by design"), and the token model + keystore rotation are documented, including limitations against a determined LAN attacker.
 
 ### 📚 Docs
