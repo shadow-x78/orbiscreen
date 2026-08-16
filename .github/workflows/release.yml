@@ -128,6 +128,7 @@ jobs:
           chmod +x scripts/package-appimage.sh
           VERSION=${GITHUB_REF_NAME#v}
           ./scripts/package-appimage.sh $VERSION
+          cp dist/orbiscreen-x86_64.AppImage orbiscreen-x86_64.AppImage
 
       - name: Set up JDK 17 for Android
         uses: actions/setup-java@v4
