@@ -69,12 +69,20 @@ Categories=Network;System;
 StartupNotify=true
 EOF
 
-if ! command -v magick >/dev/null 2>&1; then
-    echo "error: ImageMagick ('magick') is required to rasterize the app icon." >&2
-    exit 1
-fi
-magick -background none "$REPO_ROOT/data/orbiscreen.svg" -flatten -resize 256x256 \
-    "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png"
+rasterize_256() {
+    local svg="$1" out="$2"
+    if command -v rsvg-convert >/dev/null 2>&1; then
+        rsvg-convert -w 256 -h 256 "$svg" -o "$out"
+    elif command -v magick >/dev/null 2>&1; then
+        magick -background none "$svg" -flatten -resize 256x256 "$out"
+    elif command -v convert >/dev/null 2>&1; then
+        convert -background none "$svg" -flatten -resize 256x256 "$out"
+    else
+        echo "error: no SVG rasterizer found (need 'rsvg-convert', 'magick' or 'convert')" >&2
+        exit 1
+    fi
+}
+rasterize_256 "$REPO_ROOT/data/orbiscreen.svg" "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png"
 cp "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png" "$APP/orbiscreen.png"
 
 cat > "$APP/AppRun" <<'EOF'

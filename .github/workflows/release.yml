@@ -72,7 +72,8 @@ jobs:
             libevdev-dev libxkbcommon-dev libwayland-dev \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
-            libgtk-4-dev libadwaita-1-dev libgraphene-1.0-dev rpm
+            libgtk-4-dev libadwaita-1-dev libgraphene-1.0-dev rpm \
+            imagemagick librsvg2-bin
 
       - name: Build release binaries
         run: |
