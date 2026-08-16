@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.11.1] - 2026-08-16
+
+### 🐛 Fixed
+- **Android discovery staleness:** vanished mDNS services are now actually removed from the host list (the lost-service event previously carried no address, so stale entries lingered forever); subnet-sweep candidates are verified with the daemon's own `/api/info` before being listed.
+- **Structured concurrency:** the subnet scanner rethrows `CancellationException` so leaving the discovery screen genuinely stops in-flight probes; the player's supervisor scope and OkHttp dispatcher are shut down on release.
+- **Android 12+ gateway detection:** `WifiManager.dhcpInfo` (deprecated, null without location grant) is replaced with `ConnectivityManager.getLinkProperties()`, so the subnet sweep works on modern Android; SDK level raised (`compileSdk 35`) to match `targetSdk 35`.
+- **Web remote control:** pressed pointer buttons are tracked in a set and all released on `pointercancel`/`pointerleave` (previously only button 1 and only while buttons were held, leaving stuck buttons on the host); keystrokes are no longer forwarded while the stream is still connecting; playback rejection now triggers the reconnect scheduler.
+
+### 🗑️ Removed
+- **Dead code across all crates:** unused dependencies (`evdi-sys`, `libc`, `gstreamer-video`), unused public API (`open_many`, `remove_all_nodes`, `device_node_index`, `write_debug_ppm`, `stream()`, `TouchCalibration`, `fullname()`, the dead `query_status`/`call_get_status` chain), and the `Start()` no-op method from the D-Bus surface (starting stays a systemd job).
+- **Unused client surface:** `TouchCalibration`, the legacy pre-Compose `activity_main.xml`, unused Gradle dependencies (`appcompat`, `security-crypto`, `media3-exoplayer-hls`), the dead `syncWebClient` asset step, unused strings/colors resources, and the half-wired `label` navigation argument.
+- **Stale packaging assets:** unreferenced icons in `data/` (only `orbiscreen.svg` is used), the superseded `packaging/debian/` dir, and the never-built `packaging/flatpak/` manifest.
+- **Inline comments** were stripped project-wide; only the per-file license header remains.
+
+### 🔧 Changed
+- `rand` bumped to 0.9 in `orbiscreen-transport`; Android `versionCode` 16 → 17.
+
 ## [v0.11.0] - 2026-08-16
 
 ### 💥 Breaking
