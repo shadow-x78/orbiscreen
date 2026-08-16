@@ -77,14 +77,9 @@
 
 أمر `orbiscreen stop` عميل رقيق لهذا التابع تحديداً: يستدعي `Stop()` عبر ناقل الجلسة، يطبع الرد، ويخرج بالرمز 1 مع تلميح `systemctl --user stop orbiscreen` عندما لا يُعثر على اسم الخدمة.
 
-### 3. `Start() -> String` (التوقيع `s`)
+لا يمكن تشغيل الدامن عبر D-Bus: لا يوجد تفعيل للواجهة ولا تابع `Start()` — تُدار خدمة systemd بدل ذلك (`systemctl --user start orbiscreen`).
 
-**لا تُشغّل خط أنابيب داخل العملية الجارية.** بدء الالتقاط/الترميز/النقل داخل daemon شغال غير مدعوم؛ على المستدعين إدارة وحدة الخدمة بأنفسهم.
-
-- **إن كان شغالاً:** `"Orbiscreen is already running"`
-- **وإلا:** `"Start the daemon via systemd: systemctl --user start orbiscreen"`
-
-### 4. `ListClients() -> Array of String` (التوقيع `as`)
+### 3. `ListClients() -> Array of String` (التوقيع `as`)
 
 عدادات حية للعملاء عبر نقل البث الوحيد (كانت سابقا تعيد سلاسل ثابتة):
 
@@ -92,7 +87,7 @@
 ["HTTP MPEG-TS /stream: 2 active client(s), 5 total connection(s)"]
 ```
 
-### 5. `GetConfig() -> String` (التوقيع `s`)
+### 4. `GetConfig() -> String` (التوقيع `s`)
 
 تُرجع الإعدادات المعقّمة التي بُدئ بها الـ daemon، مسلسلة بصيغة **TOML** (وليس JSON) عبر `orbiscreen-core::dump_config`:
 
@@ -138,9 +133,6 @@ busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.D
 
 # إيقاف الـ daemon رشيقاً
 busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon Stop
-
-# "Start" تلميح systemd وليس مشغّلاً داخلياً
-busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon Start
 ```
 
 ---

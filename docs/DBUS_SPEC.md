@@ -77,14 +77,9 @@ Requests a graceful daemon shutdown. The handler flips the running flag and sign
 
 `orbiscreen stop` is a thin client of exactly this method: it calls `Stop()` over the session bus, prints the reply, and exits 1 with a `systemctl --user stop orbiscreen` hint when the service name is not found.
 
-### 3. `Start() -> String` (signature `s`)
+The daemon cannot be started over D-Bus: there is no interface activation, and no `Start()` method - manage the service unit instead (`systemctl --user start orbiscreen`).
 
-**Does not start a pipeline inside the running process.** Starting capture/encode/transport from within an already-running daemon is not supported; callers must manage the service unit.
-
-- **If running:** `"Orbiscreen is already running"`
-- **Otherwise:** `"Start the daemon via systemd: systemctl --user start orbiscreen"`
-
-### 4. `ListClients() -> Array of String` (signature `as`)
+### 3. `ListClients() -> Array of String` (signature `as`)
 
 Live client counts for the single stream transport (previously it returned hard-coded strings):
 
@@ -92,7 +87,7 @@ Live client counts for the single stream transport (previously it returned hard-
 ["HTTP MPEG-TS /stream: 2 active client(s), 5 total connection(s)"]
 ```
 
-### 5. `GetConfig() -> String` (signature `s`)
+### 4. `GetConfig() -> String` (signature `s`)
 
 Returns the sanitized configuration the daemon was started with, serialized as **TOML** (not JSON) by `orbiscreen-core::dump_config`:
 
@@ -138,9 +133,6 @@ busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.D
 
 # Gracefully stop the daemon
 busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon Stop
-
-# "Start" is a systemd hint, not an internal launcher
-busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon Start
 ```
 
 ---
