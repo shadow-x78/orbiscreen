@@ -13,14 +13,15 @@ fi
 DIST="$REPO_ROOT/dist"
 mkdir -p "$DIST"
 
-echo "Building release binary..."
-cargo build --release --bin orbiscreen
+echo "Building release binaries..."
+cargo build --release --workspace
 
 APP="$DIST/orbiscreen.AppDir"
 rm -rf "$APP"
 mkdir -p "$APP/usr/bin" "$APP/usr/share/orbiscreen/client/vendor" "$APP/usr/share/icons/hicolor/256x256/apps"
 
 install -m755 target/release/orbiscreen "$APP/usr/bin/orbiscreen"
+install -m755 target/release/orbiscreen-gtk "$APP/usr/bin/orbiscreen-gtk"
 install -m644 clients/web/index.html "$APP/usr/share/orbiscreen/client/index.html"
 install -m644 clients/web/style.css  "$APP/usr/share/orbiscreen/client/style.css"
 install -m644 clients/web/app.js     "$APP/usr/share/orbiscreen/client/app.js"
@@ -51,10 +52,8 @@ if [ -n "${GST_PREFIX:-}" ] && [ -d "$GST_PREFIX/lib" ]; then
             cp -f "$so" "$APP/usr/lib/" 2>/dev/null || true
         done
     done
-    GST_BUNDLED=1
 else
     echo "warning: GStreamer pkg-config prefix not found; AppImage will rely on the host GStreamer install" >&2
-    GST_BUNDLED=0
 fi
 
 cat > "$APP/orbiscreen.desktop" <<'EOF'
@@ -91,11 +90,17 @@ EOF
 chmod +x "$APP/AppRun"
 
 if ! command -v appimagetool >/dev/null 2>&1; then
-    echo "Installing appimagetool into /usr/local/bin..."
-    sudo curl -sL \
-        https://github.com/AppImageCommunity/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage \
-        -o /usr/local/bin/appimagetool
-    sudo chmod +x /usr/local/bin/appimagetool
+    APPIMAGETOOL_VERSION="1.9.1"
+    APPIMAGETOOL_SHA256="ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0"
+    APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-x86_64.AppImage"
+    mkdir -p "$DIST/tools"
+    echo "Downloading appimagetool ${APPIMAGETOOL_VERSION}..."
+    curl -fsSL "$APPIMAGETOOL_URL" -o "$DIST/tools/appimagetool.AppImage"
+    echo "${APPIMAGETOOL_SHA256}  $DIST/tools/appimagetool.AppImage" | sha256sum -c -
+    chmod +x "$DIST/tools/appimagetool.AppImage"
+    PATH="$DIST/tools:$PATH"
+    ln -sf "$DIST/tools/appimagetool.AppImage" "$DIST/tools/appimagetool"
+    export APPIMAGE_EXTRACT_AND_RUN=1
 fi
 
 appimagetool "$APP" "$DIST/orbiscreen-x86_64.AppImage"

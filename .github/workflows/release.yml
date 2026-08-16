@@ -82,6 +82,7 @@ jobs:
         run: |
           mkdir -p release-bundle/bin
           cp target/release/orbiscreen release-bundle/bin/
+          cp target/release/orbiscreen-gtk release-bundle/bin/
           cp scripts/install.sh release-bundle/
           tar -czvf orbiscreen-linux-x86_64.tar.gz -C release-bundle .
 

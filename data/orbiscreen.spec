@@ -8,7 +8,7 @@ Summary:        Real virtual secondary displays for Linux, streamed to Android o
 License:        GPL-3.0-or-later
 URL:            https://github.com/shadow-x78/orbiscreen
 
-Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad gstreamer1-plugins-ugly gstreamer1-libav libevdev libxkbcommon
+Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad gstreamer1-plugins-ugly gstreamer1-libav libevdev libxkbcommon gtk4 libadwaita
 
 %description
 Orbiscreen provides high-performance virtual secondary displays for Linux desktops,
@@ -27,6 +27,7 @@ mkdir -p %{buildroot}/usr/lib/systemd/user
 mkdir -p %{buildroot}/usr/share/orbiscreen/client
 
 install -m 0755 %{_projectroot}/target/release/orbiscreen %{buildroot}/usr/bin/orbiscreen
+install -m 0755 %{_projectroot}/target/release/orbiscreen-gtk %{buildroot}/usr/bin/orbiscreen-gtk
 
 install -m 0644 %{_projectroot}/data/com.orbiscreen.OrbiscreenGtk.desktop %{buildroot}/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop || true
 install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg || true
@@ -70,6 +71,7 @@ fi
 
 %files
 /usr/bin/orbiscreen
+/usr/bin/orbiscreen-gtk
 /usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop
 /usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
 /usr/lib/systemd/user/orbiscreen.service

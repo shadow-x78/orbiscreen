@@ -19,6 +19,7 @@ mkdir -p "${BUILD_DIR}/usr/lib/systemd/user"
 mkdir -p "${BUILD_DIR}/usr/share/orbiscreen/client/vendor"
 
 cp -f target/release/orbiscreen "${BUILD_DIR}/usr/bin/"
+cp -f target/release/orbiscreen-gtk "${BUILD_DIR}/usr/bin/"
 
 cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_DIR}/usr/share/applications/" || true
 cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg" || true
@@ -49,7 +50,7 @@ Package: orbiscreen
 Version: ${VERSION}
 Architecture: ${ARCH}
 Maintainer: shadow-x78 <https://github.com/shadow-x78/orbiscreen>
-Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, libgstreamer-plugins-good1.0-0, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, libxkbcommon0, libevdev2
+Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, libxkbcommon0, libevdev2, libgtk-4-1, libadwaita-1-0
 Section: utils
 Priority: optional
 Homepage: https://github.com/shadow-x78/orbiscreen
