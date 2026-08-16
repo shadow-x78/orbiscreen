@@ -6,6 +6,7 @@
 // per second and can stop the daemon gracefully. It never fabricates state:
 // when the daemon is absent the UI shows exactly that.
 
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use gtk4::glib;
@@ -339,7 +340,9 @@ fn build_ui(app: &Application) {
     });
 
     // Clear the busy flag when poller statuses land (covers failed stops).
-    let handles = Arc::new(UiHandles {
+    // `UiHandles` only ever leaves this function via the `timeout_add_local`
+    // closure, which runs on the GTK main loop, so a plain `Rc` is honest.
+    let handles = Rc::new(UiHandles {
         switch: server_switch,
         daemon_row: server_row,
         stream_row,
@@ -354,7 +357,7 @@ fn build_ui(app: &Application) {
 /// plain data, travel back over an mpsc channel from a dedicated OS thread,
 /// and are drained on the GTK main loop with `timeout_add_local` so the
 /// `!Send` widget handles never leave the main thread.
-fn start_status_poller(handles: Arc<UiHandles>, busy: Arc<Mutex<bool>>) {
+fn start_status_poller(handles: Rc<UiHandles>, busy: Arc<Mutex<bool>>) {
     let (tx, rx) = std::sync::mpsc::channel::<DaemonStatus>();
 
     std::thread::Builder::new()

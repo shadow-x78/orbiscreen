@@ -48,10 +48,11 @@ android {
             val keyPw: String? =
                 System.getenv("ORBISCREEN_KEY_PASSWORD")
                     ?: (project.findProperty("orbiscreen.keyPassword") as String?)
-            if (storePw == null || alias == null || keyPw == null) {
+            if (storePw.isNullOrBlank() || alias.isNullOrBlank() || keyPw.isNullOrBlank()) {
                 throw GradleException(
-                    "Missing signing secrets. Provide ORBISCREEN_STORE_PASSWORD, " +
-                        "ORBISCREEN_KEY_ALIAS and ORBISCREEN_KEY_PASSWORD."
+                    "Missing or blank signing secrets. Provide non-empty " +
+                        "ORBISCREEN_STORE_PASSWORD, ORBISCREEN_KEY_ALIAS and " +
+                        "ORBISCREEN_KEY_PASSWORD."
                 )
             }
             storeFile = file(ksPath)
