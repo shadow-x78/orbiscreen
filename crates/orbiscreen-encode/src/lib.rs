@@ -76,7 +76,7 @@ pub fn init() -> Result<(), EncodeError> {
     gstreamer::init().map_err(|e| EncodeError::Init(e.to_string()))
 }
 
-pub fn detect_available(preferred: EncoderKind) -> EncoderKind {
+fn detect_available(preferred: EncoderKind) -> EncoderKind {
     for kind in [
         preferred,
         EncoderKind::X264,

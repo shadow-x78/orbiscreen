@@ -40,27 +40,6 @@ pub struct KeyEvent {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TouchCalibration {
-    pub display_width: u32,
-    pub display_height: u32,
-}
-
-impl TouchCalibration {
-    pub fn new(display_width: u32, display_height: u32) -> Self {
-        Self {
-            display_width,
-            display_height,
-        }
-    }
-
-    pub fn clamp_and_scale(&self, norm_x: f64, norm_y: f64) -> (f64, f64) {
-        let x = norm_x.clamp(0.0, 1.0) * (self.display_width as f64);
-        let y = norm_y.clamp(0.0, 1.0) * (self.display_height as f64);
-        (x, y)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputBackend {
     X11,
     Wayland,
@@ -243,13 +222,6 @@ mod tests {
                 "button {button} maps to {code:#x}, outside registered key range"
             );
         }
-    }
-
-    #[test]
-    fn touch_calibration_clamps_and_scales() {
-        let cal = TouchCalibration::new(1920, 1080);
-        assert_eq!(cal.clamp_and_scale(0.5, 0.5), (960.0, 540.0));
-        assert_eq!(cal.clamp_and_scale(-0.1, 1.2), (0.0, 1080.0));
     }
 
     #[test]

@@ -1,7 +1,7 @@
 // Orbiscreen - orbiscreen-capture - wayland module (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
-use std::os::fd::{AsRawFd, OwnedFd, RawFd};
+use std::os::fd::{AsRawFd, OwnedFd};
 
 use ashpd::desktop::screencast::{
     CursorMode, OpenPipeWireRemoteOptions, Screencast, SelectSourcesOptions, SourceType,
@@ -21,13 +21,6 @@ use tokio::sync::mpsc;
 pub struct WaylandCaptureSpec {
     pub width: u32,
     pub height: u32,
-}
-#[derive(Debug, Clone)]
-pub struct PipeWireStream {
-    pub node_id: u32,
-    pub fd: RawFd,
-    pub position: Option<(i32, i32)>,
-    pub size: Option<(i32, i32)>,
 }
 
 #[derive(Debug, Error)]
@@ -75,9 +68,8 @@ fn virtual_only_options() -> SelectSourcesOptions {
 pub struct WaylandCapture {
     _screencast: Screencast,
     _session: Session<Screencast>,
-    _pipe_fd: OwnedFd,
-    stream: PipeWireStream,
     _pipeline: gstreamer::Pipeline,
+    _pipe_fd: OwnedFd,
     rx: tokio::sync::Mutex<mpsc::UnboundedReceiver<CapturedFrame>>,
     /// Output dimensions forced by the GStreamer pipeline caps (videoconvert
     /// + videoscale normalize every portal frame to exactly this size).
@@ -115,14 +107,7 @@ impl WaylandCapture {
             .await
             .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
         let raw_fd = pipe_fd.as_raw_fd();
-        let stream = PipeWireStream {
-            node_id: first.pipe_wire_node_id(),
-            fd: raw_fd,
-            position: first.position(),
-            size: first
-                .size()
-                .or(Some((spec.width as i32, spec.height as i32))),
-        };
+        let node_id = first.pipe_wire_node_id();
 
         gstreamer::init().map_err(|e| WaylandCaptureError::Dbus(format!("gst init: {}", e)))?;
 
@@ -138,7 +123,7 @@ impl WaylandCapture {
              ! videoscale \
              ! video/x-raw,format=BGRA,width={},height={} \
              ! appsink name=sink drop=false sync=false max-buffers=2 emit-signals=false",
-            stream.fd, stream.node_id, spec.width, spec.height
+            raw_fd, node_id, spec.width, spec.height
         );
         let pipeline = gstreamer::parse::launch(&pipeline_str)?
             .downcast::<gstreamer::Pipeline>()
@@ -219,9 +204,8 @@ impl WaylandCapture {
         Ok(Self {
             _screencast: screencast,
             _session: session,
-            _pipe_fd: pipe_fd,
-            stream,
             _pipeline: pipeline,
+            _pipe_fd: pipe_fd,
             rx: tokio::sync::Mutex::new(rx),
             width: spec.width,
             height: spec.height,
@@ -231,10 +215,6 @@ impl WaylandCapture {
     /// Output dimensions forced by the pipeline caps.
     pub fn dimensions(&self) -> (u32, u32) {
         (self.width, self.height)
-    }
-
-    pub fn stream(&self) -> &PipeWireStream {
-        &self.stream
     }
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, CaptureError> {

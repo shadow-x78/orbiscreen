@@ -15,7 +15,6 @@ workspace = true
 [dependencies]
 gstreamer = { workspace = true }
 gstreamer-app = { workspace = true }
-gstreamer-video = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }

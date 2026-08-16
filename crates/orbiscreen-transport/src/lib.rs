@@ -113,7 +113,7 @@ pub fn generate_token() -> String {
     use base64::engine::general_purpose::URL_SAFE_NO_PAD;
     use base64::Engine as _;
     let mut bytes = [0u8; 32];
-    rand::RngCore::fill_bytes(&mut rand::thread_rng(), &mut bytes);
+    rand::RngCore::fill_bytes(&mut rand::rng(), &mut bytes);
     URL_SAFE_NO_PAD.encode(bytes)
 }
 
@@ -130,22 +130,17 @@ fn token_eq(a: &str, b: &str) -> bool {
 #[allow(missing_debug_implementations)]
 pub struct Transport {
     cfg: ServerConfig,
-    input_tx: Option<mpsc::UnboundedSender<IncomingInput>>,
+    input_tx: mpsc::UnboundedSender<IncomingInput>,
     token: String,
 }
 
 impl Transport {
-    pub fn new(cfg: ServerConfig) -> Self {
+    pub fn new(cfg: ServerConfig, input_tx: mpsc::UnboundedSender<IncomingInput>) -> Self {
         Self {
             cfg,
-            input_tx: None,
+            input_tx,
             token: generate_token(),
         }
-    }
-
-    pub fn with_input_sender(mut self, tx: mpsc::UnboundedSender<IncomingInput>) -> Self {
-        self.input_tx = Some(tx);
-        self
     }
 
     /// The access token clients must present via `Authorization: Bearer …`
@@ -163,8 +158,7 @@ impl Transport {
         refresh_hz: u32,
         encoder_kind: &'static str,
     ) -> Result<(), TransportError> {
-        let (fallback_tx, _fallback_rx) = mpsc::unbounded_channel();
-        let input_tx = self.input_tx.unwrap_or(fallback_tx);
+        let input_tx = self.input_tx;
         // Large enough that a slow consumer only loses about a second of
         // video; Lagged errors are tolerated per-client instead of tearing
         // the stream down.

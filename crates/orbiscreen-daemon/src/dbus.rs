@@ -56,17 +56,6 @@ impl OrbiscreenDbusServer {
         .to_string()
     }
 
-    /// The daemon is started by the user or systemd; starting the pipeline
-    /// from within an already-running process is not supported. Callers
-    /// should manage the service unit instead.
-    async fn start(&self) -> String {
-        if self.handles.is_running.load(Ordering::SeqCst) {
-            "Orbiscreen is already running".to_string()
-        } else {
-            "Start the daemon via systemd: systemctl --user start orbiscreen".to_string()
-        }
-    }
-
     /// Gracefully stop the running daemon.
     async fn stop(&self) -> String {
         if self.handles.is_running.swap(false, Ordering::SeqCst) {
@@ -95,19 +84,6 @@ impl OrbiscreenDbusServer {
     }
 }
 
-/// Resolve a single client request by reading one value from a oneshot
-/// receiver. Exposed to unit tests and the daemon's client-side helpers.
-pub async fn call_get_status(conn: &zbus::Connection) -> zbus::Result<String> {
-    let proxy = zbus::Proxy::new(
-        conn,
-        "com.orbiscreen.Daemon",
-        "/com/orbiscreen/Daemon",
-        "com.orbiscreen.Daemon",
-    )
-    .await?;
-    proxy.call("GetStatus", &()).await
-}
-
 /// Request the daemon to stop itself. Returns the daemon's reply.
 pub async fn call_stop(conn: &zbus::Connection) -> zbus::Result<String> {
     let proxy = zbus::Proxy::new(
@@ -118,12 +94,6 @@ pub async fn call_stop(conn: &zbus::Connection) -> zbus::Result<String> {
     )
     .await?;
     proxy.call("Stop", &()).await
-}
-
-/// Connect to the session bus and query GetStatus in one shot.
-pub async fn query_status() -> zbus::Result<String> {
-    let conn = zbus::connection::Builder::session()?.build().await?;
-    call_get_status(&conn).await
 }
 
 /// Connect to the session bus and request a graceful Stop in one shot.

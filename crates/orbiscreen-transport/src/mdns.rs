@@ -83,10 +83,6 @@ impl Advertiser {
         info!(instance = %instance, port = desc.port, "Advertised Orbiscreen service via mDNS");
         Ok(advertiser)
     }
-
-    pub fn fullname(&self) -> &str {
-        &self.fullname
-    }
 }
 
 impl Drop for Advertiser {

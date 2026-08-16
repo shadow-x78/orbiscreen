@@ -1,7 +1,6 @@
 // Orbiscreen - orbiscreen-display library (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
-use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;
@@ -11,9 +10,6 @@ use evdi::prelude::*;
 use thiserror::Error;
 use tracing::{info, instrument, warn};
 
-pub const AWAIT_MODE_TIMEOUT: Duration = Duration::from_millis(250);
-/// Long mode wait used at open time: compositors can take a couple of seconds
-/// to complete the first modeset on a freshly connected evdi head.
 pub const OPEN_MODE_TIMEOUT: Duration = Duration::from_secs(3);
 pub const UPDATE_BUFFER_TIMEOUT: Duration = Duration::from_millis(50);
 
@@ -184,20 +180,6 @@ impl VirtualDisplay {
         })
     }
 
-    pub async fn open_many(count: u32, spec: VirtualDisplaySpec) -> Vec<Self> {
-        let mut out = Vec::with_capacity(count as usize);
-        for i in 0..count {
-            match Self::open_at(spec, Some(i)).await {
-                Ok(display) => out.push(display),
-                Err(error) => {
-                    warn!(index = i, error = %error, "open_many short-circuiting");
-                    break;
-                }
-            }
-        }
-        out
-    }
-
     pub fn spec(&self) -> VirtualDisplaySpec {
         self.spec
     }
@@ -273,48 +255,8 @@ impl VirtualDisplay {
         .map(Some)
     }
 
-    pub fn remove_all_nodes() -> std::io::Result<()> {
-        match DeviceNode::remove_all() {
-            Ok(()) => Ok(()),
-            Err(e) => {
-                warn!(error = %e, "evdi_device_remove_all failed");
-                Err(e)
-            }
-        }
-    }
-
-    /// Heuristic DRM connector name for this evdi node. evdi connectors are
-    /// registered 1-based and always report as DVI-I (e.g. card1 → "DVI-I-1"),
-    /// so callers must treat this as best-effort, not authoritative.
     pub fn drm_connector_name(&self) -> Option<String> {
         Some(format!("DVI-I-{}", self.device_index + 1))
-    }
-
-    pub fn device_node_index(&self) -> u32 {
-        self.device_index
-    }
-
-    pub fn write_debug_ppm<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
-        use std::fs::File;
-        use std::io::Write;
-        let mut file = File::create(path)?;
-        let mode = self
-            .current_mode()
-            .ok_or_else(|| std::io::Error::other("no mode yet"))?;
-        let buffer = self
-            .handle
-            .get_buffer(self.buffer_id)
-            .ok_or_else(|| std::io::Error::other("buffer missing"))?;
-        file.write_all(format!("P6\n{} {}\n255\n", mode.width, mode.height).as_bytes())?;
-        let stride = mode.stride() as usize;
-        let row_bytes = mode.width as usize * 4;
-        for row in buffer.bytes().chunks_exact(stride) {
-            for pixel in row[..row_bytes].chunks_exact(4) {
-                file.write_all(&[pixel[2], pixel[1], pixel[0]])?;
-            }
-        }
-        file.flush()?;
-        Ok(())
     }
 }
 
@@ -641,11 +583,6 @@ mod tests {
     #[test]
     fn probe_is_safe_without_evdi_loaded() {
         let _ = probe();
-    }
-
-    #[test]
-    fn drm_connector_name_uses_device_index() {
-        assert_eq!(format!("DVI-I-{}", 3), "DVI-I-3");
     }
 
     #[test]

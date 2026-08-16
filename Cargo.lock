@@ -575,7 +575,7 @@ dependencies = [
  "crossbeam-channel",
  "derivative",
  "drm-fourcc",
- "evdi-sys 0.3.1",
+ "evdi-sys",
  "lazy_static",
  "libc",
  "rand 0.8.7",
@@ -590,17 +590,6 @@ name = "evdi-sys"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7788a33fcb3465d1da219b35aa1b74a0f7a60bdafc08c2359a755c639f677b7"
-dependencies = [
- "cc",
- "libc",
- "pkg-config",
-]
-
-[[package]]
-name = "evdi-sys"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9371986ad57c6a615fa20790933c916c3a0546a578c118e9f085031e009fb883"
 dependencies = [
  "cc",
  "libc",
@@ -1163,36 +1152,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gstreamer-video"
-version = "0.25.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7907cb8a73edc98cf279e5de7370bb2c245b7bedf623ba8c7e59648cd4739133"
-dependencies = [
- "cfg-if",
- "futures-channel",
- "glib 0.22.8",
- "gstreamer",
- "gstreamer-base",
- "gstreamer-video-sys",
- "libc",
- "thiserror 2.0.19",
-]
-
-[[package]]
-name = "gstreamer-video-sys"
-version = "0.25.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94f6753d53c9a5e274f33441bee2c7dabef82edefb39605b75c834d24af89e7e"
-dependencies = [
- "glib-sys 0.22.8",
- "gobject-sys 0.22.6",
- "gstreamer-base-sys",
- "gstreamer-sys",
- "libc",
- "system-deps",
-]
-
-[[package]]
 name = "gtk4"
 version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1685,8 +1644,6 @@ version = "0.11.1"
 dependencies = [
  "drm-fourcc",
  "evdi",
- "evdi-sys 0.4.0",
- "libc",
  "thiserror 2.0.19",
  "tokio",
  "tracing",
@@ -1698,7 +1655,6 @@ version = "0.11.1"
 dependencies = [
  "gstreamer",
  "gstreamer-app",
- "gstreamer-video",
  "thiserror 2.0.19",
  "tokio",
  "tracing",
@@ -1743,7 +1699,7 @@ dependencies = [
  "hostname",
  "mdns-sd",
  "orbiscreen-input",
- "rand 0.8.7",
+ "rand 0.9.5",
  "serde",
  "serde_json",
  "thiserror 2.0.19",

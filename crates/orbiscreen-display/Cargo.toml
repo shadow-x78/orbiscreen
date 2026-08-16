@@ -14,9 +14,7 @@ workspace = true
 
 [dependencies]
 evdi = { workspace = true }
-evdi-sys = { workspace = true }
 drm-fourcc = { workspace = true }
-libc = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }

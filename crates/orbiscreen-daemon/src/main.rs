@@ -548,11 +548,13 @@ async fn run_start(
             paths.into_iter().find(|p| p.exists())
         })
         .unwrap_or_else(|| PathBuf::from("clients/web"));
-    let transport = Transport::new(ServerConfig {
-        signaling_port: cfg.transport.signaling_port,
-        client_web_dir: client_dir,
-    })
-    .with_input_sender(input_tx);
+    let transport = Transport::new(
+        ServerConfig {
+            signaling_port: cfg.transport.signaling_port,
+            client_web_dir: client_dir,
+        },
+        input_tx,
+    );
     let token = transport.token().to_owned();
     info!("stream access token generated ({len} chars); clients fetch it via mDNS TXT or /client/config.json",
         len = token.len());

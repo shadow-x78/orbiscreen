@@ -66,27 +66,20 @@ enum CaptureInner {
 }
 
 impl CaptureSession {
-    pub fn open(width: u32, height: u32) -> Result<Self, CaptureError> {
-        match detect_backend() {
-            CaptureBackend::X11 => {
-                let capture = x11::X11Capture::open(width, height)?;
-                let (actual_w, actual_h) = capture.dimensions();
-                Ok(Self {
-                    backend_kind: CaptureBackend::X11,
-                    inner: Arc::new(CaptureInner::X11(capture)),
-                    width: actual_w,
-                    height: actual_h,
-                })
-            }
-            CaptureBackend::Wayland => Err(CaptureError::BackendUnavailable(
-                "Wayland capture requires open_async",
-            )),
-        }
+    fn open_x11(width: u32, height: u32) -> Result<Self, CaptureError> {
+        let capture = x11::X11Capture::open(width, height)?;
+        let (actual_w, actual_h) = capture.dimensions();
+        Ok(Self {
+            backend_kind: CaptureBackend::X11,
+            inner: Arc::new(CaptureInner::X11(capture)),
+            width: actual_w,
+            height: actual_h,
+        })
     }
 
     pub async fn open_async(width: u32, height: u32) -> Result<Self, CaptureError> {
         match detect_backend() {
-            CaptureBackend::X11 => Self::open(width, height),
+            CaptureBackend::X11 => Self::open_x11(width, height),
             CaptureBackend::Wayland => {
                 let capture =
                     wayland::WaylandCapture::open(wayland::WaylandCaptureSpec { width, height })
@@ -148,17 +141,11 @@ mod tests {
     #[test]
     fn detect_prefers_wayland_when_present() {
         let prev = std::env::var_os("WAYLAND_DISPLAY");
-        let prev_x = std::env::var_os("DISPLAY");
         std::env::set_var("WAYLAND_DISPLAY", "wayland-0");
-        std::env::remove_var("DISPLAY");
         assert_eq!(detect_backend(), CaptureBackend::Wayland);
         match prev {
             Some(value) => std::env::set_var("WAYLAND_DISPLAY", value),
             None => std::env::remove_var("WAYLAND_DISPLAY"),
-        }
-        match prev_x {
-            Some(value) => std::env::set_var("DISPLAY", value),
-            None => std::env::remove_var("DISPLAY"),
         }
     }
 
