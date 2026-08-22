@@ -111,39 +111,24 @@ fn list_displays(path: &str) {
     println!("display backend: {:?}", orbiscreen_display::probe());
 }
 
-/// One captured frame from either source, normalized to (width, height, data).
 struct Frame {
     width: u32,
     height: u32,
     data: Vec<u8>,
 }
 
-/// Frame source abstraction: evdi framebuffer (primary) or portal/X11 capture
-/// fallback when the evdi kernel module is unavailable.
 enum FrameSource {
-    /// Reads the evdi virtual display framebuffer directly. This is the real
-    /// secondary screen the compositor draws on. Runs on a dedicated thread
-    /// because the evdi handle is `!Send`.
     Evdi(EvdiFramePump),
-    /// Primary-desktop capture (portal or X11 root window) — a degraded mode
-    /// that streams whatever the host shows on its main display.
     Capture(CaptureSession),
 }
 
-/// Outcome of one frame read.
 enum SourceOutcome {
-    /// A frame is ready.
     Frame(Frame),
-    /// Transient failure — the pump keeps working; retry shortly.
     Retryable(String),
-    /// The source is gone (evdi pump thread ended); stop streaming.
     Ended,
 }
 
 impl FrameSource {
-    /// Reads the next frame. Blocks until a frame is ready or the source
-    /// ends; there is no "no new content yet" state at this level because
-    /// the pump/capture internals already wait on updates.
     async fn next_frame(&mut self) -> SourceOutcome {
         match self {
             FrameSource::Evdi(pump) => match pump.next_frame().await {
@@ -152,7 +137,6 @@ impl FrameSource {
                     height: frame.height,
                     data: frame.data,
                 }),
-                // Pump thread ended: the channel closed.
                 None => SourceOutcome::Ended,
             },
             FrameSource::Capture(capture) => match capture.next_frame().await {
@@ -205,29 +189,23 @@ async fn main() -> ExitCode {
                 ExitCode::from(1)
             }
         },
-        Command::Stop => {
-            // Ask the running daemon to shut itself down gracefully through
-            // the D-Bus session service.
-            match dbus::request_stop().await {
-                Ok(reply) => {
-                    println!("daemon: {reply}");
-                    ExitCode::SUCCESS
-                }
-                Err(zbus::Error::MethodError(name, _, _))
-                    if name.to_string().contains("ServiceUnknown") =>
-                {
-                    println!("daemon is not running (no com.orbiscreen.Daemon on the session bus)");
-                    ExitCode::from(1)
-                }
-                Err(e) => {
-                    eprintln!("stop failed: {e}");
-                    eprintln!(
-                        "hint: use 'systemctl --user stop orbiscreen' if it runs as a service"
-                    );
-                    ExitCode::from(1)
-                }
+        Command::Stop => match dbus::request_stop().await {
+            Ok(reply) => {
+                println!("daemon: {reply}");
+                ExitCode::SUCCESS
             }
-        }
+            Err(zbus::Error::MethodError(name, _, _))
+                if name.to_string().contains("ServiceUnknown") =>
+            {
+                println!("daemon is not running (no com.orbiscreen.Daemon on the session bus)");
+                ExitCode::from(1)
+            }
+            Err(e) => {
+                eprintln!("stop failed: {e}");
+                eprintln!("hint: use 'systemctl --user stop orbiscreen' if it runs as a service");
+                ExitCode::from(1)
+            }
+        },
         Command::Uninstall => {
             run_uninstall();
             ExitCode::SUCCESS
@@ -256,7 +234,6 @@ async fn main() -> ExitCode {
 fn run_uninstall() {
     println!("[Orbiscreen] Uninstalling...");
 
-    // Stop and disable service
     if let Err(e) = std::process::Command::new("systemctl")
         .args(["--user", "stop", "orbiscreen"])
         .status()
@@ -273,7 +250,6 @@ fn run_uninstall() {
         .args(["--user", "daemon-reload"])
         .status();
 
-    // Remove user files
     if let Ok(home) = std::env::var("HOME") {
         let home = PathBuf::from(home);
         let _ = std::fs::remove_file(home.join(".local/bin/orbiscreen"));
@@ -287,7 +263,6 @@ fn run_uninstall() {
         let _ = std::fs::remove_dir_all(home.join(".local/share/orbiscreen"));
     }
 
-    // Attempt system-wide cleanup (silently fail if no permission)
     let _ = std::fs::remove_file("/usr/bin/orbiscreen");
     let _ = std::fs::remove_file("/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop");
     let _ = std::fs::remove_file(
@@ -318,10 +293,6 @@ async fn run_start(
         enc = cfg.encode.preferred_encoder,
     );
 
-    // Primary frame source: read the evdi virtual display framebuffer. This
-    // streams the actual secondary screen the compositor draws on. The
-    // portal/X11 capture path is only a degraded fallback for hosts without
-    // the evdi kernel module (it streams the primary desktop instead).
     let mut source = match EvdiFramePump::spawn(spec) {
         Ok(pump) => {
             info!(
@@ -342,9 +313,6 @@ async fn run_start(
         }
     };
 
-    // Actual negotiated dimensions of the stream source; may differ from the
-    // requested spec. The encoder, `/api/info` and input mapping all use
-    // these so buffer sizes always match the pushed frames.
     let actual_dims = source.actual_dimensions();
     info!(
         stream_width = actual_dims.0,
@@ -382,13 +350,12 @@ async fn run_start(
         EncoderKind::X264 => "x264",
     };
     let mut encoded_rx = encoder.subscribe().ok_or("encoder returned no rx")?;
-    // Shared between the capture pump (push) and shutdown (stop/EOS).
     let encoder = Arc::new(encoder);
 
-    // Live stats shared with the transport and the D-Bus interface.
     let stats = std::sync::Arc::new(Stats::default());
 
     let (shutdown_tx, mut shutdown_rx) = tokio::sync::watch::channel(false);
+    let _shutdown_keepalive = shutdown_tx.clone();
     let dbus_handles = std::sync::Arc::new(dbus::DaemonHandles {
         is_running: is_running.clone(),
         stats: stats.clone(),
@@ -439,8 +406,6 @@ async fn run_start(
         loop {
             match source.next_frame().await {
                 SourceOutcome::Frame(frame) => {
-                    // PTS is assigned by the encoder's live appsrc
-                    // (do-timestamp); the caller's pts is intentionally 0.
                     if let Err(e) = encoder.push_frame(&frame.data, frame.width, frame.height, 0) {
                         warn!(
                             "frame push rejected ({}x{}, {} B): {e}",
@@ -458,8 +423,6 @@ async fn run_start(
                             frame.data.len()
                         );
                     }
-                    // Rate cap: never push faster than the configured refresh,
-                    // even if the source delivers bursts (X11 fallback).
                     tokio::time::sleep(std::time::Duration::from_nanos(frame_dur)).await;
                 }
                 SourceOutcome::Retryable(e) => {
@@ -476,17 +439,18 @@ async fn run_start(
         }
     });
 
-    // Watchdog: log if the pipeline stops producing frames.
     let enc_check = frame_count.clone();
     let _watchdog = tokio::spawn(async move {
+        let mut warned = false;
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
             let n = enc_check.load(std::sync::atomic::Ordering::Relaxed);
-            if n == 0 {
+            if n == 0 && !warned {
                 warn!(
                     "no frames captured yet - compositor may not be drawing on the virtual \
                      display (evdi) or the portal is not delivering buffers"
                 );
+                warned = true;
             }
         }
     });
@@ -579,26 +543,6 @@ async fn run_start(
     } else {
         None
     };
-
-    // USB transport bootstrap: reverse the signaling port on every
-    // adb-authorized device so clients can reach the daemon via localhost.
-    match orbiscreen_transport::adb::setup_reverse_for_all(
-        orbiscreen_transport::adb::default_adb_path(),
-        cfg.transport.signaling_port,
-    ) {
-        Ok(devs) => info!(
-            "adb reverse set up for {} device(s) on port {}",
-            devs.len(),
-            cfg.transport.signaling_port,
-        ),
-        Err(orbiscreen_transport::adb::AdbError::NoDevice) => {
-            info!("No USB-attached Android device with adb-authorized USB debugging");
-        }
-        Err(orbiscreen_transport::adb::AdbError::NotInstalled) => {
-            info!("`adb` not in $PATH; skipping USB transport bootstrap");
-        }
-        Err(e) => warn!("adb reverse setup error: {e}"),
-    }
 
     let serve_fut = transport.serve(
         video_rx,

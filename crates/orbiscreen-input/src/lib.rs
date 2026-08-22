@@ -75,22 +75,13 @@ pub struct InputInjector {
 }
 
 impl InputInjector {
-    pub fn open(spec: VirtualTouchscreenSpec) -> Result<Self, InputError> {
+    pub async fn open_async(spec: VirtualTouchscreenSpec) -> Result<Self, InputError> {
         match detect_backend() {
             InputBackend::X11 => Ok(Self {
                 backend: InputBackend::X11,
                 x11: Some(x11::UinputInjector::open(spec)?),
                 wayland: None,
             }),
-            InputBackend::Wayland => Err(InputError::NotImplemented(
-                "Wayland input requires open_async",
-            )),
-        }
-    }
-
-    pub async fn open_async(spec: VirtualTouchscreenSpec) -> Result<Self, InputError> {
-        match detect_backend() {
-            InputBackend::X11 => Self::open(spec),
             InputBackend::Wayland => {
                 let wayland = wayland::WaylandInjector::open().await?;
                 Ok(Self {

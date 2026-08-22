@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-VERSION="${1:-0.6.0}"
+VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
 ARCH="x86_64"
 RPM_NAME="orbiscreen-${VERSION}-1.${ARCH}.rpm"
 BUILD_ROOT="target/rpm-staging"

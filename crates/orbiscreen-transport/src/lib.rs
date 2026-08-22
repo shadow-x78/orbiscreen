@@ -23,8 +23,6 @@ use tracing::{debug, info, warn};
 pub struct ServiceDescriptor {
     pub instance: String,
     pub port: u16,
-    /// Session access token announced to clients via the mDNS TXT record so
-    /// they can call the authenticated endpoints without a UI round-trip.
     pub token: Option<String>,
 }
 
@@ -36,13 +34,6 @@ pub enum TransportError {
 
 use orbiscreen_input::{KeyEvent, PointerEvent, StylusEvent};
 
-/// Client input payloads sent over POST `/input`.
-///
-/// The tagged forms (`{"Pointer": {...}}`, `{"Key": {...}}`, `{"Stylus": {...}}`)
-/// are used by the Android client (field names like `wheel`, `deltaY`, `tilt_x`);
-/// the untagged `{"x", "y"}` fallback is used by the web client for pointer
-/// moves. `Pointer` accepts `x`/`y` for `Move` because the Kotlin `Move`
-/// serializer flattens the fields.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum IncomingInput {
     Pointer(PointerEvent),
@@ -61,7 +52,6 @@ pub struct ServerConfig {
     pub client_web_dir: PathBuf,
 }
 
-/// Live pipeline statistics shared with the D-Bus interface and logs.
 #[derive(Debug, Default)]
 pub struct Stats {
     frames_forwarded: AtomicU64,
@@ -86,8 +76,6 @@ impl Stats {
         self.frames_forwarded.fetch_add(1, Ordering::Relaxed);
     }
 
-    /// Increments active/total client counters; used by the stream handler
-    /// and the D-Bus test surface.
     pub fn client_started(&self) {
         self.active_clients.fetch_add(1, Ordering::Relaxed);
         self.total_clients.fetch_add(1, Ordering::Relaxed);
@@ -98,7 +86,6 @@ impl Stats {
     }
 }
 
-/// RAII guard keeping the active-client count accurate.
 struct ClientGuard(Arc<Stats>);
 
 impl Drop for ClientGuard {
@@ -107,8 +94,6 @@ impl Drop for ClientGuard {
     }
 }
 
-/// Generate the per-session access token used to authenticate `/stream`,
-/// `/input` and `/api/control` (32 random bytes, base64url, no padding).
 pub fn generate_token() -> String {
     use base64::engine::general_purpose::URL_SAFE_NO_PAD;
     use base64::Engine as _;
@@ -117,7 +102,6 @@ pub fn generate_token() -> String {
     URL_SAFE_NO_PAD.encode(bytes)
 }
 
-/// Constant-time token comparison to avoid trivial timing side channels.
 fn token_eq(a: &str, b: &str) -> bool {
     let ab = a.as_bytes();
     let bb = b.as_bytes();
@@ -143,8 +127,6 @@ impl Transport {
         }
     }
 
-    /// The access token clients must present via `Authorization: Bearer …`
-    /// header or `?token=…` query parameter.
     pub fn token(&self) -> &str {
         &self.token
     }
@@ -159,9 +141,6 @@ impl Transport {
         encoder_kind: &'static str,
     ) -> Result<(), TransportError> {
         let input_tx = self.input_tx;
-        // Large enough that a slow consumer only loses about a second of
-        // video; Lagged errors are tolerated per-client instead of tearing
-        // the stream down.
         let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(360);
         let state = AppState {
             config: self.cfg.clone(),
@@ -229,8 +208,6 @@ struct AppState {
 }
 
 fn build_router(state: AppState) -> Router {
-    // Protected routes come first; `route_layer` applies only to routes
-    // registered before it, so everything below stays public.
     Router::new()
         .route("/stream", get(stream_handler))
         .route("/input", post(input_post))
@@ -244,8 +221,6 @@ fn build_router(state: AppState) -> Router {
         .with_state(state)
 }
 
-/// Authenticate requests to protected routes. Accepts the session token via
-/// `Authorization: Bearer <token>` header or `?token=<token>` query parameter.
 async fn auth_check(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -280,9 +255,6 @@ async fn api_info(State(state): State<AppState>) -> impl IntoResponse {
     Json(envelope)
 }
 
-/// Bootstrap config for the bundled web client. The page is served by the
-/// daemon itself, so any peer able to reach the HTTP port can read the token
-/// from here — this is documented as a LAN convenience, not strong auth.
 async fn client_config(State(state): State<AppState>) -> impl IntoResponse {
     Json(serde_json::json!({
         "token": state.token,
@@ -291,7 +263,6 @@ async fn client_config(State(state): State<AppState>) -> impl IntoResponse {
     }))
 }
 
-/// Run a host command asynchronously; returns whether it exited 0.
 async fn run_command(program: &str, args: &[&str]) -> bool {
     match tokio::process::Command::new(program)
         .args(args)
@@ -307,8 +278,6 @@ fn is_wayland() -> bool {
     std::env::var_os("WAYLAND_DISPLAY").is_some()
 }
 
-/// Force the display on/off. Tries compositor-specific tools on Wayland and
-/// falls back to `xset` (X11 and XWayland hosts).
 async fn dpms_force(on: bool) -> bool {
     let state = if on { "on" } else { "off" };
     if is_wayland() {
@@ -322,7 +291,6 @@ async fn dpms_force(on: bool) -> bool {
     run_command("xset", &["dpms", "force", state]).await
 }
 
-/// Inject Ctrl+Alt+Del through the same input pipeline clients use.
 fn inject_ctrl_alt_del(tx: &mpsc::UnboundedSender<IncomingInput>) {
     const KEY_LEFTCTRL: u32 = 29;
     const KEY_LEFTALT: u32 = 56;
@@ -431,9 +399,6 @@ async fn input_post(
     StatusCode::ACCEPTED
 }
 
-/// Builds a per-client GStreamer MPEG-TS pipeline (appsrc → mpegtsmux → appsink)
-/// and streams it as the HTTP response body. All failures are handled in-band:
-/// a broken pipeline yields 503 instead of panicking the axum task.
 async fn stream_handler(State(state): State<AppState>) -> axum::response::Response {
     use gstreamer::prelude::*;
     use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
@@ -441,10 +406,6 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     gstreamer::init().ok();
 
-    // Stream pipeline: h264parse converts byte-stream NAL units into a
-    // properly framed AU stream, then mpegtsmux writes PES+TS. Setting
-    // config-interval=1 requests SPS/PPS per keyframe, which lets clients
-    // joining mid-stream decode immediately.
     let pipeline_str = "appsrc name=src format=time is-live=false \
                         ! video/x-h264,stream-format=byte-stream,alignment=au,framerate=0/1 \
                         ! h264parse config-interval=1 \
@@ -475,9 +436,6 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     };
 
-    // Telling appsrc what we're pushing is REQUIRED - without video/x-h264
-    // caps, downstream parsers see an unrecognized stream and produce no
-    // output samples for the HTTP response body.
     let caps = gstreamer::Caps::builder("video/x-h264")
         .field("stream-format", "byte-stream")
         .field("alignment", "au")
@@ -497,8 +455,6 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     };
 
-    // Bounded channel: a stalled HTTP client drops TS chunks instead of
-    // growing daemon memory without limit.
     let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(256);
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
@@ -534,9 +490,6 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     tokio::spawn(async move {
         let _guard = ClientGuard(stats);
         loop {
-            // A slow client falling behind the broadcast ring must lose
-            // frames (until the next keyframe), not get disconnected: only
-            // `Closed` ends the stream; `Lagged` skips forward.
             let pkt = match video_rx.recv().await {
                 Ok(pkt) => pkt,
                 Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
@@ -546,18 +499,16 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
             };
 
-            // Sanity check: H.264 NAL units start with 00 00 00 01 (or 00 00 01).
-            // Filter out anything that doesn't so mpegtsmux never sees garbage
-            // and crashes in gst_base_parse_handle_buffer.
             let valid = pkt.bytes.len() >= 4
                 && (pkt.bytes[0] == 0
                     && pkt.bytes[1] == 0
                     && (pkt.bytes[2] == 1 || pkt.bytes[2..4] == [0, 1]));
             if !valid {
+                let header_len = pkt.bytes.len().min(4);
                 debug!(
                     "skipping non-NAL packet: {} B (header={:02x?})",
                     pkt.bytes.len(),
-                    &pkt.bytes[..4]
+                    &pkt.bytes[..header_len]
                 );
                 continue;
             }

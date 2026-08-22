@@ -38,6 +38,7 @@ After=graphical-session.target
 [Service]
 Type=exec
 ExecStart=/usr/bin/orbiscreen start
+NoNewPrivileges=true
 Restart=on-failure
 RestartSec=3s
 

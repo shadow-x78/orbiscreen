@@ -1,5 +1,12 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - RPM Spec
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+
+# ── Macros ──
 %define _builddir %{_topdir}/../..
 
+# ── Package Metadata ──
 Name:           orbiscreen
 Version:        %{_version}
 Release:        1%{?dist}
@@ -47,6 +54,7 @@ After=graphical-session.target
 [Service]
 Type=exec
 ExecStart=/usr/bin/orbiscreen start
+NoNewPrivileges=true
 Restart=on-failure
 RestartSec=3s
 
@@ -54,9 +62,9 @@ RestartSec=3s
 WantedBy=graphical-session.target
 EOF
 
+# ── Uninstall Script ──
 %preun
 if [ $1 -eq 0 ]; then
-    # This is an uninstallation, not an upgrade
     for u in $(users); do
         su -s /bin/sh -c "systemctl --user stop orbiscreen || true" "$u" || true
     done
@@ -69,6 +77,7 @@ fi
 
 
 
+# ── Packaged Files ──
 %files
 /usr/bin/orbiscreen
 /usr/bin/orbiscreen-gtk

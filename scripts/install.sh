@@ -27,7 +27,6 @@ if command -v cargo >/dev/null 2>&1; then
     cp clients/web/app.js ~/.local/share/orbiscreen/client/
     cp -r clients/web/vendor/. ~/.local/share/orbiscreen/client/vendor/
 
-    echo "[Orbiscreen] Reloading systemd user daemon..."
     echo "[Orbiscreen] Binary installed to ${INSTALL_DIR}/orbiscreen"
 else
     echo "[Orbiscreen] Error: Cargo not found. Please install Rust or download prebuilt release binary."
@@ -44,6 +43,7 @@ After=network.target
 
 [Service]
 ExecStart=%h/.local/bin/orbiscreen start
+NoNewPrivileges=true
 Restart=on-failure
 RestartSec=3
 

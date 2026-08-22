@@ -77,7 +77,7 @@ jobs:
 
       - name: Build release binaries
         run: |
-          cargo build --release --workspace
+          cargo build --release --workspace --locked
 
       - name: Package Linux tarball
         run: |

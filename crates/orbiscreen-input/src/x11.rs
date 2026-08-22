@@ -36,12 +36,11 @@ impl UinputInjector {
         let pressure_axis = AbsInfo::new(0, PRESSURE_MAX);
         let tilt_axis = AbsInfo::new(TILT_MIN, TILT_MAX);
 
-        let keys: Vec<Key> = (Key::KEY_ESC.raw()..=Key::KEY_KPDOT.raw())
-            .map(Key::from_raw)
-            .collect();
+        let keys: Vec<Key> = (0x01u16..=0x2FF).map(Key::from_raw).collect();
 
         let device = UinputDevice::builder()?
             .with_input_id(InputId::new(Bus::VIRTUAL, 0x0BEE, 0x0001, 0x0001))?
+            .with_rel_axes([Rel::WHEEL])?
             .with_abs_axes([
                 AbsSetup::new(Abs::X, width_axis),
                 AbsSetup::new(Abs::Y, height_axis),
@@ -50,16 +49,6 @@ impl UinputInjector {
                 AbsSetup::new(Abs::TILT_Y, tilt_axis),
             ])?
             .with_keys(keys)?
-            .with_keys([
-                Key::BTN_LEFT,
-                Key::BTN_RIGHT,
-                Key::BTN_MIDDLE,
-                Key::BTN_SIDE,
-                Key::BTN_EXTRA,
-                Key::BTN_FORWARD,
-                Key::BTN_BACK,
-                Key::BTN_TASK,
-            ])?
             .build("Orbiscreen Virtual Touchscreen")?;
         info!("opened uinput device: orbiscreen virtual touchscreen");
         Ok(Self {
@@ -69,8 +58,6 @@ impl UinputInjector {
         })
     }
 
-    /// Clamp a display-pixel coordinate to the ABS_X/ABS_Y axis ranges;
-    /// saturating_sub keeps a degenerate 0-size spec from underflowing.
     fn clamp_point(&self, x: f64, y: f64) -> (i32, i32) {
         let cx = x.clamp(0.0, f64::from(self.width.saturating_sub(1))) as i32;
         let cy = y.clamp(0.0, f64::from(self.height.saturating_sub(1))) as i32;
@@ -167,13 +154,11 @@ impl UinputInjector {
     }
 }
 
-/// Map a DOM/Android button number (1 = left) to a Linux BTN_* code,
-/// clamped to the BTN_LEFT..=BTN_TASK range the device registers.
 pub fn button_code(button: u32) -> u32 {
     match button {
-        1 => 0x110,                  // BTN_LEFT
-        2 => 0x112,                  // BTN_MIDDLE
-        3 => 0x111,                  // BTN_RIGHT
-        n => (n + 0x110).min(0x117), // BTN_SIDE ..= BTN_TASK
+        1 => 0x110,
+        2 => 0x112,
+        3 => 0x111,
+        n => (n + 0x110).min(0x117),
     }
 }
