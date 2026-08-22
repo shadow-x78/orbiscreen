@@ -11,7 +11,7 @@ use libadwaita::{
     ActionRow, Application, ApplicationWindow, HeaderBar, PreferencesGroup, PreferencesPage,
     ToastOverlay,
 };
-use tracing::{debug, info, warn, Level};
+use tracing::{debug, info, warn};
 use tracing_subscriber::EnvFilter;
 
 const APP_ID: &str = "com.orbiscreen.OrbiscreenGtk";
