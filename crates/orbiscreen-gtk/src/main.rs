@@ -18,8 +18,8 @@ const APP_ID: &str = "com.orbiscreen.OrbiscreenGtk";
 const DEFAULT_CONFIG_PATH: &str = "orbiscreen.toml";
 
 fn init_tracing() {
-    let filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(Level::INFO.as_str()));
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info,zbus=error,ashpd=error"));
     let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }
 

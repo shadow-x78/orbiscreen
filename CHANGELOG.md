@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Duplicate ADB reverse setup:** both the daemon startup path and `Transport::serve()` ran `setup_reverse_for_all` on every launch (a blocking call inside async context); it now lives only in the transport layer.
 - **Misleading installer log:** `install.sh` printed "Reloading systemd user daemon..." before writing the unit file and never actually reloaded; the line is gone.
 - **Desktop entry validation:** `Categories` carried two main categories (`Utility` + `System`); `desktop-file-validate` is now fully clean.
+- **Wayland capture diagnostics:** the portal pipeline now watches the GStreamer bus and logs real negotiation/caps errors instead of failing silently with zero frames, and `pipewiresrc` output is pinned to system memory so compositors offering DMA-BUF buffers cannot stall negotiation.
+- **Portal log noise:** the ashpd/zbus property-cache warnings are filtered from the GTK binary's logs as well (the daemon already did).
 
 ### 🔒 Security
 - **systemd hardening:** `NoNewPrivileges=true` added to all shipped user units (install.sh, deb builder, RPM spec).

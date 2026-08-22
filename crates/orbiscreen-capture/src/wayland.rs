@@ -107,6 +107,7 @@ impl WaylandCapture {
 
         let pipeline_str = format!(
             "pipewiresrc fd={} path={} do-timestamp=true \
+             ! video/x-raw \
              ! videoconvert \
              ! videoscale \
              ! video/x-raw,format=BGRA,width={},height={} \
@@ -179,6 +180,27 @@ impl WaylandCapture {
                 })
                 .build(),
         );
+
+        if let Some(bus) = pipeline.bus() {
+            bus.set_sync_handler(|_bus, msg| {
+                match msg.view() {
+                    gstreamer::MessageView::Error(err) => tracing::error!(
+                        target: "orbiscreen_capture::wayland",
+                        "gstreamer capture error: {} (debug: {})",
+                        err.error(),
+                        err.debug().unwrap_or_default()
+                    ),
+                    gstreamer::MessageView::Warning(warn) => tracing::warn!(
+                        target: "orbiscreen_capture::wayland",
+                        "gstreamer capture warning: {} (debug: {})",
+                        warn.error(),
+                        warn.debug().unwrap_or_default()
+                    ),
+                    _ => {}
+                }
+                gstreamer::BusSyncReply::Drop
+            });
+        }
 
         pipeline
             .set_state(gstreamer::State::Playing)
