@@ -12,7 +12,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.11.1"
+version = "0.11.2"
 edition = "2021"
 rust-version = "1.75"
 license = "GPL-3.0-or-later"
@@ -29,9 +29,7 @@ toml = "1"
 thiserror = "2"
 
 evdi = "0.8"
-evdi-sys = "0.4"
 drm-fourcc = "2.2"
-libc = "0.2"
 
 x11rb = { version = "0.14", features = ["allow-unsafe-code"] }
 ashpd = { version = "0.13", features = ["backend", "tokio", "screencast", "remote_desktop"] }
@@ -51,7 +49,6 @@ base64 = "0.22"
 
 clap = { version = "4", features = ["derive"] }
 hostname = "0.4"
-nix = { version = "0.29", default-features = false }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 zbus = { version = "5", features = ["tokio"] }

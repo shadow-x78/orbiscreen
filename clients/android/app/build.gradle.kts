@@ -16,17 +16,12 @@ android {
         applicationId = "com.orbiscreen.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "0.11.1"
+        versionCode = 18
+        versionName = "0.11.2"
     }
 
     signingConfigs {
         create("release") {
-            // NEVER commit a keystore or its password. Signing material is
-            // supplied out-of-band via environment variables or
-            // ~/.gradle/gradle.properties:
-            //   ORBISCREEN_KEYSTORE_PATH / ORBISCREEN_STORE_PASSWORD
-            //   ORBISCREEN_KEY_ALIAS     / ORBISCREEN_KEY_PASSWORD
             val ksPath: String? =
                 System.getenv("ORBISCREEN_KEYSTORE_PATH")
                     ?: (project.findProperty("orbiscreen.keystorePath") as String?)
