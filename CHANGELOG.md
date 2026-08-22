@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.11.2] - 2026-08-23
+
+### 🐛 Fixed
+- **X11 input registration:** the uinput device registered keys only up to `KEY_KPDOT` (code 83), so the kernel silently dropped everything above it — arrow keys, Insert/Delete/Home/End/PageUp/PageDown, right Ctrl/Alt, Meta, F11/F12 and most numpad keys never reached the host on the X11 path; wheel input sent `REL_WHEEL` without registering the axis at all. The virtual touchscreen now registers the full key range (`KEY_MAX`) plus `REL_WHEEL`, making every mapped client key functional.
+- **Stream task panic on short packets:** the non-NAL debug log sliced `bytes[..4]` unguarded, so any packet shorter than 4 bytes killed the per-client streaming task; the slice is now length-clamped.
+- **Daemon exit on D-Bus failure:** when the session bus was unavailable, dropping the D-Bus handles closed the shutdown watch channel, so the daemon exited immediately after start with a misleading "D-Bus Stop received" log; a keep-alive sender now holds the channel open until a real stop.
+- **RPM version drift:** `package-rpm.sh` hardcoded a stale `VERSION=0.6.0` fallback; it now extracts the workspace version from `Cargo.toml` dynamically like the deb builder.
+- **Duplicate ADB reverse setup:** both the daemon startup path and `Transport::serve()` ran `setup_reverse_for_all` on every launch (a blocking call inside async context); it now lives only in the transport layer.
+- **Misleading installer log:** `install.sh` printed "Reloading systemd user daemon..." before writing the unit file and never actually reloaded; the line is gone.
+- **Desktop entry validation:** `Categories` carried two main categories (`Utility` + `System`); `desktop-file-validate` is now fully clean.
+
+### 🔒 Security
+- **systemd hardening:** `NoNewPrivileges=true` added to all shipped user units (install.sh, deb builder, RPM spec).
+- **Android permissions pruned:** removed unused `VIBRATE`, `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` from the manifest.
+- Full security re-audit: constant-time token comparison, bounded queues, `/api/control` auth + fixed-argument commands, no WebView in the Android client, OkHttp timeouts everywhere, secrets only via CI env — verified sound, no changes required.
+
+### 🗑️ Removed
+- Dead transport API: `find_usb_device()`, `remove_reverse()`, `first_device_serial()` (+ their tests); the dead `StreamUrl.mimeType()` with its suppress/import; the unused synchronous `InputInjector::open()`.
+- The unreferenced `gen-key-script` GPG helper.
+- Residual inline comments across Rust/Kotlin/web/shell/spec/drawable sources — code files keep only the standard two-line license headers, while env-style config files (`gradle.properties`, ProGuard rules, `deny.toml`, `rustfmt.toml`, `.gitignore`, `.editorconfig`, RPM spec, desktop entry, `lint.xml`, AndroidManifest) carry uniform decorative section banners instead.
+
+### 🔧 Changed
+- Release workflow builds with `--locked`; Android `versionCode` 17 → 18.
+
 ## [v0.11.1] - 2026-08-16
 
 ### 🐛 Fixed
