@@ -16,8 +16,6 @@ pub enum AdbError {
     NoDevice,
 }
 
-/// Returns the serials of every USB-debugging-authorized device (state ==
-/// "device"). Parse failures skip a line rather than aborting.
 fn device_serials(out: &str) -> Vec<&str> {
     out.lines()
         .skip(1)
@@ -28,27 +26,6 @@ fn device_serials(out: &str) -> Vec<&str> {
             (state == "device").then_some(serial)
         })
         .collect()
-}
-
-/// Returns the serial of the first authorized device, kept for callers that
-/// only target a single device.
-fn first_device_serial(out: &str) -> Option<&str> {
-    device_serials(out).into_iter().next()
-}
-
-pub fn find_usb_device(adb_path: &Path) -> Result<String, AdbError> {
-    let out = Command::new(adb_path)
-        .arg("devices")
-        .output()
-        .map_err(|_| AdbError::NotInstalled)?;
-    if !out.status.success() {
-        return Err(AdbError::Failed(
-            String::from_utf8_lossy(&out.stderr).into_owned(),
-        ));
-    }
-    first_device_serial(&String::from_utf8_lossy(&out.stdout))
-        .map(str::to_owned)
-        .ok_or(AdbError::NoDevice)
 }
 
 pub fn reverse_port(adb_path: &Path, device: &str, host_port: u16) -> Result<(), AdbError> {
@@ -62,20 +39,6 @@ pub fn reverse_port(adb_path: &Path, device: &str, host_port: u16) -> Result<(),
             "adb reverse exited with {status}"
         )));
     }
-    Ok(())
-}
-
-pub fn remove_reverse(adb_path: &Path, device: &str, host_port: u16) -> Result<(), AdbError> {
-    Command::new(adb_path)
-        .args([
-            "-s",
-            device,
-            "reverse",
-            "--remove",
-            &format!("tcp:{host_port}"),
-        ])
-        .status()
-        .map_err(|_| AdbError::NotInstalled)?;
     Ok(())
 }
 
@@ -112,21 +75,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_devices_output() {
-        let output = "List of devices attached\nABCDEFGH\tdevice\nXYZ12345\tunauthorized\n";
-        assert_eq!(first_device_serial(output), Some("ABCDEFGH"));
-    }
-
-    #[test]
     fn parses_all_authorized_devices() {
         let output = "List of devices attached\nAAAA\tdevice\nBBBB\tdevice\nCCCC\tunauthorized\n";
         assert_eq!(device_serials(output), vec!["AAAA", "BBBB"]);
-    }
-
-    #[test]
-    fn returns_none_when_no_authorised_device() {
-        let output = "List of devices attached\nXYZ12345\tunauthorized\n";
-        assert_eq!(first_device_serial(output), None);
     }
 
     #[test]

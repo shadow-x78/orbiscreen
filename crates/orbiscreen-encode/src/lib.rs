@@ -174,9 +174,6 @@ impl Encoder {
         if kind == EncoderKind::X264 {
             encoder.set_property_from_str("tune", "zerolatency");
             encoder.set_property_from_str("speed-preset", "ultrafast");
-            // Zero-latency tuning already sets repeat-headers=1. Setting it again
-            // here crashes on newer GStreamer builds where the property was
-            // removed from GstX264Enc, so only touch it when present.
             if encoder.find_property("repeat-headers").is_some() {
                 encoder.set_property_from_str("repeat-headers", "true");
             }
@@ -185,13 +182,6 @@ impl Encoder {
             }
         }
 
-        // h264parse puts SPS/PPS in caps so downstream (appsink) and any TS mux
-        // sees them as streamheader=... on every keyframe. Without this the
-        // encapsulated stream is just NAL units with no parameter sets for
-        // clients that join mid-stream.
-        // h264parse puts SPS/PPS in the caps so downstream consumers see them
-        // attached to every keyframe. We relink through it instead of just
-        // passing the encoder output straight to appsink.
         let h264parse = make_element("h264parse")?;
         h264parse.set_property_from_str("config-interval", "1");
         pipeline
@@ -227,8 +217,6 @@ impl Encoder {
                     let bytes = map.to_vec();
                     let is_keyframe = !buffer.flags().contains(gstreamer::BufferFlags::DELTA_UNIT);
                     let pts_ns = buffer.pts().map(|t| t.nseconds()).unwrap_or(0);
-                    // Bounded channel: drop (not block) when the consumer is
-                    // stalled so a slow client cannot grow memory unbounded.
                     if tx
                         .try_send(EncodedChunk {
                             bytes,
@@ -265,10 +253,6 @@ impl Encoder {
         self.rx.take()
     }
 
-    /// Push one tightly-packed BGRA frame. The frame must be exactly
-    /// `width*height*4` bytes matching the encoder's configured input
-    /// dimensions — a mis-sized buffer would be handed to GStreamer raw and
-    /// show up as a garbled/black stream.
     pub fn push_frame(
         &self,
         frame: &[u8],
@@ -302,8 +286,6 @@ impl Encoder {
         Ok(())
     }
 
-    /// Send end-of-stream so the encoder flushes its delayed tail frames
-    /// through the pipeline, then tear everything down.
     pub fn stop(&self) {
         if let Err(e) = self.appsrc.end_of_stream() {
             warn!("failed to signal EOS on stop: {e}");
@@ -311,9 +293,6 @@ impl Encoder {
         let _ = self.pipeline.set_state(gstreamer::State::Null);
     }
 
-    /// Duration of one frame in nanoseconds at `framerate` fps.
-    /// Returns 1 s for a degenerate (zero) framerate instead of dividing
-    /// by zero; config sanitization normally prevents zero from arriving.
     pub fn frame_duration_ns(framerate: u32) -> u64 {
         1_000_000_000 / u64::from(framerate).max(1)
     }

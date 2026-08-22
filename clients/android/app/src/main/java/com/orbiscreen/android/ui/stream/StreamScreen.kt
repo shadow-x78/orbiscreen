@@ -231,7 +231,6 @@ private fun SoftKeyboard(onKey: (Int, Boolean) -> Unit) {
             }
         }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                // Linux evdev codes: KEY_SPACE=57, KEY_ENTER=28, KEY_BACKSPACE=14.
                 KeyPill("space", Modifier.weight(2f)) {
                     onKey(57, true); onKey(57, false)
                 }
@@ -261,10 +260,8 @@ private fun KeyPill(label: String, modifier: Modifier, onClick: () -> Unit) {
 private fun SpacerW() = androidx.compose.foundation.layout.Spacer(Modifier.size(12.dp))
 
 private fun keyCodeFor(c: Char): Int = when (c) {
-    // Linux evdev key codes (see linux/input-event-codes.h) — the host
-    // injector expects these, not Android KeyEvent codes.
-    ' ' -> 57   // KEY_SPACE
-    '\n' -> 28  // KEY_ENTER
+    ' ' -> 57
+    '\n' -> 28
     '0' -> 11; '1' -> 2; '2' -> 3; '3' -> 4; '4' -> 5
     '5' -> 6; '6' -> 7; '7' -> 8; '8' -> 9; '9' -> 10
     'q','Q' -> 16; 'w','W' -> 17; 'e','E' -> 18; 'r','R' -> 19; 't','T' -> 20

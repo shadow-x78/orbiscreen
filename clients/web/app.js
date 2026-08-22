@@ -1,10 +1,5 @@
 // Orbiscreen - web client (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-//
-// Playback uses MSE via the locally-vendored mpegts.js (no CDN): browsers
-// cannot feed a raw MPEG-TS HTTP stream to <video src>, so we demux it here
-// and push H.264 into a MediaSource. On any failure we tear the player down
-// and reconnect with exponential backoff.
 
 const statusEl = document.getElementById("status");
 const resolutionEl = document.getElementById("resolution");
@@ -61,7 +56,6 @@ function sendWheel(deltaY) {
     sendInput({ Pointer: { Wheel: { delta_y: deltaY } } });
 }
 
-// Linux input event codes (see linux/input-event-codes.h).
 const KEYCODE_MAP = {
     Escape: 1, Enter: 28, Backspace: 14, Tab: 15, Space: 57,
     ArrowUp: 103, ArrowDown: 108, ArrowLeft: 105, ArrowRight: 106,
@@ -72,7 +66,6 @@ const KEYCODE_MAP = {
     ScrollLock: 70, PrintScreen: 99, Pause: 119, ContextMenu: 127,
 };
 
-// F1..F10 start at evdev code 59, then jump: F11=87, F12=88.
 for (let i = 0; i < 10; i += 1) KEYCODE_MAP[`F${i + 1}`] = 59 + i;
 KEYCODE_MAP.F11 = 87;
 KEYCODE_MAP.F12 = 88;
@@ -94,7 +87,7 @@ Object.assign(KEYCODE_MAP, {
 
 function sendKey(domCode, pressed) {
     const code = KEYCODE_MAP[domCode];
-    if (code === undefined) return; // untranslatable key; nothing the host can do
+    if (code === undefined) return;
     sendInput({ Key: { code, pressed } });
 }
 
@@ -114,8 +107,6 @@ function mapPointer(event) {
     const rect = videoEl.getBoundingClientRect();
     const vw = videoEl.videoWidth || displayWidth;
     const vh = videoEl.videoHeight || displayHeight;
-    // The video is letterboxed by object-fit: contain — map coordinates
-    // within the visible content box back to the stream's intrinsic size.
     const scale = Math.min(rect.width / vw, rect.height / vh);
     const offsetX = (rect.width - vw * scale) / 2;
     const offsetY = (rect.height - vh * scale) / 2;
@@ -136,9 +127,6 @@ function hideTouch() {
     touchIndicator.classList.add("hidden");
 }
 
-// ---------------------------------------------------------------------------
-// Stream playback (MSE)
-// ---------------------------------------------------------------------------
 
 function canPlayMpegTs() {
     return typeof mpegts !== "undefined"
@@ -186,7 +174,6 @@ function startStream() {
         isLive: true,
         url: streamUrl,
     }, {
-        // Live tuning: chase the live edge instead of buffering up.
         autoCleanupSourceBuffer: true,
         liveBufferLatencyChasing: true,
         lazyLoad: false,
@@ -218,7 +205,6 @@ function startStream() {
 async function start() {
     setStatus("Reading host info…");
 
-    // Bootstrap: resolution + session token (served by the daemon itself).
     try {
         const cfg = await fetch("/client/config.json");
         if (cfg.ok) {
@@ -253,20 +239,17 @@ async function start() {
 
 videoEl.addEventListener("playing", () => {
     streamActive = true;
-    reconnectDelay = 1000; // reset backoff after successful playback
+    reconnectDelay = 1000;
     overlayEl.classList.add("hidden");
     setStatus("Streaming");
 });
 
-// If the live connection stalls (daemon restart, network drop) the stream
-// element errors out — kick off the reconnect loop.
 videoEl.addEventListener("error", () => {
     if (streamActive || mpegtsPlayer) {
         scheduleReconnect("media error");
     }
 });
 
-// Detect the daemon closing our HTTP body (reached end of stream).
 videoEl.addEventListener("ended", () => {
     if (streamActive || mpegtsPlayer) {
         scheduleReconnect("stream ended");
@@ -277,11 +260,9 @@ videoEl.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     try {
         videoEl.setPointerCapture(event.pointerId);
-    } catch (_) { /* pointer already released */ }
+    } catch (_) { }
     const { x, y } = mapPointer(event);
-    // Keep the pointer in sync before the button so drags start where expected.
     sendPointerMove(x, y);
-    // DOM button 0/1/2 maps to Linux buttons 1/2/3.
     sendPointerButton(event.button + 1, true);
     if (event.pointerType === "pen") {
         sendStylus(x, y, event.pressure, event.tiltX, event.tiltY);

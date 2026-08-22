@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- ─────────────────────────────────────────────
+     Orbiscreen - Android Lint Configuration
+     https://github.com/shadow-x78/orbiscreen
+     ───────────────────────────────────────────── -->
 <lint>
+    <!-- ── Media3 UnstableApi opt-in ── -->
     <issue id="UnsafeOptInUsageError">
         <option name="opt-in" value="androidx.media3.common.util.UnstableApi" />
     </issue>
+
+    <!-- ── Informational-only checks ── -->
     <issue id="UnusedResources" severity="informational" />
     <issue id="IconLauncherShape" severity="informational" />
     <issue id="DataExtractionRules" severity="informational" />

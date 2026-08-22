@@ -19,7 +19,6 @@ object HostSpec {
             val ip = m.groupValues[1]
             val port = m.groupValues[3].toIntOrNull() ?: return null
             if (port !in 1..65535) return null
-            // Reject octets outside 0..255 — NsdManager would resolve garbage.
             val octets = ip.split(".").map { it.toIntOrNull() ?: return null }
             if (octets.any { it !in 0..255 }) return null
             return ip to port

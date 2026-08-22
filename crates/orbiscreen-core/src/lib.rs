@@ -15,7 +15,6 @@ pub struct Config {
 }
 
 impl Config {
-    /// Clamp all sections to their valid ranges; call after [`load_config`].
     pub fn sanitize(&mut self) {
         self.display.sanitize();
         self.encode.sanitize();
@@ -44,15 +43,11 @@ impl Default for DisplayConfig {
 }
 
 impl DisplayConfig {
-    /// Minimum resolution (QVGA) and refresh rate a display/encoder can be
-    /// driven at; `MAX_REFRESH_RATE_HZ` caps entries beyond any consumer panel.
     pub const MIN_WIDTH: u32 = 320;
     pub const MIN_HEIGHT: u32 = 240;
     pub const MIN_REFRESH_RATE_HZ: u32 = 1;
     pub const MAX_REFRESH_RATE_HZ: u32 = 480;
 
-    /// Clamp to the supported ranges; degenerate values (0 fps/dimensions)
-    /// would divide-by-zero or fail downstream in capture and encode.
     pub fn sanitize(&mut self) {
         self.width = self.width.max(Self::MIN_WIDTH);
         self.height = self.height.max(Self::MIN_HEIGHT);
@@ -80,12 +75,9 @@ impl Default for EncodeConfig {
 }
 
 impl EncodeConfig {
-    /// Bitrate limits in kbit/s, matching the `u32` property ranges of
-    /// x264enc/vaapih264enc/nvh264enc (100 kbit/s .. 100 Mbit/s).
     pub const MIN_BITRATE_KBPS: u32 = 100;
     pub const MAX_BITRATE_KBPS: u32 = 100_000;
 
-    /// Clamp bitrate and fall back to x264 for unknown encoder names.
     pub fn sanitize(&mut self) {
         self.bitrate_kbps = self
             .bitrate_kbps
@@ -103,9 +95,6 @@ impl EncodeConfig {
 #[serde(default)]
 pub struct TransportConfig {
     pub signaling_port: u16,
-    /// Unused placeholder kept for config-file compatibility: WebRTC was
-    /// removed in favor of MPEG-TS over HTTP, and no ports are bound from
-    /// this range.
     pub webrtc_port_range: (u16, u16),
     pub mdns_advertise: bool,
 }
@@ -121,12 +110,8 @@ impl Default for TransportConfig {
 }
 
 impl TransportConfig {
-    /// Fallback signaling port used when the configured port is privileged
-    /// (and cannot be bound without root) or zero (ephemeral).
     pub const DEFAULT_SIGNALING_PORT: u16 = 8788;
 
-    /// Replace unusable ports (0 or privileged) and re-order an inverted
-    /// WebRTC port range.
     pub fn sanitize(&mut self) {
         if self.signaling_port == 0 || self.signaling_port < 1024 {
             self.signaling_port = Self::DEFAULT_SIGNALING_PORT;
@@ -146,7 +131,6 @@ pub enum CoreError {
     ConfigSerialize(#[from] toml::ser::Error),
 }
 
-/// Parse a TOML config and clamp every field to its valid range.
 pub fn load_config(toml_str: &str) -> Result<Config, CoreError> {
     let mut config: Config = toml::from_str(toml_str)?;
     config.sanitize();

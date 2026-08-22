@@ -54,10 +54,6 @@ impl From<gstreamer::glib::BoolError> for WaylandCaptureError {
 }
 
 fn virtual_only_options() -> SelectSourcesOptions {
-    // Defaults already: Monitor source, no cursor, single stream. We explicitly
-    // avoid setting `persist_mode` because doing so requires an extra "persist"
-    // permission granted by gnome-remote-desktop; without it the dialog
-    // silently stays open or the compositor returns PermissionDenied.
     SelectSourcesOptions::default()
         .set_sources(Some(BitFlags::from(SourceType::Monitor)))
         .set_cursor_mode(CursorMode::Hidden)
@@ -71,8 +67,6 @@ pub struct WaylandCapture {
     _pipeline: gstreamer::Pipeline,
     _pipe_fd: OwnedFd,
     rx: tokio::sync::Mutex<mpsc::UnboundedReceiver<CapturedFrame>>,
-    /// Output dimensions forced by the GStreamer pipeline caps (videoconvert
-    /// + videoscale normalize every portal frame to exactly this size).
     width: u32,
     height: u32,
 }
@@ -111,12 +105,6 @@ impl WaylandCapture {
 
         gstreamer::init().map_err(|e| WaylandCaptureError::Dbus(format!("gst init: {}", e)))?;
 
-        // Wayland portals can switch resolutions between streams if the source
-        // monitor scales or rotates, so we always normalize through videoconvert
-        // + videoscale to the configured dims. We deliberately DON'T gate on
-        // "if width or height is None" because that leaves pixformat to default
-        // (BGRx in most compositors today), which then mismatches the encoder
-        // appsrc caps of BGRA.
         let pipeline_str = format!(
             "pipewiresrc fd={} path={} do-timestamp=true \
              ! videoconvert \
@@ -175,11 +163,6 @@ impl WaylandCapture {
                     let expected = (width as usize) * (height as usize) * 4;
                     let incoming = map.size();
                     if incoming != expected {
-                        // Frame size mismatch is the classic black-screen cause:
-                        // stride (row padding) makes the buffer larger than
-                        // width*height*4, or the pipeline negotiated a different
-                        // resolution. Forwarding it raw shows up as garbled or
-                        // all-zero on the encoder side.
                         tracing::warn!(
                             "frame size mismatch: got {incoming} B, expected {expected} B ({width}x{height}); dropping",
                         );
@@ -212,7 +195,6 @@ impl WaylandCapture {
         })
     }
 
-    /// Output dimensions forced by the pipeline caps.
     pub fn dimensions(&self) -> (u32, u32) {
         (self.width, self.height)
     }

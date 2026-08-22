@@ -6,7 +6,6 @@ cd "$(dirname "$0")/../.."
 REPO_ROOT="$(pwd)"
 
 if ! command -v cargo >/dev/null 2>&1; then
-    # shellcheck disable=SC1091
     . "$HOME/.cargo/env"
 fi
 
@@ -27,11 +26,6 @@ install -m644 clients/web/style.css  "$APP/usr/share/orbiscreen/client/style.css
 install -m644 clients/web/app.js     "$APP/usr/share/orbiscreen/client/app.js"
 install -m644 clients/web/vendor/mpegts.js "$APP/usr/share/orbiscreen/client/vendor/mpegts.js"
 
-# ---- Bundle GStreamer runtime + plugins -------------------------------
-# The daemon links GStreamer and needs at least one H.264 encoder
-# (vaapih264enc / nvh264enc / x264enc). We copy the host's GStreamer so the
-# AppImage is self-contained; fall back to the host's install if the binary
-# can't be located.
 GST_PREFIX="$(pkg-config --variable=prefix gstreamer-1.0 2>/dev/null || true)"
 if [ -n "${GST_PREFIX:-}" ] && [ -d "$GST_PREFIX/lib" ]; then
     echo "Bundling GStreamer from $GST_PREFIX ..."
@@ -41,7 +35,6 @@ if [ -n "${GST_PREFIX:-}" ] && [ -d "$GST_PREFIX/lib" ]; then
     if [ -n "${GST_PLUGIN_DIR}" ] && [ -d "$GST_PLUGIN_DIR/gstreamer-1.0" ]; then
         cp -r "$GST_PLUGIN_DIR/gstreamer-1.0/." "$APP/usr/lib/gstreamer-1.0/"
     fi
-    # Copy the GStreamer core/shared libraries the binary links against.
     mkdir -p "$APP/usr/lib"
     for pattern in libgstreamer-1.0 libgstapp-1.0 libgstvideo-1.0 \
                    libgstpbutils-1.0 libgstbase-1.0 libglib-2.0 \

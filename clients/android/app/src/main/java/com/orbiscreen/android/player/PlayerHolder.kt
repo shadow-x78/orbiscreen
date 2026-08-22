@@ -77,8 +77,6 @@ class PlayerHolder(
         val player = try {
             val httpFactory = OkHttpDataSource.Factory(okHttp)
                 .setUserAgent("Orbiscreen-Android/1.0")
-                // The daemon authenticates /stream via Authorization bearer or
-                // the token query parameter (set in StreamUrl); send both.
                 .setDefaultRequestProperties(
                     if (token.isNotBlank()) mapOf("Authorization" to "Bearer $token") else emptyMap()
                 )
@@ -99,10 +97,6 @@ class PlayerHolder(
                 .setMediaSourceFactory(mediaSourceFactory)
                 .setRenderersFactory(buildRenderersFactory())
                 .setLoadControl(loadControl)
-                // Live tuning: track the live edge; the daemon serves a
-                // constant-rate MPEG-TS so this keeps latency near minimum.
-                // The actual target offset is set per-media via
-                // MediaItem.LiveConfiguration below.
                 .setLivePlaybackSpeedControl(
                     DefaultLivePlaybackSpeedControl.Builder()
                         .build()
@@ -130,9 +124,6 @@ class PlayerHolder(
                                     _event.value = StreamEvent.Playing
                                 }
                                 Player.STATE_ENDED -> {
-                                    // Daemon restart or network drop: the HTTP
-                                    // body ended. Reconnect instead of showing a
-                                    // terminal error card.
                                     _event.value = StreamEvent.Error(-1, "Stream ended — reconnecting")
                                     scheduleReconnect()
                                 }
@@ -157,11 +148,6 @@ class PlayerHolder(
         return player
     }
 
-    /**
-     * Honors the "Force software decoder" setting. When enabled, hardware
-     * codecs are filtered out so ExoPlayer falls back to the software
-     * (OMX.google / C2.android) H.264 decoder.
-     */
     private fun buildRenderersFactory(): DefaultRenderersFactory {
         val factory = DefaultRenderersFactory(context)
         if (prefs.forceSoftwareDecoder) {

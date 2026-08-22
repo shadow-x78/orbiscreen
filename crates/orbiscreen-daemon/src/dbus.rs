@@ -8,7 +8,6 @@ use orbiscreen_core::Config;
 use orbiscreen_transport::Stats;
 use zbus::interface;
 
-/// Shared daemon state the D-Bus interface reads and controls.
 #[derive(Debug)]
 pub struct DaemonHandles {
     pub is_running: Arc<AtomicBool>,
@@ -16,7 +15,6 @@ pub struct DaemonHandles {
     pub config: Config,
     pub encoder: &'static str,
     pub capture_backend: &'static str,
-    /// Sending on this channel triggers a graceful daemon shutdown.
     pub shutdown_tx: tokio::sync::watch::Sender<bool>,
 }
 
@@ -39,11 +37,8 @@ impl OrbiscreenDbusServer {
     }
 }
 
-// zbus 5 converts snake_case method names to PascalCase on the wire, so
-// `get_status` is exposed as `GetStatus` etc., matching docs/DBUS_SPEC.md.
 #[interface(name = "com.orbiscreen.Daemon")]
 impl OrbiscreenDbusServer {
-    /// Live daemon status as a JSON object string.
     async fn get_status(&self) -> String {
         serde_json::json!({
             "running": self.handles.is_running.load(Ordering::SeqCst),
@@ -56,7 +51,6 @@ impl OrbiscreenDbusServer {
         .to_string()
     }
 
-    /// Gracefully stop the running daemon.
     async fn stop(&self) -> String {
         if self.handles.is_running.swap(false, Ordering::SeqCst) {
             let _ = self.handles.shutdown_tx.send(true);
@@ -66,7 +60,6 @@ impl OrbiscreenDbusServer {
         }
     }
 
-    /// Connected stream clients: live counts instead of hard-coded strings.
     async fn list_clients(&self) -> Vec<String> {
         let active = self.handles.stats.active_clients();
         let total = self.handles.stats.total_clients();
@@ -75,7 +68,6 @@ impl OrbiscreenDbusServer {
         )]
     }
 
-    /// The sanitized configuration the daemon was started with.
     async fn get_config(&self) -> String {
         match orbiscreen_core::dump_config(&self.handles.config) {
             Ok(toml) => toml,
@@ -84,7 +76,6 @@ impl OrbiscreenDbusServer {
     }
 }
 
-/// Request the daemon to stop itself. Returns the daemon's reply.
 pub async fn call_stop(conn: &zbus::Connection) -> zbus::Result<String> {
     let proxy = zbus::Proxy::new(
         conn,
@@ -96,7 +87,6 @@ pub async fn call_stop(conn: &zbus::Connection) -> zbus::Result<String> {
     proxy.call("Stop", &()).await
 }
 
-/// Connect to the session bus and request a graceful Stop in one shot.
 pub async fn request_stop() -> zbus::Result<String> {
     let conn = zbus::connection::Builder::session()?.build().await?;
     call_stop(&conn).await
@@ -143,15 +133,12 @@ mod tests {
     #[tokio::test]
     async fn stop_flips_running_flag_and_signals() {
         let handles = test_handles();
-        // Keep a live receiver so `send` succeeds (watch channels drop sends
-        // with no remaining receivers).
         let mut shutdown_rx = handles.shutdown_tx.subscribe();
         let server = OrbiscreenDbusServer::new(handles.clone());
         let reply = server.stop().await;
         assert!(reply.contains("shutting down"));
         assert!(!handles.is_running.load(Ordering::SeqCst));
         assert!(*shutdown_rx.borrow_and_update());
-        // Second call reports not running.
         assert!(server.stop().await.contains("not running"));
     }
 

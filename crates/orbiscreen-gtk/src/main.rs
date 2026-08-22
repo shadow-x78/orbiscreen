@@ -1,10 +1,5 @@
 // Orbiscreen - GTK4 / Libadwaita Desktop Control Panel GUI (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-//
-// Monitoring + control front-end for the orbiscreen daemon: reads the live
-// daemon state over the D-Bus session service (com.orbiscreen.Daemon) once
-// per second and can stop the daemon gracefully. It never fabricates state:
-// when the daemon is absent the UI shows exactly that.
 
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -28,7 +23,6 @@ fn init_tracing() {
     let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }
 
-/// Snapshot of the live daemon state (GetStatus JSON).
 #[derive(Debug, Clone, Default)]
 struct DaemonStatus {
     available: bool,
@@ -69,8 +63,6 @@ impl DaemonStatus {
     }
 }
 
-/// D-Bus proxy bound to the orbiscreen daemon's session service. The zbus
-/// Connection is cloned into the proxy, so the proxy owns everything it needs.
 #[derive(Debug)]
 struct DaemonProxy {
     proxy: zbus::Proxy<'static>,
@@ -79,7 +71,6 @@ struct DaemonProxy {
 impl DaemonProxy {
     async fn connect() -> zbus::Result<Self> {
         let conn = zbus::connection::Builder::session()?.build().await?;
-        // new_owned clones the connection into the proxy so it is self-contained.
         let proxy = zbus::Proxy::new_owned(
             conn,
             "com.orbiscreen.Daemon",
@@ -99,7 +90,6 @@ impl DaemonProxy {
     }
 }
 
-/// Widgets the poller updates once per second.
 #[derive(Debug)]
 struct UiHandles {
     switch: gtk4::Switch,
@@ -129,7 +119,6 @@ fn apply_status(handles: &UiHandles, status: &DaemonStatus, busy: &Mutex<bool>) 
     }
 
     handles.switch.set_sensitive(true);
-    // Don't fight the user while a stop request is in flight.
     if !is_busy {
         handles.switch.set_state(status.running);
     }
@@ -156,11 +145,6 @@ fn apply_status(handles: &UiHandles, status: &DaemonStatus, busy: &Mutex<bool>) 
     }
 }
 
-/// Run a one-shot async D-Bus call on a scratch thread with its own
-/// current-thread runtime. The plain-data result travels back over an
-/// mpsc channel and is drained on the GTK main loop with
-/// `timeout_add_local`, so widgets captured by `on_done` (which are `!Send`)
-/// never cross thread boundaries.
 fn run_dbus_oneshot(
     call: impl FnOnce(
             DaemonProxy,
@@ -209,7 +193,6 @@ fn build_ui(app: &Application) {
     page.set_title("Orbiscreen Control Panel");
     page.set_icon_name(Some("display-symbolic"));
 
-    // Server status & controls group
     let status_group = PreferencesGroup::new();
     status_group.set_title("Daemon Service Status");
     status_group.set_description(Some(
@@ -227,7 +210,6 @@ fn build_ui(app: &Application) {
     server_row.add_suffix(&server_switch);
     status_group.add(&server_row);
 
-    // Live stream stats group
     let stream_group = PreferencesGroup::new();
     stream_group.set_title("Stream");
 
@@ -241,7 +223,6 @@ fn build_ui(app: &Application) {
     transport_row.set_subtitle("waiting for status…");
     stream_group.add(&transport_row);
 
-    // Display settings from the real config file via orbiscreen-core.
     let display_group = PreferencesGroup::new();
     display_group.set_title("Virtual Display Configuration");
 
@@ -294,9 +275,6 @@ fn build_ui(app: &Application) {
     window.present();
     info!("Orbiscreen GTK4 / Libadwaita desktop control panel presented");
 
-    // Switch wiring: stopping is the only action we can take locally.
-    // Starting the daemon is a systemd/manual job — surface that honestly
-    // instead of pretending to start it.
     let busy: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
     let busy_for_switch = busy.clone();
     let busy_for_reply = busy.clone();
@@ -307,7 +285,6 @@ fn build_ui(app: &Application) {
             Err(_) => return glib::Propagation::Stop,
         };
         if *guard {
-            // A request or poller update is already in flight.
             return glib::Propagation::Stop;
         }
         if requested {
@@ -339,9 +316,6 @@ fn build_ui(app: &Application) {
         glib::Propagation::Proceed
     });
 
-    // Clear the busy flag when poller statuses land (covers failed stops).
-    // `UiHandles` only ever leaves this function via the `timeout_add_local`
-    // closure, which runs on the GTK main loop, so a plain `Rc` is honest.
     let handles = Rc::new(UiHandles {
         switch: server_switch,
         daemon_row: server_row,
@@ -352,11 +326,6 @@ fn build_ui(app: &Application) {
     start_status_poller(handles, busy_for_poller);
 }
 
-/// Status poller that also clears the busy guard after every snapshot lands,
-/// keeping the switch responsive even when a stop call fails. Snapshots are
-/// plain data, travel back over an mpsc channel from a dedicated OS thread,
-/// and are drained on the GTK main loop with `timeout_add_local` so the
-/// `!Send` widget handles never leave the main thread.
 fn start_status_poller(handles: Rc<UiHandles>, busy: Arc<Mutex<bool>>) {
     let (tx, rx) = std::sync::mpsc::channel::<DaemonStatus>();
 

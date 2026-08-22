@@ -7,7 +7,7 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 homepage.workspace = true
-description = "Orbiscreen GTK4 / Libadwaita desktop control panel GUI and system tray app"
+description = "Orbiscreen GTK4 / Libadwaita desktop control panel GUI"
 
 [lints]
 workspace = true

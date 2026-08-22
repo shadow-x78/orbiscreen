@@ -39,7 +39,6 @@ impl X11Capture {
         })
     }
 
-    /// Actual capture dimensions after clamping to the screen size.
     pub fn dimensions(&self) -> (u32, u32) {
         (self.width, self.height)
     }

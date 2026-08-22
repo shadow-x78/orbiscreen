@@ -27,12 +27,6 @@ class HostApi {
         val version: String = "?",
     )
 
-    /**
-     * Fetch the per-session access token from /client/config.json. The daemon
-     * serves it unauthenticated next to the web client; LAN peers that can
-     * reach the HTTP port can read it, which is a documented convenience
-     * (not strong auth) rather than a secret.
-     */
     suspend fun token(host: String, port: Int): String? = withContext(Dispatchers.IO) {
         withTimeoutOrNull(1500) {
             try {

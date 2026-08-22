@@ -99,15 +99,10 @@ impl CaptureSession {
         self.backend_kind
     }
 
-    /// Actual captured width in pixels. May be smaller than requested when the
-    /// backend clamps to the source size (X11), and is what every frame's
-    /// buffer is sized against — never use the requested config values for
-    /// encoder sizing when they differ.
     pub fn width(&self) -> u32 {
         self.width
     }
 
-    /// Actual captured height in pixels (see [`Self::width`]).
     pub fn height(&self) -> u32 {
         self.height
     }

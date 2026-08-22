@@ -76,7 +76,6 @@ class StreamViewModel(
                     version = hostInfo.version,
                 )
             }
-            // Sync the input scaler with the negotiated stream dimensions.
             inputDispatcher?.resize(
                 _state.value.displayWidth,
                 _state.value.displayHeight,
@@ -109,8 +108,6 @@ class StreamViewModel(
     }
 
     fun blank() {
-        // The daemon implements blank/unblank as two distinct actions; the
-        // old {"state":"on"/"off"} payload was never honored.
         val blanked = !_state.value.blanked
         ensureInput().control(if (blanked) "blank" else "unblank")
         _state.value = _state.value.copy(blanked = blanked)

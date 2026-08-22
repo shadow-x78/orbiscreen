@@ -1,3 +1,9 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - Cargo Deny Configuration
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+
+# ── Licenses ──
 [licenses]
 allow = [
     "GPL-3.0",
@@ -20,20 +26,19 @@ allow = [
     "Unicode-3.0",
 ]
 
+# ── Graph ──
 [graph]
 all-features = false
 
+# ── Advisories ──
 [advisories]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 ignore = [
-  # RUSTSEC-2024-0388 - `derivative` is unmaintained; no safe upgrade available.
-  # Arrives transitively through evdi v0.8.0 (DisplayLink kernel module
-  # binding). Cannot be fixed without forking evdi; tracked in
-  # docs/TROUBLESHOOTING.md → "CI Action: `Run cargo-deny`".
   "RUSTSEC-2024-0388",
 ]
 
+# ── Bans ──
 [bans]
 multiple-versions = "warn"
 wildcards = "warn"

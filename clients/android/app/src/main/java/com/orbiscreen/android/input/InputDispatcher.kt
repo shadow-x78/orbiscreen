@@ -31,8 +31,6 @@ class InputDispatcher(
         .readTimeout(2, TimeUnit.SECONDS)
         .build()
 
-    // The host negotates its real stream dimensions; they can change if the
-    // daemon restarts with a different config, so keep them updatable.
     @Volatile
     private var streamWidth: Int = displayWidth
 
@@ -60,7 +58,6 @@ class InputDispatcher(
         }
     }
 
-    /** Update the stream dimensions used to scale pointer coordinates. */
     fun resize(newWidth: Int, newHeight: Int) {
         if (newWidth <= 0 || newHeight <= 0) return
         streamWidth = newWidth
@@ -86,7 +83,6 @@ class InputDispatcher(
     }
 
     fun wheel(deltaY: Float) {
-        // delta_y rounds on the host; keep the raw float here.
         val payload = JSONObject()
         payload.put("Pointer", JSONObject().apply {
             put("Wheel", JSONObject().apply { put("delta_y", deltaY) })

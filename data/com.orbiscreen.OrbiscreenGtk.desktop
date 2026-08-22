@@ -1,3 +1,8 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - Desktop Entry (GTK Control Panel)
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+
 [Desktop Entry]
 Name=Orbiscreen Secondary Display
 Comment=Virtual secondary displays for Linux streamed to Android devices over Wi-Fi or USB
@@ -5,6 +10,6 @@ Exec=orbiscreen-gtk
 Icon=orbiscreen
 Terminal=false
 Type=Application
-Categories=Utility;GNOME;GTK;System;
+Categories=Utility;GTK;GNOME;
 Keywords=display;virtual;monitor;android;spacedesk;webrtc;
 StartupNotify=true

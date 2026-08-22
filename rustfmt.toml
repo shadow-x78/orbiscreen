@@ -1,3 +1,9 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - Rustfmt Configuration
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+
+# ── Formatting ──
 edition = "2021"
 max_width = 100
 tab_spaces = 4

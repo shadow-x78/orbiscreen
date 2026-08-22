@@ -14,34 +14,28 @@
             android:scaleY="1.08"
             android:translateX="-20.48"
             android:translateY="-20.8">
-            <!-- Outer monitor shell: dark fill + blue stroke, exactly like the SVG -->
             <path
                 android:fillColor="#1E1E2E"
                 android:strokeColor="#89B4FA"
                 android:strokeWidth="16"
                 android:pathData="M56,56 h400 a24,24 0 0 1 24,24 v296 a24,24 0 0 1 -24,24 h-400 a24,24 0 0 1 -24,-24 v-296 a24,24 0 0 1 24,-24 z" />
-            <!-- Inner screen bezel -->
             <path
                 android:fillColor="#11111B"
                 android:pathData="M76,88 h360 a12,12 0 0 1 12,12 v232 a12,12 0 0 1 -12,12 h-360 a12,12 0 0 1 -12,-12 v-232 a12,12 0 0 1 12,-12 z" />
-            <!-- Outer circle -->
             <path
                 android:fillColor="@android:color/transparent"
                 android:strokeColor="#89B4FA"
                 android:strokeWidth="12"
                 android:pathData="M256,152 a64,64 0 1 1 -0.1,0 z" />
-            <!-- Top half accent arc -->
             <path
                 android:fillColor="@android:color/transparent"
                 android:strokeColor="#F5E0DC"
                 android:strokeWidth="12"
                 android:strokeLineCap="round"
                 android:pathData="M192,216 a64,64 0 0 1 128,0" />
-            <!-- Stand neck -->
             <path
                 android:fillColor="#89B4FA"
                 android:pathData="M208,376 h96 v32 h-96 z" />
-            <!-- Stand base -->
             <path
                 android:fillColor="#45475A"
                 android:pathData="M168,408 h176 a8,8 0 0 1 8,8 v8 a8,8 0 0 1 -8,8 h-176 a8,8 0 0 1 -8,-8 v-8 a8,8 0 0 1 8,-8 z" />

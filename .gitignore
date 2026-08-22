@@ -1,10 +1,15 @@
-# Rust / Cargo
+# ─────────────────────────────────────────────
+# Orbiscreen - Git Ignore Rules
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+
+# ── Rust / Cargo ──
 /target/
 **/*.rs.bk
 Cargo.lock.bak
 .cargo/
 
-# Build artifacts
+# ── Build artifacts ──
 /dist/
 *.deb
 *.rpm
@@ -15,30 +20,29 @@ Cargo.lock.bak
 *.dex
 *.class
 
-# Gradle (Android)
+# ── Gradle (Android) ──
 .gradle/
 **/build/
 captures/
 .cxx/
 
-
-# Local secrets / keystores
+# ── Local secrets / keystores ──
 *.keystore
 *.jks
 local.properties
 google-services.json
 
-# Editor artifacts
+# ── Editor artifacts ──
 .vscode/
 .idea/
 *.swp
 *.sublime-*
 
-# OS files
+# ── OS files ──
 .DS_Store
 Thumbs.db
 
-# Logs / coverage
+# ── Logs / coverage ──
 *.log
 coverage/
 *.lcov
