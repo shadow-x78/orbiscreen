@@ -15,7 +15,8 @@ Summary:        Real virtual secondary displays for Linux, streamed to Android o
 License:        GPL-3.0-or-later
 URL:            https://github.com/shadow-x78/orbiscreen
 
-Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad gstreamer1-plugins-ugly gstreamer1-libav libevdev libxkbcommon gtk4 libadwaita
+Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free libevdev libxkbcommon gtk4 libadwaita
+Recommends:     gstreamer1-plugins-ugly-free
 
 %description
 Orbiscreen provides high-performance virtual secondary displays for Linux desktops,
