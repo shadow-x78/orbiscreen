@@ -7,7 +7,7 @@ use ashpd::desktop::screencast::{
     CursorMode, OpenPipeWireRemoteOptions, Screencast, SelectSourcesOptions, SourceType,
     StartCastOptions,
 };
-use ashpd::desktop::Session;
+use ashpd::desktop::{ResponseError, Session};
 use enumflags2::BitFlags;
 use thiserror::Error;
 use tracing::instrument;
@@ -89,9 +89,12 @@ impl WaylandCapture {
             .start(&session, None, StartCastOptions::default())
             .await
             .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
-        let streams = request
-            .response()
-            .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
+        let streams = request.response().map_err(|e| match e {
+            ashpd::Error::Response(ResponseError::Cancelled) => {
+                WaylandCaptureError::PermissionDenied
+            }
+            other => WaylandCaptureError::Dbus(other.to_string()),
+        })?;
         let first = streams
             .streams()
             .first()

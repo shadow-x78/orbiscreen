@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Desktop entry validation:** `Categories` carried two main categories (`Utility` + `System`); `desktop-file-validate` is now fully clean.
 - **Wayland capture diagnostics:** the portal pipeline now watches the GStreamer bus and logs real negotiation/caps errors instead of failing silently with zero frames, and `pipewiresrc` output is pinned to system memory so compositors offering DMA-BUF buffers cannot stall negotiation.
 - **Portal log noise:** the ashpd/zbus property-cache warnings are filtered from the GTK binary's logs as well (the daemon already did).
+- **Portal denial handling:** dismissing or denying the screen-share prompt now fails with an explicit "user denied the ScreenCast permission" message instead of the cryptic "Portal request didn't succeed with no information".
 
 ### 🔒 Security
 - **systemd hardening:** `NoNewPrivileges=true` added to all shipped user units (install.sh, deb builder, RPM spec).
