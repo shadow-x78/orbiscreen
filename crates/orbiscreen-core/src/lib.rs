@@ -9,6 +9,8 @@ pub struct Config {
     #[serde(default)]
     pub display: DisplayConfig,
     #[serde(default)]
+    pub capture: CaptureConfig,
+    #[serde(default)]
     pub encode: EncodeConfig,
     #[serde(default)]
     pub transport: TransportConfig,
@@ -17,8 +19,33 @@ pub struct Config {
 impl Config {
     pub fn sanitize(&mut self) {
         self.display.sanitize();
+        self.capture.sanitize();
         self.encode.sanitize();
         self.transport.sanitize();
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CaptureConfig {
+    pub preferred: String,
+}
+
+impl Default for CaptureConfig {
+    fn default() -> Self {
+        Self {
+            preferred: "auto".to_string(),
+        }
+    }
+}
+
+impl CaptureConfig {
+    pub const PREFERENCES: &'static [&'static str] = &["auto", "kwin-virtual", "portal"];
+
+    pub fn sanitize(&mut self) {
+        if !Self::PREFERENCES.contains(&self.preferred.as_str()) {
+            self.preferred = "auto".to_string();
+        }
     }
 }
 
@@ -196,5 +223,21 @@ mdns_advertise = true
         assert_eq!(display.height, 1080);
         assert_eq!(display.refresh_rate_hz, 60);
         assert_eq!(display.count, 1);
+    }
+
+    #[test]
+    fn unknown_capture_preference_falls_back_to_auto() {
+        let parsed =
+            load_config("[capture]\npreferred = \"magic\"\n").expect("parse capture config");
+        assert_eq!(parsed.capture.preferred, "auto");
+    }
+
+    #[test]
+    fn capture_preference_accepts_known_values() {
+        for value in CaptureConfig::PREFERENCES {
+            let parsed =
+                load_config(&format!("[capture]\npreferred = \"{value}\"\n")).expect("parse");
+            assert_eq!(parsed.capture.preferred, *value);
+        }
     }
 }

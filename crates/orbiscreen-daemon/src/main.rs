@@ -8,7 +8,7 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
-use orbiscreen_capture::CaptureSession;
+use orbiscreen_capture::{CapturePreference, CaptureSession};
 use orbiscreen_core::{dump_config, load_config, Config};
 use orbiscreen_display::{DisplayStatus, EvdiFramePump, VirtualDisplaySpec};
 use orbiscreen_encode::{EncodeParams, Encoder, EncoderKind};
@@ -154,9 +154,19 @@ impl FrameSource {
         match self {
             FrameSource::Evdi(_) => "evdi",
             FrameSource::Capture(c) => match c.backend() {
-                orbiscreen_capture::CaptureBackend::X11 => "x11-portal-fallback",
-                orbiscreen_capture::CaptureBackend::Wayland => "wayland-portal-fallback",
+                orbiscreen_capture::CaptureBackend::X11 => "x11",
+                orbiscreen_capture::CaptureBackend::Wayland => "wayland-portal",
+                orbiscreen_capture::CaptureBackend::KwinVirtual => "kwin-virtual",
             },
+        }
+    }
+
+    /// True when a retryable-looking capture error is actually terminal (the
+    /// source will not produce more frames); callers should stop or reopen.
+    fn is_ended(&self) -> bool {
+        match self {
+            FrameSource::Evdi(_) => false,
+            FrameSource::Capture(capture) => capture.is_ended(),
         }
     }
 
@@ -303,12 +313,13 @@ async fn run_start(
             FrameSource::Evdi(pump)
         }
         Err(e) => {
-            info!(
-                "EVDI kernel module not active ({e}). Using portal capture instead — \
-                 pick the display you want to stream (real or virtual monitor) in the \
-                 share dialog."
-            );
-            let capture = CaptureSession::open_async(spec.width, spec.height).await?;
+            info!("EVDI kernel module not active ({e}). Falling back to live capture.");
+            let capture = CaptureSession::open_with_preference(
+                spec.width,
+                spec.height,
+                CapturePreference::parse(&cfg.capture.preferred),
+            )
+            .await?;
             info!(backend = ?capture.backend(), "Capture backend open (fallback)");
             FrameSource::Capture(capture)
         }
@@ -433,6 +444,10 @@ async fn run_start(
                     tokio::time::sleep(std::time::Duration::from_nanos(frame_dur)).await;
                 }
                 SourceOutcome::Retryable(e) => {
+                    if source.is_ended() {
+                        error!("capture source ended terminally ({e}); stopping capture pump");
+                        break;
+                    }
                     warn!("capture error: {e}");
                     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
                 }

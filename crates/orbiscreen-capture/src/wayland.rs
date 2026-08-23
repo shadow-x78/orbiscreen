@@ -139,46 +139,9 @@ impl WaylandCapture {
                             return Err(gstreamer::FlowError::Eos);
                         }
                     };
-
-                    let Some(caps) = sample.caps() else {
-                        tracing::warn!("skipping sample with no caps");
-                        return Ok(gstreamer::FlowSuccess::Ok);
-                    };
-                    let Some(structure) = caps.structure(0) else {
-                        tracing::warn!("skipping sample with empty caps");
-                        return Ok(gstreamer::FlowSuccess::Ok);
-                    };
-                    let (Ok(width), Ok(height)) = (
-                        structure.get::<i32>("width"),
-                        structure.get::<i32>("height"),
-                    ) else {
-                        tracing::warn!("skipping sample with missing width/height in caps");
-                        return Ok(gstreamer::FlowSuccess::Ok);
-                    };
-
-                    let Some(buffer) = sample.buffer() else {
-                        tracing::warn!("skipping sample with no buffer");
-                        return Ok(gstreamer::FlowSuccess::Ok);
-                    };
-                    let Ok(map) = buffer.map_readable() else {
-                        tracing::warn!("buffer not readable; skipping sample");
-                        return Ok(gstreamer::FlowSuccess::Ok);
-                    };
-                    let expected = (width as usize) * (height as usize) * 4;
-                    let incoming = map.size();
-                    if incoming != expected {
-                        tracing::warn!(
-                            "frame size mismatch: got {incoming} B, expected {expected} B ({width}x{height}); dropping",
-                        );
-                        return Ok(gstreamer::FlowSuccess::Ok);
+                    if let Some(frame) = super::sample_to_captured_frame(&sample) {
+                        let _ = tx.send(frame);
                     }
-                    let data = map.to_vec();
-
-                    let _ = tx.send(CapturedFrame {
-                        width: width as u32,
-                        height: height as u32,
-                        data,
-                    });
                     Ok(gstreamer::FlowSuccess::Ok)
                 })
                 .build(),

@@ -1,6 +1,7 @@
 // Orbiscreen - orbiscreen-capture library (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
+pub mod kwin_virtual;
 pub mod wayland;
 pub mod x11;
 
@@ -12,6 +13,28 @@ use thiserror::Error;
 pub enum CaptureBackend {
     X11,
     Wayland,
+    KwinVirtual,
+}
+
+/// User preference for the Wayland capture path (config `[capture] preferred`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CapturePreference {
+    /// Try the KWin virtual display first, then the portal.
+    Auto,
+    /// Always create a KWin virtual monitor (fails on non-KDE compositors).
+    KwinVirtual,
+    /// Always ask through the xdg-desktop-portal share dialog.
+    Portal,
+}
+
+impl CapturePreference {
+    pub fn parse(value: &str) -> Self {
+        match value {
+            "kwin-virtual" => Self::KwinVirtual,
+            "portal" => Self::Portal,
+            _ => Self::Auto,
+        }
+    }
 }
 
 #[derive(Debug, Error)]
@@ -59,10 +82,53 @@ pub struct CaptureSession {
     height: u32,
 }
 
+/// Converts a GStreamer sample into a [`CapturedFrame`], validating caps,
+/// dimensions and buffer size with uniform warn logging. Shared by the
+/// portal and KWin virtual backends so frame-loss diagnostics never drift.
+pub(crate) fn sample_to_captured_frame(sample: &gstreamer::Sample) -> Option<CapturedFrame> {
+    let Some(buffer) = sample.buffer() else {
+        tracing::warn!("skipping sample with no buffer");
+        return None;
+    };
+    let Some(caps) = sample.caps() else {
+        tracing::warn!("skipping sample with no caps");
+        return None;
+    };
+    let Some(structure) = caps.structure(0) else {
+        tracing::warn!("skipping sample with empty caps");
+        return None;
+    };
+    let (Ok(width), Ok(height)) = (
+        structure.get::<i32>("width"),
+        structure.get::<i32>("height"),
+    ) else {
+        tracing::warn!("skipping sample with missing width/height in caps");
+        return None;
+    };
+    let Ok(map) = buffer.map_readable() else {
+        tracing::warn!("buffer not readable; skipping sample");
+        return None;
+    };
+    let expected = (width as usize) * (height as usize) * 4;
+    if map.size() != expected {
+        tracing::warn!(
+            "frame size mismatch: got {} B, expected {expected} B ({width}x{height}); dropping",
+            map.size()
+        );
+        return None;
+    }
+    Some(CapturedFrame {
+        width: width as u32,
+        height: height as u32,
+        data: map.to_vec(),
+    })
+}
+
 #[allow(missing_debug_implementations)]
 enum CaptureInner {
     X11(x11::X11Capture),
     Wayland(wayland::WaylandCapture),
+    KwinVirtual(kwin_virtual::KwinVirtualCapture),
 }
 
 impl CaptureSession {
@@ -77,26 +143,82 @@ impl CaptureSession {
         })
     }
 
-    pub async fn open_async(width: u32, height: u32) -> Result<Self, CaptureError> {
-        match detect_backend() {
-            CaptureBackend::X11 => Self::open_x11(width, height),
-            CaptureBackend::Wayland => {
-                let capture =
-                    wayland::WaylandCapture::open(wayland::WaylandCaptureSpec { width, height })
-                        .await?;
-                let (actual_w, actual_h) = capture.dimensions();
-                Ok(Self {
-                    backend_kind: CaptureBackend::Wayland,
-                    inner: Arc::new(CaptureInner::Wayland(capture)),
-                    width: actual_w,
-                    height: actual_h,
-                })
-            }
+    async fn open_portal(width: u32, height: u32) -> Result<Self, CaptureError> {
+        tracing::info!(
+            "using the screencast portal — pick the display to stream in the share dialog"
+        );
+        let capture =
+            wayland::WaylandCapture::open(wayland::WaylandCaptureSpec { width, height }).await?;
+        let (actual_w, actual_h) = capture.dimensions();
+        Ok(Self {
+            backend_kind: CaptureBackend::Wayland,
+            inner: Arc::new(CaptureInner::Wayland(capture)),
+            width: actual_w,
+            height: actual_h,
+        })
+    }
+
+    fn open_kwin(width: u32, height: u32) -> Result<Self, CaptureError> {
+        let capture = kwin_virtual::KwinVirtualCapture::open(kwin_virtual::KwinVirtualSpec {
+            width,
+            height,
+        })?;
+        let (actual_w, actual_h) = capture.dimensions();
+        tracing::info!(
+            "KWin virtual display created via zkde-screencast — no root, no share dialog"
+        );
+        Ok(Self {
+            backend_kind: CaptureBackend::KwinVirtual,
+            inner: Arc::new(CaptureInner::KwinVirtual(capture)),
+            width: actual_w,
+            height: actual_h,
+        })
+    }
+
+    pub async fn open_with_preference(
+        width: u32,
+        height: u32,
+        preference: CapturePreference,
+    ) -> Result<Self, CaptureError> {
+        let on_wayland = std::env::var_os("WAYLAND_DISPLAY").is_some();
+        if !on_wayland {
+            return match preference {
+                CapturePreference::Auto => Self::open_x11(width, height),
+                CapturePreference::KwinVirtual => Err(CaptureError::BackendUnavailable(
+                    "kwin-virtual capture requires a Wayland session",
+                )),
+                CapturePreference::Portal => Err(CaptureError::BackendUnavailable(
+                    "portal capture requires a Wayland session",
+                )),
+            };
+        }
+        match preference {
+            CapturePreference::Auto => match Self::open_kwin(width, height) {
+                Ok(session) => Ok(session),
+                Err(e) => {
+                    tracing::info!(
+                        "KWin virtual display unavailable ({e}); falling back to the portal"
+                    );
+                    Self::open_portal(width, height).await
+                }
+            },
+            CapturePreference::KwinVirtual => Self::open_kwin(width, height),
+            CapturePreference::Portal => Self::open_portal(width, height).await,
         }
     }
 
     pub fn backend(&self) -> CaptureBackend {
         self.backend_kind
+    }
+
+    /// True when the capture source reached a terminal state (e.g. the KWin
+    /// virtual output was closed by the compositor) and will not produce
+    /// further frames; callers should stop or reopen instead of retrying.
+    pub fn is_ended(&self) -> bool {
+        match self.inner.as_ref() {
+            CaptureInner::KwinVirtual(capture) => capture.is_ended(),
+            CaptureInner::X11(_) | CaptureInner::Wayland(_) => false,
+        }
     }
 
     pub fn width(&self) -> u32 {
@@ -111,6 +233,7 @@ impl CaptureSession {
         match self.inner.as_ref() {
             CaptureInner::X11(capture) => capture.next_frame().await,
             CaptureInner::Wayland(capture) => capture.next_frame().await,
+            CaptureInner::KwinVirtual(capture) => capture.next_frame().await,
         }
     }
 }
@@ -142,6 +265,23 @@ mod tests {
             Some(value) => std::env::set_var("WAYLAND_DISPLAY", value),
             None => std::env::remove_var("WAYLAND_DISPLAY"),
         }
+    }
+
+    #[test]
+    fn capture_preference_parses_known_values() {
+        assert_eq!(
+            CapturePreference::parse("kwin-virtual"),
+            CapturePreference::KwinVirtual
+        );
+        assert_eq!(
+            CapturePreference::parse("portal"),
+            CapturePreference::Portal
+        );
+        assert_eq!(CapturePreference::parse("auto"), CapturePreference::Auto);
+        assert_eq!(
+            CapturePreference::parse("nonsense"),
+            CapturePreference::Auto
+        );
     }
 
     #[test]

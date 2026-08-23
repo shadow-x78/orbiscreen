@@ -21,3 +21,6 @@ tracing = { workspace = true }
 tokio = { workspace = true }
 gstreamer = { workspace = true }
 gstreamer-app = { workspace = true }
+wayland-client = { workspace = true }
+wayland-protocols-plasma = { workspace = true }
+libc = { workspace = true }
