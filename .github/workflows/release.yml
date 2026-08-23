@@ -35,7 +35,8 @@ jobs:
           sudo apt-get install -y \
             libx11-dev libxcb1-dev libxrandr-dev \
             libevdev-dev libxkbcommon-dev libwayland-dev \
-            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+            gstreamer1.0-plugins-ugly
 
       - name: Format check
         run: cargo fmt --all -- --check
