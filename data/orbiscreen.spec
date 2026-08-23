@@ -95,6 +95,7 @@ fi
 /usr/share/orbiscreen/client/style.css
 /usr/share/orbiscreen/client/app.js
 /usr/share/orbiscreen/client/vendor/mpegts.js
+/usr/share/orbiscreen/install-evdi-module.sh
 
 %changelog
 * Fri Jul 24 2026 shadow-x78 <https://github.com/shadow-x78/orbiscreen> - %{_version}-1
