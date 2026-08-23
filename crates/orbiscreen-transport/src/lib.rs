@@ -264,8 +264,11 @@ async fn client_config(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 async fn run_command(program: &str, args: &[&str]) -> bool {
+    use std::process::Stdio;
     match tokio::process::Command::new(program)
         .args(args)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()
         .await
     {
@@ -285,6 +288,25 @@ async fn dpms_force(on: bool) -> bool {
             return true;
         }
         if run_command("hyprctl", &["dispatch", "dpms", state]).await {
+            return true;
+        }
+        let active = (!on).to_string();
+        if run_command(
+            "gdbus",
+            &[
+                "call",
+                "--session",
+                "--dest",
+                "org.gnome.ScreenSaver",
+                "--object-path",
+                "/org/gnome/ScreenSaver",
+                "--method",
+                "org.gnome.ScreenSaver.SetActive",
+                &active,
+            ],
+        )
+        .await
+        {
             return true;
         }
     }
@@ -476,6 +498,27 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
             })
             .build(),
     );
+
+    if let Some(bus) = pipeline.bus() {
+        bus.set_sync_handler(|_bus, msg| {
+            match msg.view() {
+                gstreamer::MessageView::Error(err) => tracing::error!(
+                    target: "orbiscreen_transport",
+                    "stream pipeline error: {} (debug: {})",
+                    err.error(),
+                    err.debug().unwrap_or_default()
+                ),
+                gstreamer::MessageView::Warning(warn) => tracing::warn!(
+                    target: "orbiscreen_transport",
+                    "stream pipeline warning: {} (debug: {})",
+                    warn.error(),
+                    warn.debug().unwrap_or_default()
+                ),
+                _ => {}
+            }
+            gstreamer::BusSyncReply::Drop
+        });
+    }
 
     if let Err(e) = pipeline.set_state(gstreamer::State::Playing) {
         warn!("stream pipeline failed to reach playing state: {e}");

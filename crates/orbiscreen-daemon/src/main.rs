@@ -303,9 +303,10 @@ async fn run_start(
             FrameSource::Evdi(pump)
         }
         Err(e) => {
-            warn!(
-                "EVDI kernel module missing/inactive ({e}). Falling back to primary-desktop \
-                 capture via Wayland/X11 portal — clients will see the host's main display."
+            info!(
+                "EVDI kernel module not active ({e}). Using portal capture instead — \
+                 pick the display you want to stream (real or virtual monitor) in the \
+                 share dialog."
             );
             let capture = CaptureSession::open_async(spec.width, spec.height).await?;
             info!(backend = ?capture.backend(), "Capture backend open (fallback)");
@@ -374,20 +375,23 @@ async fn run_start(
     let (video_tx, video_rx) = mpsc::unbounded_channel::<H264Packet>();
     let frame_pump = tokio::spawn(async move {
         let mut n = 0u64;
+        let mut ts_base: Option<u64> = None;
         while let Some(chunk) = encoded_rx.recv().await {
             n += 1;
+            let base = *ts_base.get_or_insert(chunk.pts_ns);
+            let pts_ns = chunk.pts_ns.saturating_sub(base);
             if n <= 5 || n % 300 == 0 {
                 info!(
                     "frame_pump: chunk #{n} ({} B, kf={}, pts={})",
                     chunk.bytes.len(),
                     chunk.is_keyframe,
-                    chunk.pts_ns
+                    pts_ns
                 );
             }
             let pkt = H264Packet {
                 bytes: chunk.bytes,
                 is_keyframe: chunk.is_keyframe,
-                pts_ns: chunk.pts_ns,
+                pts_ns,
             };
             if video_tx.send(pkt).is_err() {
                 break;

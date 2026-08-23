@@ -142,6 +142,12 @@ impl Encoder {
             .map_err(|e| EncodeError::Pipeline(format!("appsink: {e}")))?
             .downcast::<AppSink>()
             .map_err(|_| EncodeError::Pipeline("appsink downcast".into()))?;
+        appsink.set_caps(Some(
+            &gstreamer::Caps::builder("video/x-h264")
+                .field("stream-format", "byte-stream")
+                .field("alignment", "au")
+                .build(),
+        ));
 
         let pipeline = Pipeline::new();
         pipeline
@@ -165,11 +171,14 @@ impl Encoder {
         appsrc.set_caps(Some(&caps));
         appsrc.set_format(gstreamer::Format::Time);
         appsrc.set_is_live(true);
-        appsrc.set_do_timestamp(true);
+        appsrc.set_do_timestamp(false);
         appsrc.set_max_bytes((params.width as u64) * params.height as u64 * 4 * 60);
 
         if encoder.find_property("bitrate").is_some() {
             encoder.set_property_from_str("bitrate", &params.bitrate_kbps.to_string());
+        }
+        if encoder.find_property("byte-stream").is_some() {
+            encoder.set_property_from_str("byte-stream", "true");
         }
         if kind == EncoderKind::X264 {
             encoder.set_property_from_str("tune", "zerolatency");

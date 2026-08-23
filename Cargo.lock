@@ -1698,6 +1698,7 @@ dependencies = [
  "gstreamer-app",
  "hostname",
  "mdns-sd",
+ "orbiscreen-encode",
  "orbiscreen-input",
  "rand 0.9.5",
  "serde",
