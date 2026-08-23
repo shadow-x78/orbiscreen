@@ -61,7 +61,7 @@
 <a id="highlights"></a>
 ## ✨ المميزات
 
-- شاشة افتراضية حقيقية عبر `evdi` (X11 *و* Wayland)، مع تراجع التقاط portal
+- شاشة افتراضية حقيقية عبر `evdi` (X11 *و* Wayland)، **أو بدون أي صلاحيات root على KDE Plasma** — مونيتور افتراضي يُنشئه KWin عبر `zkde-screencast` (بلا وحدة نواة وبلا نافذة مشاركة)، مع تراجع التقاط portal في غير ذلك
 - **عميل Android بواجهة Material 3** - Jetpack Compose، لوحة ألوان Catppuccin Mocha / Latte، بسمة فاتحة وداكنة
 - **عميل ويب مبنّى داخلياً** - شاهد من أي متصفح على `http://<host>:8788/` (MSE عبر `mpegts.js` المضمنة محلياً، دون CDN)
 - **اكتشاف مباشر** - مسح NSD للمضيفين القريبين، إدخال يدوي `host:port`، وماسح Subnet اختياري
@@ -135,20 +135,29 @@ cd ~/Orbiscreen
 # أمر التثبيت الواحد لنظام Linux
 ./scripts/install.sh
 
-# فحص واجهات الالتقاط والإدخال والشاشة المحلية
-orbiscreen probe
-
-# وحدة النواة evdi عبر DKMS - مطلوب لشاشة ثانية حقيقية؛
-# بدونها يتدهور Orbiscreen إلى بث سطح المكتب الرئيسي.
+# وحدة النواة evdi عبر DKMS - مطلوبة لشاشة ثانية حقيقية على أغلب بيئات
+# سطح المكتب. على KDE Plasma Wayland لا حاجة لأي وحدة نواة: ينشئ الـ daemon
+# مونيتوراً افتراضياً عبر KWin من تلقاء نفسه (بلا root وبلا نافذة مشاركة).
+# وبدون أيٍّ من المسارين يبث Orbiscreen شاشة تختارها من نافذة مشاركة portal.
 # راجع docs/TROUBLESHOOTING_AR.md لخطوات التوزيعات. ثم:
 sudo modprobe evdi
 
 # فحص واجهات الالتقاط والإدخال والشاشة المحلية
 orbiscreen probe
 
-# تشغيل خدمة Orbiscreen (مع تراجع تلقائي EVDI DRM أو Wayland Portal)
+# تشغيل خدمة Orbiscreen (مع تراجع تلقائي: EVDI DRM أو شاشة KWin الافتراضية
+# أو Wayland Portal)
 orbiscreen start
 ```
+
+#### تفضيل واجهة الالتقاط (`orbiscreen.toml`)
+
+```toml
+[capture]
+preferred = "auto"   # auto (الافتراضي) | kwin-virtual | portal
+```
+
+يستخدم `auto` شاشة KWin الافتراضية على KDE Plasma Wayland (بلا root وبلا نافذة حوار)، وشاشة evdi الافتراضية عند تحميل وحدة النواة، ونافذة مشاركة portal فيما عدا ذلك. يمكن فرض مسار محدد بـ `kwin-virtual` أو `portal`.
 
 ### 3. الاتصال
 
@@ -214,7 +223,7 @@ orbiscreen/
 ├── crates/
 │   ├── orbiscreen-core/        # الأنواع والإعدادات والأخطاء
 │   ├── orbiscreen-display/     # شاشات افتراضية مدعومة بـ evdi
-│   ├── orbiscreen-capture/     # X11 ‏(x11rb) + Wayland ‏(ashpd + PipeWire)
+│   ├── orbiscreen-capture/     # X11 ‏(x11rb) + Wayland ‏(KWin zkde-screencast / ashpd portal + PipeWire)
 │   ├── orbiscreen-encode/      # خط أنابيب GStreamer ‏(VAAPI / NVENC / x264)
 │   ├── orbiscreen-input/       # evdevil + ashpd RemoteDesktop
 │   ├── orbiscreen-transport/   # axum + mDNS + /api/info + /api/control

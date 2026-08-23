@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.12.0] - 2026-08-24
+
+### Added
+- **KWin virtual display backend (no root, no portal):** on KDE Plasma the daemon now creates a real virtual monitor (`Virtual-ORBISCREEN`, visible in Display Settings) through KWin's `zkde_screencast_unstable_v1` Wayland protocol and streams it over PipeWire directly — bypassing xdg-desktop-portal entirely, so no share dialog appears and the portal's crash-prone path is avoided. KWin only exposes the protocol to allow-listed executables, so the daemon maintains `~/.local/share/applications/orbiscreen.kwin.desktop` (user-writable, no sudo) with `X-KDE-Wayland-Interfaces=zkde_screencast_unstable_v1` and its own executable path, refreshing the KService cache and retrying the connection until the grant is visible. Closing the stream removes the virtual output automatically. New `[capture] preferred = "auto" | "kwin-virtual" | "portal"` config option; `auto` (default) tries KWin first on Wayland and falls back to the portal on non-KDE compositors, while explicit preferences fail loudly on non-Wayland sessions instead of silently capturing the real desktop.
+- **Web client self-healing reconnect:** after a daemon restart the stream token changes, and any already-open browser tab used to loop forever on a silent black screen (the overlay was hidden and the stale token was never refreshed). The client now re-shows the status overlay on stream loss and re-fetches `/client/config.json` before each reconnect, so tabs recover automatically once the daemon is back.
+
+### Changed
+- Capture fallback log no longer claims a portal dialog is always required; the hint is logged only when the portal path is actually taken.
+- Frame validation is shared between the portal and KWin backends (`sample_to_captured_frame`), so size-mismatch and malformed-sample diagnostics can no longer drift; the KWin backend uses a bounded frame queue (drops under stall instead of growing without limit).
+- A compositor-side close of the virtual output is reported as terminal (`CaptureSession::is_ended`) and stops the capture pump instead of retrying forever with warning spam.
+
 ## [v0.11.2] - 2026-08-23
 
 ### 🐛 Fixed

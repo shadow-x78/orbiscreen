@@ -22,6 +22,7 @@
 ### Runtime
 
 - [Runtime: `orbiscreen start` fails - `kernel module is not installed`](#runtime-evdi)
+- [Runtime: KDE Plasma — virtual display without evdi or root](#runtime-kwin)
 - [Runtime: capture backend unavailable on Wayland](#runtime-wayland)
 - [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations` lint warnings](#runtime-lints)
 
@@ -180,10 +181,24 @@ Error: evdi kernel module is not installed
 
 ---
 
+<a id="runtime-kwin"></a>
+## 🚀 Runtime: KDE Plasma — virtual display without evdi or root
+
+**Symptom:** `orbiscreen start` logs `EVDI kernel module not active` and you do not want to build a kernel module.
+
+**Fix:** on KDE Plasma Wayland nothing else is needed. With the default `[capture] preferred = "auto"`, the daemon asks KWin to create a virtual monitor (`Virtual-ORBISCREEN`, visible in System Settings → Display Configuration) through the `zkde_screencast_unstable_v1` Wayland protocol and streams it over PipeWire — no root, no share dialog. KWin only exposes that protocol to allow-listed executables, so the daemon maintains `~/.local/share/applications/orbiscreen.kwin.desktop` (user-writable) and refreshes the KService cache automatically; the first run may take a few extra seconds while the grant becomes visible.
+
+Notes:
+- Force the path with `[capture] preferred = "kwin-virtual"` (fail loudly if unavailable) or `"portal"` (always show the share dialog).
+- The virtual output disappears when the daemon stops — that is expected.
+- On GNOME / wlroots compositors the protocol does not exist and `auto` falls back to the portal share dialog.
+
+---
+
 <a id="runtime-wayland"></a>
 ## 🚀 Runtime: capture backend unavailable on Wayland
 
-Use `CaptureSession::open_async()` (the daemon already does so).
+Use `CaptureSession::open_with_preference()` (the daemon already does so).
 
 ---
 

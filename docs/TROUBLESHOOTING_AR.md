@@ -22,6 +22,7 @@
 ### وقت التشغيل
 
 - [وقت التشغيل: فشل `orbiscreen start` - `kernel module is not installed`](#runtime-evdi)
+- [وقت التشغيل: KDE Plasma — شاشة افتراضية بدون evdi وبدون root](#runtime-kwin)
 - [وقت التشغيل: واجهة الالتقاط غير متاحة على Wayland](#runtime-wayland)
 - [وقت التشغيل: تحذيرات lint `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`](#runtime-lints)
 
@@ -180,10 +181,24 @@ Error: evdi kernel module is not installed
 
 ---
 
+<a id="runtime-kwin"></a>
+## 🚀 وقت التشغيل: KDE Plasma — شاشة افتراضية بدون evdi وبدون root
+
+**الأعراض:** يسجّل `orbiscreen start` رسالة `EVDI kernel module not active` ولا تريد بناء وحدة نواة.
+
+**الحل:** على KDE Plasma Wayland لا شيء إضافي مطلوب. مع الإعداد الافتراضي `[capture] preferred = "auto"` يطلب الـ daemon من KWin إنشاء مونيتور افتراضي (`Virtual-ORBISCREEN`، يظهر في إعدادات النظام ← إعداد العرض) عبر بروتوكول Wayland‏ `zkde_screencast_unstable_v1` ويبثه عبر PipeWire مباشرة — بلا root وبلا نافذة مشاركة. KWin لا يعرض هذا البروتوكول إلا للتنفيذيات المصرّح لها، لذا يحافظ الـ daemon على الملف `~/.local/share/applications/orbiscreen.kwin.desktop` (قابل للكتابة من المستخدم) ويحدّث ذاكرة KService تلقائياً؛ قد يستغرق التشغيل الأول ثوانٍ إضافية حتى يصبح الترخيص مرئياً.
+
+ملاحظات:
+- يمكن فرض المسار عبر `[capture] preferred = "kwin-virtual"` (فشل صريح إن لم يتوفر) أو `"portal"` (إظهار نافذة المشاركة دائماً).
+- تختفي الشاشة الافتراضية عند إيقاف الـ daemon — هذا متوقع.
+- على GNOME / wlroots البروتوكول غير موجود ويرجع `auto` تلقائياً إلى نافذة مشاركة portal.
+
+---
+
 <a id="runtime-wayland"></a>
 ## 🚀 وقت التشغيل: واجهة الالتقاط غير متاحة على Wayland
 
-استخدم `CaptureSession::open_async()` (الـ daemon يفعل ذلك مسبقاً).
+استخدم `CaptureSession::open_with_preference()` (الـ daemon يفعل ذلك مسبقاً).
 
 ---
 

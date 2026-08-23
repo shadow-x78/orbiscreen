@@ -37,6 +37,7 @@ google-services.json
 .idea/
 *.swp
 *.sublime-*
+.playwright-mcp/
 
 # ── OS files ──
 .DS_Store

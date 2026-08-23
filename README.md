@@ -61,7 +61,7 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 <a id="highlights"></a>
 ## ✨ Highlights
 
-- Real virtual display via `evdi` (X11 *and* Wayland), with portal capture fallback
+- Real virtual display via `evdi` (X11 *and* Wayland), **or with zero root on KDE Plasma** — a KWin virtual monitor created through `zkde-screencast` (no kernel module, no portal dialog), with portal capture fallback elsewhere
 - **Material 3 Android client** - Jetpack Compose, Catppuccin Mocha / Latte brand palette, light/dark theme
 - **Built-in web client** - watch from any browser at `http://<host>:8788/` (MSE via the locally bundled `mpegts.js`, no CDN)
 - **Live discovery** - NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner
@@ -135,17 +135,29 @@ cd ~/Orbiscreen
 # One-command installation for Linux
 ./scripts/install.sh
 
-# evdi kernel module (DKMS) - required for a real second monitor;
-# without it Orbiscreen degrades to streaming the primary desktop.
-# See docs/TROUBLESHOOTING.md for per-distro steps. Then:
+# evdi kernel module (DKMS) - required for a real second monitor on most
+# desktops. On KDE Plasma Wayland no kernel module is needed: the daemon
+# creates a KWin virtual monitor on its own (no root, no share dialog).
+# Without either path Orbiscreen streams a display picked in the portal
+# share dialog. See docs/TROUBLESHOOTING.md for per-distro steps. Then:
 sudo modprobe evdi
 
 # Probe local capture, input, and display backends
 orbiscreen probe
 
-# Start the Orbiscreen daemon (EVDI DRM or Wayland Portal auto-fallback)
+# Start the Orbiscreen daemon (EVDI DRM, KWin virtual display, or Wayland
+# Portal auto-fallback)
 orbiscreen start
 ```
+
+#### Capture backend preference (`orbiscreen.toml`)
+
+```toml
+[capture]
+preferred = "auto"   # auto (default) | kwin-virtual | portal
+```
+
+`auto` uses the KWin virtual display on KDE Plasma Wayland (no root, no dialog), the evdi virtual display when the kernel module is loaded, and the portal share dialog everywhere else. Force a path with `kwin-virtual` or `portal`.
 
 ### 3. Connect
 
@@ -211,7 +223,7 @@ orbiscreen/
 ├── crates/
 │   ├── orbiscreen-core/        # types, config, errors
 │   ├── orbiscreen-display/     # evdi-backed virtual displays
-│   ├── orbiscreen-capture/     # X11 (x11rb) + Wayland (ashpd + PipeWire)
+│   ├── orbiscreen-capture/     # X11 (x11rb) + Wayland (KWin zkde-screencast / ashpd portal + PipeWire)
 │   ├── orbiscreen-encode/      # GStreamer pipeline (VAAPI / NVENC / x264)
 │   ├── orbiscreen-input/       # evdevil + ashpd RemoteDesktop
 │   ├── orbiscreen-transport/   # axum + mDNS + /api/info + /api/control
