@@ -270,7 +270,30 @@ videoEl.addEventListener("pointerdown", (event) => {
     showTouch(event.clientX, event.clientY);
 });
 
+let controlActive = false;
+
+function setControlHint() {
+    const hint = document.getElementById("controlHint");
+    if (!hint) return;
+    hint.textContent = controlActive
+        ? "Control active - press Esc to release"
+        : "Click to control";
+}
+
+document.addEventListener("pointerlockchange", () => {
+    controlActive = document.pointerLockElement === videoEl;
+    if (!controlActive) releaseAllButtons();
+    setControlHint();
+});
+
+videoEl.addEventListener("click", () => {
+    if (!controlActive && videoEl.requestPointerLock) {
+        videoEl.requestPointerLock();
+    }
+});
+
 videoEl.addEventListener("pointermove", (event) => {
+    if (event.pointerType !== "pen" && !controlActive) return;
     const { x, y } = mapPointer(event);
     if (event.pointerType === "pen") {
         sendStylus(x, y, event.pressure, event.tiltX, event.tiltY);
@@ -293,18 +316,19 @@ videoEl.addEventListener("pointerleave", () => {
 });
 
 videoEl.addEventListener("wheel", (event) => {
+    if (!controlActive) return;
     event.preventDefault();
     sendWheel(event.deltaY);
 }, { passive: false });
 
 window.addEventListener("keydown", (event) => {
-    if (!streamActive) return;
+    if (!streamActive || !controlActive) return;
     event.preventDefault();
     sendKey(event.code, true);
 });
 
 window.addEventListener("keyup", (event) => {
-    if (!streamActive) return;
+    if (!streamActive || !controlActive) return;
     event.preventDefault();
     sendKey(event.code, false);
 });

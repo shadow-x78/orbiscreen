@@ -8,11 +8,11 @@ SRC_DIR="${1:-$HOME/src/evdi-main}"
 KO="$SRC_DIR/module/evdi.ko"
 
 if [[ ! -f $KO ]]; then
-    echo "[Orbiscreen] evdi.ko not found at $KO"
-    echo "[Orbiscreen] build it first:"
-    echo "  git clone --depth 1 https://github.com/DisplayLink/evdi.git $SRC_DIR"
-    echo "  make -C $SRC_DIR/module KVERSION=\$(uname -r)"
-    exit 1
+    echo "[Orbiscreen] evdi.ko not found at $KO - building from source"
+    if [[ ! -d $SRC_DIR ]]; then
+        git clone --depth 1 https://github.com/DisplayLink/evdi.git "$SRC_DIR"
+    fi
+    make -C "$SRC_DIR/module" KVERSION="$(uname -r)"
 fi
 
 sudo mkdir -p "/lib/modules/$(uname -r)/kernel/drivers/gpu/drm/evdi"

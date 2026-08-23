@@ -529,8 +529,16 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     let mut video_rx = state.video_tx.subscribe();
     let stats = state.stats.clone();
 
+    struct PipelineGuard(gstreamer::Pipeline);
+    impl Drop for PipelineGuard {
+        fn drop(&mut self) {
+            let _ = self.0.set_state(gstreamer::State::Null);
+        }
+    }
+    let pipeline_for_task = pipeline.clone();
     let appsrc_clone = appsrc.clone();
     tokio::spawn(async move {
+        let _pipeline_guard = PipelineGuard(pipeline_for_task);
         let _guard = ClientGuard(stats);
         loop {
             let pkt = match video_rx.recv().await {

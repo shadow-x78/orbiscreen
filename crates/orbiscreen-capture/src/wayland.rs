@@ -234,6 +234,12 @@ impl WaylandCapture {
     }
 }
 
+impl Drop for WaylandCapture {
+    fn drop(&mut self) {
+        let _ = self._pipeline.set_state(gstreamer::State::Null);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

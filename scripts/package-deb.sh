@@ -28,6 +28,7 @@ cp -f clients/web/index.html "${BUILD_DIR}/usr/share/orbiscreen/client/"
 cp -f clients/web/style.css "${BUILD_DIR}/usr/share/orbiscreen/client/"
 cp -f clients/web/app.js "${BUILD_DIR}/usr/share/orbiscreen/client/"
 cp -rf clients/web/vendor/. "${BUILD_DIR}/usr/share/orbiscreen/client/vendor/"
+cp -f scripts/install-evdi-module.sh "${BUILD_DIR}/usr/share/orbiscreen/"
 
 cat << 'EOF' > "${BUILD_DIR}/usr/lib/systemd/user/orbiscreen.service"
 [Unit]
@@ -62,6 +63,13 @@ Description: Real virtual secondary displays for Linux, streamed to Android - ov
  Requires the evdi kernel module (DKMS) for a real virtual display; without it
  the daemon falls back to streaming the primary desktop.
 EOF
+
+cat <<'EOF' > "${BUILD_DIR}/DEBIAN/postinst"
+#!/bin/sh
+echo "[Orbiscreen] For a true virtual display install the evdi kernel module:"
+echo "[Orbiscreen]   sudo /usr/share/orbiscreen/install-evdi-module.sh"
+EOF
+chmod +x "${BUILD_DIR}/DEBIAN/postinst"
 
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/prerm"
 #!/bin/sh

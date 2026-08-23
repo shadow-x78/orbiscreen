@@ -36,6 +36,7 @@ mkdir -p %{buildroot}/usr/share/orbiscreen/client
 
 install -m 0755 %{_projectroot}/target/release/orbiscreen %{buildroot}/usr/bin/orbiscreen
 install -m 0755 %{_projectroot}/target/release/orbiscreen-gtk %{buildroot}/usr/bin/orbiscreen-gtk
+install -m 0755 %{_projectroot}/scripts/install-evdi-module.sh %{buildroot}/usr/share/orbiscreen/install-evdi-module.sh
 
 install -m 0644 %{_projectroot}/data/com.orbiscreen.OrbiscreenGtk.desktop %{buildroot}/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop || true
 install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg || true
@@ -62,6 +63,11 @@ RestartSec=3s
 [Install]
 WantedBy=graphical-session.target
 EOF
+
+# ── Install Hint ──
+%post
+echo "[Orbiscreen] For a true virtual display install the evdi kernel module:"
+echo "[Orbiscreen]   sudo /usr/share/orbiscreen/install-evdi-module.sh"
 
 # ── Uninstall Script ──
 %preun

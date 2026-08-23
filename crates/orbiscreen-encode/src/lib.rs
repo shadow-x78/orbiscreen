@@ -193,12 +193,27 @@ impl Encoder {
 
         let h264parse = make_element("h264parse")?;
         h264parse.set_property_from_str("config-interval", "1");
+
+        let nv12_caps = ElementFactory::make("capsfilter")
+            .build()
+            .map_err(|e| EncodeError::Pipeline(format!("capsfilter: {e}")))?;
+        nv12_caps.set_property(
+            "caps",
+            gstreamer::Caps::builder("video/x-raw")
+                .field("format", "NV12")
+                .build(),
+        );
+
         pipeline
             .add(&h264parse)
             .map_err(|e| EncodeError::Pipeline(format!("add parse: {e}")))?;
+        pipeline
+            .add(&nv12_caps)
+            .map_err(|e| EncodeError::Pipeline(format!("add capsfilter: {e}")))?;
         gstreamer::Element::link_many([
             appsrc.upcast_ref(),
             &videoconvert,
+            &nv12_caps,
             &encoder,
             &h264parse,
             appsink.upcast_ref(),
