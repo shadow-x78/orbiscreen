@@ -147,12 +147,33 @@ function destroyPlayer() {
     pressedButtons.clear();
 }
 
+async function fetchClientConfig() {
+    try {
+        const cfg = await fetch("/client/config.json");
+        if (cfg.ok) {
+            return await cfg.json();
+        }
+    } catch (error) {
+        console.warn("config.json fetch failed:", error);
+    }
+    return null;
+}
+
+async function refreshToken() {
+    const info = await fetchClientConfig();
+    if (info && typeof info.token === "string" && info.token.length > 0) {
+        authToken = info.token;
+    }
+}
+
 function scheduleReconnect(reason) {
     if (reconnectTimer) return;
     destroyPlayer();
+    overlayEl.classList.remove("hidden");
     setStatus(`Stream lost (${reason}) — retrying in ${reconnectDelay / 1000}s…`);
-    reconnectTimer = setTimeout(() => {
+    reconnectTimer = setTimeout(async () => {
         reconnectTimer = null;
+        await refreshToken();
         startStream();
     }, reconnectDelay);
     reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
@@ -205,18 +226,13 @@ function startStream() {
 async function start() {
     setStatus("Reading host info…");
 
-    try {
-        const cfg = await fetch("/client/config.json");
-        if (cfg.ok) {
-            const info = await cfg.json();
-            if (typeof info.token === "string" && info.token.length > 0) {
-                authToken = info.token;
-            }
-            if (Number.isFinite(info.display_width)) displayWidth = info.display_width;
-            if (Number.isFinite(info.display_height)) displayHeight = info.display_height;
+    const info = await fetchClientConfig();
+    if (info) {
+        if (typeof info.token === "string" && info.token.length > 0) {
+            authToken = info.token;
         }
-    } catch (error) {
-        console.warn("config.json fetch failed:", error);
+        if (Number.isFinite(info.display_width)) displayWidth = info.display_width;
+        if (Number.isFinite(info.display_height)) displayHeight = info.display_height;
     }
     try {
         const response = await fetch("/api/info");
