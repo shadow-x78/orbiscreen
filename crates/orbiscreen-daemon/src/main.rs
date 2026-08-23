@@ -406,7 +406,11 @@ async fn run_start(
         loop {
             match source.next_frame().await {
                 SourceOutcome::Frame(frame) => {
-                    if let Err(e) = encoder.push_frame(&frame.data, frame.width, frame.height, 0) {
+                    let n = fc.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                    let pts_ns = n.saturating_mul(frame_dur);
+                    if let Err(e) =
+                        encoder.push_frame(&frame.data, frame.width, frame.height, pts_ns)
+                    {
                         warn!(
                             "frame push rejected ({}x{}, {} B): {e}",
                             frame.width,
@@ -414,7 +418,6 @@ async fn run_start(
                             frame.data.len()
                         );
                     }
-                    let n = fc.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
                     if n % 300 == 0 || n == 1 {
                         info!(
                             "source frame #{n} pushed ({}x{}, {} B)",
