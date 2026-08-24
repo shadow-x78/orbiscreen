@@ -1,3 +1,7 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - Release Workflow 
+# ─────────────────────────────────────────────
+
 name: Release Matrix
 
 on:
@@ -19,15 +23,15 @@ jobs:
     name: Verify code integrity (release gate)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
           components: clippy, rustfmt
 
       - name: Cache cargo registry & target
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@8cbdedb5103daa674dcf46d3590fe06a76645684 # v2.8.0
 
       - name: Install system dependencies
         run: |
@@ -60,10 +64,10 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
 
       - name: Install system dependencies
         run: |
@@ -132,7 +136,7 @@ jobs:
           cp dist/orbiscreen-x86_64.AppImage orbiscreen-x86_64.AppImage
 
       - name: Set up JDK 17 for Android
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
         with:
           distribution: temurin
           java-version: 17
@@ -156,6 +160,10 @@ jobs:
           export ORBISCREEN_KEYSTORE_PATH=/tmp/orbiscreen-release.keystore
           chmod +x gradlew
           ./gradlew assembleRelease
+          if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            echo "::error::APK came out unsigned - signing secrets are incomplete"
+            exit 1
+          fi
           cp app/build/outputs/apk/release/app-release.apk ../../orbiscreen-android-release.apk
           rm -f /tmp/orbiscreen-release.keystore
 
@@ -175,7 +183,7 @@ jobs:
           cat release_notes.txt
 
       - name: Generate GitHub Build Attestations
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1.4.4
         with:
           subject-path: |
             orbiscreen-linux-x86_64.tar.gz
@@ -185,7 +193,7 @@ jobs:
             orbiscreen-android-release.apk
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,3 +1,7 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - Android App Build 
+# ─────────────────────────────────────────────
+
 // Orbiscreen - Android build (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
@@ -22,16 +26,14 @@ android {
 
     signingConfigs {
         create("release") {
+            // Signing is conditional: when the keystore or secrets are absent
+            // (local dev machines), the config stays empty so debug builds
+            // and lint run normally; assembleRelease then produces an
+            // unsigned APK instead of hard-failing configuration. CI always
+            // provides the secrets, so release artifacts stay signed there.
             val ksPath: String? =
                 System.getenv("ORBISCREEN_KEYSTORE_PATH")
                     ?: (project.findProperty("orbiscreen.keystorePath") as String?)
-            if (ksPath == null || !file(ksPath).exists()) {
-                throw GradleException(
-                    "No signing keystore. Set ORBISCREEN_KEYSTORE_PATH (or " +
-                        "orbiscreen.keystorePath in ~/.gradle/gradle.properties) to build a " +
-                        "release APK. Debug builds do not need it."
-                )
-            }
             val storePw: String? =
                 System.getenv("ORBISCREEN_STORE_PASSWORD")
                     ?: (project.findProperty("orbiscreen.storePassword") as String?)
@@ -41,20 +43,24 @@ android {
             val keyPw: String? =
                 System.getenv("ORBISCREEN_KEY_PASSWORD")
                     ?: (project.findProperty("orbiscreen.keyPassword") as String?)
-            if (storePw.isNullOrBlank() || alias.isNullOrBlank() || keyPw.isNullOrBlank()) {
-                throw GradleException(
-                    "Missing or blank signing secrets. Provide non-empty " +
-                        "ORBISCREEN_STORE_PASSWORD, ORBISCREEN_KEY_ALIAS and " +
-                        "ORBISCREEN_KEY_PASSWORD."
+            val ksFile = ksPath?.let { file(it) }
+            if (ksFile != null && ksFile.exists() &&
+                !storePw.isNullOrBlank() && !alias.isNullOrBlank() && !keyPw.isNullOrBlank()
+            ) {
+                storeFile = ksFile
+                storePassword = storePw
+                keyAlias = alias
+                keyPassword = keyPw
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+            } else {
+                logger.warn(
+                    "No signing keystore configured - release APKs will be UNSIGNED. " +
+                        "Set ORBISCREEN_KEYSTORE_PATH plus ORBISCREEN_STORE_PASSWORD, " +
+                        "ORBISCREEN_KEY_ALIAS and ORBISCREEN_KEY_PASSWORD to sign."
                 )
             }
-            storeFile = file(ksPath)
-            storePassword = storePw
-            keyAlias = alias
-            keyPassword = keyPw
-            enableV1Signing = true
-            enableV2Signing = true
-            enableV3Signing = true
         }
     }
 
@@ -62,7 +68,12 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            val releaseSigning = signingConfigs.getByName("release")
+            signingConfig = if (releaseSigning.storeFile != null) {
+                releaseSigning
+            } else {
+                null
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
