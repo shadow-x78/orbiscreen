@@ -111,6 +111,7 @@ fn list_displays(path: &str) {
     println!("display backend: {:?}", orbiscreen_display::probe());
 }
 
+#[derive(Clone)]
 struct Frame {
     width: u32,
     height: u32,
@@ -303,24 +304,60 @@ async fn run_start(
         enc = cfg.encode.preferred_encoder,
     );
 
-    let mut source = match EvdiFramePump::spawn(spec) {
-        Ok(pump) => {
-            info!(
-                connector = ?pump.info().connector,
-                device_index = pump.info().device_index,
-                "Virtual display is open (EVDI DRM active); streaming the evdi framebuffer",
-            );
-            FrameSource::Evdi(pump)
-        }
-        Err(e) => {
-            info!("EVDI kernel module not active ({e}). Falling back to live capture.");
+    // Source selection. EVDI is opt-in: it needs a root-installed kernel
+    // module, so it is only attempted when explicitly requested — or on X11,
+    // where it is the only real-second-monitor path and a loaded module
+    // already signals deliberate setup. On Wayland, `auto` means the KWin
+    // virtual display first, then the portal share dialog.
+    let preferred = cfg.capture.preferred.as_str();
+    let on_wayland = std::env::var_os("WAYLAND_DISPLAY").is_some();
+    let mut source = match preferred {
+        "evdi" => match EvdiFramePump::spawn(spec) {
+            Ok(pump) => {
+                info!(
+                    connector = ?pump.info().connector,
+                    device_index = pump.info().device_index,
+                    "Virtual display is open (EVDI DRM active); streaming the evdi framebuffer",
+                );
+                FrameSource::Evdi(pump)
+            }
+            Err(e) => {
+                error!(
+                    "capture preference 'evdi' failed: {e}. Install/load the evdi kernel module \
+                     or set [capture] preferred = \"auto\" / \"kwin-virtual\" / \"portal\"."
+                );
+                return Err(e.into());
+            }
+        },
+        "auto" if !on_wayland => match EvdiFramePump::spawn(spec) {
+            Ok(pump) => {
+                info!(
+                    connector = ?pump.info().connector,
+                    device_index = pump.info().device_index,
+                    "Virtual display is open (EVDI DRM active); streaming the evdi framebuffer",
+                );
+                FrameSource::Evdi(pump)
+            }
+            Err(e) => {
+                info!("EVDI not in use ({e}); capturing the X11 root screen");
+                let capture = CaptureSession::open_with_preference(
+                    spec.width,
+                    spec.height,
+                    CapturePreference::Auto,
+                )
+                .await?;
+                info!(backend = ?capture.backend(), "Capture backend open");
+                FrameSource::Capture(capture)
+            }
+        },
+        _ => {
             let capture = CaptureSession::open_with_preference(
                 spec.width,
                 spec.height,
-                CapturePreference::parse(&cfg.capture.preferred),
+                CapturePreference::parse(preferred),
             )
             .await?;
-            info!(backend = ?capture.backend(), "Capture backend open (fallback)");
+            info!(backend = ?capture.backend(), "Capture backend open");
             FrameSource::Capture(capture)
         }
     };
@@ -418,11 +455,49 @@ async fn run_start(
     let cap_pump = tokio::spawn(async move {
         let encoder = encoder_for_pump;
         let frame_dur = Encoder::frame_duration_ns(spec.refresh_rate_hz);
+        // PTS advances on every push — including keepalives — so appsrc
+        // timestamps stay strictly monotonic.
+        let mut pts_counter: u64 = 0;
+        // Compositors deliver virtual-display frames on damage only: an idle
+        // desktop stops producing frames entirely, which would leave new
+        // clients waiting forever without even a keyframe (black screen).
+        // Re-push the last frame as a keepalive when the source goes quiet.
+        const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(500);
+        let mut last_frame: Option<Frame> = None;
+        let mut last_snapshot = std::time::Instant::now() - KEEPALIVE;
         loop {
-            match source.next_frame().await {
+            let outcome = match tokio::time::timeout(KEEPALIVE, source.next_frame()).await {
+                Ok(outcome) => outcome,
+                Err(_elapsed) => {
+                    let Some(frame) = &last_frame else {
+                        continue;
+                    };
+                    pts_counter += 1;
+                    let pts_ns = pts_counter.saturating_mul(frame_dur);
+                    if let Err(e) =
+                        encoder.push_frame(&frame.data, frame.width, frame.height, pts_ns)
+                    {
+                        warn!(
+                            "keepalive frame push rejected ({}x{}, {} B): {e}",
+                            frame.width,
+                            frame.height,
+                            frame.data.len()
+                        );
+                    }
+                    continue;
+                }
+            };
+            match outcome {
                 SourceOutcome::Frame(frame) => {
                     let n = fc.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-                    let pts_ns = n.saturating_mul(frame_dur);
+                    // Snapshot for keepalive at most once per interval, so
+                    // steady-state streaming costs no extra frame copies.
+                    if last_snapshot.elapsed() >= KEEPALIVE {
+                        last_frame = Some(frame.clone());
+                        last_snapshot = std::time::Instant::now();
+                    }
+                    pts_counter += 1;
+                    let pts_ns = pts_counter.saturating_mul(frame_dur);
                     if let Err(e) =
                         encoder.push_frame(&frame.data, frame.width, frame.height, pts_ns)
                     {
