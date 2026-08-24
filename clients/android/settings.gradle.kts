@@ -1,6 +1,6 @@
-# ─────────────────────────────────────────────
-# Orbiscreen - Android Settings 
-# ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Orbiscreen - Android Settings 
+// ─────────────────────────────────────────────
 
 // Orbiscreen - Android settings (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
