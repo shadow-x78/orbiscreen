@@ -9,11 +9,17 @@ import com.orbiscreen.android.net.HostApi
 import com.orbiscreen.android.player.PlayerHolder
 import com.orbiscreen.android.player.StreamEvent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+/// How often the session token is re-fetched so input/control keep working
+/// after the daemon rotates it (every daemon restart).
+private const val TOKEN_REFRESH_INTERVAL_MS = 30_000L
 
 data class StreamState(
     val host: String,
@@ -54,6 +60,11 @@ class StreamViewModel(
 
     val player get() = playerHolder.player
 
+    /// Always fetch a fresh token: the daemon rotates it on every restart,
+    /// so reconnecting with a cached one would 401 forever (black screen).
+    private suspend fun freshToken(): String =
+        withContext(Dispatchers.IO) { hostApi.token(host, port).orEmpty() }
+
     init {
         viewModelScope.launch {
             playerHolder.event.collect { ev ->
@@ -81,7 +92,17 @@ class StreamViewModel(
                 _state.value.displayHeight,
             )
             withContext(Dispatchers.Main) {
-                playerHolder.build(host, port, sessionToken ?: "")
+                playerHolder.build(host, port) { freshToken() }
+            }
+        }
+        viewModelScope.launch {
+            while (isActive) {
+                delay(TOKEN_REFRESH_INTERVAL_MS)
+                val t = withContext(Dispatchers.IO) { hostApi.token(host, port) }
+                if (!t.isNullOrBlank() && t != sessionToken) {
+                    sessionToken = t
+                    inputDispatcher?.updateToken(t)
+                }
             }
         }
         prefs.recentHost = com.orbiscreen.android.data.RecentHost(host = host, port = port, label = label)
@@ -97,7 +118,7 @@ class StreamViewModel(
         ).also { inputDispatcher = it }
     }
 
-    fun retry() = playerHolder.retry(state.value.host, state.value.port, sessionToken ?: "")
+    fun retry() = playerHolder.retry(state.value.host, state.value.port) { freshToken() }
 
     fun toggleToolbar() {
         _state.value = _state.value.copy(toolbarVisible = !_state.value.toolbarVisible)

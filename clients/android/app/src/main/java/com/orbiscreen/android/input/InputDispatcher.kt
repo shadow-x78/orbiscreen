@@ -23,7 +23,7 @@ class InputDispatcher(
     private val port: Int,
     displayWidth: Int,
     displayHeight: Int,
-    private val token: String = "",
+    private var token: String = "",
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val http = OkHttpClient.Builder()
@@ -62,6 +62,11 @@ class InputDispatcher(
         if (newWidth <= 0 || newHeight <= 0) return
         streamWidth = newWidth
         streamHeight = newHeight
+    }
+
+    /// Pick up a rotated session token so input/control survive daemon restarts.
+    fun updateToken(value: String) {
+        if (value.isNotBlank()) token = value
     }
 
     fun move(localX: Float, localY: Float, containerW: Int, containerH: Int) {

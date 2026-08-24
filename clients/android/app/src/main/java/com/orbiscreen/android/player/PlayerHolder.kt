@@ -38,6 +38,14 @@ sealed interface StreamEvent {
     data class Error(val code: Int, val message: String) : StreamEvent
 }
 
+/// Where to reconnect to. The token is a provider, not a value: the daemon
+/// rotates it on every restart, so a cached token would 401 forever.
+private data class StreamTarget(
+    val host: String,
+    val port: Int,
+    val tokenProvider: suspend () -> String,
+)
+
 @OptIn(UnstableApi::class)
 class PlayerHolder(
     private val context: Context,
@@ -53,7 +61,7 @@ class PlayerHolder(
 
     private var reconnectJob: Job? = null
     private var reconnectDelayMs = 1_000L
-    private var lastTarget: Triple<String, Int, String>? = null
+    private var lastTarget: StreamTarget? = null
 
     private val okHttp: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -64,13 +72,18 @@ class PlayerHolder(
     }
 
     @OptIn(UnstableApi::class)
-    fun build(host: String, port: Int, token: String = ""): ExoPlayer? {
+    fun build(
+        host: String,
+        port: Int,
+        tokenProvider: suspend () -> String = { "" },
+    ): ExoPlayer? {
         releaseInternal()
         reconnectJob?.cancel()
         reconnectJob = null
-        lastTarget = Triple(host, port, token)
+        lastTarget = StreamTarget(host, port, tokenProvider)
         reconnectDelayMs = 1_000L
 
+        val token = runCatching { tokenProvider() }.getOrNull().orEmpty()
         val uri = StreamUrl.build(host, port, token)
         _event.value = StreamEvent.Connecting(uri)
 
@@ -174,7 +187,7 @@ class PlayerHolder(
         reconnectJob = scope.launch {
             delay(reconnectDelayMs)
             reconnectDelayMs = (reconnectDelayMs * 2).coerceAtMost(10_000L)
-            build(target.first, target.second, target.third)
+            build(target.host, target.port, target.tokenProvider)
         }
     }
 
@@ -194,7 +207,7 @@ class PlayerHolder(
         _event.value = StreamEvent.Idle
     }
 
-    fun retry(host: String, port: Int, token: String = "") {
-        scope.launch { build(host, port, token) }
+    fun retry(host: String, port: Int, tokenProvider: suspend () -> String = { "" }) {
+        scope.launch { build(host, port, tokenProvider) }
     }
 }
