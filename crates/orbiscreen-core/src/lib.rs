@@ -40,7 +40,8 @@ impl Default for CaptureConfig {
 }
 
 impl CaptureConfig {
-    pub const PREFERENCES: &'static [&'static str] = &["auto", "kwin-virtual", "portal"];
+    pub const PREFERENCES: &'static [&'static str] =
+        &["auto", "kwin-virtual", "portal", "evdi", "mirror"];
 
     pub fn sanitize(&mut self) {
         if !Self::PREFERENCES.contains(&self.preferred.as_str()) {

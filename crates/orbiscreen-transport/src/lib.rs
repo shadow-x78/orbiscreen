@@ -153,6 +153,7 @@ impl Transport {
             refresh_hz,
             encoder_kind,
             version: env!("CARGO_PKG_VERSION"),
+            started: std::time::Instant::now(),
         };
         let app = build_router(state.clone());
         let listener = TcpListener::bind(("0.0.0.0", self.cfg.signaling_port))
@@ -205,6 +206,7 @@ struct AppState {
     refresh_hz: u32,
     encoder_kind: &'static str,
     version: &'static str,
+    started: std::time::Instant,
 }
 
 fn build_router(state: AppState) -> Router {
@@ -214,11 +216,23 @@ fn build_router(state: AppState) -> Router {
         .route("/api/control", post(api_control))
         .route_layer(middleware::from_fn_with_state(state.clone(), auth_check))
         .route("/", get(root_handler))
-        .route("/health", get(|| async { "ok" }))
+        .route("/health", get(health_handler))
         .route("/api/info", get(api_info))
         .route("/client/config.json", get(client_config))
         .nest_service("/client", ServeDir::new(&state.config.client_web_dir))
         .with_state(state)
+}
+
+async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({
+        "status": "ok",
+        "version": state.version,
+        "encoder": state.encoder_kind,
+        "frames_forwarded": state.stats.frames_forwarded(),
+        "active_clients": state.stats.active_clients(),
+        "total_clients": state.stats.total_clients(),
+        "uptime_seconds": state.started.elapsed().as_secs(),
+    }))
 }
 
 async fn auth_check(

@@ -16,15 +16,18 @@ pub enum CaptureBackend {
     KwinVirtual,
 }
 
-/// User preference for the Wayland capture path (config `[capture] preferred`).
+/// User preference for the capture path (config `[capture] preferred`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CapturePreference {
-    /// Try the KWin virtual display first, then the portal.
+    /// KDE Wayland: KWin virtual display, then the portal; X11: root capture.
     Auto,
     /// Always create a KWin virtual monitor (fails on non-KDE compositors).
     KwinVirtual,
     /// Always ask through the xdg-desktop-portal share dialog.
     Portal,
+    /// Show the real desktop instead of a virtual monitor: the portal share
+    /// dialog picks the screen to mirror.
+    Mirror,
 }
 
 impl CapturePreference {
@@ -32,6 +35,7 @@ impl CapturePreference {
         match value {
             "kwin-virtual" => Self::KwinVirtual,
             "portal" => Self::Portal,
+            "mirror" => Self::Mirror,
             _ => Self::Auto,
         }
     }
@@ -187,9 +191,9 @@ impl CaptureSession {
                 CapturePreference::KwinVirtual => Err(CaptureError::BackendUnavailable(
                     "kwin-virtual capture requires a Wayland session",
                 )),
-                CapturePreference::Portal => Err(CaptureError::BackendUnavailable(
-                    "portal capture requires a Wayland session",
-                )),
+                CapturePreference::Portal | CapturePreference::Mirror => Err(
+                    CaptureError::BackendUnavailable("portal capture requires a Wayland session"),
+                ),
             };
         }
         match preference {
@@ -204,6 +208,12 @@ impl CaptureSession {
             },
             CapturePreference::KwinVirtual => Self::open_kwin(width, height),
             CapturePreference::Portal => Self::open_portal(width, height).await,
+            CapturePreference::Mirror => {
+                tracing::info!(
+                    "mirror capture — pick the real screen you want to show in the share dialog"
+                );
+                Self::open_portal(width, height).await
+            }
         }
     }
 
