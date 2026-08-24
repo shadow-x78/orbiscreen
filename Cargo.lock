@@ -1634,7 +1634,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-capture"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "ashpd",
  "enumflags2",
@@ -1651,7 +1651,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-core"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "serde",
  "thiserror 2.0.19",
@@ -1660,7 +1660,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-daemon"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "clap",
  "hostname",
@@ -1679,7 +1679,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-display"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "drm-fourcc",
  "evdi",
@@ -1690,7 +1690,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-encode"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "gstreamer",
  "gstreamer-app",
@@ -1702,7 +1702,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-gtk"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "gtk4",
  "libadwaita",
@@ -1716,7 +1716,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-input"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "ashpd",
  "enumflags2",
@@ -1730,7 +1730,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-transport"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "axum",
  "base64",
