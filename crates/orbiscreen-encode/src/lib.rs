@@ -1,6 +1,5 @@
 // Orbiscreen - orbiscreen-encode library (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
 use gstreamer::prelude::*;
 use gstreamer::{ClockTime, ElementFactory, Pipeline};
 use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
@@ -108,6 +107,7 @@ pub struct EncodedChunk {
 pub struct Encoder {
     pipeline: Pipeline,
     appsrc: AppSrc,
+    encoder: gstreamer::Element,
     kind: EncoderKind,
     width: u32,
     height: u32,
@@ -266,11 +266,26 @@ impl Encoder {
         Ok(Self {
             pipeline,
             appsrc,
+            encoder,
             kind,
             width: params.width,
             height: params.height,
             rx: Some(rx),
         })
+    }
+
+    /// Requests an IDR on the next pushed frame. `h264parse` and `mpegtsmux`
+    /// hold all data until the first keyframe, so newly connected clients
+    /// stay black until one arrives — damage-based sources can idle for a
+    /// long time between natural IDRs.
+    pub fn force_keyframe(&self) {
+        let Some(src_pad) = self.encoder.static_pad("src") else {
+            return;
+        };
+        let event = gstreamer_video::UpstreamForceKeyUnitEvent::builder()
+            .all_headers(true)
+            .build();
+        let _ = src_pad.send_event(event);
     }
 
     pub fn subscribe(&mut self) -> Option<mpsc::Receiver<EncodedChunk>> {

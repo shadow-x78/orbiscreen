@@ -1,3 +1,8 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - Cargo Workspace 
+# ─────────────────────────────────────────────
+
+# ── Workspace Members ──
 [workspace]
 resolver = "2"
 members = [
@@ -11,6 +16,7 @@ members = [
     "crates/orbiscreen-gtk",
 ]
 
+# ── Package Metadata ──
 [workspace.package]
 version = "0.12.0"
 edition = "2021"
@@ -22,6 +28,7 @@ homepage = "https://github.com/shadow-x78/orbiscreen"
 description = "Open-source virtual secondary displays for Linux, streamed to Android over Wi-Fi or USB"
 readme = "README.md"
 
+# ── Shared Dependencies ──
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -42,6 +49,7 @@ libc = "0.2"
 
 gstreamer = "0.25"
 gstreamer-app = "0.25"
+gstreamer-video = "0.25"
 
 mdns-sd = "0.20"
 axum = { version = "0.8", features = ["ws"] }
@@ -59,12 +67,14 @@ zbus = { version = "5", features = ["tokio"] }
 gtk4 = "0.9"
 libadwaita = "0.7"
 
+# ── Rust Lints ──
 [workspace.lints.rust]
 unsafe_code = "warn"
 unsafe_op_in_unsafe_fn = "deny"
 unused_must_use = "deny"
 missing_debug_implementations = "warn"
 
+# ── Clippy Lints ──
 [workspace.lints.clippy]
 module_name_repetitions = "allow"
 must_use_candidate = "allow"
@@ -72,11 +82,13 @@ missing_errors_doc = "allow"
 missing_panics_doc = "allow"
 significant_drop_tightening = "allow"
 
+# ── Release Profile ──
 [profile.release]
 opt-level = 3
 lto = "thin"
 codegen-units = 1
 strip = "symbols"
 
+# ── Dev Profile ──
 [profile.dev]
 opt-level = 1

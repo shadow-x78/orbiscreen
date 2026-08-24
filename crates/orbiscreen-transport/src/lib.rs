@@ -1,6 +1,5 @@
 // Orbiscreen - orbiscreen-transport library (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
 pub mod adb;
 pub mod mdns;
 
@@ -133,7 +132,7 @@ impl Transport {
 
     pub async fn serve(
         self,
-        frames: mpsc::UnboundedReceiver<H264Packet>,
+        frames: mpsc::Receiver<H264Packet>,
         stats: Arc<Stats>,
         display_width: u32,
         display_height: u32,

@@ -1,6 +1,5 @@
 // Orbiscreen - orbiscreen-daemon daemon binary (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
 pub mod dbus;
 
 use std::path::PathBuf;
@@ -420,7 +419,10 @@ async fn run_start(
     });
     info!("D-Bus session service registered: com.orbiscreen.Daemon");
 
-    let (video_tx, video_rx) = mpsc::unbounded_channel::<H264Packet>();
+    // Bounded so a stalled transport applies backpressure through the
+    // encoder into the capture pump instead of growing without limit; the
+    // transport-side broadcast then drops for lagging clients as designed.
+    let (video_tx, video_rx) = mpsc::channel::<H264Packet>(64);
     let frame_pump = tokio::spawn(async move {
         let mut n = 0u64;
         let mut ts_base: Option<u64> = None;
@@ -441,7 +443,7 @@ async fn run_start(
                 is_keyframe: chunk.is_keyframe,
                 pts_ns,
             };
-            if video_tx.send(pkt).is_err() {
+            if video_tx.send(pkt).await.is_err() {
                 break;
             }
         }
@@ -472,6 +474,9 @@ async fn run_start(
                     let Some(frame) = &last_frame else {
                         continue;
                     };
+                    // Force an IDR: delta-only keepalives never let
+                    // h264parse/mpegtsmux start a new client's stream.
+                    encoder.force_keyframe();
                     pts_counter += 1;
                     let pts_ns = pts_counter.saturating_mul(frame_dur);
                     if let Err(e) =

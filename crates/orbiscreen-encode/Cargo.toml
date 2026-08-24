@@ -1,3 +1,7 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - orbiscreen-encode Crate Manifest 
+# ─────────────────────────────────────────────
+
 [package]
 name = "orbiscreen-encode"
 version.workspace = true
@@ -15,6 +19,7 @@ workspace = true
 [dependencies]
 gstreamer = { workspace = true }
 gstreamer-app = { workspace = true }
+gstreamer-video = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
