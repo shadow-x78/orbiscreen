@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Orbiscreen - uninstall script (GPL-3.0-or-later)
 # https://github.com/shadow-x78/orbiscreen
-
 set -euo pipefail
 
 echo "[Orbiscreen] Uninstalling..."

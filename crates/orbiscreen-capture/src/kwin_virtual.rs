@@ -1,18 +1,5 @@
 // Orbiscreen - orbiscreen-capture - kwin_virtual module (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
-//! Virtual display capture through KWin's `zkde_screencast_unstable_v1` Wayland
-//! protocol. KWin creates a real virtual monitor (visible in Display Settings)
-//! and streams it over PipeWire — no kernel module, no root, and no portal
-//! share dialog. The virtual output is removed automatically when the stream
-//! is closed.
-//!
-//! KWin only advertises the protocol to allow-listed clients: a `.desktop`
-//! file carrying `X-KDE-Wayland-Interfaces=zkde_screencast_unstable_v1` whose
-//! `Exec=` matches the connecting executable. The daemon maintains that file
-//! in the user's own applications directory (no root) and rebuilds the
-//! KService cache so the grant applies to the connection made right after.
-
 use std::io::Write as _;
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::OpenOptionsExt;
@@ -37,13 +24,8 @@ use wayland_protocols_plasma::screencast::v1::client::zkde_screencast_unstable_v
 
 use super::{sample_to_captured_frame, CaptureError, CapturedFrame};
 
-/// Cursor is rendered into the stream frames, so remote users see the pointer
-/// they are moving on the virtual display.
 const POINTER_EMBEDDED: u32 = 2;
 
-/// Small bounded queue between the GStreamer streaming thread and the async
-/// frame pump; frames are dropped (never queued without limit) if the
-/// consumer stalls.
 const FRAME_CHANNEL_CAPACITY: usize = 2;
 
 const HANDSHAKE_DEADLINE: Duration = Duration::from_secs(5);
@@ -78,7 +60,6 @@ impl From<KwinVirtualError> for CaptureError {
     }
 }
 
-/// State shared with the Wayland event callbacks for the screencast stream.
 #[derive(Debug, Default)]
 struct StreamShared {
     node_id: Mutex<Option<u32>>,
@@ -86,14 +67,12 @@ struct StreamShared {
     closed: AtomicBool,
 }
 
-/// State used while binding the protocol globals during the handshake.
 #[derive(Debug, Default)]
 struct HandshakeState {
     registry: Option<WlRegistry>,
     screencast_global: Option<(u32, u32)>,
 }
 
-/// An established Wayland connection with the registry already enumerated.
 struct WaylandSession {
     conn: Connection,
     queue: EventQueue<HandshakeState>,
@@ -175,9 +154,6 @@ impl Dispatch<ZkdeScreencastStreamUnstableV1, Arc<StreamShared>> for HandshakeSt
     }
 }
 
-/// True when the session looks like a KDE Plasma session. Used to avoid
-/// touching the KWin permission file on compositors that can never serve the
-/// protocol (GNOME, wlroots, ...).
 fn is_kde_session() -> bool {
     std::env::var("XDG_CURRENT_DESKTOP")
         .map(|v| {
@@ -202,8 +178,6 @@ fn user_applications_dir() -> Option<PathBuf> {
 }
 
 fn permission_file_matches(path: &Path, exe: &str) -> bool {
-    // Never follow symlinks at the fixed path; treat them as a mismatch so
-    // the atomic rename below replaces them.
     match std::fs::symlink_metadata(path) {
         Ok(meta) if !meta.file_type().is_symlink() => {}
         _ => return false,
@@ -244,12 +218,10 @@ fn atomic_write(path: &Path, contents: &str) -> std::io::Result<()> {
         file.write_all(contents.as_bytes())?;
         file.sync_all()?;
     }
-    // Rename replaces any existing entry (including symlinks) atomically.
+
     std::fs::rename(&tmp, path)
 }
 
-/// Executable path KWin will compare against the connecting client. Prefer
-/// the stable `$APPIMAGE` location over the transient squashfs mount path.
 fn client_executable() -> std::io::Result<PathBuf> {
     if let Some(appimage) = std::env::var_os("APPIMAGE")
         .map(PathBuf::from)
@@ -260,9 +232,6 @@ fn client_executable() -> std::io::Result<PathBuf> {
     std::env::current_exe().map_err(|e| std::io::Error::other(format!("resolve current exe: {e}")))
 }
 
-/// Make sure a KWin permission desktop file exists for this executable so the
-/// compositor advertises `zkde_screencast_unstable_v1` to the next connection.
-/// Best-effort: failures are logged and must not abort capture setup.
 fn ensure_kwin_permission_file() {
     let write = |path: &Path, exe: &str| -> std::io::Result<()> {
         atomic_write(
@@ -315,9 +284,6 @@ fn ensure_kwin_permission_file() {
         }
     }
 
-    // KWin resolves the allow-list through the KService cache; force a
-    // rebuild so the new file is visible to the connection we are about to
-    // make. Pinned to absolute paths; silently skipped when absent.
     for candidate in ["/usr/bin/kbuildsycoca6", "/usr/local/bin/kbuildsycoca6"] {
         if Path::new(candidate).is_file() {
             let _ = std::process::Command::new(candidate)
@@ -349,11 +315,6 @@ impl KwinVirtualCapture {
 
         let mut session = WaylandSession::connect()?;
         if session.state.screencast_global.is_none() && is_kde_session() {
-            // Either the first run (no permission file yet) or the executable
-            // path changed (e.g. AppImage mount): grant access, refresh the
-            // KService cache, and reconnect so KWin re-evaluates the
-            // allow-list for the new connection. KWin picks up the refreshed
-            // cache asynchronously, so retry the connection a few times.
             ensure_kwin_permission_file();
             for _ in 0..5 {
                 std::thread::sleep(Duration::from_millis(500));
@@ -371,8 +332,7 @@ impl KwinVirtualCapture {
             .state
             .screencast_global
             .ok_or(KwinVirtualError::ProtocolUnavailable)?;
-        // Bind no higher than the version our generated bindings understand,
-        // otherwise the compositor may send events we cannot parse.
+
         let client_max = <ZkdeScreencastUnstableV1 as Proxy>::interface().version;
         let version = advertised_version.min(client_max);
         if version < 2 {
@@ -433,10 +393,6 @@ impl KwinVirtualCapture {
             std::thread::sleep(Duration::from_millis(10));
         };
 
-        // The stream lives on the session PipeWire instance; no portal fd is
-        // needed when talking to KWin directly. `path` (not `target-object`)
-        // connects by node id — `target-object` would interpret the number as
-        // an object serial.
         let pipeline_str = format!(
             "pipewiresrc path={node_id} do-timestamp=true \
              ! video/x-raw \
@@ -469,8 +425,6 @@ impl KwinVirtualCapture {
                         }
                     };
                     if let Some(frame) = sample_to_captured_frame(&sample) {
-                        // Bounded queue: drop frames instead of growing
-                        // without limit when the consumer stalls.
                         if tx.try_send(frame).is_err() {
                             tracing::debug!("capture frame dropped: consumer channel full");
                         }
@@ -546,8 +500,6 @@ impl KwinVirtualCapture {
         (self.width, self.height)
     }
 
-    /// True once the compositor closed the virtual output stream; the capture
-    /// will not produce further frames and should be reopened by the caller.
     pub fn is_ended(&self) -> bool {
         self.ended.load(Ordering::Relaxed)
     }
@@ -579,7 +531,7 @@ impl Drop for KwinVirtualCapture {
     fn drop(&mut self) {
         let _ = self._pipeline.set_state(gstreamer::State::Null);
         self.stop.store(true, Ordering::Relaxed);
-        // Closing the stream makes KWin remove the virtual output.
+
         self.stream.close();
         if let Some(handle) = self.event_thread.take() {
             let _ = handle.join();
@@ -587,10 +539,6 @@ impl Drop for KwinVirtualCapture {
     }
 }
 
-/// Drives the Wayland connection so `closed`/`failed` events are observed
-/// while the capture is alive. Exits when the compositor closes the stream,
-/// `stop` is set (drop), or the connection dies; then flips `ended` and wakes
-/// `next_frame`.
 #[allow(unsafe_code)]
 fn pump_events(
     conn: Connection,
@@ -612,7 +560,7 @@ fn pump_events(
         if stop.load(Ordering::Relaxed) || shared.closed.load(Ordering::Relaxed) {
             break;
         }
-        // A read guard must be prepared before polling the socket.
+
         let Some(guard) = conn.prepare_read() else {
             std::thread::sleep(Duration::from_millis(10));
             continue;

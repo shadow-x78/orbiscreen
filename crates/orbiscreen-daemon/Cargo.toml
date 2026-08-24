@@ -1,3 +1,7 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - orbiscreen-daemon Crate Manifest 
+# ─────────────────────────────────────────────
+
 [package]
 name = "orbiscreen-daemon"
 version.workspace = true

@@ -1,6 +1,5 @@
 // Orbiscreen - orbiscreen-capture - x11 module (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
 use std::sync::Arc;
 
 use tokio::task;

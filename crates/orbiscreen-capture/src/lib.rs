@@ -1,6 +1,5 @@
 // Orbiscreen - orbiscreen-capture library (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
 pub mod kwin_virtual;
 pub mod wayland;
 pub mod x11;
@@ -16,17 +15,14 @@ pub enum CaptureBackend {
     KwinVirtual,
 }
 
-/// User preference for the capture path (config `[capture] preferred`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CapturePreference {
-    /// KDE Wayland: KWin virtual display, then the portal; X11: root capture.
     Auto,
-    /// Always create a KWin virtual monitor (fails on non-KDE compositors).
+
     KwinVirtual,
-    /// Always ask through the xdg-desktop-portal share dialog.
+
     Portal,
-    /// Show the real desktop instead of a virtual monitor: the portal share
-    /// dialog picks the screen to mirror.
+
     Mirror,
 }
 

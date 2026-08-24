@@ -1,3 +1,4 @@
+
 package com.orbiscreen.android.ui.stream
 
 import android.content.Context
@@ -17,8 +18,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/// How often the session token is re-fetched so input/control keep working
-/// after the daemon rotates it (every daemon restart).
 private const val TOKEN_REFRESH_INTERVAL_MS = 30_000L
 
 data class StreamState(
@@ -38,8 +37,8 @@ data class StreamState(
 class StreamViewModel(
     context: Context,
     private val prefs: PrefsStore,
-    host: String,
-    port: Int,
+    private val host: String,
+    private val port: Int,
     label: String? = null,
 ) : ViewModel() {
 
@@ -60,8 +59,6 @@ class StreamViewModel(
 
     val player get() = playerHolder.player
 
-    /// Always fetch a fresh token: the daemon rotates it on every restart,
-    /// so reconnecting with a cached one would 401 forever (black screen).
     private suspend fun freshToken(): String =
         withContext(Dispatchers.IO) { hostApi.token(host, port).orEmpty() }
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Orbiscreen - Debian/Ubuntu (.deb) Package Builder
 # https://github.com/shadow-x78/orbiscreen
-
 set -euo pipefail
 
 VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
@@ -65,17 +64,17 @@ Description: Real virtual secondary displays for Linux, streamed to Android - ov
 EOF
 
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/postinst"
-#!/bin/sh
+
 echo "[Orbiscreen] For a true virtual display install the evdi kernel module:"
 echo "[Orbiscreen]   sudo /usr/share/orbiscreen/install-evdi-module.sh"
 EOF
 chmod +x "${BUILD_DIR}/DEBIAN/postinst"
 
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/prerm"
-#!/bin/sh
+
 set -e
 if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
-    # Stop the service for all users running it
+
     for u in $(users); do
         su -s /bin/sh -c "systemctl --user stop orbiscreen || true" "$u"
     done
@@ -85,7 +84,7 @@ EOF
 chmod +x "${BUILD_DIR}/DEBIAN/prerm"
 
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/postrm"
-#!/bin/sh
+
 set -e
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     echo "[Orbiscreen] Orbiscreen has been removed."

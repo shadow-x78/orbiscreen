@@ -1,3 +1,4 @@
+
 package com.orbiscreen.android.input
 
 import android.util.Log
@@ -64,7 +65,6 @@ class InputDispatcher(
         streamHeight = newHeight
     }
 
-    /// Pick up a rotated session token so input/control survive daemon restarts.
     fun updateToken(value: String) {
         if (value.isNotBlank()) token = value
     }

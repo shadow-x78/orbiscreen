@@ -252,7 +252,7 @@ orbiscreen/
 │               ├── stream/     # StreamScreen, PlayerSurface, ControlToolbar
 │               └── settings/   # SettingsScreen
 ├── packaging/{flatpak,appimage,debian}/
-├── scripts/{setup-dev-env.sh,test-evdi.sh,install.sh,uninstall.sh}
+├── scripts/{setup-dev-env.sh,install.sh,uninstall.sh,verify-stream.sh}
 ├── .github/{workflows/,ISSUE_TEMPLATE/,PULL_REQUEST_TEMPLATE.md}
 └── .editorconfig, .gitignore, .gitattributes, deny.toml, rustfmt.toml
 ```

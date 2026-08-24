@@ -1,6 +1,5 @@
 // Orbiscreen - GTK4 / Libadwaita Desktop Control Panel GUI (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 

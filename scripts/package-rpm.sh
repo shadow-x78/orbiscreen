@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Orbiscreen - Fedora/RHEL (.rpm) Package Builder
 # https://github.com/shadow-x78/orbiscreen
-
 set -euo pipefail
 
 VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"

@@ -1,3 +1,7 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - orbiscreen-gtk Crate Manifest 
+# ─────────────────────────────────────────────
+
 [package]
 name = "orbiscreen-gtk"
 version.workspace = true

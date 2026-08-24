@@ -1,6 +1,5 @@
 // Orbiscreen - web client (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
 const statusEl = document.getElementById("status");
 const resolutionEl = document.getElementById("resolution");
 const overlayEl = document.getElementById("overlay");
@@ -126,7 +125,6 @@ function showTouch(x, y) {
 function hideTouch() {
     touchIndicator.classList.add("hidden");
 }
-
 
 function canPlayMpegTs() {
     return typeof mpegts !== "undefined"

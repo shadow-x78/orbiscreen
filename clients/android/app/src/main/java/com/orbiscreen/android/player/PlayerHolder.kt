@@ -1,3 +1,4 @@
+
 package com.orbiscreen.android.player
 
 import android.content.Context
@@ -38,8 +39,6 @@ sealed interface StreamEvent {
     data class Error(val code: Int, val message: String) : StreamEvent
 }
 
-/// Where to reconnect to. The token is a provider, not a value: the daemon
-/// rotates it on every restart, so a cached token would 401 forever.
 private data class StreamTarget(
     val host: String,
     val port: Int,
@@ -72,7 +71,7 @@ class PlayerHolder(
     }
 
     @OptIn(UnstableApi::class)
-    fun build(
+    suspend fun build(
         host: String,
         port: Int,
         tokenProvider: suspend () -> String = { "" },
@@ -83,7 +82,11 @@ class PlayerHolder(
         lastTarget = StreamTarget(host, port, tokenProvider)
         reconnectDelayMs = 1_000L
 
-        val token = runCatching { tokenProvider() }.getOrNull().orEmpty()
+        val token = try {
+            tokenProvider()
+        } catch (_: Exception) {
+            ""
+        }
         val uri = StreamUrl.build(host, port, token)
         _event.value = StreamEvent.Connecting(uri)
 

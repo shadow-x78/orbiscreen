@@ -1,6 +1,5 @@
 // Orbiscreen - orbiscreen-input - x11 module (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
 use std::io;
 
 use evdevil::event::{

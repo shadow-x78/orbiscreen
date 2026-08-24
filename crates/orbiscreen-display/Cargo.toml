@@ -1,3 +1,7 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - orbiscreen-display Crate Manifest 
+# ─────────────────────────────────────────────
+
 [package]
 name = "orbiscreen-display"
 version.workspace = true

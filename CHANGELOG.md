@@ -11,12 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Mirror capture mode:** `[capture] preferred = "mirror"` streams your real desktop (picked in the portal share dialog) instead of a second virtual monitor — for when you want to *see* your screen rather than extend it.
 - **Detailed `/health`:** now returns JSON with `version`, `encoder`, `frames_forwarded`, `active_clients`, `total_clients` and `uptime_seconds`, making stream diagnosis a single curl.
 - **`scripts/verify-stream.sh`:** end-to-end stream sanity check — records a few seconds of `/stream`, decodes with ffprobe and measures frame brightness to catch black/empty-stream regressions automatically.
+- **Full project audit hardening:** GitHub Actions pinned to commit SHAs (supply-chain), `gitleaks`/`shellcheck`/`cargo-deny` clean runs documented, comment policy applied (comment-free code files, banner-style headers on config files).
 
 ### Changed
 - **EVDI is opt-in.** `[capture] preferred = "evdi"` requests the EVDI DRM virtual display explicitly; on Wayland, `auto` never touches EVDI anymore, so the recurring `EVDI kernel module not active` line is gone on KDE and the portal is reached directly on other compositors. On X11, `auto` still uses EVDI when its module is already loaded.
+- The encoder-to-transport video channel is bounded (64 packets) so a stalled transport backpressures the pipeline instead of growing memory without limit.
 
 ### Fixed
+- **New clients saw an endless black screen on idle virtual displays.** KWin delivers virtual-display frames on damage only: a static desktop stops producing frames entirely, and keepalive re-pushes encoded as deltas — which `h264parse`/`mpegtsmux` hold back until the first keyframe, so a freshly connected client received nothing. The daemon now re-pushes the last frame every 500 ms **with a forced IDR**, so any new client decodes within half a second no matter how idle the display is.
 - **Android: the app never recovers after a daemon restart.** The stream token is rotated on every daemon start, but the Android client cached it forever — every reconnect looped on 401 with a black screen. The player now re-fetches a fresh token before each reconnect/retry, and input/control pick up rotated tokens automatically (periodic refresh + `InputDispatcher.updateToken`), mirroring the web client's self-healing reconnect.
+- **Android: `build.gradle.kts` hard-failed configuration without a signing keystore**, blocking `lintDebug`/`assembleDebug` on dev machines. Signing is now conditional (release builds unsigned with a warning when secrets are absent) and CI explicitly rejects unsigned APKs.
 
 ## [v0.12.0] - 2026-08-24
 

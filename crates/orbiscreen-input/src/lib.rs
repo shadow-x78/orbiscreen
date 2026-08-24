@@ -1,6 +1,5 @@
 // Orbiscreen - orbiscreen-input library (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
 pub mod wayland;
 pub mod x11;
 

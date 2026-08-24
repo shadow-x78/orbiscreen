@@ -1,3 +1,7 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - orbiscreen-core Crate Manifest 
+# ─────────────────────────────────────────────
+
 [package]
 name = "orbiscreen-core"
 version.workspace = true

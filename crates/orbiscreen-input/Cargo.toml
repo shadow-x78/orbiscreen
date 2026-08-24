@@ -1,3 +1,7 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - orbiscreen-input Crate Manifest 
+# ─────────────────────────────────────────────
+
 [package]
 name = "orbiscreen-input"
 version.workspace = true

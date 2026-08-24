@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
 # Orbiscreen - verify-stream (GPL-3.0-or-later)
 # https://github.com/shadow-x78/orbiscreen
-
-# End-to-end stream sanity check against a running daemon: records a few
-# seconds of /stream, decodes it with ffprobe and measures frame brightness
-# so a black/empty-stream regression is caught automatically.
-#
-# Usage: scripts/verify-stream.sh [port] [seconds]
-# Requires: curl, python3, ffprobe/ffmpeg (gstreamer1-plugins-bad-free tools
-# or the ffmpeg packages both provide them).
-
 set -euo pipefail
 
 PORT="${1:-8788}"
@@ -37,7 +28,6 @@ TOKEN=$(curl -s --max-time 3 "$BASE/client/config.json" \
 TMP="$(mktemp -t orbiscreen-verify-XXXXXX.ts)"
 trap 'rm -f "$TMP"' EXIT
 
-# /stream never ends, so curl hitting --max-time (exit 28) is the success path.
 set +e
 curl -sN --max-time "$DURATION" "$BASE/stream?token=$TOKEN" -o "$TMP"
 CURL_RC=$?
@@ -58,7 +48,6 @@ YAVG=$(ffmpeg -hide_banner -i "$TMP" -vf "signalstats,metadata=print:key=lavfi.s
     -frames:v 5 -f null - 2>&1 | grep -oE 'YAVG=[0-9.]+' | head -1 | cut -d= -f2)
 [ -n "$YAVG" ] || fail "could not measure frame brightness"
 
-# Limited-range black sits around YAVG 16; a real desktop is far above it.
 if python3 -c "import sys; sys.exit(0 if float('$YAVG') < 20.0 else 1)"; then
     echo "FAIL: decoded frames look black (YAVG=$YAVG)"
     exit 1

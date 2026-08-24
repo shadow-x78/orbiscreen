@@ -1,3 +1,7 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - orbiscreen-capture Crate Manifest 
+# ─────────────────────────────────────────────
+
 [package]
 name = "orbiscreen-capture"
 version.workspace = true

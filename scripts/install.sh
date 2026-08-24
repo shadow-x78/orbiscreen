@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Orbiscreen - Installation Script (GPL-3.0-or-later)
 # https://github.com/shadow-x78/orbiscreen
-
 set -euo pipefail
 
 echo "[Orbiscreen] Installing Secondary Display..."
