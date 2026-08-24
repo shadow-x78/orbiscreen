@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Mirror capture mode:** `[capture] preferred = "mirror"` streams your real desktop (picked in the portal share dialog) instead of a second virtual monitor — for when you want to *see* your screen rather than extend it.
+- **Detailed `/health`:** now returns JSON with `version`, `encoder`, `frames_forwarded`, `active_clients`, `total_clients` and `uptime_seconds`, making stream diagnosis a single curl.
+- **`scripts/verify-stream.sh`:** end-to-end stream sanity check — records a few seconds of `/stream`, decodes with ffprobe and measures frame brightness to catch black/empty-stream regressions automatically.
+
+### Changed
+- **EVDI is opt-in.** `[capture] preferred = "evdi"` requests the EVDI DRM virtual display explicitly; on Wayland, `auto` never touches EVDI anymore, so the recurring `EVDI kernel module not active` line is gone on KDE and the portal is reached directly on other compositors. On X11, `auto` still uses EVDI when its module is already loaded.
+
+### Fixed
+- **Android: the app never recovers after a daemon restart.** The stream token is rotated on every daemon start, but the Android client cached it forever — every reconnect looped on 401 with a black screen. The player now re-fetches a fresh token before each reconnect/retry, and input/control pick up rotated tokens automatically (periodic refresh + `InputDispatcher.updateToken`), mirroring the web client's self-healing reconnect.
+
 ## [v0.12.0] - 2026-08-24
 
 ### Added

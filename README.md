@@ -154,10 +154,18 @@ orbiscreen start
 
 ```toml
 [capture]
-preferred = "auto"   # auto (default) | kwin-virtual | portal
+preferred = "auto"   # auto (default) | kwin-virtual | evdi | portal | mirror
 ```
 
-`auto` uses the KWin virtual display on KDE Plasma Wayland (no root, no dialog), the evdi virtual display when the kernel module is loaded, and the portal share dialog everywhere else. Force a path with `kwin-virtual` or `portal`.
+| Value | Behaviour |
+|-------|-----------|
+| `auto` | KDE Plasma Wayland: KWin virtual display (no root, no dialog) → portal. X11: EVDI when its module is loaded, else root capture. |
+| `kwin-virtual` | Always the KWin virtual monitor (fails on non-KDE compositors). |
+| `evdi` | Always the EVDI DRM virtual display (opt-in — needs the root-installed kernel module). |
+| `portal` | Always the portal share dialog; pick any screen. |
+| `mirror` | Show your **real** desktop instead of a second monitor: pick the screen to mirror in the share dialog. |
+
+> A virtual display starts **empty** (desktop wallpaper only) — that is what a second monitor is. Drag windows onto `Virtual-ORBISCREEN`, or use `mirror` to stream your actual screen.
 
 ### 3. Connect
 

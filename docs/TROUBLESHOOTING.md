@@ -191,7 +191,9 @@ Error: evdi kernel module is not installed
 Notes:
 - Force the path with `[capture] preferred = "kwin-virtual"` (fail loudly if unavailable) or `"portal"` (always show the share dialog).
 - The virtual output disappears when the daemon stops — that is expected.
+- **You see only the desktop wallpaper in the stream?** That is correct: the virtual monitor is a *second, empty* screen. Drag windows onto `Virtual-ORBISCREEN`, or set `[capture] preferred = "mirror"` to stream your real screen instead.
 - On GNOME / wlroots compositors the protocol does not exist and `auto` falls back to the portal share dialog.
+- EVDI is now opt-in (`preferred = "evdi"`); `auto` on Wayland never touches it, so the old `EVDI kernel module not active` line no longer appears on KDE.
 
 ---
 

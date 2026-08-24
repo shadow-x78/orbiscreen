@@ -191,7 +191,9 @@ Error: evdi kernel module is not installed
 ملاحظات:
 - يمكن فرض المسار عبر `[capture] preferred = "kwin-virtual"` (فشل صريح إن لم يتوفر) أو `"portal"` (إظهار نافذة المشاركة دائماً).
 - تختفي الشاشة الافتراضية عند إيقاف الـ daemon — هذا متوقع.
+- **ترى خلفية سطح المكتب فقط في البث؟** هذا صحيح: الشاشة الافتراضية هي *شاشة ثانية فارغة*. اسحب النوافذ إلى `Virtual-ORBISCREEN`، أو اجعل `[capture] preferred = "mirror"` لبث شاشتك الحقيقية بدلاً منها.
 - على GNOME / wlroots البروتوكول غير موجود ويرجع `auto` تلقائياً إلى نافذة مشاركة portal.
+- أصبح EVDI اختيارياً (`preferred = "evdi"`)؛ لا يلمسه `auto` على Wayland إطلاقاً، لذا لن يظهر سطر `EVDI kernel module not active` القديم على KDE.
 
 ---
 
