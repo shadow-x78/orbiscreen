@@ -468,6 +468,16 @@ async fn run_start(
                 is_keyframe: chunk.is_keyframe,
                 pts_ns,
             };
+            if let Ok(path) = std::env::var("ORBISCREEN_ENCODER_DUMP") {
+                use std::io::Write;
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&path)
+                {
+                    let _ = f.write_all(&pkt.bytes);
+                }
+            }
             if video_tx.send(pkt).await.is_err() {
                 break;
             }
@@ -482,14 +492,17 @@ async fn run_start(
     let cap_pump = tokio::spawn(async move {
         let encoder = encoder_for_pump;
         let frame_dur = Encoder::frame_duration_ns(spec.refresh_rate_hz);
-        // PTS advances on every push — including keepalives — so appsrc
-        // timestamps stay strictly monotonic.
-        let mut pts_counter: u64 = 0;
+        // PTS follows the wall clock so live players (mpegts.js, ExoPlayer)
+        // stay latency-synced: keepalives at 2 fps stamp 500 ms apart instead
+        // of advancing one frame duration per push, which made stream time
+        // run many times slower than real time during idle periods.
         // Compositors deliver virtual-display frames on damage only: an idle
         // desktop stops producing frames entirely, which would leave new
         // clients waiting forever without even a keyframe (black screen).
         // Re-push the last frame as a keepalive when the source goes quiet.
         const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(500);
+        let started = std::time::Instant::now();
+        let mut last_pts_ns: u64 = frame_dur;
         let mut last_frame: Option<Frame> = None;
         let mut last_snapshot = std::time::Instant::now() - KEEPALIVE;
         loop {
@@ -499,8 +512,10 @@ async fn run_start(
                     let Some(frame) = &last_frame else {
                         continue;
                     };
-                    pts_counter += 1;
-                    let pts_ns = pts_counter.saturating_mul(frame_dur);
+                    let now_ns = u64::try_from(started.elapsed().as_nanos())
+                        .unwrap_or(u64::MAX);
+                    last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
+                    let pts_ns = last_pts_ns;
                     if let Err(e) =
                         encoder.push_frame(&frame.data, frame.width, frame.height, pts_ns)
                     {
@@ -523,8 +538,10 @@ async fn run_start(
                         last_frame = Some(frame.clone());
                         last_snapshot = std::time::Instant::now();
                     }
-                    pts_counter += 1;
-                    let pts_ns = pts_counter.saturating_mul(frame_dur);
+                    let now_ns =
+                        u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
+                    last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
+                    let pts_ns = last_pts_ns;
                     if let Err(e) =
                         encoder.push_frame(&frame.data, frame.width, frame.height, pts_ns)
                     {

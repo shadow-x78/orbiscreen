@@ -4,8 +4,8 @@ pub mod adb;
 pub mod mdns;
 
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -140,11 +140,13 @@ impl Transport {
         encoder_kind: &'static str,
     ) -> Result<(), TransportError> {
         let input_tx = self.input_tx;
-        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(360);
+        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<SeqPacket>(360);
+        let join_buffer: Arc<Mutex<Vec<SeqPacket>>> = Arc::new(Mutex::new(Vec::new()));
         let state = AppState {
             config: self.cfg.clone(),
             input_tx,
             video_tx: video_tx.clone(),
+            join_buffer: Arc::clone(&join_buffer),
             stats,
             token: self.token.clone(),
             display_width,
@@ -173,9 +175,24 @@ impl Transport {
         let stats_pump = state.stats.clone();
         tokio::spawn(async move {
             let mut frames = frames;
+            let next_seq = std::sync::atomic::AtomicU64::new(0);
             while let Some(pkt) = frames.recv().await {
                 stats_pump.note_frame();
-                let _ = video_tx.send(pkt);
+                let seq = next_seq.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                let sp = SeqPacket { seq, pkt };
+                // Buffer update and live broadcast happen under one lock
+                // hold, so a joining client that snapshots the buffer while
+                // subscribing can never miss or duplicate a packet.
+                let mut jb = join_buffer.lock().unwrap();
+                if sp.pkt.is_keyframe {
+                    jb.clear();
+                }
+                if jb.len() >= JOIN_BUFFER_MAX_PACKETS {
+                    jb.remove(0);
+                }
+                jb.push(sp.clone());
+                let _ = video_tx.send(sp);
+                drop(jb);
             }
         });
 
@@ -194,10 +211,19 @@ pub struct H264Packet {
 }
 
 #[derive(Clone)]
+struct SeqPacket {
+    seq: u64,
+    pkt: H264Packet,
+}
+
+const JOIN_BUFFER_MAX_PACKETS: usize = 32;
+
+#[derive(Clone)]
 struct AppState {
     config: ServerConfig,
     input_tx: mpsc::UnboundedSender<IncomingInput>,
-    video_tx: tokio::sync::broadcast::Sender<H264Packet>,
+    video_tx: tokio::sync::broadcast::Sender<SeqPacket>,
+    join_buffer: Arc<Mutex<Vec<SeqPacket>>>,
     stats: Arc<Stats>,
     token: String,
     display_width: u32,
@@ -434,6 +460,46 @@ async fn input_post(
     StatusCode::ACCEPTED
 }
 
+fn push_h264_packet(
+    appsrc: &gstreamer_app::AppSrc,
+    pkt: &H264Packet,
+) -> Result<(), gstreamer::FlowError> {
+
+    let valid = pkt.bytes.len() >= 4
+        && (pkt.bytes[0] == 0
+            && pkt.bytes[1] == 0
+            && (pkt.bytes[2] == 1 || pkt.bytes[2..4] == [0, 1]));
+    if !valid {
+        let header_len = pkt.bytes.len().min(4);
+        debug!(
+            "skipping non-NAL packet: {} B (header={:02x?})",
+            pkt.bytes.len(),
+            &pkt.bytes[..header_len]
+        );
+        return Ok(());
+    }
+
+    let mut buffer =
+        gstreamer::Buffer::with_size(pkt.bytes.len()).map_err(|_| gstreamer::FlowError::Error)?;
+    {
+        let buffer_mut = buffer
+            .get_mut()
+            .ok_or_else(|| {
+                warn!("gstreamer buffer not writable");
+                gstreamer::FlowError::Error
+            })?;
+        if buffer_mut.copy_from_slice(0, &pkt.bytes).is_err() {
+            warn!("packet larger than allocated gstreamer buffer");
+            return Err(gstreamer::FlowError::Error);
+        }
+        if pkt.is_keyframe {
+            buffer_mut.set_flags(gstreamer::BufferFlags::MARKER);
+        }
+        buffer_mut.set_pts(gstreamer::ClockTime::from_nseconds(pkt.pts_ns));
+    }
+    appsrc.push_buffer(buffer).map(|_| ())
+}
+
 async fn stream_handler(State(state): State<AppState>) -> axum::response::Response {
     use gstreamer::prelude::*;
     use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
@@ -445,7 +511,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                         ! video/x-h264,stream-format=byte-stream,alignment=au,framerate=0/1 \
                         ! h264parse config-interval=1 \
                         ! mpegtsmux alignment=7 \
-                        ! appsink name=sink drop=true sync=false max-buffers=2";
+                        ! appsink name=sink drop=false sync=false max-buffers=1024";
     let pipeline = match gstreamer::parse::launch(pipeline_str) {
         Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
             Ok(pipeline) => pipeline,
@@ -490,7 +556,9 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     };
 
-    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(256);
+    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(1024);
+    let stream_broken = Arc::new(AtomicBool::new(false));
+    let broken_flag = Arc::clone(&stream_broken);
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
             .new_sample(move |sink| match sink.pull_sample() {
@@ -498,7 +566,11 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                     if let Some(buffer) = sample.buffer() {
                         if let Ok(map) = buffer.map_readable() {
                             if tx.try_send(map.to_vec()).is_err() {
-                                debug!("per-client TS channel full; dropping chunk");
+                                // Never emit a hole into the TS byte flow:
+                                // end this client's stream instead; it
+                                // reconnects and rejoins at a keyframe.
+                                broken_flag.store(true, Ordering::Relaxed);
+                                return Err(gstreamer::FlowError::Eos);
                             }
                         }
                     }
@@ -539,7 +611,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     }
 
     state.stats.client_started();
-    let mut video_rx = state.video_tx.subscribe();
+    let appsrc_clone = appsrc.clone();
     let stats = state.stats.clone();
 
     struct PipelineGuard(gstreamer::Pipeline);
@@ -549,54 +621,57 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     }
     let pipeline_for_task = pipeline.clone();
-    let appsrc_clone = appsrc.clone();
+
+    // Keyframe-aligned join: while holding the pump lock, replay the
+    // buffered current GOP (from its last keyframe) and only then subscribe
+    // to the live broadcast. The pump buffers and broadcasts under the same
+    // lock, so this ordering can neither miss nor duplicate a packet.
+    let (last_buffered_seq, mut video_rx) = {
+        let jb = state.join_buffer.lock().unwrap();
+        for sp in jb.iter() {
+            if push_h264_packet(&appsrc_clone, &sp.pkt).is_err() {
+                break;
+            }
+        }
+        let last = jb.last().map(|sp| sp.seq);
+        (last, state.video_tx.subscribe())
+    };
+
     tokio::spawn(async move {
         let _pipeline_guard = PipelineGuard(pipeline_for_task);
         let _guard = ClientGuard(stats);
+
+        // After any packet loss (lag or backpressure), deltas without their
+        // references would only produce decoder garbage; freeze cleanly
+        // instead and resume at the next keyframe.
+        let mut wait_keyframe = false;
         loop {
-            let pkt = match video_rx.recv().await {
-                Ok(pkt) => pkt,
+            if stream_broken.load(Ordering::Relaxed) {
+                debug!("per-client queue overflowed; ending stream for clean reconnect");
+                break;
+            }
+            let sp = match video_rx.recv().await {
+                Ok(sp) => sp,
                 Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
-                    debug!("stream client lagged {n} packets; fast-forwarding");
+                    debug!("stream client lagged {n} packets; waiting for keyframe");
+                    wait_keyframe = true;
                     continue;
                 }
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
             };
-
-            let valid = pkt.bytes.len() >= 4
-                && (pkt.bytes[0] == 0
-                    && pkt.bytes[1] == 0
-                    && (pkt.bytes[2] == 1 || pkt.bytes[2..4] == [0, 1]));
-            if !valid {
-                let header_len = pkt.bytes.len().min(4);
-                debug!(
-                    "skipping non-NAL packet: {} B (header={:02x?})",
-                    pkt.bytes.len(),
-                    &pkt.bytes[..header_len]
-                );
-                continue;
+            if let Some(last) = last_buffered_seq {
+                if sp.seq <= last {
+                    continue;
+                }
+            }
+            if wait_keyframe {
+                if !sp.pkt.is_keyframe {
+                    continue;
+                }
+                wait_keyframe = false;
             }
 
-            let Ok(mut buffer) = gstreamer::Buffer::with_size(pkt.bytes.len()) else {
-                warn!("failed to allocate gstreamer buffer for packet");
-                break;
-            };
-            {
-                let Some(buffer_mut) = buffer.get_mut() else {
-                    warn!("gstreamer buffer not writable");
-                    break;
-                };
-                if buffer_mut.copy_from_slice(0, &pkt.bytes).is_err() {
-                    warn!("packet larger than allocated gstreamer buffer");
-                    break;
-                }
-                if pkt.is_keyframe {
-                    buffer_mut.set_flags(gstreamer::BufferFlags::MARKER);
-                }
-                buffer_mut.set_pts(gstreamer::ClockTime::from_nseconds(pkt.pts_ns));
-            }
-            if let Err(e) = appsrc_clone.push_buffer(buffer) {
-                debug!("push_buffer (client gone or EOS): {e}");
+            if push_h264_packet(&appsrc_clone, &sp.pkt).is_err() {
                 break;
             }
         }

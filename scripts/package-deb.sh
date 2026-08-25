@@ -59,14 +59,12 @@ Description: Real virtual secondary displays for Linux, streamed to Android - ov
  Orbiscreen provides high-performance virtual secondary displays for Linux desktops,
  streaming low-latency H.264 video to Android tablets/phones over HTTP (Wi-Fi/USB).
  .
- Requires the evdi kernel module (DKMS) for a real virtual display; without it
- the daemon falls back to streaming the primary desktop.
+ On KDE Wayland the daemon creates a true virtual display directly via KWin
+ (no root, no kernel module). The optional evdi kernel module is only needed
+ for explicit EVDI mode on other compositors.
 EOF
 
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/postinst"
-
-echo "[Orbiscreen] For a true virtual display install the evdi kernel module:"
-echo "[Orbiscreen]   sudo /usr/share/orbiscreen/install-evdi-module.sh"
 EOF
 chmod +x "${BUILD_DIR}/DEBIAN/postinst"
 

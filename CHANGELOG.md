@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.12.3] - 2026-08-25
+
+### Fixed
+- **Growing playback latency ("slow stream"):** stream timestamps advanced one frame duration per pushed packet regardless of real elapsed time, so during idle periods PTS ran many times slower than the wall clock and live players accumulated delay they could never chase back. Timestamps now follow the wall clock: keepalives stamp 500 ms apart, active streaming stamps at real time.
+- **Garbage frames right after connecting:** new clients previously started receiving packets from the middle of a GOP — deltas without their references, which decoders render as corruption until the next natural keyframe. The transport now keeps the current GOP since its last keyframe and replays it to every joining client under the pump lock before going live, making joins gap-free, duplicate-free and instant.
+- **Silent mid-stream packet loss:** a slow client's mux queue used to drop chunks quietly, corrupting that client's decode until an arbitrary keyframe. Queues no longer emit holes — on overflow the client's stream ends cleanly instead, and clients rejoin at a keyframe via the self-healing reconnect. After any broadcast lag, clients also freeze on the last good frame and resume at the next keyframe rather than decoding orphaned deltas.
+
+### Changed
+- Removed the obsolete EVDI install hint from RPM `%post` and deb `postinst` scriptlets (EVDI is opt-in; KDE Wayland needs no kernel module) and corrected the deb description accordingly.
+- Added `ORBISCREEN_ENCODER_DUMP=<path>` diagnostics hook: appends raw Annex-B encoder output to a file for bitstream debugging.
+
 ## [v0.12.2] - 2026-08-25
 
 ### Fixed

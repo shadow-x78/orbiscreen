@@ -64,11 +64,6 @@ RestartSec=3s
 WantedBy=graphical-session.target
 EOF
 
-# ── Install Hint ──
-%post
-echo "[Orbiscreen] For a true virtual display install the evdi kernel module:"
-echo "[Orbiscreen]   sudo /usr/share/orbiscreen/install-evdi-module.sh"
-
 # ── Uninstall Script ──
 %preun
 if [ $1 -eq 0 ]; then
