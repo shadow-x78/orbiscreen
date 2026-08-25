@@ -512,8 +512,7 @@ async fn run_start(
                     let Some(frame) = &last_frame else {
                         continue;
                     };
-                    let now_ns = u64::try_from(started.elapsed().as_nanos())
-                        .unwrap_or(u64::MAX);
+                    let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
                     last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
                     let pts_ns = last_pts_ns;
                     if let Err(e) =
@@ -538,8 +537,7 @@ async fn run_start(
                         last_frame = Some(frame.clone());
                         last_snapshot = std::time::Instant::now();
                     }
-                    let now_ns =
-                        u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
+                    let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
                     last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
                     let pts_ns = last_pts_ns;
                     if let Err(e) =

@@ -464,7 +464,6 @@ fn push_h264_packet(
     appsrc: &gstreamer_app::AppSrc,
     pkt: &H264Packet,
 ) -> Result<(), gstreamer::FlowError> {
-
     let valid = pkt.bytes.len() >= 4
         && (pkt.bytes[0] == 0
             && pkt.bytes[1] == 0
@@ -482,12 +481,10 @@ fn push_h264_packet(
     let mut buffer =
         gstreamer::Buffer::with_size(pkt.bytes.len()).map_err(|_| gstreamer::FlowError::Error)?;
     {
-        let buffer_mut = buffer
-            .get_mut()
-            .ok_or_else(|| {
-                warn!("gstreamer buffer not writable");
-                gstreamer::FlowError::Error
-            })?;
+        let buffer_mut = buffer.get_mut().ok_or_else(|| {
+            warn!("gstreamer buffer not writable");
+            gstreamer::FlowError::Error
+        })?;
         if buffer_mut.copy_from_slice(0, &pkt.bytes).is_err() {
             warn!("packet larger than allocated gstreamer buffer");
             return Err(gstreamer::FlowError::Error);
