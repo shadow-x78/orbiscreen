@@ -183,11 +183,20 @@ impl Encoder {
         if kind == EncoderKind::X264 {
             encoder.set_property_from_str("tune", "zerolatency");
             encoder.set_property_from_str("speed-preset", "ultrafast");
+            // zerolatency implicitly enables sliced threads; slice-level
+            // threading corrupts output when forced key units land mid-frame.
+            // Frame-level threading keeps each access unit atomic.
+            if encoder.find_property("sliced-threads").is_some() {
+                encoder.set_property_from_str("sliced-threads", "false");
+            }
+            if encoder.find_property("threads").is_some() {
+                encoder.set_property_from_str("threads", "2");
+            }
             if encoder.find_property("repeat-headers").is_some() {
                 encoder.set_property_from_str("repeat-headers", "true");
             }
             if encoder.find_property("key-int-max").is_some() {
-                encoder.set_property_from_str("key-int-max", "30");
+                encoder.set_property_from_str("key-int-max", "10");
             }
         }
 
@@ -272,20 +281,6 @@ impl Encoder {
             height: params.height,
             rx: Some(rx),
         })
-    }
-
-    /// Requests an IDR on the next pushed frame. `h264parse` and `mpegtsmux`
-    /// hold all data until the first keyframe, so newly connected clients
-    /// stay black until one arrives — damage-based sources can idle for a
-    /// long time between natural IDRs.
-    pub fn force_keyframe(&self) {
-        let Some(src_pad) = self.encoder.static_pad("src") else {
-            return;
-        };
-        let event = gstreamer_video::UpstreamForceKeyUnitEvent::builder()
-            .all_headers(true)
-            .build();
-        let _ = src_pad.send_event(event);
     }
 
     pub fn subscribe(&mut self) -> Option<mpsc::Receiver<EncodedChunk>> {

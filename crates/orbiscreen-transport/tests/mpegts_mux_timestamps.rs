@@ -11,6 +11,7 @@ const W: u32 = 320;
 const H: u32 = 180;
 const FPS: u32 = 60;
 const FRAMES: usize = 45;
+const PRIME_FRAMES: usize = 8;
 
 fn frame_dur_ns() -> u64 {
     Encoder::frame_duration_ns(FPS)
@@ -28,7 +29,7 @@ fn encode_frames(pts_base: u64) -> Vec<(Vec<u8>, bool, u64)> {
     .unwrap();
     let mut rx = enc.subscribe().unwrap();
     let data = vec![0x40u8; (W * H * 4) as usize];
-    for i in 0..FRAMES {
+    for i in 0..FRAMES + PRIME_FRAMES {
         enc.push_frame(&data, W, H, pts_base + (i as u64) * frame_dur_ns())
             .unwrap();
         std::thread::sleep(Duration::from_millis(2));

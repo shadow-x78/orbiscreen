@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.12.2] - 2026-08-25
+
+### Fixed
+- **Black stream on idle desktop (the "no image at all" bug):** compositors deliver screencast frames on damage only, and a freshly created virtual display is completely static — the capture received exactly one pre-paint black buffer and froze on it forever. A new damage pump keeps the virtual output recompositing (~2 fps) via an invisible, click-transparent layer-shell surface, so the capture always reflects the real display content.
+- **Corrupted H.264 bitstream from forced key units:** `UpstreamForceKeyUnitEvent` on the x264enc src pad produced malformed I-frames (decoder errors like `out of range intra chroma pred mode`, black concealment output) regardless of threading mode. Forced key units are gone; clean joins are guaranteed by the intact delta chain plus natural IDRs (`key-int-max` lowered 30 → 10, worst-case idle join ≤ 5 s, active join ≤ 200 ms).
+- **Startup blocked forever on the input portal:** the daemon now waits at most 20 s for the RemoteDesktop portal and starts streaming anyway with a clear warning when it hangs or needs interactive approval; remote control comes online on the next restart once granted.
+
+### Changed
+- x264enc runs with `sliced-threads=false` and 2 frame threads: slice-level threading (implicit in `zerolatency`) is fragile around keyframe requests and produced 18 slices per frame; frame-level threading keeps each access unit atomic.
+
 ## [v0.12.1] - 2026-08-25
 
 ### Added

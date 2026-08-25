@@ -1,5 +1,6 @@
 // Orbiscreen - orbiscreen-capture library (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
+pub mod damage_pump;
 pub mod kwin_virtual;
 pub mod wayland;
 pub mod x11;

@@ -368,12 +368,37 @@ async fn run_start(
         "stream dimensions established from source"
     );
 
-    let injector = InputInjector::open_async(VirtualTouchscreenSpec {
-        width: spec.width,
-        height: spec.height,
-    })
-    .await?;
-    info!(backend = ?injector.backend(), "Input injector open");
+    // Input injection is optional: never block streaming startup on the
+    // RemoteDesktop portal — it can hang, need interactive approval, or be
+    // wedged. Streaming starts regardless; remote control comes online only
+    // if the injector opens within the timeout.
+    const INPUT_OPEN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
+    let injector = match tokio::time::timeout(
+        INPUT_OPEN_TIMEOUT,
+        InputInjector::open_async(VirtualTouchscreenSpec {
+            width: spec.width,
+            height: spec.height,
+        }),
+    )
+    .await
+    {
+        Ok(Ok(inj)) => {
+            info!(backend = ?inj.backend(), "Input injector open");
+            Some(inj)
+        }
+        Ok(Err(e)) => {
+            warn!("input injection unavailable ({e}); streaming continues without remote control");
+            None
+        }
+        Err(_) => {
+            warn!(
+                "input injection portal did not respond within {}s; streaming continues \
+                 without remote control (approve the portal dialog or restart to retry)",
+                INPUT_OPEN_TIMEOUT.as_secs()
+            );
+            None
+        }
+    };
 
     let encoder_kind = match EncoderKind::parse(&cfg.encode.preferred_encoder) {
         Some(kind) => kind,
@@ -474,9 +499,6 @@ async fn run_start(
                     let Some(frame) = &last_frame else {
                         continue;
                     };
-                    // Force an IDR: delta-only keepalives never let
-                    // h264parse/mpegtsmux start a new client's stream.
-                    encoder.force_keyframe();
                     pts_counter += 1;
                     let pts_ns = pts_counter.saturating_mul(frame_dur);
                     if let Err(e) =
@@ -569,6 +591,9 @@ async fn run_start(
             (x, y)
         };
         while let Some(event) = input_rx.recv().await {
+            let Some(injector) = injector.as_mut() else {
+                continue;
+            };
             match event {
                 IncomingInput::Pointer(p) => {
                     let p = match p {

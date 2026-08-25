@@ -1634,7 +1634,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-capture"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "ashpd",
  "enumflags2",
@@ -1646,12 +1646,13 @@ dependencies = [
  "tracing",
  "wayland-client",
  "wayland-protocols-plasma",
+ "wayland-protocols-wlr",
  "x11rb",
 ]
 
 [[package]]
 name = "orbiscreen-core"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "serde",
  "thiserror 2.0.19",
@@ -1660,7 +1661,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-daemon"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "clap",
  "hostname",
@@ -1679,7 +1680,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-display"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "drm-fourcc",
  "evdi",
@@ -1690,7 +1691,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-encode"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "gstreamer",
  "gstreamer-app",
@@ -1702,7 +1703,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-gtk"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "gtk4",
  "libadwaita",
@@ -1716,7 +1717,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-input"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "ashpd",
  "enumflags2",
@@ -1730,7 +1731,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-transport"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "axum",
  "base64",
@@ -2781,6 +2782,19 @@ name = "wayland-protocols-plasma"
 version = "0.3.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b6d8cf1eb2c1c31ed1f5643c88a6e53538129d4af80030c8cabd1f9fa884d91"
+dependencies = [
+ "bitflags",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
+ "wayland-scanner",
+]
+
+[[package]]
+name = "wayland-protocols-wlr"
+version = "0.3.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb04e52f7836d7c7976c78ca0250d61e33873c34156a2a1fc9474828ec268234"
 dependencies = [
  "bitflags",
  "wayland-backend",

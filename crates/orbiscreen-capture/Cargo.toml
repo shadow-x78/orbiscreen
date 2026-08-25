@@ -28,3 +28,4 @@ gstreamer-app = { workspace = true }
 wayland-client = { workspace = true }
 wayland-protocols-plasma = { workspace = true }
 libc = { workspace = true }
+wayland-protocols-wlr = { version = "0.3.12", features = ["client"] }

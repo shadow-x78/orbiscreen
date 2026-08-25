@@ -459,6 +459,11 @@ impl KwinVirtualCapture {
             .set_state(gstreamer::State::Playing)
             .map_err(|e| KwinVirtualError::Wayland(format!("State error: {e}")))?;
 
+        // Compositors deliver screencast frames on damage only, and an idle
+        // virtual display produces none — the capture would freeze on the
+        // pre-paint black buffer. The pump keeps the output recompositing.
+        super::damage_pump::spawn(Duration::from_millis(500));
+
         let ended = Arc::new(AtomicBool::new(false));
         let ended_notify = Arc::new(Notify::new());
         let stop = Arc::new(AtomicBool::new(false));
