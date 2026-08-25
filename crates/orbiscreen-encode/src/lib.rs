@@ -107,7 +107,6 @@ pub struct EncodedChunk {
 pub struct Encoder {
     pipeline: Pipeline,
     appsrc: AppSrc,
-    encoder: gstreamer::Element,
     kind: EncoderKind,
     width: u32,
     height: u32,
@@ -275,7 +274,6 @@ impl Encoder {
         Ok(Self {
             pipeline,
             appsrc,
-            encoder,
             kind,
             width: params.width,
             height: params.height,
