@@ -5,4 +5,4 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-exec packaging/appimage/build-appimage.sh "$@"
+exec scripts/build-appimage.sh "$@"

@@ -77,15 +77,26 @@ class PlayerHolder(
         host: String,
         port: Int,
         tokenProvider: suspend () -> String = { "" },
+    ): ExoPlayer? = buildInternal(host, port, tokenProvider, fromReconnect = false)
+
+    private suspend fun buildInternal(
+        host: String,
+        port: Int,
+        tokenProvider: suspend () -> String,
+        fromReconnect: Boolean,
     ): ExoPlayer? {
         releaseInternal()
-        reconnectJob?.cancel()
-        reconnectJob = null
+        if (!fromReconnect) {
+            reconnectJob?.cancel()
+            reconnectJob = null
+            reconnectDelayMs = 1_000L
+        }
         lastTarget = StreamTarget(host, port, tokenProvider)
-        reconnectDelayMs = 1_000L
 
         val token = try {
             tokenProvider()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (_: Exception) {
             ""
         }
@@ -192,7 +203,7 @@ class PlayerHolder(
         reconnectJob = scope.launch {
             delay(reconnectDelayMs)
             reconnectDelayMs = (reconnectDelayMs * 2).coerceAtMost(10_000L)
-            build(target.host, target.port, target.tokenProvider)
+            buildInternal(target.host, target.port, target.tokenProvider, fromReconnect = true)
         }
     }
 

@@ -143,9 +143,6 @@ jobs:
 
       - name: Build Android Release APK
         env:
-          # Signing material comes from repo secrets, never from the repo.
-          # ANDROID_KEYSTORE_B64 must contain the NEW keystore generated after
-          # the old one (committed with a plaintext password) was rotated out.
           ORBISCREEN_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           ORBISCREEN_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ORBISCREEN_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}

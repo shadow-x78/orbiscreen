@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Orbiscreen - build-appimage (GPL-3.0-or-later)
+# Orbiscreen - AppImage Package Builder (GPL-3.0-or-later)
 # https://github.com/shadow-x78/orbiscreen
 set -euo pipefail
-cd "$(dirname "$0")/../.."
+
+cd "$(dirname "$0")/.."
 REPO_ROOT="$(pwd)"
 
 if ! command -v cargo >/dev/null 2>&1; then
@@ -40,7 +41,7 @@ if [ -n "${GST_PREFIX:-}" ] && [ -d "$GST_PREFIX/lib" ]; then
                    libgstpbutils-1.0 libgstbase-1.0 libglib-2.0 \
                    libgobject-2.0 libgmodule-2.0 liborc-0.4; do
         find "$GST_LIB_DIR" /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu \
-             -maxdepth 2 -name "${pattern}.so*" 2>/dev/null -print0 |
+             -maxdepth 2 -name "${pattern}.so*" -print0 2>/dev/null |
         while IFS= read -r -d '' so; do
             cp -f "$so" "$APP/usr/lib/" 2>/dev/null || true
         done

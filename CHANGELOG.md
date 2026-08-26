@@ -9,6 +9,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.12.6] - 2026-08-27
+
+Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, build, tests, audit, machete, deny, shellcheck, gradle assemble+lint) re-run and all findings fixed.
+
+### Fixed
+- **EVDI pump never terminated on fatal errors:** after the kernel closed the event channel or the registered buffer vanished, the pump thread retried the failed operation forever and warned every 50 ms while the daemon kept streaming stale keepalive frames. Terminal errors now end the source, which flows through as a clean capture-pump shutdown.
+- **KWin virtual-display open blocked a tokio worker:** `KwinVirtualCapture::open` performs blocking wayland round-trips, permission-file retries (up to 2.5 s) and a 5 s handshake deadline; called from an async context it stalled a runtime thread for up to ~7.5 s. The open now runs on `spawn_blocking`.
+- **Damage pump zombie after compositor close:** when the compositor closed the layer-shell surface the pump kept attaching/committing to the dead surface forever and swallowed roundtrip errors. It now exits on `Closed` and on connection errors.
+- **Truncated X11 `GetImage` replies were zero-padded**, masking real capture failures as black frames — short replies are now capture errors.
+- **Mouse buttons 7 and 8 mapped to the same uinput code** (`0x117`); buttons 4–8 now map distinctly onto `BTN_SIDE`..`BTN_TASK` (`0x113`–`0x117`).
+- **Encoder input queue allowed 60 raw frames** (`set_max_bytes`), ~475 MB at 1080p and ~2 GB at 4K before backpressure engaged; capped at 4 frames.
+- Transport join-buffer mutex locks are now poisoning-tolerant instead of panicking a serving task if another thread ever panicked mid-update.
+- `display` config gained upper clamps (7680×4320), matching the existing lower bounds and the two-sided clamps for refresh rate and bitrate.
+- A relative `XDG_CONFIG_HOME` is now ignored per the XDG spec (same filter `XDG_DATA_HOME` already had).
+- The MPEG-TS integration test's monotonicity check compared every timestamp against the *first* frame instead of its predecessor — it now catches real ordering regressions.
+
+### Fixed (Android)
+- **Tapping Refresh killed discovery permanently:** `DiscoveryService.stop()` cancelled the caller-supplied `viewModelScope`, freezing the host list and silently ignoring every subsequent restart. The service now owns its own scope, and `restart()` waits for the NsdManager stop callback before discovering again (also removing a start/stop race that could throw on some devices).
+- **Auto-reconnect built the player with an empty token:** the reconnect job called `build()`, whose first action was `reconnectJob?.cancel()` — cancelling the very coroutine it ran in; the resulting `CancellationException` was swallowed by the token fetch, so every reconnect streamed unauthenticated into a 401 loop. External builds cancel pending reconnects; the reconnect path no longer cancels itself and no longer swallows cancellation.
+- The `DiscoveryService`/gateway provider captured the Activity context into a ViewModel — now the application context.
+- "Forget recent host" in Settings left the stale card on screen until navigation; the row now recomposes immediately.
+- `roundIcon` pointed at the square launcher mipmap; it now references `@mipmap/ic_launcher_round`.
+
+### Security
+- `event-listener` 5.4.1 → 5.4.2 (RUSTSEC-2026-0221, unsound `!Send` tag across threads). The remaining `derivative` unmaintained advisory is unfixable upstream (`evdi` 0.8.0 is the final release) and stays an accepted warning.
+- The damage pump's shared-memory file moved from a predictable fixed path in `/tmp` to an anonymous `memfd_create` region — no world-writable pathname, no cross-instance interference, nothing left on disk.
+- Android release workflow: fails fast when `ANDROID_KEY_PASSWORD` is unset, rejects an unsigned APK after `assembleRelease` (previously uploadable), and removes the decoded keystore in an `if: always()` cleanup step.
+
+### Removed
+- `transport.webrtc_port_range` config field — dead since the WebRTC teardown (v0.12.1): normalized but never read. Existing config files containing it still parse (the key is ignored).
+- Dead code: `VirtualDisplay::open_at`/indexed node selection and the `spec()` getter, `EncodeError::EncoderUnavailable`, Android `HostApi.health`/`sendControl`, `InputDispatcher.wheel`/`stylus`, `DiscoveryViewModel.saveRecent`, `StreamViewModel.toggleToolbar` + the never-changing `toolbarVisible` (toolbar is always shown), the navigation route's unused `label` parameter, the unreachable "idle" branch of the discovery status banner, 15 unused theme colors, 10 unused strings, 8 unused XML colors and dead imports across the client.
+- The empty deb `postinst` script and the `packaging/` directory (the AppImage build merged into `scripts/build-appimage.sh`, with `package-appimage.sh` kept as the stable entry point used by the release workflow).
+
+### Changed
+- `scripts/install.sh` now also builds and installs `orbiscreen-gtk`; previously the installed desktop entry's `Exec=orbiscreen-gtk` pointed at a binary the script never installed (the GTK build is best-effort so the daemon still installs where GTK 4 dev libraries are missing). The desktop entry's `Icon=` now matches the icon filename every installer ships, and `uninstall.sh` removes the GTK binary too.
+- `package-deb.sh` builds both binaries when missing (previously copied them blindly) and carries a valid RFC822 `Maintainer` address; `package-rpm.sh` checks for both binaries, not only the daemon.
+- AppImage build script: fixed a shellcheck SC2227 redirection placed between `find` actions.
+
+### Documentation
+- `DBUS_SPEC.md` / `DBUS_SPEC_AR.md`: `GetConfig` example matches the current schema (removed the deleted `display.count` and `webrtc_port_range` lines, added the `[capture]` section).
+- Bug-report template no longer suggests a `RUST_LOG` target for the long-removed `webrtc_rs` crate.
+- `SECURITY.md` / `PACKAGING.md` / `PACKAGING_AR.md` version matrices updated to the current release.
+
 ## [v0.12.5] - 2026-08-26
 
 ### Fixed

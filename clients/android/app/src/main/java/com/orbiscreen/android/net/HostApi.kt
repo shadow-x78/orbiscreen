@@ -7,10 +7,8 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -68,42 +66,5 @@ class HostApi {
                 null
             }
         }
-    }
-
-    suspend fun health(host: String, port: Int): Boolean = withContext(Dispatchers.IO) {
-        withTimeoutOrNull(1200) {
-            try {
-                val req = Request.Builder().url("http://$host:$port/health").build()
-                client.newCall(req).execute().use { it.isSuccessful }
-            } catch (e: Exception) { false }
-        } ?: false
-    }
-
-    suspend fun sendControl(
-        host: String,
-        port: Int,
-        action: String,
-        payload: JSONObject = JSONObject(),
-        token: String? = null,
-    ): Boolean = withContext(Dispatchers.IO) {
-        withTimeoutOrNull(1500) {
-            try {
-                val body = JSONObject().apply {
-                    put("action", action)
-                    val it = payload.keys()
-                    while (it.hasNext()) {
-                        val k = it.next()
-                        put(k, payload.get(k))
-                    }
-                }.toString()
-                val builder = Request.Builder()
-                    .url("http://$host:$port/api/control")
-                    .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
-                if (!token.isNullOrBlank()) {
-                    builder.header("Authorization", "Bearer $token")
-                }
-                client.newCall(builder.build()).execute().use { it.isSuccessful }
-            } catch (e: Exception) { false }
-        } ?: false
     }
 }

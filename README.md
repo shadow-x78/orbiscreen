@@ -260,8 +260,7 @@ orbiscreen/
 │               ├── discovery/  # DiscoveryScreen + ViewModel
 │               ├── stream/     # StreamScreen, PlayerSurface, ControlToolbar
 │               └── settings/   # SettingsScreen
-├── packaging/{flatpak,appimage,debian}/
-├── scripts/{setup-dev-env.sh,install.sh,uninstall.sh,verify-stream.sh}
+├── scripts/                    # install, packaging (deb / rpm / AppImage), dev tooling
 ├── .github/{workflows/,ISSUE_TEMPLATE/,PULL_REQUEST_TEMPLATE.md}
 └── .editorconfig, .gitignore, .gitattributes, deny.toml, rustfmt.toml
 ```

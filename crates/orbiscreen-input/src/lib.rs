@@ -165,6 +165,11 @@ mod tests {
         assert_eq!(x11::button_code(1), 0x110);
         assert_eq!(x11::button_code(2), 0x112);
         assert_eq!(x11::button_code(3), 0x111);
+        assert_eq!(x11::button_code(4), 0x113);
+        assert_eq!(x11::button_code(5), 0x114);
+        assert_eq!(x11::button_code(6), 0x115);
+        assert_eq!(x11::button_code(7), 0x116);
+        assert_eq!(x11::button_code(8), 0x117);
     }
 
     #[test]

@@ -25,13 +25,11 @@ private const val TOKEN_REFRESH_INTERVAL_MS = 30_000L
 data class StreamState(
     val host: String,
     val port: Int,
-    val label: String? = null,
     val event: StreamEvent = StreamEvent.Idle,
     val displayWidth: Int = 1920,
     val displayHeight: Int = 1080,
     val encoder: String = "",
     val version: String = "",
-    val toolbarVisible: Boolean = true,
     val keyboardVisible: Boolean = false,
     val blanked: Boolean = false,
 )
@@ -41,7 +39,6 @@ class StreamViewModel(
     private val prefs: PrefsStore,
     private val host: String,
     private val port: Int,
-    label: String? = null,
 ) : ViewModel() {
 
     private val hostApi = HostApi()
@@ -53,7 +50,6 @@ class StreamViewModel(
         StreamState(
             host = host,
             port = port,
-            label = label,
             event = StreamEvent.Connecting(android.net.Uri.parse("http://$host:$port/stream")),
         )
     )
@@ -104,7 +100,7 @@ class StreamViewModel(
                 }
             }
         }
-        prefs.recentHost = com.orbiscreen.android.data.RecentHost(host = host, port = port, label = label)
+        prefs.recentHost = com.orbiscreen.android.data.RecentHost(host = host, port = port)
     }
 
     fun ensureInput(): InputDispatcher {
@@ -118,10 +114,6 @@ class StreamViewModel(
     }
 
     fun retry() = playerHolder.retry(state.value.host, state.value.port) { freshToken() }
-
-    fun toggleToolbar() {
-        _state.value = _state.value.copy(toolbarVisible = !_state.value.toolbarVisible)
-    }
 
     fun toggleKeyboard() {
         _state.value = _state.value.copy(keyboardVisible = !_state.value.keyboardVisible)

@@ -67,7 +67,7 @@ pub fn probe() -> DisplayStatus {
     }
 }
 
-pub fn device_config_for(spec: VirtualDisplaySpec) -> DeviceConfig {
+fn device_config_for(spec: VirtualDisplaySpec) -> DeviceConfig {
     if spec == VirtualDisplaySpec::FULL_HD_60 {
         DeviceConfig::sample()
     } else {
@@ -88,32 +88,26 @@ impl OwnedFrame {
     }
 }
 
-fn pick_node(index: Option<u32>) -> Result<(DeviceNode, u32), DisplayError> {
-    match index {
-        Some(i) => Ok((DeviceNode::new(i as i32), i)),
-        None => {
-            let mut ids: Vec<i32> = std::fs::read_dir("/dev/dri")
-                .map_err(|e| DisplayError::OpenDevice(format!("/dev/dri: {e:?}")))?
-                .flatten()
-                .filter_map(|entry| {
-                    let name = entry.file_name().into_string().ok()?;
-                    let id = name.strip_prefix("card")?.parse::<i32>().ok()?;
-                    (DeviceNode::new(id).status() == DeviceNodeStatus::Available).then_some(id)
-                })
-                .collect();
-            ids.sort_unstable();
-            let id = ids
-                .into_iter()
-                .next_back()
-                .ok_or(DisplayError::NoDeviceNode)?;
-            Ok((DeviceNode::new(id), id as u32))
-        }
-    }
+fn pick_node() -> Result<(DeviceNode, u32), DisplayError> {
+    let mut ids: Vec<i32> = std::fs::read_dir("/dev/dri")
+        .map_err(|e| DisplayError::OpenDevice(format!("/dev/dri: {e:?}")))?
+        .flatten()
+        .filter_map(|entry| {
+            let name = entry.file_name().into_string().ok()?;
+            let id = name.strip_prefix("card")?.parse::<i32>().ok()?;
+            (DeviceNode::new(id).status() == DeviceNodeStatus::Available).then_some(id)
+        })
+        .collect();
+    ids.sort_unstable();
+    let id = ids
+        .into_iter()
+        .next_back()
+        .ok_or(DisplayError::NoDeviceNode)?;
+    Ok((DeviceNode::new(id), id as u32))
 }
 
 #[allow(missing_debug_implementations)]
 pub struct VirtualDisplay {
-    spec: VirtualDisplaySpec,
     handle: Handle,
     buffer_id: BufferId,
     device_index: u32,
@@ -122,23 +116,15 @@ pub struct VirtualDisplay {
 
 impl VirtualDisplay {
     #[instrument(skip_all, fields(width = spec.width, height = spec.height))]
-    pub async fn open(spec: VirtualDisplaySpec) -> Result<Self, DisplayError> {
-        Self::open_at(spec, None).await
-    }
-
-    #[instrument(skip_all, fields(width = spec.width, height = spec.height, index))]
     #[allow(unsafe_code)]
-    pub async fn open_at(
-        spec: VirtualDisplaySpec,
-        index: Option<u32>,
-    ) -> Result<Self, DisplayError> {
+    pub async fn open(spec: VirtualDisplaySpec) -> Result<Self, DisplayError> {
         match probe() {
             DisplayStatus::KernelModuleMissing => return Err(DisplayError::KernelModuleMissing),
             DisplayStatus::Outdated => return Err(DisplayError::KernelModuleOutdated),
             _ => {}
         }
 
-        let (node, device_index) = pick_node(index)?;
+        let (node, device_index) = pick_node()?;
         info!(node = ?node, card = device_index, "Opening evdi device node");
         #[allow(unsafe_code)]
         let unconnected =
@@ -159,16 +145,11 @@ impl VirtualDisplay {
 
         let buffer_id = handle.new_buffer(&mode);
         Ok(Self {
-            spec,
             handle,
             buffer_id,
             device_index,
             buffer_mode: mode,
         })
-    }
-
-    pub fn spec(&self) -> VirtualDisplaySpec {
-        self.spec
     }
 
     pub fn device_index(&self) -> u32 {
@@ -233,8 +214,8 @@ impl VirtualDisplay {
         .map(Some)
     }
 
-    pub fn drm_connector_name(&self) -> Option<String> {
-        Some(format!("DVI-I-{}", self.device_index + 1))
+    pub fn drm_connector_name(&self) -> String {
+        format!("DVI-I-{}", self.device_index + 1)
     }
 }
 
@@ -303,7 +284,7 @@ fn to_tight_bgra(
 pub struct EvdiPumpInfo {
     pub width: u32,
     pub height: u32,
-    pub connector: Option<String>,
+    pub connector: String,
     pub device_index: u32,
 }
 
@@ -325,10 +306,18 @@ impl EvdiFramePump {
         let thread = std::thread::Builder::new()
             .name("orbiscreen-evdi-pump".into())
             .spawn(move || {
-                let runtime = tokio::runtime::Builder::new_current_thread()
+                let runtime = match tokio::runtime::Builder::new_current_thread()
                     .enable_all()
                     .build()
-                    .expect("evdi pump current-thread runtime");
+                {
+                    Ok(runtime) => runtime,
+                    Err(e) => {
+                        let _ = done_tx.send(Err(DisplayError::OpenDevice(format!(
+                            "evdi pump current-thread runtime: {e}"
+                        ))));
+                        return;
+                    }
+                };
                 runtime.block_on(async move {
                     let mut display = match VirtualDisplay::open(spec).await {
                         Ok(display) => display,
@@ -357,6 +346,10 @@ impl EvdiFramePump {
                                 }
                             }
                             Ok(None) => {}
+                            Err(e @ (DisplayError::ChannelClosed | DisplayError::NoBuffer(_))) => {
+                                warn!("evdi frame source ended terminally: {e}");
+                                break;
+                            }
                             Err(e) => {
                                 warn!("evdi frame error: {e}");
                                 tokio::time::sleep(std::time::Duration::from_millis(50)).await;

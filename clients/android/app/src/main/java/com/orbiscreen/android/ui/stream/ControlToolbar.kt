@@ -3,13 +3,7 @@
 
 package com.orbiscreen.android.ui.stream
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,20 +15,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CropDin
-import androidx.compose.material.icons.filled.CropSquare
 import androidx.compose.material.icons.filled.Keyboard
-import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mouse
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -49,7 +34,6 @@ import com.orbiscreen.android.R
 
 @Composable
 fun ControlToolbar(
-    visible: Boolean,
     hostLabel: String,
     encoder: String,
     resolution: String,
@@ -60,23 +44,16 @@ fun ControlToolbar(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-        modifier = modifier,
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Header(hostLabel, encoder, resolution)
-            Spacer(Modifier.size(8.dp))
-            Actions(
-                onToggleKeyboard = onToggleKeyboard,
-                onLock = onLock,
-                onBlank = onBlank,
-                onCtrlAltDel = onCtrlAltDel,
-                onRetry = onRetry,
-            )
-        }
+    Column(modifier = modifier.fillMaxWidth()) {
+        Header(hostLabel, encoder, resolution)
+        Spacer(Modifier.size(8.dp))
+        Actions(
+            onToggleKeyboard = onToggleKeyboard,
+            onLock = onLock,
+            onBlank = onBlank,
+            onCtrlAltDel = onCtrlAltDel,
+            onRetry = onRetry,
+        )
     }
 }
 

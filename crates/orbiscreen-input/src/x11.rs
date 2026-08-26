@@ -158,6 +158,6 @@ pub fn button_code(button: u32) -> u32 {
         1 => 0x110,
         2 => 0x112,
         3 => 0x111,
-        n => (n + 0x110).min(0x117),
+        n => n + 0x10F,
     }
 }

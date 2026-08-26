@@ -39,7 +39,7 @@ impl Default for CaptureConfig {
 }
 
 impl CaptureConfig {
-    pub const PREFERENCES: &'static [&'static str] =
+    const PREFERENCES: &'static [&'static str] =
         &["auto", "kwin-virtual", "portal", "evdi", "mirror"];
 
     pub fn sanitize(&mut self) {
@@ -70,12 +70,14 @@ impl Default for DisplayConfig {
 impl DisplayConfig {
     pub const MIN_WIDTH: u32 = 320;
     pub const MIN_HEIGHT: u32 = 240;
+    pub const MAX_WIDTH: u32 = 7680;
+    pub const MAX_HEIGHT: u32 = 4320;
     pub const MIN_REFRESH_RATE_HZ: u32 = 1;
     pub const MAX_REFRESH_RATE_HZ: u32 = 480;
 
     pub fn sanitize(&mut self) {
-        self.width = self.width.max(Self::MIN_WIDTH);
-        self.height = self.height.max(Self::MIN_HEIGHT);
+        self.width = self.width.clamp(Self::MIN_WIDTH, Self::MAX_WIDTH);
+        self.height = self.height.clamp(Self::MIN_HEIGHT, Self::MAX_HEIGHT);
         self.refresh_rate_hz = self
             .refresh_rate_hz
             .clamp(Self::MIN_REFRESH_RATE_HZ, Self::MAX_REFRESH_RATE_HZ);
@@ -119,7 +121,6 @@ impl EncodeConfig {
 #[serde(default)]
 pub struct TransportConfig {
     pub signaling_port: u16,
-    pub webrtc_port_range: (u16, u16),
     pub mdns_advertise: bool,
 }
 
@@ -127,7 +128,6 @@ impl Default for TransportConfig {
     fn default() -> Self {
         Self {
             signaling_port: 8788,
-            webrtc_port_range: (50_000, 50_100),
             mdns_advertise: true,
         }
     }
@@ -137,12 +137,8 @@ impl TransportConfig {
     pub const DEFAULT_SIGNALING_PORT: u16 = 8788;
 
     pub fn sanitize(&mut self) {
-        if self.signaling_port == 0 || self.signaling_port < 1024 {
+        if self.signaling_port < 1024 {
             self.signaling_port = Self::DEFAULT_SIGNALING_PORT;
-        }
-        let (lo, hi) = self.webrtc_port_range;
-        if lo > hi {
-            self.webrtc_port_range = (hi, lo);
         }
     }
 }
@@ -166,7 +162,9 @@ pub fn dump_config(config: &Config) -> Result<String, CoreError> {
 }
 
 pub fn default_config_path() -> std::path::PathBuf {
-    if let Some(xdg) = std::env::var_os("XDG_CONFIG_HOME").filter(|v| !v.is_empty()) {
+    if let Some(xdg) = std::env::var_os("XDG_CONFIG_HOME")
+        .filter(|v| !v.is_empty() && std::path::Path::new(v).is_absolute())
+    {
         return std::path::PathBuf::from(xdg).join("orbiscreen/orbiscreen.toml");
     }
     if let Some(home) = std::env::var_os("HOME").filter(|v| !v.is_empty()) {
@@ -208,7 +206,6 @@ bitrate_kbps = 500000
 preferred_encoder = \"vp9\"
 [transport]
 signaling_port = 80
-webrtc_port_range = [50100, 50000]
 mdns_advertise = true
 ";
         let cfg = load_config(toml).expect("parse bad config");
@@ -218,7 +215,25 @@ mdns_advertise = true
         assert_eq!(cfg.encode.bitrate_kbps, EncodeConfig::MAX_BITRATE_KBPS);
         assert_eq!(cfg.encode.preferred_encoder, "x264");
         assert_eq!(cfg.transport.signaling_port, 8788);
-        assert_eq!(cfg.transport.webrtc_port_range, (50_000, 50_100));
+    }
+
+    #[test]
+    fn oversized_display_is_clamped_to_maximums() {
+        let toml = "\
+[display]
+width = 999999
+height = 999999
+";
+        let cfg = load_config(toml).expect("parse oversized config");
+        assert_eq!(cfg.display.width, DisplayConfig::MAX_WIDTH);
+        assert_eq!(cfg.display.height, DisplayConfig::MAX_HEIGHT);
+    }
+
+    #[test]
+    fn legacy_webrtc_port_range_key_is_ignored() {
+        let toml = "[transport]\nwebrtc_port_range = [50100, 50000]\n";
+        let cfg = load_config(toml).expect("legacy key must not break parsing");
+        assert_eq!(cfg.transport, TransportConfig::default());
     }
 
     #[test]

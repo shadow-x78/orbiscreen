@@ -94,7 +94,9 @@ fn run(period: Duration) -> Result<(), String> {
 
     let stride = width * 4;
     let pool_size = stride * height * 2;
-    let mut file = tempfile_in_mem()?;
+    let mut file = anonymous_shm_file()?;
+    file.set_len(u64::try_from(pool_size).map_err(|e| format!("shm size: {e}"))?)
+        .map_err(|e| format!("shm ftruncate: {e}"))?;
     file.write_all(&vec![0u8; pool_size as usize])
         .map_err(|e| format!("shm write: {e}"))?;
     let pool = shm.create_pool(file.as_fd(), pool_size, &qh, ());
@@ -122,6 +124,9 @@ fn run(period: Duration) -> Result<(), String> {
     let mut tick = 0u64;
     loop {
         std::thread::sleep(period);
+        if state.closed {
+            return Err("layer surface closed by compositor".into());
+        }
         let next = if flip { &buffer_a } else { &buffer_b };
         surface.attach(Some(next), 0, 0);
         surface.damage_buffer(0, 0, width, height);
@@ -129,26 +134,30 @@ fn run(period: Duration) -> Result<(), String> {
         flip = !flip;
         tick += 1;
         if tick % 8 == 0 {
-            let _ = queue.roundtrip(&mut state);
+            queue
+                .roundtrip(&mut state)
+                .map_err(|e| format!("roundtrip: {e}"))?;
         }
     }
 }
 
-fn tempfile_in_mem() -> Result<std::fs::File, String> {
-    let path = "/tmp/.orbiscreen-damage-shm";
-    let _ = std::fs::remove_file(path);
-    std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create_new(true)
-        .open(path)
-        .map_err(|e| format!("shm temp file: {e}"))
+#[allow(unsafe_code)]
+fn anonymous_shm_file() -> Result<std::fs::File, String> {
+    use std::os::fd::FromRawFd as _;
+    let name =
+        std::ffi::CString::new("orbiscreen-damage-shm").map_err(|e| format!("shm name: {e}"))?;
+    let fd = unsafe { libc::memfd_create(name.as_ptr(), libc::MFD_CLOEXEC) };
+    if fd < 0 {
+        return Err(format!("memfd_create: {}", std::io::Error::last_os_error()));
+    }
+    Ok(unsafe { std::fs::File::from_raw_fd(fd) })
 }
 
 #[derive(Default)]
 struct PumpState {
     configured: Option<(u32, i32, i32)>,
     output_names: Vec<(wl_output::WlOutput, String)>,
+    closed: bool,
 }
 
 impl Dispatch<wl_registry::WlRegistry, wayland_client::globals::GlobalListContents> for PumpState {
@@ -260,6 +269,7 @@ impl Dispatch<zwlr_layer_surface_v1::ZwlrLayerSurfaceV1, ()> for PumpState {
             }
             zwlr_layer_surface_v1::Event::Closed => {
                 tracing::warn!("damage pump surface closed by compositor");
+                state.closed = true;
             }
             _ => {}
         }

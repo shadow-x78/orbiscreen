@@ -5,14 +5,5 @@
      ───────────────────────────────────────────── -->
 <resources>
     <color name="orbi_background">#11111B</color>
-    <color name="orbi_surface">#1E1E2E</color>
-    <color name="orbi_mantle">#181825</color>
-    <color name="orbi_crust">#11111B</color>
-    <color name="orbi_blue">#89B4FA</color>
-    <color name="orbi_rosewater">#F5E0DC</color>
-    <color name="orbi_surface1">#45475A</color>
-    <color name="orbi_text">#CDD6F4</color>
-    <color name="orbi_subtext">#A6ADC8</color>
-
     <color name="orbi_splash_background">#1E1E2E</color>
 </resources>

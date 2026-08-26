@@ -96,7 +96,9 @@ Returns the sanitized configuration the daemon was started with, serialized as *
 width = 1920
 height = 1080
 refresh_rate_hz = 60
-count = 1
+
+[capture]
+preferred = "auto"
 
 [encode]
 bitrate_kbps = 8000
@@ -104,7 +106,6 @@ preferred_encoder = "x264"
 
 [transport]
 signaling_port = 8788
-webrtc_port_range = [50000, 50100]
 mdns_advertise = true
 ```
 

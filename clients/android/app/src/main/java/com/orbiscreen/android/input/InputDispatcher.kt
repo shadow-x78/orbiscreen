@@ -26,13 +26,16 @@ class InputDispatcher(
     private val port: Int,
     displayWidth: Int,
     displayHeight: Int,
-    private var token: String = "",
+    token: String = "",
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val http = OkHttpClient.Builder()
         .connectTimeout(2, TimeUnit.SECONDS)
         .readTimeout(2, TimeUnit.SECONDS)
         .build()
+
+    @Volatile
+    private var token: String = token
 
     @Volatile
     private var streamWidth: Int = displayWidth
@@ -89,33 +92,11 @@ class InputDispatcher(
         discrete.tryEmit(payload)
     }
 
-    fun wheel(deltaY: Float) {
-        val payload = JSONObject()
-        payload.put("Pointer", JSONObject().apply {
-            put("Wheel", JSONObject().apply { put("delta_y", deltaY) })
-        })
-        discrete.tryEmit(payload)
-    }
-
     fun key(code: Int, pressed: Boolean) {
         val payload = JSONObject()
         payload.put("Key", JSONObject().apply {
             put("code", code)
             put("pressed", pressed)
-        })
-        discrete.tryEmit(payload)
-    }
-
-    fun stylus(localX: Float, localY: Float, containerW: Int, containerH: Int, pressure: Float, tiltX: Float, tiltY: Float) {
-        val (x, y) = map(localX, localY, containerW, containerH)
-        val payload = JSONObject()
-        payload.put("Stylus", JSONObject().apply {
-            put("Tilt", JSONObject().apply {
-                put("x", x); put("y", y)
-                put("pressure", pressure)
-                put("tilt_x_deg", tiltX)
-                put("tilt_y_deg", tiltY)
-            })
         })
         discrete.tryEmit(payload)
     }

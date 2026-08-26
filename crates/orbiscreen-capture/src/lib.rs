@@ -156,11 +156,12 @@ impl CaptureSession {
         })
     }
 
-    fn open_kwin(width: u32, height: u32) -> Result<Self, CaptureError> {
-        let capture = kwin_virtual::KwinVirtualCapture::open(kwin_virtual::KwinVirtualSpec {
-            width,
-            height,
-        })?;
+    async fn open_kwin(width: u32, height: u32) -> Result<Self, CaptureError> {
+        let capture = tokio::task::spawn_blocking(move || {
+            kwin_virtual::KwinVirtualCapture::open(kwin_virtual::KwinVirtualSpec { width, height })
+        })
+        .await
+        .map_err(|e| CaptureError::Io(format!("kwin-virtual open task: {e}")))??;
         let (actual_w, actual_h) = capture.dimensions();
         tracing::info!(
             "KWin virtual display created via zkde-screencast — no root, no share dialog"
@@ -191,7 +192,7 @@ impl CaptureSession {
             };
         }
         match preference {
-            CapturePreference::Auto => match Self::open_kwin(width, height) {
+            CapturePreference::Auto => match Self::open_kwin(width, height).await {
                 Ok(session) => Ok(session),
                 Err(e) => {
                     tracing::info!(
@@ -200,7 +201,7 @@ impl CaptureSession {
                     Self::open_portal(width, height).await
                 }
             },
-            CapturePreference::KwinVirtual => Self::open_kwin(width, height),
+            CapturePreference::KwinVirtual => Self::open_kwin(width, height).await,
             CapturePreference::Portal => Self::open_portal(width, height).await,
             CapturePreference::Mirror => {
                 tracing::info!(

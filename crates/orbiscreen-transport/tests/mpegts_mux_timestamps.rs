@@ -63,7 +63,7 @@ fn mpegts_muxer_emits_for_daemon_normalized_timestamps() {
         .collect();
     for pair in normalized.windows(2) {
         assert!(
-            normalized[0].2 <= pair[1].2,
+            pair[0].2 <= pair[1].2,
             "normalized timestamps must be monotonic"
         );
     }

@@ -77,8 +77,12 @@ fn capture_blocking(
     let mut data = reply.data;
     let expected = CapturedFrame::size_in_bytes(width, height);
     if data.len() < expected {
-        data.resize(expected, 0);
-    } else if data.len() > expected {
+        return Err(CaptureError::Io(format!(
+            "GetImage reply truncated: need {expected} B, have {}",
+            data.len()
+        )));
+    }
+    if data.len() > expected {
         data.truncate(expected);
     }
     Ok(CapturedFrame {

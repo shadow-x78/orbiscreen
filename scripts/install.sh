@@ -11,13 +11,19 @@ mkdir -p "${INSTALL_DIR}"
 if command -v cargo >/dev/null 2>&1; then
     echo "[Orbiscreen] Building daemon..."
     cargo build --release -p orbiscreen-daemon
-    cp target/release/orbiscreen ~/.local/bin/
+    cp target/release/orbiscreen "${INSTALL_DIR}/"
 
-    echo "[Orbiscreen] Installing desktop entry and icon..."
-    mkdir -p ~/.local/share/applications
-    mkdir -p ~/.local/share/icons/hicolor/scalable/apps
-    cp data/com.orbiscreen.OrbiscreenGtk.desktop ~/.local/share/applications/
-    cp data/orbiscreen.svg ~/.local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
+    if cargo build --release -p orbiscreen-gtk; then
+        cp target/release/orbiscreen-gtk "${INSTALL_DIR}/"
+
+        echo "[Orbiscreen] Installing desktop entry and icon..."
+        mkdir -p ~/.local/share/applications
+        mkdir -p ~/.local/share/icons/hicolor/scalable/apps
+        cp data/com.orbiscreen.OrbiscreenGtk.desktop ~/.local/share/applications/
+        cp data/orbiscreen.svg ~/.local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
+    else
+        echo "[Orbiscreen] Warning: orbiscreen-gtk build failed (GTK 4 development libraries missing?); skipping the desktop entry"
+    fi
 
     echo "[Orbiscreen] Installing web client files..."
     mkdir -p ~/.local/share/orbiscreen/client/vendor

@@ -56,8 +56,6 @@ impl Default for EncodeParams {
 
 #[derive(Debug, Error)]
 pub enum EncodeError {
-    #[error("encoder not available: {0}")]
-    EncoderUnavailable(&'static str),
     #[error("gstreamer pipeline error: {0}")]
     Pipeline(String),
     #[error("failed to initialize gstreamer: {0}")]
@@ -171,7 +169,7 @@ impl Encoder {
         appsrc.set_format(gstreamer::Format::Time);
         appsrc.set_is_live(true);
         appsrc.set_do_timestamp(false);
-        appsrc.set_max_bytes((params.width as u64) * params.height as u64 * 4 * 60);
+        appsrc.set_max_bytes((params.width as u64) * params.height as u64 * 4 * 4);
 
         if encoder.find_property("bitrate").is_some() {
             encoder.set_property_from_str("bitrate", &params.bitrate_kbps.to_string());

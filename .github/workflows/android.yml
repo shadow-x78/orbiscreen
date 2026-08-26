@@ -30,22 +30,20 @@ jobs:
         run: chmod +x gradlew
       - name: Prepare signing keystore
         env:
-          # Signing material comes from repo secrets, never from the repo.
           ORBISCREEN_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           ORBISCREEN_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ORBISCREEN_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ORBISCREEN_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [ -z "${ORBISCREEN_KEYSTORE_B64:-}" ]; then
             echo "::error::ANDROID_KEYSTORE_B64 secret is not set in the repository"
             exit 1
           fi
-          if [ -z "${ORBISCREEN_STORE_PASSWORD:-}" ] || [ -z "${ORBISCREEN_KEY_ALIAS:-}" ]; then
-            echo "::error::ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS secrets are empty"
+          if [ -z "${ORBISCREEN_STORE_PASSWORD:-}" ] || [ -z "${ORBISCREEN_KEY_ALIAS:-}" ] || [ -z "${ORBISCREEN_KEY_PASSWORD:-}" ]; then
+            echo "::error::ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD secrets are empty"
             exit 1
           fi
           echo "$ORBISCREEN_KEYSTORE_B64" | base64 -d > /tmp/orbiscreen-release.keystore
-          # Fail fast (before the long build) if the store password or alias
-          # do not match the keystore binary.
           keytool -list -keystore /tmp/orbiscreen-release.keystore \
             -storepass "$ORBISCREEN_STORE_PASSWORD" >/dev/null
           keytool -list -keystore /tmp/orbiscreen-release.keystore \
@@ -59,7 +57,13 @@ jobs:
           ORBISCREEN_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           ./gradlew assembleRelease
-          rm -f /tmp/orbiscreen-release.keystore
+          if ls app/build/outputs/apk/release/*-unsigned.apk >/dev/null 2>&1; then
+            echo "::error::assembleRelease produced an unsigned APK; signing configuration is broken"
+            exit 1
+          fi
+      - name: Remove keystore
+        if: always()
+        run: rm -f /tmp/orbiscreen-release.keystore
       - name: Upload APK
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:

@@ -19,7 +19,7 @@ mkdir -p target/rpmbuild/SOURCES
 mkdir -p target/rpmbuild/SPECS
 mkdir -p target/rpmbuild/SRPMS
 
-if [ ! -f target/release/orbiscreen ]; then
+if [ ! -f target/release/orbiscreen ] || [ ! -f target/release/orbiscreen-gtk ]; then
     echo "[Orbiscreen] Building release binaries for RPM..."
     cargo build --release --workspace
 fi

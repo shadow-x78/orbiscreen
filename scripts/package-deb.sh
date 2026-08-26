@@ -10,6 +10,11 @@ DEB_NAME="orbiscreen_${VERSION}_${ARCH}.deb"
 
 echo "[Orbiscreen] Building Debian package for Orbiscreen v${VERSION} (${ARCH})..."
 
+if [ ! -f target/release/orbiscreen ] || [ ! -f target/release/orbiscreen-gtk ]; then
+    echo "[Orbiscreen] Building release binaries for deb..."
+    cargo build --release --workspace
+fi
+
 mkdir -p "${BUILD_DIR}/DEBIAN"
 mkdir -p "${BUILD_DIR}/usr/bin"
 mkdir -p "${BUILD_DIR}/usr/share/applications"
@@ -50,7 +55,7 @@ cat << EOF > "${BUILD_DIR}/DEBIAN/control"
 Package: orbiscreen
 Version: ${VERSION}
 Architecture: ${ARCH}
-Maintainer: shadow-x78 <https://github.com/shadow-x78/orbiscreen>
+Maintainer: shadow-x78 <shadow-x78@users.noreply.github.com>
 Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, libxkbcommon0, libevdev2, libgtk-4-1, libadwaita-1-0
 Section: utils
 Priority: optional
@@ -63,10 +68,6 @@ Description: Real virtual secondary displays for Linux, streamed to Android - ov
  (no root, no kernel module). The optional evdi kernel module is only needed
  for explicit EVDI mode on other compositors.
 EOF
-
-cat <<'EOF' > "${BUILD_DIR}/DEBIAN/postinst"
-EOF
-chmod +x "${BUILD_DIR}/DEBIAN/postinst"
 
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/prerm"
 

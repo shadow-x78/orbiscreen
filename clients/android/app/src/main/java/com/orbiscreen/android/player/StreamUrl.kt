@@ -4,9 +4,7 @@
 package com.orbiscreen.android.player
 
 import android.net.Uri
-import androidx.media3.common.util.UnstableApi
 
-@UnstableApi
 object StreamUrl {
     fun build(host: String, port: Int): Uri {
         return Uri.Builder()

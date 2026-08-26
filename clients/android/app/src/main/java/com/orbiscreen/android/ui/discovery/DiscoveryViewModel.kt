@@ -12,20 +12,15 @@ import com.orbiscreen.android.net.DiscoveryService
 import com.orbiscreen.android.net.HostApi
 import com.orbiscreen.android.net.SubnetScanner
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 data class DiscoveryState(
     val hosts: List<DiscoveredHost> = emptyList(),
     val recent: RecentHost? = null,
-    val scanning: Boolean = true,
 )
 
 class DiscoveryViewModel(
@@ -43,7 +38,7 @@ class DiscoveryViewModel(
     private val _scanTick = MutableStateFlow(0)
 
     init {
-        discovery.start(viewModelScope)
+        discovery.start()
         viewModelScope.launch {
             combine(discovery.hosts, _scanTick) { hosts, _ ->
                 hosts.values
@@ -53,7 +48,7 @@ class DiscoveryViewModel(
                 val recent = prefs.recentHost
                 _state.value = _state.value.copy(
                     hosts = mergeRecent(live, recent),
-                    scanning = true,
+                    recent = recent,
                 )
             }
         }
@@ -63,18 +58,10 @@ class DiscoveryViewModel(
     }
 
     fun refresh() {
-        discovery.stop()
         viewModelScope.launch {
-            _state.value = _state.value.copy(scanning = true)
-            delay(200)
-            discovery.start(viewModelScope)
+            discovery.restart()
             _scanTick.value++
         }
-    }
-
-    fun saveRecent(host: String, port: Int, label: String?) {
-        prefs.recentHost = RecentHost(host = host, port = port, label = label)
-        _state.value = _state.value.copy(recent = prefs.recentHost)
     }
 
     private fun startSubnetSweep() {

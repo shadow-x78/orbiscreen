@@ -198,7 +198,7 @@ impl Transport {
                 stats_pump.note_frame();
                 let seq = next_seq.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 let sp = SeqPacket { seq, pkt };
-                let mut jb = join_buffer.lock().unwrap();
+                let mut jb = join_buffer.lock().unwrap_or_else(|e| e.into_inner());
                 if sp.pkt.is_keyframe {
                     jb.clear();
                 }
@@ -644,7 +644,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     let pipeline_for_task = pipeline.clone();
 
     let (last_buffered_seq, mut video_rx) = {
-        let jb = state.join_buffer.lock().unwrap();
+        let jb = state.join_buffer.lock().unwrap_or_else(|e| e.into_inner());
         for sp in jb.iter() {
             if push_h264_packet(&appsrc_clone, &sp.pkt).is_err() {
                 break;

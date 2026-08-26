@@ -9,10 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -32,19 +29,16 @@ import com.orbiscreen.android.ui.stream.StreamViewModel
 
 object Routes {
     const val DISCOVERY = "discovery"
-    const val STREAM = "stream/{host}/{port}?label={label}"
+    const val STREAM = "stream/{host}/{port}"
     const val SETTINGS = "settings"
 
-    fun stream(host: String, port: Int, label: String? = null): String {
-        val safeLabel = label ?: ""
-        return "stream/$host/$port?label=$safeLabel"
-    }
+    fun stream(host: String, port: Int): String = "stream/$host/$port"
 }
 
 @Composable
 fun OrbiNav(prefs: PrefsStore) {
     val nav = rememberNavController()
-    val context = LocalContext.current
+    val appContext = LocalContext.current.applicationContext
 
     NavHost(
         navController = nav,
@@ -59,9 +53,9 @@ fun OrbiNav(prefs: PrefsStore) {
                 factory = viewModelFactory {
                     initializer {
                         DiscoveryViewModel(
-                            discovery = DiscoveryService(context),
+                            discovery = DiscoveryService(appContext),
                             prefs = prefs,
-                            gatewayProvider = { WifiGatewayProvider.gateway(context) },
+                            gatewayProvider = { WifiGatewayProvider.gateway(appContext) },
                         )
                     }
                 },
@@ -79,17 +73,14 @@ fun OrbiNav(prefs: PrefsStore) {
             arguments = listOf(
                 navArgument("host") { type = NavType.StringType },
                 navArgument("port") { type = NavType.IntType },
-                navArgument("label") { type = NavType.StringType; defaultValue = "" },
             ),
         ) { backStack ->
             val host = backStack.arguments?.getString("host").orEmpty()
             val port = backStack.arguments?.getInt("port") ?: 8788
-            val label = backStack.arguments?.getString("label").orEmpty().takeIf { it.isNotEmpty() }
-            val app = context.applicationContext
             val vm: StreamViewModel = viewModel(
                 factory = viewModelFactory {
                     initializer {
-                        StreamViewModel(app, prefs, host, port, label)
+                        StreamViewModel(appContext, prefs, host, port)
                     }
                 },
             )

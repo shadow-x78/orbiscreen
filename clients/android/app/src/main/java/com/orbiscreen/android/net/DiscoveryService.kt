@@ -3,13 +3,15 @@
 
 package com.orbiscreen.android.net
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.os.Build
 import android.util.Log
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -17,10 +19,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 
 private const val SERVICE_TYPE = "_orbiscreen._tcp."
 private const val TAG = "Orbi.Nsd"
+private const val STOP_WAIT_TIMEOUT_MS = 1_000L
 
 internal data class ResolvedService(
     val name: String,
@@ -35,13 +39,16 @@ class DiscoveryService(private val context: Context) {
     private val active = MutableStateFlow<Map<String, DiscoveredHost>>(emptyMap())
     val hosts: StateFlow<Map<String, DiscoveredHost>> get() = active
 
-    private var discoveryScope: kotlinx.coroutines.CoroutineScope? = null
+    private var scope: CoroutineScope? = null
 
-    @SuppressLint("NewApi")
-    fun start(scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)) {
-        stop()
-        discoveryScope = scope
-        scope.launch {
+    @Volatile
+    private var discoveryStopped: CompletableDeferred<Unit>? = null
+
+    fun start() {
+        cancelDiscovery()
+        val s = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        scope = s
+        s.launch {
             listen().collect { ev ->
                 val key = "${ev.host}:${ev.port}"
                 val current = active.value.toMutableMap()
@@ -60,37 +67,83 @@ class DiscoveryService(private val context: Context) {
     }
 
     fun stop() {
-        discoveryScope?.coroutineContext?.get(kotlinx.coroutines.Job)?.cancel()
-        discoveryScope = null
+        cancelDiscovery()
+    }
+
+    suspend fun restart() {
+        val signal = discoveryStopped
+        cancelDiscovery()
+        if (signal != null) {
+            withTimeoutOrNull(STOP_WAIT_TIMEOUT_MS) { signal.await() }
+        }
+        start()
+    }
+
+    private fun cancelDiscovery() {
+        scope?.coroutineContext?.get(Job)?.cancel()
+        scope = null
+    }
+
+    private val directExecutor = java.util.concurrent.Executor { it.run() }
+
+    private fun resolveServiceCompat(
+        service: NsdServiceInfo,
+        onResult: (Pair<String, Int>?) -> Unit,
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val callback = object : NsdManager.ServiceInfoCallback {
+                override fun onServiceInfoCallbackRegistrationFailed(errorCode: Int) {
+                    Log.w(TAG, "service info registration failed: $errorCode")
+                    onResult(null)
+                }
+                override fun onServiceUpdated(info: NsdServiceInfo) {
+                    nsd.unregisterServiceInfoCallback(this)
+                    val host = info.hostAddresses.firstOrNull()?.hostAddress
+                    onResult(if (host != null) host to info.port else null)
+                }
+                override fun onServiceLost() {
+                    nsd.unregisterServiceInfoCallback(this)
+                    onResult(null)
+                }
+                override fun onServiceInfoCallbackUnregistered() {}
+            }
+            nsd.registerServiceInfoCallback(service, directExecutor, callback)
+        } else {
+            @Suppress("DEPRECATION")
+            nsd.resolveService(service, object : NsdManager.ResolveListener {
+                override fun onResolveFailed(info: NsdServiceInfo, errorCode: Int) {
+                    Log.w(TAG, "resolve failed: $errorCode ${info.serviceName}")
+                    onResult(null)
+                }
+                @Suppress("DEPRECATION")
+                override fun onServiceResolved(info: NsdServiceInfo) {
+                    val host = info.host?.hostAddress
+                    onResult(if (host != null) host to info.port else null)
+                }
+            })
+        }
     }
 
     private fun listen(): Flow<ResolvedService> = callbackFlow {
-        val resolved = ConcurrentHashMap<String, String>()
+        val resolved = ConcurrentHashMap<String, Pair<String, Int>>()
         val pending = ArrayDeque<NsdServiceInfo>()
         var resolving = false
+        val stopped = CompletableDeferred<Unit>()
+        discoveryStopped = stopped
 
         fun resolveNext() {
             if (resolving) return
             val service = pending.removeFirstOrNull() ?: return
             resolving = true
-            nsd.resolveService(service, object : NsdManager.ResolveListener {
-                override fun onResolveFailed(info: NsdServiceInfo, errorCode: Int) {
-                    Log.w(TAG, "resolve failed: $errorCode ${info.serviceName}")
-                    resolving = false
-                    resolveNext()
+            resolveServiceCompat(service) { result ->
+                val name = service.serviceName
+                if (result != null) {
+                    resolved[name] = result
+                    trySend(ResolvedService(name = name, host = result.first, port = result.second))
                 }
-                override fun onServiceResolved(info: NsdServiceInfo) {
-                    val host = info.host?.hostAddress
-                    val port = info.port
-                    val name = info.serviceName
-                    if (host != null) {
-                        resolved[name] = "$host:$port"
-                        trySend(ResolvedService(name = name, host = host, port = port))
-                    }
-                    resolving = false
-                    resolveNext()
-                }
-            })
+                resolving = false
+                resolveNext()
+            }
         }
 
         val listener = object : NsdManager.DiscoveryListener {
@@ -106,22 +159,27 @@ class DiscoveryService(private val context: Context) {
             }
             override fun onServiceLost(service: NsdServiceInfo) {
                 val name = service.serviceName
-                val key = resolved.remove(name) ?: return
-                val host = key.substringBefore(':')
-                val port = key.substringAfter(':').toIntOrNull() ?: return
+                val (host, port) = resolved.remove(name) ?: return
                 trySend(ResolvedService(name = name, host = host, port = port, lost = true))
             }
-            override fun onDiscoveryStopped(serviceType: String) {}
+            override fun onDiscoveryStopped(serviceType: String) {
+                stopped.complete(Unit)
+            }
             override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
                 Log.w(TAG, "startDiscoveryFailed: $errorCode")
+                stopped.complete(Unit)
             }
             override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
                 Log.w(TAG, "stopDiscoveryFailed: $errorCode")
+                stopped.complete(Unit)
             }
         }
         nsd.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, listener)
         awaitClose {
-            try { nsd.stopServiceDiscovery(listener) } catch (e: Exception) { Log.w(TAG, "stopServiceDiscovery: ${e.message}") }
+            try { nsd.stopServiceDiscovery(listener) } catch (e: Exception) {
+                Log.w(TAG, "stopServiceDiscovery: ${e.message}")
+                stopped.complete(Unit)
+            }
         }
     }
 }
