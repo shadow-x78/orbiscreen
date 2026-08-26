@@ -14,7 +14,6 @@ fail() {
 
 command -v curl >/dev/null || fail "curl is required"
 command -v python3 >/dev/null || fail "python3 is required"
-command -v ffprobe >/dev/null || fail "ffprobe is required"
 command -v ffmpeg >/dev/null || fail "ffmpeg is required"
 
 HEALTH=$(curl -s --max-time 3 "$BASE/health" || true)
@@ -39,10 +38,16 @@ fi
 SIZE=$(stat -c%s "$TMP" 2>/dev/null || echo 0)
 [ "$SIZE" -gt 10000 ] || fail "stream payload too small ($SIZE B)"
 
-INFO=$(ffprobe -v error -select_streams v:0 -show_entries \
-    stream=codec_name,width,height,avg_frame_rate -of csv=p=0 "$TMP" | head -1)
-echo "$INFO" | grep -q '^h264,' || fail "no H.264 video stream found (got: '$INFO')"
-echo "[verify-stream] stream: $INFO"
+if command -v ffprobe >/dev/null 2>&1 \
+    && INFO=$(ffprobe -v error -select_streams v:0 -show_entries \
+        stream=codec_name,width,height,avg_frame_rate -of csv=p=0 "$TMP" | head -1); then
+    echo "$INFO" | grep -q '^h264,' || fail "no H.264 video stream found (got: '$INFO')"
+    echo "[verify-stream] stream: $INFO"
+else
+    ffmpeg -hide_banner -i "$TMP" -f null - 2>&1 \
+        | grep -qE "Video: h264" || fail "no H.264 video stream found"
+    echo "[verify-stream] stream: h264 (ffprobe unavailable)"
+fi
 
 YAVG=$(ffmpeg -hide_banner -i "$TMP" -vf "signalstats,metadata=print:key=lavfi.signalstats.YAVG" \
     -frames:v 5 -f null - 2>&1 | grep -oE 'YAVG=[0-9.]+' | head -1 | cut -d= -f2)

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.12.4] - 2026-08-26
+
+### Added
+- **Client diagnostics in `/health`:** new `stream_starts` and `auth_failures` counters, plus a warning line with the peer address on every rejected request — makes "phone shows nothing" diagnosable from the server side in one curl.
+- Web client now plays with ~100 ms of buffer: IO stash disabled and live-latency chasing tuned to chase whenever buffered latency exceeds 1 s down to 200 ms (`liveSync` enabled).
+
+### Changed
+- `scripts/verify-stream.sh` no longer hard-requires ffprobe; it falls back to ffmpeg-only detection when ffprobe is missing or broken.
+
 ## [v0.12.3] - 2026-08-25
 
 ### Fixed

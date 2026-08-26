@@ -56,6 +56,8 @@ pub struct Stats {
     frames_forwarded: AtomicU64,
     active_clients: AtomicUsize,
     total_clients: AtomicU64,
+    stream_starts: AtomicU64,
+    auth_failures: AtomicU64,
 }
 
 impl Stats {
@@ -71,8 +73,24 @@ impl Stats {
         self.total_clients.load(Ordering::Relaxed)
     }
 
+    pub fn stream_starts(&self) -> u64 {
+        self.stream_starts.load(Ordering::Relaxed)
+    }
+
+    pub fn auth_failures(&self) -> u64 {
+        self.auth_failures.load(Ordering::Relaxed)
+    }
+
     fn note_frame(&self) {
         self.frames_forwarded.fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn note_stream_start(&self) {
+        self.stream_starts.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn note_auth_failure(&self) {
+        self.auth_failures.fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn client_started(&self) {
@@ -256,6 +274,8 @@ async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
         "frames_forwarded": state.stats.frames_forwarded(),
         "active_clients": state.stats.active_clients(),
         "total_clients": state.stats.total_clients(),
+        "stream_starts": state.stats.stream_starts(),
+        "auth_failures": state.stats.auth_failures(),
         "uptime_seconds": state.started.elapsed().as_secs(),
     }))
 }
@@ -279,6 +299,15 @@ async fn auth_check(
     if header_ok || query_ok {
         Ok(next.run(request).await)
     } else {
+        state.stats.note_auth_failure();
+        warn!(
+            "unauthorized request rejected (peer={})",
+            request
+                .extensions()
+                .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+                .map(|c| c.0.to_string())
+                .unwrap_or_else(|| "?".into())
+        );
         Err(StatusCode::UNAUTHORIZED)
     }
 }
@@ -608,6 +637,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     }
 
     state.stats.client_started();
+    state.stats.note_stream_start();
     let appsrc_clone = appsrc.clone();
     let stats = state.stats.clone();
 

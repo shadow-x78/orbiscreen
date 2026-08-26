@@ -194,10 +194,14 @@ function startStream() {
         url: streamUrl,
     }, {
         autoCleanupSourceBuffer: true,
-        liveBufferLatencyChasing: true,
+        enableStashBuffer: false,
         lazyLoad: false,
         lazyLoadMaxDuration: 0,
         seekType: "range",
+        liveBufferLatencyChasing: true,
+        liveBufferLatencyMaxLatency: 1.0,
+        liveBufferLatencyMinRemain: 0.2,
+        liveSync: true,
     });
 
     mpegtsPlayer.attachMediaElement(videoEl);
