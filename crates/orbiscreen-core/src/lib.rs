@@ -55,7 +55,6 @@ pub struct DisplayConfig {
     pub width: u32,
     pub height: u32,
     pub refresh_rate_hz: u32,
-    pub count: u32,
 }
 
 impl Default for DisplayConfig {
@@ -64,7 +63,6 @@ impl Default for DisplayConfig {
             width: 1920,
             height: 1080,
             refresh_rate_hz: 60,
-            count: 1,
         }
     }
 }
@@ -81,7 +79,6 @@ impl DisplayConfig {
         self.refresh_rate_hz = self
             .refresh_rate_hz
             .clamp(Self::MIN_REFRESH_RATE_HZ, Self::MAX_REFRESH_RATE_HZ);
-        self.count = self.count.max(1);
     }
 }
 
@@ -168,6 +165,16 @@ pub fn dump_config(config: &Config) -> Result<String, CoreError> {
     Ok(toml::to_string_pretty(config)?)
 }
 
+pub fn default_config_path() -> std::path::PathBuf {
+    if let Some(xdg) = std::env::var_os("XDG_CONFIG_HOME").filter(|v| !v.is_empty()) {
+        return std::path::PathBuf::from(xdg).join("orbiscreen/orbiscreen.toml");
+    }
+    if let Some(home) = std::env::var_os("HOME").filter(|v| !v.is_empty()) {
+        return std::path::PathBuf::from(home).join(".config/orbiscreen/orbiscreen.toml");
+    }
+    std::path::PathBuf::from("orbiscreen.toml")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -196,7 +203,6 @@ mod tests {
 width = 0
 height = 0
 refresh_rate_hz = 0
-count = 0
 [encode]
 bitrate_kbps = 500000
 preferred_encoder = \"vp9\"
@@ -209,7 +215,6 @@ mdns_advertise = true
         assert_eq!(cfg.display.width, DisplayConfig::MIN_WIDTH);
         assert_eq!(cfg.display.height, DisplayConfig::MIN_HEIGHT);
         assert_eq!(cfg.display.refresh_rate_hz, 1);
-        assert_eq!(cfg.display.count, 1);
         assert_eq!(cfg.encode.bitrate_kbps, EncodeConfig::MAX_BITRATE_KBPS);
         assert_eq!(cfg.encode.preferred_encoder, "x264");
         assert_eq!(cfg.transport.signaling_port, 8788);
@@ -222,7 +227,6 @@ mdns_advertise = true
         assert_eq!(display.width, 1920);
         assert_eq!(display.height, 1080);
         assert_eq!(display.refresh_rate_hz, 60);
-        assert_eq!(display.count, 1);
     }
 
     #[test]
@@ -238,6 +242,21 @@ mdns_advertise = true
             let parsed =
                 load_config(&format!("[capture]\npreferred = \"{value}\"\n")).expect("parse");
             assert_eq!(parsed.capture.preferred, *value);
+        }
+    }
+
+    #[test]
+    fn default_config_path_uses_xdg_config_home_when_set() {
+        let prev = std::env::var_os("XDG_CONFIG_HOME");
+        std::env::set_var("XDG_CONFIG_HOME", "/tmp/orbiscreen-test-xdg");
+        let path = default_config_path();
+        assert_eq!(
+            path,
+            std::path::PathBuf::from("/tmp/orbiscreen-test-xdg/orbiscreen/orbiscreen.toml")
+        );
+        match prev {
+            Some(value) => std::env::set_var("XDG_CONFIG_HOME", value),
+            None => std::env::remove_var("XDG_CONFIG_HOME"),
         }
     }
 }

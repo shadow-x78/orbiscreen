@@ -1,3 +1,7 @@
+<!--
+  Orbiscreen - README (Arabic) (GPL-3.0-or-later)
+  https://github.com/shadow-x78/orbiscreen
+-->
 <div align="center">
 
 <img src="data/orbiscreen.svg" alt="Orbiscreen" width="160" />
@@ -151,6 +155,11 @@ orbiscreen start
 ```
 
 #### تفضيل واجهة الالتقاط (`orbiscreen.toml`)
+
+يقرأ الخادم افتراضيًا `$XDG_CONFIG_HOME/orbiscreen/orbiscreen.toml`
+(أو `~/.config/orbiscreen/orbiscreen.toml` عندما لا يكون `XDG_CONFIG_HOME` معرّفًا) —
+وهو المسار نفسه الذي تستخدمه وحدة systemd للمستخدم. أنشئ الملف هناك، أو
+حدّد موقعًا آخر عبر `--config /path/to/orbiscreen.toml`.
 
 ```toml
 [capture]

@@ -1,3 +1,5 @@
+// Orbiscreen - Android client - host control API client (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.net
 
@@ -8,6 +10,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -95,7 +98,7 @@ class HostApi {
                 }.toString()
                 val builder = Request.Builder()
                     .url("http://$host:$port/api/control")
-                    .post(okhttp3.RequestBody.create("application/json; charset=utf-8".toMediaType(), body))
+                    .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
                 if (!token.isNullOrBlank()) {
                     builder.header("Authorization", "Bearer $token")
                 }

@@ -1,3 +1,5 @@
+// Orbiscreen - orbiscreen-capture - damage pump module (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 use std::io::Write as _;
 use std::time::Duration;
 

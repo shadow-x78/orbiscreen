@@ -1,3 +1,5 @@
+// Orbiscreen - Android client - stream URL builder (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.player
 
@@ -6,14 +8,11 @@ import androidx.media3.common.util.UnstableApi
 
 @UnstableApi
 object StreamUrl {
-    fun build(host: String, port: Int, token: String = ""): Uri {
-        val ub = Uri.Builder()
+    fun build(host: String, port: Int): Uri {
+        return Uri.Builder()
             .scheme("http")
             .authority("$host:$port")
             .path("/stream")
-        if (token.isNotBlank()) {
-            ub.appendQueryParameter("token", token)
-        }
-        return ub.build()
+            .build()
     }
 }

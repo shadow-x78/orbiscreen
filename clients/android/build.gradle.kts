@@ -1,10 +1,7 @@
 // ─────────────────────────────────────────────
-// Orbiscreen - Android Top Build 
-// ─────────────────────────────────────────────
-
-// Orbiscreen - Android build (GPL-3.0-or-later)
+// Orbiscreen - Android Top Build (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
+// ─────────────────────────────────────────────
 
 plugins {
     id("com.android.application") version "8.5.2" apply false

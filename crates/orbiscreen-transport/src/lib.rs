@@ -198,9 +198,6 @@ impl Transport {
                 stats_pump.note_frame();
                 let seq = next_seq.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 let sp = SeqPacket { seq, pkt };
-                // Buffer update and live broadcast happen under one lock
-                // hold, so a joining client that snapshots the buffer while
-                // subscribing can never miss or duplicate a packet.
                 let mut jb = join_buffer.lock().unwrap();
                 if sp.pkt.is_keyframe {
                     jb.clear();
@@ -592,9 +589,6 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                     if let Some(buffer) = sample.buffer() {
                         if let Ok(map) = buffer.map_readable() {
                             if tx.try_send(map.to_vec()).is_err() {
-                                // Never emit a hole into the TS byte flow:
-                                // end this client's stream instead; it
-                                // reconnects and rejoins at a keyframe.
                                 broken_flag.store(true, Ordering::Relaxed);
                                 return Err(gstreamer::FlowError::Eos);
                             }
@@ -649,10 +643,6 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     }
     let pipeline_for_task = pipeline.clone();
 
-    // Keyframe-aligned join: while holding the pump lock, replay the
-    // buffered current GOP (from its last keyframe) and only then subscribe
-    // to the live broadcast. The pump buffers and broadcasts under the same
-    // lock, so this ordering can neither miss nor duplicate a packet.
     let (last_buffered_seq, mut video_rx) = {
         let jb = state.join_buffer.lock().unwrap();
         for sp in jb.iter() {
@@ -668,9 +658,6 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         let _pipeline_guard = PipelineGuard(pipeline_for_task);
         let _guard = ClientGuard(stats);
 
-        // After any packet loss (lag or backpressure), deltas without their
-        // references would only produce decoder garbage; freeze cleanly
-        // instead and resume at the next keyframe.
         let mut wait_keyframe = false;
         loop {
             if stream_broken.load(Ordering::Relaxed) {

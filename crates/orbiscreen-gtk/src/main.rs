@@ -14,7 +14,6 @@ use tracing::{debug, info, warn};
 use tracing_subscriber::EnvFilter;
 
 const APP_ID: &str = "com.orbiscreen.OrbiscreenGtk";
-const DEFAULT_CONFIG_PATH: &str = "orbiscreen.toml";
 
 fn init_tracing() {
     let filter = EnvFilter::try_from_default_env()
@@ -225,7 +224,7 @@ fn build_ui(app: &Application) {
     let display_group = PreferencesGroup::new();
     display_group.set_title("Virtual Display Configuration");
 
-    let cfg = std::fs::read_to_string(DEFAULT_CONFIG_PATH)
+    let cfg = std::fs::read_to_string(orbiscreen_core::default_config_path())
         .ok()
         .and_then(|s| orbiscreen_core::load_config(&s).ok())
         .unwrap_or_default();
@@ -233,8 +232,8 @@ fn build_ui(app: &Application) {
     let resolution_row = ActionRow::new();
     resolution_row.set_title("Virtual Screen Resolution");
     resolution_row.set_subtitle(&format!(
-        "{}x{} @ {} Hz (count = {})",
-        cfg.display.width, cfg.display.height, cfg.display.refresh_rate_hz, cfg.display.count
+        "{}x{} @ {} Hz",
+        cfg.display.width, cfg.display.height, cfg.display.refresh_rate_hz
     ));
     display_group.add(&resolution_row);
 

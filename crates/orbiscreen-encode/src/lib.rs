@@ -182,9 +182,6 @@ impl Encoder {
         if kind == EncoderKind::X264 {
             encoder.set_property_from_str("tune", "zerolatency");
             encoder.set_property_from_str("speed-preset", "ultrafast");
-            // zerolatency implicitly enables sliced threads; slice-level
-            // threading corrupts output when forced key units land mid-frame.
-            // Frame-level threading keeps each access unit atomic.
             if encoder.find_property("sliced-threads").is_some() {
                 encoder.set_property_from_str("sliced-threads", "false");
             }

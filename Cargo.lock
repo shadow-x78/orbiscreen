@@ -1158,36 +1158,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gstreamer-video"
-version = "0.25.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7907cb8a73edc98cf279e5de7370bb2c245b7bedf623ba8c7e59648cd4739133"
-dependencies = [
- "cfg-if",
- "futures-channel",
- "glib 0.22.8",
- "gstreamer",
- "gstreamer-base",
- "gstreamer-video-sys",
- "libc",
- "thiserror 2.0.19",
-]
-
-[[package]]
-name = "gstreamer-video-sys"
-version = "0.25.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94f6753d53c9a5e274f33441bee2c7dabef82edefb39605b75c834d24af89e7e"
-dependencies = [
- "glib-sys 0.22.8",
- "gobject-sys 0.22.6",
- "gstreamer-base-sys",
- "gstreamer-sys",
- "libc",
- "system-deps",
-]
-
-[[package]]
 name = "gtk4"
 version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1634,7 +1604,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-capture"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "ashpd",
  "enumflags2",
@@ -1652,7 +1622,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-core"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "serde",
  "thiserror 2.0.19",
@@ -1661,7 +1631,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-daemon"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "clap",
  "hostname",
@@ -1680,7 +1650,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-display"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "drm-fourcc",
  "evdi",
@@ -1691,11 +1661,10 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-encode"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "gstreamer",
  "gstreamer-app",
- "gstreamer-video",
  "thiserror 2.0.19",
  "tokio",
  "tracing",
@@ -1703,7 +1672,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-gtk"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "gtk4",
  "libadwaita",
@@ -1717,7 +1686,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-input"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "ashpd",
  "enumflags2",
@@ -1731,7 +1700,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-transport"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "axum",
  "base64",

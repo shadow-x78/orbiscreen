@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- ─────────────────────────────────────────────
+     Orbiscreen - Android Launcher Background
+     https://github.com/shadow-x78/orbiscreen
+     ───────────────────────────────────────────── -->
 <resources>
     <color name="ic_launcher_background">#FFFFFF</color>
 </resources>

@@ -1,3 +1,7 @@
+<!--
+  Orbiscreen - README (GPL-3.0-or-later)
+  https://github.com/shadow-x78/orbiscreen
+-->
 <div align="center">
 
 <img src="data/orbiscreen.svg" alt="Orbiscreen" width="160" />
@@ -151,6 +155,11 @@ orbiscreen start
 ```
 
 #### Capture backend preference (`orbiscreen.toml`)
+
+By default the daemon reads `$XDG_CONFIG_HOME/orbiscreen/orbiscreen.toml`
+(`~/.config/orbiscreen/orbiscreen.toml` when `XDG_CONFIG_HOME` is unset) -
+the same path used by the systemd user service. Create the file there, or
+point at another location with `--config /path/to/orbiscreen.toml`.
 
 ```toml
 [capture]

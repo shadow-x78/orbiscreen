@@ -26,8 +26,8 @@ use tracing_subscriber::EnvFilter;
                   Android devices as MPEG-TS/H.264 over Wi-Fi or USB."
 )]
 struct Cli {
-    #[arg(short, long, global = true, default_value = "orbiscreen.toml")]
-    config: String,
+    #[arg(short, long, global = true)]
+    config: Option<String>,
 
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
     verbose: u8,
@@ -98,11 +98,8 @@ fn list_displays(path: &str) {
     match load_or_default_config(path) {
         Ok(cfg) => {
             println!(
-                "configured virtual display: {}x{} @ {} Hz (count = {})",
-                cfg.display.width,
-                cfg.display.height,
-                cfg.display.refresh_rate_hz,
-                cfg.display.count,
+                "configured virtual display: {}x{} @ {} Hz",
+                cfg.display.width, cfg.display.height, cfg.display.refresh_rate_hz,
             );
         }
         Err(e) => eprintln!("config error: {e}"),
@@ -161,8 +158,6 @@ impl FrameSource {
         }
     }
 
-    /// True when a retryable-looking capture error is actually terminal (the
-    /// source will not produce more frames); callers should stop or reopen.
     fn is_ended(&self) -> bool {
         match self {
             FrameSource::Evdi(_) => false,
@@ -183,7 +178,12 @@ async fn main() -> ExitCode {
     let cli = Cli::parse();
     init_tracing(cli.verbose);
 
-    let cfg = match load_or_default_config(&cli.config) {
+    let config_path = cli.config.clone().unwrap_or_else(|| {
+        orbiscreen_core::default_config_path()
+            .to_string_lossy()
+            .into_owned()
+    });
+    let cfg = match load_or_default_config(&config_path) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("config error: {e}");
@@ -221,7 +221,7 @@ async fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Command::ListDisplays => {
-            list_displays(&cli.config);
+            list_displays(&config_path);
             ExitCode::SUCCESS
         }
         Command::Probe => {
@@ -303,11 +303,6 @@ async fn run_start(
         enc = cfg.encode.preferred_encoder,
     );
 
-    // Source selection. EVDI is opt-in: it needs a root-installed kernel
-    // module, so it is only attempted when explicitly requested — or on X11,
-    // where it is the only real-second-monitor path and a loaded module
-    // already signals deliberate setup. On Wayland, `auto` means the KWin
-    // virtual display first, then the portal share dialog.
     let preferred = cfg.capture.preferred.as_str();
     let on_wayland = std::env::var_os("WAYLAND_DISPLAY").is_some();
     let mut source = match preferred {
@@ -368,10 +363,6 @@ async fn run_start(
         "stream dimensions established from source"
     );
 
-    // Input injection is optional: never block streaming startup on the
-    // RemoteDesktop portal — it can hang, need interactive approval, or be
-    // wedged. Streaming starts regardless; remote control comes online only
-    // if the injector opens within the timeout.
     const INPUT_OPEN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
     let injector = match tokio::time::timeout(
         INPUT_OPEN_TIMEOUT,
@@ -444,9 +435,6 @@ async fn run_start(
     });
     info!("D-Bus session service registered: com.orbiscreen.Daemon");
 
-    // Bounded so a stalled transport applies backpressure through the
-    // encoder into the capture pump instead of growing without limit; the
-    // transport-side broadcast then drops for lagging clients as designed.
     let (video_tx, video_rx) = mpsc::channel::<H264Packet>(64);
     let frame_pump = tokio::spawn(async move {
         let mut n = 0u64;
@@ -492,14 +480,6 @@ async fn run_start(
     let cap_pump = tokio::spawn(async move {
         let encoder = encoder_for_pump;
         let frame_dur = Encoder::frame_duration_ns(spec.refresh_rate_hz);
-        // PTS follows the wall clock so live players (mpegts.js, ExoPlayer)
-        // stay latency-synced: keepalives at 2 fps stamp 500 ms apart instead
-        // of advancing one frame duration per push, which made stream time
-        // run many times slower than real time during idle periods.
-        // Compositors deliver virtual-display frames on damage only: an idle
-        // desktop stops producing frames entirely, which would leave new
-        // clients waiting forever without even a keyframe (black screen).
-        // Re-push the last frame as a keepalive when the source goes quiet.
         const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(500);
         let started = std::time::Instant::now();
         let mut last_pts_ns: u64 = frame_dur;
@@ -531,8 +511,6 @@ async fn run_start(
             match outcome {
                 SourceOutcome::Frame(frame) => {
                     let n = fc.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-                    // Snapshot for keepalive at most once per interval, so
-                    // steady-state streaming costs no extra frame copies.
                     if last_snapshot.elapsed() >= KEEPALIVE {
                         last_frame = Some(frame.clone());
                         last_snapshot = std::time::Instant::now();

@@ -68,7 +68,12 @@ fn capture_blocking(
         height as u16,
         u32::MAX,
     );
-    let reply = cookie?.reply().map_err(|_| CaptureError::X11Protocol(0))?;
+    let reply = cookie?.reply().map_err(|e| match e {
+        x11rb::errors::ReplyError::X11Error(err) => CaptureError::X11Protocol(err.error_code),
+        x11rb::errors::ReplyError::ConnectionError(err) => {
+            CaptureError::X11Connect(err.to_string())
+        }
+    })?;
     let mut data = reply.data;
     let expected = CapturedFrame::size_in_bytes(width, height);
     if data.len() < expected {

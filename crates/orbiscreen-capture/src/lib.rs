@@ -83,9 +83,6 @@ pub struct CaptureSession {
     height: u32,
 }
 
-/// Converts a GStreamer sample into a [`CapturedFrame`], validating caps,
-/// dimensions and buffer size with uniform warn logging. Shared by the
-/// portal and KWin virtual backends so frame-loss diagnostics never drift.
 pub(crate) fn sample_to_captured_frame(sample: &gstreamer::Sample) -> Option<CapturedFrame> {
     let Some(buffer) = sample.buffer() else {
         tracing::warn!("skipping sample with no buffer");
@@ -218,9 +215,6 @@ impl CaptureSession {
         self.backend_kind
     }
 
-    /// True when the capture source reached a terminal state (e.g. the KWin
-    /// virtual output was closed by the compositor) and will not produce
-    /// further frames; callers should stop or reopen instead of retrying.
     pub fn is_ended(&self) -> bool {
         match self.inner.as_ref() {
             CaptureInner::KwinVirtual(capture) => capture.is_ended(),

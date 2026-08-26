@@ -1,3 +1,5 @@
+// Orbiscreen - Android client - stream player holder (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.player
 
@@ -87,7 +89,7 @@ class PlayerHolder(
         } catch (_: Exception) {
             ""
         }
-        val uri = StreamUrl.build(host, port, token)
+        val uri = StreamUrl.build(host, port)
         _event.value = StreamEvent.Connecting(uri)
 
         val player = try {

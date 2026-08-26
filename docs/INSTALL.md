@@ -98,6 +98,25 @@ Requires JDK 17 and the Android SDK with platforms `android-34` installed.
 
 ---
 
+## ⚙️ Configuration
+
+The daemon reads `$XDG_CONFIG_HOME/orbiscreen/orbiscreen.toml`
+(`~/.config/orbiscreen/orbiscreen.toml` when `XDG_CONFIG_HOME` is unset).
+Every install path - `scripts/install.sh`, `.deb`, `.rpm`, AppImage - runs the
+systemd user service without `WorkingDirectory=`, so this XDG default is the
+only location picked up automatically:
+
+```bash
+mkdir -p ~/.config/orbiscreen
+# create or edit ~/.config/orbiscreen/orbiscreen.toml
+```
+
+Any other location must be passed explicitly: `orbiscreen --config /path/to/orbiscreen.toml start`.
+If the file is missing, built-in defaults are used. Available options are
+documented in the README under **Capture backend preference (`orbiscreen.toml`)**.
+
+---
+
 ## 🩺 First-Run Verification
 
 After installation:

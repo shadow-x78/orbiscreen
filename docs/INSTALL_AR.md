@@ -98,6 +98,25 @@ cd clients/android
 
 ---
 
+## ⚙️ الإعداد
+
+يقرأ الخادم `$XDG_CONFIG_HOME/orbiscreen/orbiscreen.toml`
+(أو `~/.config/orbiscreen/orbiscreen.toml` عندما لا يكون `XDG_CONFIG_HOME` معرّفًا).
+كل مسارات التثبيت - `scripts/install.sh` و`.deb` و`.rpm` وAppImage - تشغّل
+وحدة systemd للمستخدم بدون `WorkingDirectory=`، لذا فإن مسار XDG الافتراضي هذا
+هو الموقع الوحيد الذي يُلتقط تلقائيًا:
+
+```bash
+mkdir -p ~/.config/orbiscreen
+# أنشئ أو عدّل ~/.config/orbiscreen/orbiscreen.toml
+```
+
+أي موقع آخر يجب تمريره صراحةً: `orbiscreen --config /path/to/orbiscreen.toml start`.
+إذا لم يوجد الملف، تُستخدم القيم الافتراضية المدمجة. كل الخيارات موثقة في
+README تحت **تفضيل واجهة الالتقاط (`orbiscreen.toml`)**.
+
+---
+
 ## 🩺 التحقق من أول تشغيل
 
 بعد التثبيت:

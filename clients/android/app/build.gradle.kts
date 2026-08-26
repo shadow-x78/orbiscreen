@@ -1,10 +1,7 @@
 // ─────────────────────────────────────────────
-// Orbiscreen - Android App Build 
-// ─────────────────────────────────────────────
-
-// Orbiscreen - Android build (GPL-3.0-or-later)
+// Orbiscreen - Android App Build (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-
+// ─────────────────────────────────────────────
 
 plugins {
     id("com.android.application")
@@ -20,17 +17,12 @@ android {
         applicationId = "com.orbiscreen.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 23
-        versionName = "0.12.4"
+        versionCode = 24
+        versionName = "0.12.5"
     }
 
     signingConfigs {
         create("release") {
-            // Signing is conditional: when the keystore or secrets are absent
-            // (local dev machines), the config stays empty so debug builds
-            // and lint run normally; assembleRelease then produces an
-            // unsigned APK instead of hard-failing configuration. CI always
-            // provides the secrets, so release artifacts stay signed there.
             val ksPath: String? =
                 System.getenv("ORBISCREEN_KEYSTORE_PATH")
                     ?: (project.findProperty("orbiscreen.keystorePath") as String?)

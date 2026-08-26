@@ -16,6 +16,9 @@ use super::{CaptureError, CapturedFrame};
 use gstreamer::prelude::*;
 use gstreamer_app::{AppSink, AppSinkCallbacks};
 use tokio::sync::mpsc;
+
+const FRAME_CHANNEL_CAPACITY: usize = 2;
+
 #[derive(Debug, Clone)]
 pub struct WaylandCaptureSpec {
     pub width: u32,
@@ -65,7 +68,7 @@ pub struct WaylandCapture {
     _session: Session<Screencast>,
     _pipeline: gstreamer::Pipeline,
     _pipe_fd: OwnedFd,
-    rx: tokio::sync::Mutex<mpsc::UnboundedReceiver<CapturedFrame>>,
+    rx: tokio::sync::Mutex<mpsc::Receiver<CapturedFrame>>,
     width: u32,
     height: u32,
 }
@@ -126,7 +129,7 @@ impl WaylandCapture {
             .downcast::<AppSink>()
             .map_err(|_| WaylandCaptureError::Dbus("Failed to downcast appsink".into()))?;
 
-        let (tx, rx) = mpsc::unbounded_channel::<CapturedFrame>();
+        let (tx, rx) = mpsc::channel::<CapturedFrame>(FRAME_CHANNEL_CAPACITY);
 
         appsink.set_callbacks(
             AppSinkCallbacks::builder()
@@ -139,7 +142,9 @@ impl WaylandCapture {
                         }
                     };
                     if let Some(frame) = super::sample_to_captured_frame(&sample) {
-                        let _ = tx.send(frame);
+                        if tx.try_send(frame).is_err() {
+                            tracing::debug!("capture frame dropped: consumer channel full");
+                        }
                     }
                     Ok(gstreamer::FlowSuccess::Ok)
                 })
