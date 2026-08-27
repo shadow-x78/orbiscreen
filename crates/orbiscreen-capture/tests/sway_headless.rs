@@ -183,7 +183,7 @@ fn collect_frame(capture: &WlrScreencopyCapture) -> CapturedFrame {
         .expect("frame without error")
 }
 
-fn sway_output_names(socket: &Path) -> Vec<String> {
+fn sway_output_states(socket: &Path) -> Vec<(String, bool)> {
     const GET_OUTPUTS: u32 = 3;
     let payload = "";
     let mut message = Vec::with_capacity(14 + payload.len());
@@ -202,8 +202,12 @@ fn sway_output_names(socket: &Path) -> Vec<String> {
     json.as_array()
         .expect("outputs list")
         .iter()
-        .filter_map(|o| o.get("name").and_then(|n| n.as_str()))
-        .map(str::to_string)
+        .filter_map(|o| {
+            o.get("name").and_then(|n| n.as_str()).map(|name| {
+                let active = o.get("active").and_then(|a| a.as_bool()).unwrap_or(true);
+                (name.to_string(), active)
+            })
+        })
         .collect()
 }
 
@@ -238,7 +242,9 @@ fn sway_headless_capture_and_virtual_output() {
     .expect("virtual output created via sway IPC");
     let virtual_name = virtual_output.name().to_string();
     assert!(
-        sway_output_names(&session.socket).contains(&virtual_name),
+        sway_output_states(&session.socket)
+            .iter()
+            .any(|(name, _)| name == &virtual_name),
         "the created output is visible to sway IPC"
     );
 
@@ -256,13 +262,18 @@ fn sway_headless_capture_and_virtual_output() {
 
     drop(virtual_output);
     let deadline = Instant::now() + Duration::from_secs(5);
-    let mut names = sway_output_names(&session.socket);
-    while names.contains(&virtual_name) && Instant::now() < deadline {
+    let still_active = |states: &[(String, bool)]| {
+        states
+            .iter()
+            .any(|(name, active)| name == &virtual_name && *active)
+    };
+    let mut states = sway_output_states(&session.socket);
+    while still_active(&states) && Instant::now() < deadline {
         std::thread::sleep(Duration::from_millis(100));
-        names = sway_output_names(&session.socket);
+        states = sway_output_states(&session.socket);
     }
     assert!(
-        !names.contains(&virtual_name),
-        "dropping the guard removes the virtual output"
+        !still_active(&states),
+        "dropping the guard removes the virtual output (or disables it when the compositor has no removal command)"
     );
 }

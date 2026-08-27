@@ -14,6 +14,7 @@ const SWAY_MSG_GET_OUTPUTS: u32 = 3;
 const IPC_TIMEOUT: Duration = Duration::from_secs(3);
 const APPEAR_DEADLINE: Duration = Duration::from_secs(5);
 const APPEAR_POLL: Duration = Duration::from_millis(50);
+const MODE_SETTLE: Duration = Duration::from_secs(2);
 const MAX_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -116,7 +117,7 @@ impl Ipc {
     fn create(&self, spec: VirtualOutputSpec) -> Result<(), WlrootsVirtualOutputError> {
         match self {
             Self::Sway(sock) => {
-                let response = sway_roundtrip(sock, SWAY_MSG_RUN_COMMAND, "create output")?;
+                let response = sway_roundtrip(sock, SWAY_MSG_RUN_COMMAND, "create_output")?;
                 parse_sway_command_success(&response)
             }
             Self::Hyprland(sock) => {
@@ -174,6 +175,20 @@ impl Ipc {
         match self {
             Self::Sway(sock) => {
                 let cmd = format!("output {name} remove");
+                if sway_roundtrip(sock, SWAY_MSG_RUN_COMMAND, &cmd)
+                    .and_then(|response| parse_sway_command_success(&response))
+                    .is_ok()
+                {
+                    return Ok(());
+                }
+                // No released sway exposes a way to destroy a dynamically
+                // created headless output over IPC, so disabling it is the
+                // closest cleanup until upstream grows one.
+                tracing::debug!(
+                    output = name,
+                    "sway cannot remove dynamic outputs yet; disabling it instead"
+                );
+                let cmd = format!("output {name} disable");
                 let response = sway_roundtrip(sock, SWAY_MSG_RUN_COMMAND, &cmd)?;
                 parse_sway_command_success(&response)
             }
@@ -379,6 +394,7 @@ impl WlrootsVirtualOutput {
 
         let deadline = Instant::now() + APPEAR_DEADLINE;
         let mut mode_attempted = false;
+        let mut mode_deadline = None;
         loop {
             for output in ipc.list_outputs()? {
                 if before.contains(&output.name) {
@@ -387,19 +403,24 @@ impl WlrootsVirtualOutput {
                 if !mode_attempted {
                     ipc.set_mode_best_effort(&output.name, spec);
                     mode_attempted = true;
+                    mode_deadline = Some(Instant::now() + MODE_SETTLE);
                 } else if output.width > 0 && output.height > 0 {
-                    tracing::info!(
-                        output = output.name,
-                        width = output.width,
-                        height = output.height,
-                        "wlroots virtual output created via compositor IPC — no root, no dialog"
-                    );
-                    return Ok(Self {
-                        ipc,
-                        name: output.name,
-                        width: output.width,
-                        height: output.height,
-                    });
+                    let mode_matches = output.width == spec.width && output.height == spec.height;
+                    let settled = mode_deadline.is_some_and(|d| Instant::now() >= d);
+                    if mode_matches || settled {
+                        tracing::info!(
+                            output = output.name,
+                            width = output.width,
+                            height = output.height,
+                            "wlroots virtual output created via compositor IPC — no root, no dialog"
+                        );
+                        return Ok(Self {
+                            ipc,
+                            name: output.name,
+                            width: output.width,
+                            height: output.height,
+                        });
+                    }
                 }
             }
             if Instant::now() >= deadline {
@@ -438,11 +459,11 @@ mod tests {
 
     #[test]
     fn sway_message_is_i3_ipc_framed() {
-        let msg = encode_sway_message(SWAY_MSG_RUN_COMMAND, "create output");
+        let msg = encode_sway_message(SWAY_MSG_RUN_COMMAND, "create_output");
         assert_eq!(&msg[..6], b"i3-ipc");
         assert_eq!(u32::from_le_bytes(msg[6..10].try_into().unwrap()), 13);
         assert_eq!(u32::from_le_bytes(msg[10..14].try_into().unwrap()), 0);
-        assert_eq!(&msg[14..], b"create output");
+        assert_eq!(&msg[14..], b"create_output");
     }
 
     #[test]

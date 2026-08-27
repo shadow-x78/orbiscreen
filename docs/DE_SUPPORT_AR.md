@@ -53,14 +53,16 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
 ## Sway وعائلة wlroots عموماً
 
 - **الشاشة الافتراضية:** تُنشأ عبر IPC الـ compositor. يكشف Sway عن backend
-  الـ headless المدمج: يرسل الدامن `create output` عبر مقبس IPC ‏(`$SWAYSOCK`)،
-  وينتظر ظهور المخرج (مثل `HEADLESS-1`)، ويزيله مجدداً عند توقف الدامن أو
-  تحطمه.
+  الـ headless المدمج: يرسل الدامن `create_output` عبر مقبس IPC ‏(`$SWAYSOCK`)،
+  وينتظر ظهور المخرج (مثل `HEADLESS-2`)، ويطبّق الوضع المطلوب، ويعطّل المخرج
+  عند توقف الدامن. لا يملك Sway أمر IPC لحذف مخرج headless أُنشئ ديناميكياً،
+  لذلك يعطّله الدامن كأقرب تنظيف ممكن (يتوقف عن استقبال الإطارات) ويستعيده
+  الـ compositor عند خروجه.
 - **الالتقاط:** `zwlr_screencopy_manager_v1` (البروتوكول نفسه الذي يستخدمه
   ‏`grim`) — بلا portal، بلا حوار، مدفوع بالـ damage، باسم المخرج.
 - **الإدخال:** `virtual-keyboard-unstable-v1` + `wlr-virtual-pointer-unstable-v1`
   مباشرة على مقبس Wayland — لا حاجة إلى `xdg-desktop-portal-wlr`.
-- **المتطلبات:** ‏Sway ≥ 1.6 (أو أي wlroots compositor يدعم `create output`).
+- **المتطلبات:** ‏Sway ≥ 1.6 (أو أي wlroots compositor يدعم `create_output`).
   إن لم يكن IPC متاحاً يتراجع `auto` إلى عكس مخرج موجود عبر screencopy.
 - **حلول الأعطال:**
   - ‏`doctor` يطبع `virtual out: no compositor IPC reachable` — تحقق من أن

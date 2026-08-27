@@ -55,15 +55,18 @@ ordered capture plan. The plan is logged on every `orbiscreen start`:
 ## Sway and general wlroots
 
 - **Virtual display:** created through the compositor IPC. Sway exposes its
-  built-in headless backend: the daemon sends `create output` over the IPC
-  socket (`$SWAYSOCK`), waits for the output to appear (e.g. `HEADLESS-1`),
-  and removes it again when the daemon stops or crashes.
+  built-in headless backend: the daemon sends `create_output` over the IPC
+  socket (`$SWAYSOCK`), waits for the output to appear (e.g. `HEADLESS-2`),
+  applies the requested mode, and disables the output when the daemon stops.
+  Sway has no IPC command to destroy a dynamically created headless output, so
+  the daemon disables it as the closest cleanup (it no longer receives
+  frames); it is reclaimed when the compositor exits.
 - **Capture:** `zwlr_screencopy_manager_v1` (the same protocol `grim` uses) —
   no portal, no dialog, damage-driven, by output name.
 - **Input:** `virtual-keyboard-unstable-v1` + `wlr-virtual-pointer-unstable-v1`
   directly on the Wayland socket — no `xdg-desktop-portal-wlr` required.
-- **Requirements:** Sway ≥ 1.6 (or any wlroots compositor with `create
-  output`). If the IPC is not reachable, `auto` falls back to mirroring an
+- **Requirements:** Sway ≥ 1.6 (or any wlroots compositor with `create_output`).
+  If the IPC is not reachable, `auto` falls back to mirroring an
   existing output via screencopy.
 - **Troubleshooting:**
   - `doctor` shows `virtual out: no compositor IPC reachable` — check that
