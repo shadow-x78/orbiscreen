@@ -1,8 +1,11 @@
 // Orbiscreen - orbiscreen-input - wayland module (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-use ashpd::desktop::remote_desktop::{DeviceType, KeyState, RemoteDesktop, SelectDevicesOptions};
-use ashpd::desktop::Session;
+use ashpd::desktop::remote_desktop::{
+    DeviceType, KeyState, RemoteDesktop, SelectDevicesOptions, SelectedDevices,
+};
+use ashpd::desktop::{PersistMode, ResponseError, Session};
 use enumflags2::BitFlags;
+use orbiscreen_core::portal_state;
 use thiserror::Error;
 use tracing::{info, instrument, warn};
 
@@ -33,31 +36,71 @@ pub struct WaylandInjector {
     session: std::sync::Arc<Session<RemoteDesktop>>,
 }
 
+fn device_options() -> SelectDevicesOptions {
+    SelectDevicesOptions::default()
+        .set_devices(Some(
+            BitFlags::from(DeviceType::Keyboard) | BitFlags::from(DeviceType::Pointer),
+        ))
+        .set_persist_mode(PersistMode::ExplicitlyRevoked)
+}
+
+async fn negotiate_remote_desktop(
+    remote: &RemoteDesktop,
+    restore_token: Option<&str>,
+) -> Result<(Session<RemoteDesktop>, SelectedDevices), WaylandInputError> {
+    let session = remote
+        .create_session(Default::default())
+        .await
+        .map_err(|e| WaylandInputError::Dbus(e.to_string()))?;
+    remote
+        .select_devices(&session, device_options().set_restore_token(restore_token))
+        .await
+        .map_err(|e| WaylandInputError::Dbus(e.to_string()))?;
+    let selected = remote
+        .start(&session, None, Default::default())
+        .await
+        .map_err(|e| WaylandInputError::Dbus(e.to_string()))?
+        .response()
+        .map_err(|e| match e {
+            ashpd::Error::Response(ResponseError::Cancelled) => WaylandInputError::PermissionDenied,
+            other => WaylandInputError::Dbus(other.to_string()),
+        })?;
+    Ok((session, selected))
+}
+
 impl WaylandInjector {
     #[instrument(skip_all)]
     pub async fn open() -> Result<Self, WaylandInputError> {
         let remote = RemoteDesktop::new()
             .await
             .map_err(|e| WaylandInputError::PortalUnavailable(e.to_string()))?;
-        let session = remote
-            .create_session(Default::default())
-            .await
-            .map_err(|e| WaylandInputError::Dbus(e.to_string()))?;
-        remote
-            .select_devices(
-                &session,
-                SelectDevicesOptions::default().set_devices(Some(
-                    BitFlags::from(DeviceType::Keyboard) | BitFlags::from(DeviceType::Pointer),
-                )),
-            )
-            .await
-            .map_err(|e| WaylandInputError::Dbus(e.to_string()))?;
-        remote
-            .start(&session, None, Default::default())
-            .await
-            .map_err(|e| WaylandInputError::Dbus(e.to_string()))?
-            .response()
-            .map_err(|e| WaylandInputError::Dbus(e.to_string()))?;
+        let mut state = portal_state::load_portal_state();
+        let saved_token = state.remote_desktop_restore_token.clone();
+        let (session, selected) =
+            match negotiate_remote_desktop(&remote, saved_token.as_deref()).await {
+                Ok(pair) => pair,
+                Err(first_error) => {
+                    if saved_token.is_some() {
+                        warn!(
+                            "saved remote-desktop restore token was not accepted \
+                             ({first_error}); asking for a fresh grant"
+                        );
+                        negotiate_remote_desktop(&remote, None).await?
+                    } else {
+                        return Err(first_error);
+                    }
+                }
+            };
+        if let Some(token) = selected.restore_token() {
+            state.remote_desktop_restore_token = Some(token.to_string());
+            match portal_state::save_portal_state(&state) {
+                Ok(()) => info!(
+                    "remote-desktop permission persisted — the grant dialog will not \
+                     reappear on the next runs"
+                ),
+                Err(e) => warn!("failed to persist portal state: {e}"),
+            }
+        }
         info!("RemoteDesktop session established");
         Ok(Self {
             remote,

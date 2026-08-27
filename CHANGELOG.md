@@ -9,6 +9,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.13.0] - 2026-08-27
+
+Desktop-environment parity release: the full KDE-level experience (a real compositor-native virtual display, no root, no dialogs) now extends to wlroots compositors, portal grants persist across runs on GNOME, input injection is rootless on X11 and portal-free on wlroots, and per-frame allocations/copies were removed across the whole pipeline.
+
+### Added — discovery & diagnostics
+- **`orbiscreen doctor`** (`--json` for the GTK panel): prints the detected session/compositor, the exact ordered capture plan `auto` will follow, EVDI module state, portal presence on the session bus, saved permission grants, swaymsg/hyprctl availability, wlroots virtual-output IPC reachability, and `/dev/uinput` writability — each finding paired with the fix.
+- **`orbiscreen doctor --fix [--yes]`**: detects the distro from `/etc/os-release` (dnf/apt/pacman/zypper incl. `ID_LIKE` derivatives), offers to install the EVDI package (`evdi` / `evdi-dkms` + headers), loads the module, and re-verifies.
+- **Central environment analyzer** (`capabilities.rs`): session + compositor detection from `XDG_SESSION_TYPE`, `WAYLAND_DISPLAY`, `XDG_CURRENT_DESKTOP`, `DESKTOP_SESSION`, `KDE_FULL_SESSION`, `HYPRLAND_INSTANCE_SIGNATURE`, `SWAYSOCK`, `GAMESCOPE_WAYLAND_DISPLAY`, with a full detection-matrix test suite.
+- **Capability-driven capture plan**: `auto` no longer uses a hardcoded chain; it resolves the try-chain from detected capabilities and logs the resolved plan and the reason every step succeeds or falls through. Plans: KDE `kwin-virtual → portal`; wlroots `wlroots-virtual → wlr-screencopy → portal → evdi`; other Wayland `portal`; X11 `evdi → x11-root`.
+- GTK panel shows the active capture backend in its status row.
+
+### Added — wlroots capture & virtual displays
+- **New `wlr-screencopy` capture backend**: `zwlr_screencopy_manager_v1` with SHM buffers (memfd-backed), damage-aware copies where the compositor supports them, per-output capture by name, stride padding removed, XRGB→opaque alpha normalization, strict frame validation, and clean teardown. No portal, no share dialog.
+- **New capture preference `screencopy`** (`[capture] preferred = "screencopy"`), accepted by config validation.
+- **Compositor-native virtual outputs on wlroots** (`WlrootsVirtualOutput`): the daemon creates a headless output via Sway IPC (`SWAYSOCK`, native i3-ipc framing, `create output` + mode) or Hyprland IPC (`HYPRLAND_INSTANCE_SIGNATURE` socket, `output create/destroy`), waits until the output is advertised and active, captures it by name with screencopy, and removes the output on stop/crash/drop. IPC failure falls back cleanly to mirroring an existing output; the doctor explains which IPC (if any) is reachable.
+- **CI integration test on headless sway**: a dedicated job spawns sway with `WLR_BACKENDS=headless` and exercises real screencopy capture, virtual-output create/list/drop lifecycle, and output teardown.
+
+### Added — GNOME / portal UX
+- **Dialog-free portal sessions**: ScreenCast permissions are persisted via restore tokens (`PersistMode::ExplicitlyRevoked`) in `$XDG_STATE_HOME/orbiscreen/portal.json`; a failed/stale token automatically retries with a fresh selection. After the first grant, GNOME streams start instantly with no dialog.
+- The RemoteDesktop **input** session persists its grant the same way (separate token).
+- `doctor` reports whether each grant is saved.
+
+### Added — rootless / portal-free input
+- **wlroots-native input injection** (`virtual-keyboard-unstable-v1` + `wlr-virtual-pointer-unstable-v1`, protocol XML vendored): absolute pointer events and keyboard injection directly on the Wayland socket — no `xdg-desktop-portal-wlr` needed. Pointer coordinates are normalized to the captured output when one is known.
+- **New input order on Wayland**: wlroots-native → RemoteDesktop portal → uinput, each with an explanatory fallback warning.
+- **XTEST injector for X11**: rootless pointer/keyboard injection via xcb-xtest for any user; uinput remains the stronger fallback when `/dev/uinput` is available.
+
+### Added — frame-pipeline efficiency
+- **Pooled frame buffers** (`FramePool`/`PooledFrameBuffer` in `orbiscreen-core`): X11, wlr-screencopy, portal, and KWin capture now fill recycled buffers instead of allocating per frame; the encoder wraps pooled buffers directly into GStreamer buffers (`gst_buffer_new_wrapped` semantics) — the previous per-frame `appsrc` alloc+copy is gone, and each buffer returns to the pool when GStreamer releases the frame.
+- **X11 capture upgraded to MIT-SHM**: one persistent shared image (memfd + `attach_fd`, requires MIT-SHM ≥ 1.2) that the X server writes into directly — no per-frame reply payload over the socket — with automatic fallback to plain `GetImage` when the extension is absent (verified live against Xwayland).
+- **Identical-frame skipping on X11 mirroring**: a fast 128-bit frame hash suppresses duplicate frames, so an idle mirrored desktop no longer burns CPU re-encoding unchanged content (keepalive pacing unchanged).
+
+### Tests
+- Frame-assembly unit tests (stride stripping, premultiplied alpha, truncation), frame-pool recycling/cap tests, hash tests, distro-detection tests for `doctor --fix`, capability matrix tests, plus the sway-headless and live-DISPLAY X11 integration tests.
+
+### Deferred to a follow-up
+- **DMA-BUF zero-copy** (planned phase-5 item): requires per-hardware validation that cannot be done in headless CI; the SHM path stays the default.
+- **GTK panel EVDI wizard** (planned phase-6 item): `doctor --fix` covers the guided flow on the CLI in the meantime.
+- KDE/sway/Xvfb side-by-side performance measurements: to be published once measured on reference hardware.
+
 ## [v0.12.6] - 2026-08-27
 
 Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, build, tests, audit, machete, deny, shellcheck, gradle assemble+lint) re-run and all findings fixed.

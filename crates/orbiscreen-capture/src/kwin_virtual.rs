@@ -414,6 +414,7 @@ impl KwinVirtualCapture {
             .map_err(|_| KwinVirtualError::Wayland("appsink downcast".into()))?;
 
         let (tx, rx) = mpsc::channel::<CapturedFrame>(FRAME_CHANNEL_CAPACITY);
+        let pool = orbiscreen_core::frame_pool::FramePool::new();
         appsink.set_callbacks(
             AppSinkCallbacks::builder()
                 .new_sample(move |sink| {
@@ -424,7 +425,7 @@ impl KwinVirtualCapture {
                             return Err(gstreamer::FlowError::Eos);
                         }
                     };
-                    if let Some(frame) = sample_to_captured_frame(&sample) {
+                    if let Some(frame) = sample_to_captured_frame(&sample, &pool) {
                         if tx.try_send(frame).is_err() {
                             tracing::debug!("capture frame dropped: consumer channel full");
                         }

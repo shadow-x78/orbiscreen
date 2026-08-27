@@ -1,5 +1,8 @@
 // Orbiscreen - orbiscreen-core library (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
+pub mod frame_pool;
+pub mod portal_state;
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -39,8 +42,14 @@ impl Default for CaptureConfig {
 }
 
 impl CaptureConfig {
-    const PREFERENCES: &'static [&'static str] =
-        &["auto", "kwin-virtual", "portal", "evdi", "mirror"];
+    const PREFERENCES: &'static [&'static str] = &[
+        "auto",
+        "kwin-virtual",
+        "screencopy",
+        "portal",
+        "evdi",
+        "mirror",
+    ];
 
     pub fn sanitize(&mut self) {
         if !Self::PREFERENCES.contains(&self.preferred.as_str()) {

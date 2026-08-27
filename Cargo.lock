@@ -1501,6 +1501,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
+name = "memmap2"
+version = "0.9.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1219ed1b7f229ee7104d281dd01d6802fe28bb6e95d292942c4daacdeb798c0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "memoffset"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1603,13 +1612,15 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-capture"
-version = "0.12.6"
+version = "0.13.0"
 dependencies = [
  "ashpd",
  "enumflags2",
  "gstreamer",
  "gstreamer-app",
  "libc",
+ "orbiscreen-core",
+ "serde_json",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
@@ -1621,16 +1632,18 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-core"
-version = "0.12.6"
+version = "0.13.0"
 dependencies = [
  "serde",
+ "serde_json",
  "thiserror 2.0.20",
  "toml",
+ "tracing",
 ]
 
 [[package]]
 name = "orbiscreen-daemon"
-version = "0.12.6"
+version = "0.13.0"
 dependencies = [
  "clap",
  "hostname",
@@ -1649,7 +1662,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-display"
-version = "0.12.6"
+version = "0.13.0"
 dependencies = [
  "drm-fourcc",
  "evdi",
@@ -1660,10 +1673,11 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-encode"
-version = "0.12.6"
+version = "0.13.0"
 dependencies = [
  "gstreamer",
  "gstreamer-app",
+ "orbiscreen-core",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
@@ -1671,7 +1685,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-gtk"
-version = "0.12.6"
+version = "0.13.0"
 dependencies = [
  "gtk4",
  "libadwaita",
@@ -1685,21 +1699,29 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-input"
-version = "0.12.6"
+version = "0.13.0"
 dependencies = [
  "ashpd",
  "enumflags2",
  "evdevil",
+ "libc",
+ "orbiscreen-core",
  "serde",
  "serde_json",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols-wlr",
+ "wayland-scanner",
+ "x11rb",
+ "xkbcommon",
 ]
 
 [[package]]
 name = "orbiscreen-transport"
-version = "0.12.6"
+version = "0.13.0"
 dependencies = [
  "axum",
  "base64",
@@ -2912,6 +2934,23 @@ name = "x11rb-protocol"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acf4d1bc32aa46eec18caa634ec3cf4c05bfa151f12b93b510b15190f69a1ca8"
+
+[[package]]
+name = "xkbcommon"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7a974f48060a14e95705c01f24ad9c3345022f4d97441b8a36beb7ed5c4a02d"
+dependencies = [
+ "libc",
+ "memmap2",
+ "xkeysym",
+]
+
+[[package]]
+name = "xkeysym"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9cc00251562a284751c9973bace760d86c0276c471b4be569fe6b068ee97a56"
 
 [[package]]
 name = "zbus"

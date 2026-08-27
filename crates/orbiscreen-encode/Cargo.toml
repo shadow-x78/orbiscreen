@@ -17,6 +17,7 @@ description = "GStreamer-based encoding pipeline (VAAPI / NVENC / x264)"
 workspace = true
 
 [dependencies]
+orbiscreen-core = { path = "../orbiscreen-core" }
 gstreamer = { workspace = true }
 gstreamer-app = { workspace = true }
 thiserror = { workspace = true }

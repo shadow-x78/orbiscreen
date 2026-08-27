@@ -6,7 +6,7 @@
 
 ---
 
-> Applies to **v0.12.6** and later. The release matrix is: `0.12.6` (workspace), `versionCode = 25` (Android). Note: the Android release keystore is no longer shipped in the repo - see SECURITY.md; supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
+> Applies to **v0.13.0** and later. The release matrix is: `0.13.0` (workspace), `versionCode = 26` (Android). Note: the Android release keystore is no longer shipped in the repo - see SECURITY.md; supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
 
 Orbiscreen provides build configurations and package definitions for all major Linux distributions and Android:
 

@@ -90,8 +90,22 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 | 3 | Wayland capture + portal fallback + input | ✅ Completed |
 | 4 | Packaging + GTK4 GUI + D-Bus service + Standalone installation | ✅ Completed |
 | 5 | Material 3 UI + live discovery + control panel | ✅ Completed |
+| 6 | Desktop-environment parity: compositor virtual outputs, wlr-screencopy, rootless input, `doctor` | ✅ Completed |
 
 > See `CHANGELOG.md` for the complete release history.
+
+### Desktop support matrix
+
+| Environment | Virtual second display | Capture | Input |
+|-------------|------------------------|---------|-------|
+| KDE Plasma (Wayland) | ✅ Native (zkde-screencast, no root / no dialog) | ✅ PipeWire | ✅ RemoteDesktop portal |
+| Sway / wlroots general | ✅ Headless output via compositor IPC (no root) | ✅ wlr-screencopy (no dialog) | ✅ virtual-pointer / virtual-keyboard (no portal) |
+| Hyprland | ✅ Headless output via compositor IPC (no root) | ✅ wlr-screencopy (no dialog) | ✅ virtual-pointer / virtual-keyboard (no portal) |
+| GNOME (Wayland) | ⚠️ Via EVDI | ✅ Portal — dialog only on the first run (saved restore token) | ✅ RemoteDesktop portal — likewise persisted |
+| XFCE / MATE / LXQt / Cinnamon (X11) | ✅ Via EVDI | ✅ XShm mirrored root (pooled, duplicate frames skipped) | ✅ XTEST (rootless), uinput fallback |
+| Anything else | ✅ Via EVDI (guided by `orbiscreen doctor --fix`) | Best available backend | Best available backend |
+
+`orbiscreen doctor` reports the detected compositor, the exact capture plan `auto` will follow, and what is missing on the system; `orbiscreen doctor --fix` installs the EVDI kernel module on detected distros. Full details in [`docs/DE_SUPPORT.md`](docs/DE_SUPPORT.md).
 
 ---
 
@@ -140,17 +154,19 @@ cd ~/Orbiscreen
 ./scripts/install.sh
 
 # evdi kernel module (DKMS) - required for a real second monitor on most
-# desktops. On KDE Plasma Wayland no kernel module is needed: the daemon
-# creates a KWin virtual monitor on its own (no root, no share dialog).
-# Without either path Orbiscreen streams a display picked in the portal
-# share dialog. See docs/TROUBLESHOOTING.md for per-distro steps. Then:
+# desktops. On KDE Plasma Wayland and on wlroots compositors (Sway, Hyprland)
+# no kernel module is needed: the daemon creates a compositor-native virtual
+# monitor on its own (no root, no share dialog). Without any of those paths
+# Orbiscreen streams a display picked in the portal share dialog.
+# Run `orbiscreen doctor` to see what applies to your system.
+# See docs/TROUBLESHOOTING.md for per-distro steps. Then:
 sudo modprobe evdi
 
-# Probe local capture, input, and display backends
-orbiscreen probe
+# Diagnose the environment: detected compositor, capture plan, missing pieces
+orbiscreen doctor
 
-# Start the Orbiscreen daemon (EVDI DRM, KWin virtual display, or Wayland
-# Portal auto-fallback)
+# Start the Orbiscreen daemon (EVDI DRM, KWin/wlroots virtual display, or
+# portal auto-fallback)
 orbiscreen start
 ```
 
@@ -163,13 +179,14 @@ point at another location with `--config /path/to/orbiscreen.toml`.
 
 ```toml
 [capture]
-preferred = "auto"   # auto (default) | kwin-virtual | evdi | portal | mirror
+preferred = "auto"   # auto (default) | kwin-virtual | screencopy | evdi | portal | mirror
 ```
 
 | Value | Behaviour |
 |-------|-----------|
-| `auto` | KDE Plasma Wayland: KWin virtual display (no root, no dialog) → portal. X11: EVDI when its module is loaded, else root capture. |
+| `auto` | KDE Plasma Wayland: KWin virtual display. Sway/Hyprland/wlroots: compositor virtual output via IPC, else wlr-screencopy mirror, else portal. X11: EVDI when its module is loaded, else root capture. |
 | `kwin-virtual` | Always the KWin virtual monitor (fails on non-KDE compositors). |
+| `screencopy` | Always wlroots screencopy capture (needs a wlroots-based compositor). |
 | `evdi` | Always the EVDI DRM virtual display (opt-in — needs the root-installed kernel module). |
 | `portal` | Always the portal share dialog; pick any screen. |
 | `mirror` | Show your **real** desktop instead of a second monitor: pick the screen to mirror in the share dialog. |
@@ -194,6 +211,9 @@ preferred = "auto"   # auto (default) | kwin-virtual | evdi | portal | mirror
 | `orbiscreen stop` | Gracefully stop a running daemon via D-Bus |
 | `orbiscreen list-displays` | List configured virtual displays |
 | `orbiscreen probe` | Report capture / input / display backends |
+| `orbiscreen doctor` | Diagnose the environment: compositor, capture plan, missing permissions/tools |
+| `orbiscreen doctor --json` | Machine-readable doctor report (consumed by the GTK panel) |
+| `orbiscreen doctor --fix` | Detect the distro and offer to install/load the EVDI kernel module (`--yes` to skip the prompt) |
 | `orbiscreen print-config` | Print the resolved configuration |
 | `orbiscreen uninstall` | Remove the daemon, systemd service, and desktop entries |
 
@@ -294,6 +314,7 @@ orbiscreen/
 | Document | Description |
 |----------|-------------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | System topology, frame pipeline & D-Bus architecture |
+| [docs/DE_SUPPORT.md](docs/DE_SUPPORT.md) · [AR](docs/DE_SUPPORT_AR.md) | Per-desktop support matrix, capture plans & troubleshooting |
 | [docs/INSTALL.md](docs/INSTALL.md) · [AR](docs/INSTALL_AR.md) | Multi-distro installation walkthroughs |
 | [docs/PACKAGING.md](docs/PACKAGING.md) · [AR](docs/PACKAGING_AR.md) | Multi-distro packaging specs (.deb, .rpm, AppImage, Flatpak) |
 | [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) · [AR](docs/DBUS_SPEC_AR.md) | D-Bus Session Bus IPC interface specifications |

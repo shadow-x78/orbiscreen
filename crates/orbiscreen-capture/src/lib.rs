@@ -1,12 +1,16 @@
 // Orbiscreen - orbiscreen-capture library (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
+pub mod capabilities;
 pub mod damage_pump;
 pub mod kwin_virtual;
 pub mod wayland;
+pub mod wlr_screencopy;
+pub mod wlr_virtual_output;
 pub mod x11;
 
 use std::sync::Arc;
 
+use orbiscreen_core::frame_pool::{FramePool, PooledFrameBuffer};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,6 +18,7 @@ pub enum CaptureBackend {
     X11,
     Wayland,
     KwinVirtual,
+    WlrScreencopy,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,6 +26,8 @@ pub enum CapturePreference {
     Auto,
 
     KwinVirtual,
+
+    Screencopy,
 
     Portal,
 
@@ -31,6 +38,7 @@ impl CapturePreference {
     pub fn parse(value: &str) -> Self {
         match value {
             "kwin-virtual" => Self::KwinVirtual,
+            "screencopy" => Self::Screencopy,
             "portal" => Self::Portal,
             "mirror" => Self::Mirror,
             _ => Self::Auto,
@@ -62,11 +70,20 @@ impl From<x11rb::xcb_ffi::ConnectionError> for CaptureError {
     }
 }
 
-#[derive(Debug, Clone)]
 pub struct CapturedFrame {
     pub width: u32,
     pub height: u32,
-    pub data: Vec<u8>,
+    pub data: PooledFrameBuffer,
+}
+
+impl std::fmt::Debug for CapturedFrame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CapturedFrame")
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .field("data_len", &self.data.len())
+            .finish()
+    }
 }
 
 impl CapturedFrame {
@@ -83,7 +100,10 @@ pub struct CaptureSession {
     height: u32,
 }
 
-pub(crate) fn sample_to_captured_frame(sample: &gstreamer::Sample) -> Option<CapturedFrame> {
+pub(crate) fn sample_to_captured_frame(
+    sample: &gstreamer::Sample,
+    pool: &Arc<FramePool>,
+) -> Option<CapturedFrame> {
     let Some(buffer) = sample.buffer() else {
         tracing::warn!("skipping sample with no buffer");
         return None;
@@ -115,10 +135,12 @@ pub(crate) fn sample_to_captured_frame(sample: &gstreamer::Sample) -> Option<Cap
         );
         return None;
     }
+    let mut data = pool.acquire(expected);
+    data.copy_from_slice(map.as_slice());
     Some(CapturedFrame {
         width: width as u32,
         height: height as u32,
-        data: map.to_vec(),
+        data,
     })
 }
 
@@ -127,6 +149,7 @@ enum CaptureInner {
     X11(x11::X11Capture),
     Wayland(wayland::WaylandCapture),
     KwinVirtual(kwin_virtual::KwinVirtualCapture),
+    WlrScreencopy(wlr_screencopy::WlrScreencopyCapture),
 }
 
 impl CaptureSession {
@@ -174,6 +197,24 @@ impl CaptureSession {
         })
     }
 
+    pub async fn open_screencopy(output_name: Option<String>) -> Result<Self, CaptureError> {
+        let capture = tokio::task::spawn_blocking(move || {
+            wlr_screencopy::WlrScreencopyCapture::open(wlr_screencopy::WlrScreencopySpec {
+                output_name,
+            })
+        })
+        .await
+        .map_err(|e| CaptureError::Io(format!("wlr-screencopy open task: {e}")))??;
+        let (actual_w, actual_h) = capture.dimensions();
+        tracing::info!("wlroots screencopy capture open — no portal, no share dialog");
+        Ok(Self {
+            backend_kind: CaptureBackend::WlrScreencopy,
+            inner: Arc::new(CaptureInner::WlrScreencopy(capture)),
+            width: actual_w,
+            height: actual_h,
+        })
+    }
+
     pub async fn open_with_preference(
         width: u32,
         height: u32,
@@ -185,6 +226,9 @@ impl CaptureSession {
                 CapturePreference::Auto => Self::open_x11(width, height),
                 CapturePreference::KwinVirtual => Err(CaptureError::BackendUnavailable(
                     "kwin-virtual capture requires a Wayland session",
+                )),
+                CapturePreference::Screencopy => Err(CaptureError::BackendUnavailable(
+                    "screencopy capture requires a Wayland session",
                 )),
                 CapturePreference::Portal | CapturePreference::Mirror => Err(
                     CaptureError::BackendUnavailable("portal capture requires a Wayland session"),
@@ -202,6 +246,7 @@ impl CaptureSession {
                 }
             },
             CapturePreference::KwinVirtual => Self::open_kwin(width, height).await,
+            CapturePreference::Screencopy => Self::open_screencopy(None).await,
             CapturePreference::Portal => Self::open_portal(width, height).await,
             CapturePreference::Mirror => {
                 tracing::info!(
@@ -219,6 +264,7 @@ impl CaptureSession {
     pub fn is_ended(&self) -> bool {
         match self.inner.as_ref() {
             CaptureInner::KwinVirtual(capture) => capture.is_ended(),
+            CaptureInner::WlrScreencopy(capture) => capture.is_ended(),
             CaptureInner::X11(_) | CaptureInner::Wayland(_) => false,
         }
     }
@@ -236,6 +282,7 @@ impl CaptureSession {
             CaptureInner::X11(capture) => capture.next_frame().await,
             CaptureInner::Wayland(capture) => capture.next_frame().await,
             CaptureInner::KwinVirtual(capture) => capture.next_frame().await,
+            CaptureInner::WlrScreencopy(capture) => capture.next_frame().await,
         }
     }
 }
@@ -288,10 +335,11 @@ mod tests {
 
     #[test]
     fn empty_frame_is_zeroes() {
+        let pool = FramePool::new();
         let frame = CapturedFrame {
             width: 4,
             height: 2,
-            data: vec![0; 32],
+            data: pool.acquire(32),
         };
         assert_eq!(frame.data.len(), 32);
         assert!(frame.data.iter().all(|b| *b == 0));

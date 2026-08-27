@@ -7,6 +7,8 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
+use orbiscreen_capture::capabilities::{Capabilities, CaptureStep};
+use orbiscreen_capture::wlr_virtual_output::{VirtualOutputSpec, WlrootsVirtualOutput};
 use orbiscreen_capture::{CapturePreference, CaptureSession};
 use orbiscreen_core::{dump_config, load_config, Config};
 use orbiscreen_display::{DisplayStatus, EvdiFramePump, VirtualDisplaySpec};
@@ -46,6 +48,14 @@ enum Command {
     Uninstall,
     ListDisplays,
     Probe,
+    Doctor {
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        fix: bool,
+        #[arg(long)]
+        yes: bool,
+    },
     PrintConfig,
 }
 
@@ -107,16 +117,20 @@ fn list_displays(path: &str) {
     println!("display backend: {:?}", orbiscreen_display::probe());
 }
 
-#[derive(Clone)]
 struct Frame {
     width: u32,
     height: u32,
-    data: Vec<u8>,
+    data: orbiscreen_core::frame_pool::PooledFrameBuffer,
 }
 
 enum FrameSource {
-    Evdi(EvdiFramePump),
+    Evdi(EvdiFramePump, Arc<orbiscreen_core::frame_pool::FramePool>),
     Capture(CaptureSession),
+    WlrVirtual {
+        session: CaptureSession,
+        #[allow(dead_code)]
+        output: WlrootsVirtualOutput,
+    },
 }
 
 enum SourceOutcome {
@@ -128,15 +142,23 @@ enum SourceOutcome {
 impl FrameSource {
     async fn next_frame(&mut self) -> SourceOutcome {
         match self {
-            FrameSource::Evdi(pump) => match pump.next_frame().await {
+            FrameSource::Evdi(pump, pool) => match pump.next_frame().await {
                 Some(frame) => SourceOutcome::Frame(Frame {
                     width: frame.width,
                     height: frame.height,
-                    data: frame.data,
+                    data: pool.wrap(frame.data),
                 }),
                 None => SourceOutcome::Ended,
             },
             FrameSource::Capture(capture) => match capture.next_frame().await {
+                Ok(frame) => SourceOutcome::Frame(Frame {
+                    width: frame.width,
+                    height: frame.height,
+                    data: frame.data,
+                }),
+                Err(e) => SourceOutcome::Retryable(e.to_string()),
+            },
+            FrameSource::WlrVirtual { session, .. } => match session.next_frame().await {
                 Ok(frame) => SourceOutcome::Frame(Frame {
                     width: frame.width,
                     height: frame.height,
@@ -149,26 +171,30 @@ impl FrameSource {
 
     fn backend_name(&self) -> &'static str {
         match self {
-            FrameSource::Evdi(_) => "evdi",
+            FrameSource::Evdi(_, _) => "evdi",
+            FrameSource::WlrVirtual { .. } => "wlr-virtual",
             FrameSource::Capture(c) => match c.backend() {
                 orbiscreen_capture::CaptureBackend::X11 => "x11",
                 orbiscreen_capture::CaptureBackend::Wayland => "wayland-portal",
                 orbiscreen_capture::CaptureBackend::KwinVirtual => "kwin-virtual",
+                orbiscreen_capture::CaptureBackend::WlrScreencopy => "wlr-screencopy",
             },
         }
     }
 
     fn is_ended(&self) -> bool {
         match self {
-            FrameSource::Evdi(_) => false,
+            FrameSource::Evdi(_, _) => false,
             FrameSource::Capture(capture) => capture.is_ended(),
+            FrameSource::WlrVirtual { session, .. } => session.is_ended(),
         }
     }
 
     fn actual_dimensions(&self) -> (u32, u32) {
         match self {
-            FrameSource::Evdi(pump) => pump.actual_dimensions(),
+            FrameSource::Evdi(pump, _) => pump.actual_dimensions(),
             FrameSource::Capture(capture) => (capture.width(), capture.height()),
+            FrameSource::WlrVirtual { session, .. } => (session.width(), session.height()),
         }
     }
 }
@@ -228,6 +254,13 @@ async fn main() -> ExitCode {
             probe();
             ExitCode::SUCCESS
         }
+        Command::Doctor { json, fix, yes } => {
+            if fix {
+                run_doctor_fix(yes).await
+            } else {
+                run_doctor(json).await
+            }
+        }
         Command::PrintConfig => match dump_config(&cfg) {
             Ok(s) => {
                 println!("{s}");
@@ -283,6 +316,469 @@ fn run_uninstall() {
     println!("[Orbiscreen] Uninstallation complete.");
 }
 
+type DynError = Box<dyn std::error::Error + Send + Sync>;
+
+async fn try_capture_step(
+    step: CaptureStep,
+    spec: VirtualDisplaySpec,
+    frame_pool: &Arc<orbiscreen_core::frame_pool::FramePool>,
+) -> Result<FrameSource, DynError> {
+    match step {
+        CaptureStep::Evdi => {
+            let pump = EvdiFramePump::spawn(spec)?;
+            info!(
+                connector = ?pump.info().connector,
+                device_index = pump.info().device_index,
+                "Virtual display is open (EVDI DRM active); streaming the evdi framebuffer",
+            );
+            Ok(FrameSource::Evdi(pump, Arc::clone(frame_pool)))
+        }
+        CaptureStep::X11Root => {
+            let capture = CaptureSession::open_with_preference(
+                spec.width,
+                spec.height,
+                CapturePreference::Auto,
+            )
+            .await?;
+            info!(backend = ?capture.backend(), "Capture backend open");
+            Ok(FrameSource::Capture(capture))
+        }
+        CaptureStep::KwinVirtual => {
+            let capture = CaptureSession::open_with_preference(
+                spec.width,
+                spec.height,
+                CapturePreference::KwinVirtual,
+            )
+            .await?;
+            info!(backend = ?capture.backend(), "Capture backend open");
+            Ok(FrameSource::Capture(capture))
+        }
+        CaptureStep::Portal => {
+            let capture = CaptureSession::open_with_preference(
+                spec.width,
+                spec.height,
+                CapturePreference::Portal,
+            )
+            .await?;
+            info!(backend = ?capture.backend(), "Capture backend open");
+            Ok(FrameSource::Capture(capture))
+        }
+        CaptureStep::WlrootsVirtual => {
+            let vspec = VirtualOutputSpec {
+                width: spec.width,
+                height: spec.height,
+                refresh_rate_hz: spec.refresh_rate_hz,
+            };
+            let output = tokio::task::spawn_blocking(move || WlrootsVirtualOutput::create(vspec))
+                .await
+                .map_err(|e| format!("wlroots virtual output task: {e}"))??;
+            let output_name = output.name().to_string();
+            let session = CaptureSession::open_screencopy(Some(output_name)).await?;
+            info!(backend = ?session.backend(), "Capture backend open");
+            Ok(FrameSource::WlrVirtual { session, output })
+        }
+        CaptureStep::WlrScreencopy => {
+            let capture = CaptureSession::open_with_preference(
+                spec.width,
+                spec.height,
+                CapturePreference::Screencopy,
+            )
+            .await?;
+            info!(backend = ?capture.backend(), "Capture backend open");
+            Ok(FrameSource::Capture(capture))
+        }
+    }
+}
+
+async fn resolve_frame_source(
+    preferred: &str,
+    caps: &Capabilities,
+    spec: VirtualDisplaySpec,
+    frame_pool: &Arc<orbiscreen_core::frame_pool::FramePool>,
+) -> Result<FrameSource, DynError> {
+    let chain = match preferred {
+        "auto" => caps.auto_chain(),
+        "evdi" => vec![CaptureStep::Evdi],
+        "kwin-virtual" => vec![CaptureStep::KwinVirtual],
+        "screencopy" => vec![CaptureStep::WlrScreencopy],
+        "portal" | "mirror" => vec![CaptureStep::Portal],
+        _ => vec![CaptureStep::X11Root],
+    };
+    let explicit = preferred != "auto";
+    info!(
+        session = %caps.session,
+        compositor = %caps.compositor,
+        preferred = preferred,
+        chain = ?chain,
+        "capture plan resolved from environment capabilities",
+    );
+    let mut last_err: Option<DynError> = None;
+    for step in chain {
+        match try_capture_step(step, spec, frame_pool).await {
+            Ok(source) => {
+                if let Some(e) = last_err {
+                    info!(step = %step, "capture step succeeded after earlier failure: {e}");
+                }
+                return Ok(source);
+            }
+            Err(e) => {
+                if explicit {
+                    return Err(e);
+                }
+                warn!(step = %step, "capture step failed ({e}); trying the next step in the chain");
+                last_err = Some(e);
+            }
+        }
+    }
+    match last_err {
+        Some(e) => Err(e),
+        None => Err("no capture step is available for this environment".into()),
+    }
+}
+
+fn display_status_text(status: DisplayStatus) -> &'static str {
+    match status {
+        DisplayStatus::Compatible => "Compatible (kernel + libevdi OK)",
+        DisplayStatus::Outdated => "Outdated (kernel evdi older than libevdi requires)",
+        DisplayStatus::KernelModuleMissing => "kernel module missing",
+        DisplayStatus::NoDeviceNode => {
+            "kernel OK, no evdi device node yet (added by `orbiscreen start` or evdi_ctl)"
+        }
+    }
+}
+
+fn has_binary(name: &str) -> bool {
+    let Some(paths) = std::env::var_os("PATH") else {
+        return false;
+    };
+    std::env::split_paths(&paths).any(|dir| {
+        let path = dir.join(name);
+        path.is_file()
+            && std::fs::metadata(&path)
+                .map(|m| {
+                    use std::os::unix::fs::PermissionsExt as _;
+                    m.permissions().mode() & 0o111 != 0
+                })
+                .unwrap_or(false)
+    })
+}
+
+async fn portal_available() -> Option<bool> {
+    let conn = zbus::Connection::session().await.ok()?;
+    let proxy = zbus::Proxy::new(
+        &conn,
+        "org.freedesktop.DBus",
+        "/org/freedesktop/DBus",
+        "org.freedesktop.DBus",
+    )
+    .await
+    .ok()?;
+    let owned: bool = tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        proxy.call::<_, &str, bool>("NameHasOwner", &"org.freedesktop.portal.Desktop"),
+    )
+    .await
+    .ok()?
+    .ok()?;
+    Some(owned)
+}
+
+async fn run_doctor(json: bool) -> ExitCode {
+    let caps = Capabilities::from_env();
+    let chain = caps.auto_chain();
+    let display_status = orbiscreen_display::probe();
+    let input = orbiscreen_input::detect_backend();
+    let uinput_writable = std::fs::OpenOptions::new()
+        .write(true)
+        .open("/dev/uinput")
+        .is_ok();
+    let swaymsg = has_binary("swaymsg");
+    let hyprctl = has_binary("hyprctl");
+    let wlr_virtual_ipc = orbiscreen_capture::wlr_virtual_output::detect_ipc_kind();
+    let portal_state = orbiscreen_core::portal_state::load_portal_state();
+    let screencast_saved = portal_state.screencast_restore_token.is_some();
+    let input_saved = portal_state.remote_desktop_restore_token.is_some();
+    let portal = match caps.session {
+        orbiscreen_capture::capabilities::SessionType::Wayland => portal_available().await,
+        _ => None,
+    };
+
+    if json {
+        let report = serde_json::json!({
+            "session": caps.session.to_string(),
+            "compositor": caps.compositor.to_string(),
+            "current_desktop": caps.current_desktop,
+            "capture_plan": chain.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+            "display_backend": display_status_text(display_status),
+            "input_backend": format!("{input:?}"),
+            "uinput_writable": uinput_writable,
+            "portal_on_session_bus": portal,
+            "screencast_saved_token": screencast_saved,
+            "remote_desktop_saved_token": input_saved,
+            "swaymsg": swaymsg,
+            "hyprctl": hyprctl,
+            "wlroots_virtual_output_ipc": wlr_virtual_ipc.map(|k| k.to_string()),
+        });
+        println!("{report}");
+        return ExitCode::SUCCESS;
+    }
+
+    println!("[Orbiscreen doctor]");
+    println!(
+        "session:      {}{}",
+        caps.session,
+        caps.current_desktop
+            .as_deref()
+            .map(|d| format!(" (XDG_CURRENT_DESKTOP={d})"))
+            .unwrap_or_default(),
+    );
+    println!("compositor:   {}", caps.compositor);
+    println!(
+        "capture plan: {}   (what `auto` will try, in order)",
+        chain
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>()
+            .join(" -> "),
+    );
+    println!(
+        "display:      evdi — {}  (kernel-level virtual display; used on X11 and as an \
+         extension display anywhere)",
+        display_status_text(display_status),
+    );
+    println!(
+        "input:        {input:?} — /dev/uinput writable: {}{}",
+        if uinput_writable { "yes" } else { "no" },
+        if uinput_writable {
+            ""
+        } else {
+            " (uinput injection needs root or the `uinput` group; Wayland uses the portal)"
+        },
+    );
+    match portal {
+        Some(true) => {
+            println!("portal:       org.freedesktop.portal.Desktop is on the session bus")
+        }
+        Some(false) => println!(
+            "portal:       org.freedesktop.portal.Desktop NOT on the session bus — install \
+             xdg-desktop-portal and the backend for your compositor"
+        ),
+        None => {}
+    }
+    println!(
+        "permissions:  screencast grant saved: {} · input grant saved: {}   (saved grants \
+         reuse without a dialog)",
+        if screencast_saved { "yes" } else { "no" },
+        if input_saved { "yes" } else { "no" },
+    );
+    println!(
+        "tools:        swaymsg: {} · hyprctl: {}",
+        if swaymsg { "yes" } else { "no" },
+        if hyprctl { "yes" } else { "no" },
+    );
+    match wlr_virtual_ipc {
+        Some(kind) => println!(
+            "virtual out:  {kind} IPC detected — `auto` will create a compositor virtual \
+             output (no root, no dialog)"
+        ),
+        None => {
+            if caps.is_wlroots() {
+                println!(
+                    "virtual out:  no compositor IPC reachable — `auto` will mirror an existing \
+                     screen via wlr-screencopy/portal instead"
+                );
+            }
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+struct EvdiFixPlan {
+    package_manager: &'static str,
+    install_cmd: Vec<String>,
+}
+
+fn detect_evdi_fix_plan() -> Option<EvdiFixPlan> {
+    let os_release = std::fs::read_to_string("/etc/os-release").unwrap_or_default();
+    evdi_fix_plan_for_os_release(&os_release)
+}
+
+fn evdi_fix_plan_for_os_release(os_release: &str) -> Option<EvdiFixPlan> {
+    let os_release = os_release.to_ascii_lowercase();
+    let id = os_release
+        .lines()
+        .find_map(|line| line.strip_prefix("id="))
+        .unwrap_or("")
+        .trim_matches('"');
+    let id_like = os_release
+        .lines()
+        .find_map(|line| line.strip_prefix("id_like="))
+        .unwrap_or("")
+        .trim_matches('"');
+    let tokens: Vec<&str> = std::iter::once(id)
+        .chain(id_like.split_ascii_whitespace())
+        .collect();
+
+    if tokens
+        .iter()
+        .any(|t| matches!(*t, "fedora" | "rhel" | "centos"))
+    {
+        return Some(EvdiFixPlan {
+            package_manager: "dnf",
+            install_cmd: ["sudo", "dnf", "install", "-y", "evdi"]
+                .into_iter()
+                .map(String::from)
+                .collect(),
+        });
+    }
+    if tokens.iter().any(|t| matches!(*t, "opensuse" | "suse")) {
+        return Some(EvdiFixPlan {
+            package_manager: "zypper",
+            install_cmd: ["sudo", "zypper", "install", "-y", "evdi"]
+                .into_iter()
+                .map(String::from)
+                .collect(),
+        });
+    }
+    if tokens
+        .iter()
+        .any(|t| matches!(*t, "arch" | "endeavouros" | "manjaro"))
+    {
+        return Some(EvdiFixPlan {
+            package_manager: "pacman",
+            install_cmd: ["sudo", "pacman", "-S", "--noconfirm", "evdi"]
+                .into_iter()
+                .map(String::from)
+                .collect(),
+        });
+    }
+    if tokens.iter().any(|t| {
+        matches!(
+            *t,
+            "debian" | "ubuntu" | "linuxmint" | "pop" | "elementary" | "zorin"
+        )
+    }) {
+        return Some(EvdiFixPlan {
+            package_manager: "apt",
+            install_cmd: [
+                "sudo",
+                "apt-get",
+                "install",
+                "-y",
+                "evdi-dkms",
+                "dkms",
+                "linux-headers-generic",
+            ]
+            .into_iter()
+            .map(String::from)
+            .collect(),
+        });
+    }
+    None
+}
+
+fn confirm_with_user() -> bool {
+    use std::io::{BufRead as _, Write as _};
+    print!("proceed? [y/N] ");
+    let _ = std::io::stdout().flush();
+    let mut line = String::new();
+    if std::io::stdin().lock().read_line(&mut line).is_err() {
+        return false;
+    }
+    matches!(line.trim().to_ascii_lowercase().as_str(), "y" | "yes")
+}
+
+async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
+    let display_status = orbiscreen_display::probe();
+    match display_status {
+        DisplayStatus::Compatible => {
+            println!("[doctor --fix] evdi is already available — nothing to do");
+            return ExitCode::SUCCESS;
+        }
+        DisplayStatus::NoDeviceNode => {
+            println!(
+                "[doctor --fix] evdi kernel + library are OK; a device node appears once the \
+                 daemon starts one (`orbiscreen start`). nothing to do"
+            );
+            return ExitCode::SUCCESS;
+        }
+        DisplayStatus::Outdated => {
+            println!(
+                "[doctor --fix] the loaded evdi module is older than libevdi requires — \
+                 update/rebuild evdi (see docs/PACKAGING.md), then reboot"
+            );
+            return ExitCode::from(1);
+        }
+        DisplayStatus::KernelModuleMissing => {}
+    }
+
+    let Some(plan) = detect_evdi_fix_plan() else {
+        println!(
+            "[doctor --fix] could not detect a supported distribution (/etc/os-release); \
+             build evdi from source instead:\n    bash scripts/install-evdi-module.sh"
+        );
+        return ExitCode::from(1);
+    };
+    println!(
+        "[doctor --fix] evdi kernel module is missing; distro detected ({})",
+        plan.package_manager
+    );
+    println!("[doctor --fix] will run: {}", plan.install_cmd.join(" "));
+    if !assume_yes && !confirm_with_user() {
+        println!("[doctor --fix] aborted by the user");
+        return ExitCode::from(1);
+    }
+
+    let (program, args) = plan
+        .install_cmd
+        .split_first()
+        .expect("install command is not empty");
+    let status = match std::process::Command::new(program).args(args).status() {
+        Ok(status) => status,
+        Err(e) => {
+            eprintln!("[doctor --fix] failed to run {program}: {e}");
+            return ExitCode::from(1);
+        }
+    };
+    if !status.success() {
+        eprintln!(
+            "[doctor --fix] {program} exited with {status}; the package may not exist for \
+             this distro — try: bash scripts/install-evdi-module.sh"
+        );
+        return ExitCode::from(1);
+    }
+
+    let status = std::process::Command::new("sudo")
+        .args(["modprobe", "evdi"])
+        .status();
+    match status {
+        Ok(s) if s.success() => {}
+        Ok(s) => {
+            eprintln!("[doctor --fix] modprobe evdi failed: {s}");
+            return ExitCode::from(1);
+        }
+        Err(e) => {
+            eprintln!("[doctor --fix] failed to run modprobe: {e}");
+            return ExitCode::from(1);
+        }
+    }
+
+    match orbiscreen_display::probe() {
+        DisplayStatus::Compatible | DisplayStatus::NoDeviceNode => {
+            println!("[doctor --fix] evdi module loaded successfully");
+            ExitCode::SUCCESS
+        }
+        other => {
+            eprintln!(
+                "[doctor --fix] module still not ready after install ({}) — a reboot may be \
+                 required",
+                display_status_text(other)
+            );
+            ExitCode::from(1)
+        }
+    }
+}
+
 async fn run_start(
     cfg: Config,
     no_mdns: bool,
@@ -304,57 +800,9 @@ async fn run_start(
     );
 
     let preferred = cfg.capture.preferred.as_str();
-    let on_wayland = std::env::var_os("WAYLAND_DISPLAY").is_some();
-    let mut source = match preferred {
-        "evdi" => match EvdiFramePump::spawn(spec) {
-            Ok(pump) => {
-                info!(
-                    connector = ?pump.info().connector,
-                    device_index = pump.info().device_index,
-                    "Virtual display is open (EVDI DRM active); streaming the evdi framebuffer",
-                );
-                FrameSource::Evdi(pump)
-            }
-            Err(e) => {
-                error!(
-                    "capture preference 'evdi' failed: {e}. Install/load the evdi kernel module \
-                     or set [capture] preferred = \"auto\" / \"kwin-virtual\" / \"portal\"."
-                );
-                return Err(e.into());
-            }
-        },
-        "auto" if !on_wayland => match EvdiFramePump::spawn(spec) {
-            Ok(pump) => {
-                info!(
-                    connector = ?pump.info().connector,
-                    device_index = pump.info().device_index,
-                    "Virtual display is open (EVDI DRM active); streaming the evdi framebuffer",
-                );
-                FrameSource::Evdi(pump)
-            }
-            Err(e) => {
-                info!("EVDI not in use ({e}); capturing the X11 root screen");
-                let capture = CaptureSession::open_with_preference(
-                    spec.width,
-                    spec.height,
-                    CapturePreference::Auto,
-                )
-                .await?;
-                info!(backend = ?capture.backend(), "Capture backend open");
-                FrameSource::Capture(capture)
-            }
-        },
-        _ => {
-            let capture = CaptureSession::open_with_preference(
-                spec.width,
-                spec.height,
-                CapturePreference::parse(preferred),
-            )
-            .await?;
-            info!(backend = ?capture.backend(), "Capture backend open");
-            FrameSource::Capture(capture)
-        }
-    };
+    let caps = Capabilities::from_env();
+    let frame_pool = orbiscreen_core::frame_pool::FramePool::new();
+    let mut source = resolve_frame_source(preferred, &caps, spec, &frame_pool).await?;
 
     let actual_dims = source.actual_dimensions();
     info!(
@@ -364,11 +812,16 @@ async fn run_start(
     );
 
     const INPUT_OPEN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
+    let captured_output_name = match &source {
+        FrameSource::WlrVirtual { output, .. } => Some(output.name().to_string()),
+        _ => None,
+    };
     let injector = match tokio::time::timeout(
         INPUT_OPEN_TIMEOUT,
         InputInjector::open_async(VirtualTouchscreenSpec {
             width: spec.width,
             height: spec.height,
+            output_name: captured_output_name,
         }),
     )
     .await
@@ -483,26 +936,24 @@ async fn run_start(
         const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(500);
         let started = std::time::Instant::now();
         let mut last_pts_ns: u64 = frame_dur;
-        let mut last_frame: Option<Frame> = None;
+        let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = None;
         let mut last_snapshot = std::time::Instant::now() - KEEPALIVE;
         loop {
             let outcome = match tokio::time::timeout(KEEPALIVE, source.next_frame()).await {
                 Ok(outcome) => outcome,
                 Err(_elapsed) => {
-                    let Some(frame) = &last_frame else {
+                    let Some((width, height, data)) = &keepalive_frame else {
                         continue;
                     };
                     let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
                     last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
                     let pts_ns = last_pts_ns;
-                    if let Err(e) =
-                        encoder.push_frame(&frame.data, frame.width, frame.height, pts_ns)
-                    {
+                    if let Err(e) = encoder.push_frame(data, *width, *height, pts_ns) {
                         warn!(
                             "keepalive frame push rejected ({}x{}, {} B): {e}",
-                            frame.width,
-                            frame.height,
-                            frame.data.len()
+                            width,
+                            height,
+                            data.len()
                         );
                     }
                     continue;
@@ -511,29 +962,24 @@ async fn run_start(
             match outcome {
                 SourceOutcome::Frame(frame) => {
                     let n = fc.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                    let (width, height, data_len) = (frame.width, frame.height, frame.data.len());
                     if last_snapshot.elapsed() >= KEEPALIVE {
-                        last_frame = Some(frame.clone());
+                        keepalive_frame = Some((width, height, frame.data.to_vec()));
                         last_snapshot = std::time::Instant::now();
                     }
                     let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
                     last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
                     let pts_ns = last_pts_ns;
-                    if let Err(e) =
-                        encoder.push_frame(&frame.data, frame.width, frame.height, pts_ns)
-                    {
+                    if let Err(e) = encoder.push_frame_owned(frame.data, width, height, pts_ns) {
                         warn!(
                             "frame push rejected ({}x{}, {} B): {e}",
-                            frame.width,
-                            frame.height,
-                            frame.data.len()
+                            width, height, data_len
                         );
                     }
                     if n % 300 == 0 || n == 1 {
                         info!(
                             "source frame #{n} pushed ({}x{}, {} B)",
-                            frame.width,
-                            frame.height,
-                            frame.data.len()
+                            width, height, data_len
                         );
                     }
                     tokio::time::sleep(std::time::Duration::from_nanos(frame_dur)).await;
@@ -701,5 +1147,73 @@ mod tests {
     fn default_config_loads_when_file_absent() {
         let cfg = load_or_default_config("/tmp/orbiscreen-nonexistent-config.toml").unwrap();
         assert_eq!(cfg.display.width, 1920);
+    }
+
+    fn plan_pm(os_release: &str) -> Option<&'static str> {
+        evdi_fix_plan_for_os_release(os_release).map(|p| p.package_manager)
+    }
+
+    #[test]
+    fn fedora_uses_dnf() {
+        let os = "NAME=\"Fedora Linux\"\nID=fedora\nVERSION_ID=\"41\"\n";
+        assert_eq!(plan_pm(os), Some("dnf"));
+    }
+
+    #[test]
+    fn rhel_derivative_uses_dnf_via_id_like() {
+        let os = "NAME=\"Rocky Linux\"\nID=\"rocky\"\nID_LIKE=\"rhel centos fedora\"\n";
+        assert_eq!(plan_pm(os), Some("dnf"));
+    }
+
+    #[test]
+    fn ubuntu_uses_apt() {
+        let os = "NAME=\"Ubuntu\"\nID=ubuntu\nID_LIKE=debian\n";
+        assert_eq!(plan_pm(os), Some("apt"));
+    }
+
+    #[test]
+    fn debian_derivative_uses_apt_via_id_like() {
+        let os = "NAME=\"Linux Mint\"\nID=linuxmint\nID_LIKE=\"ubuntu debian\"\n";
+        assert_eq!(plan_pm(os), Some("apt"));
+    }
+
+    #[test]
+    fn arch_uses_pacman() {
+        let os = "NAME=\"Arch Linux\"\nID=arch\n";
+        assert_eq!(plan_pm(os), Some("pacman"));
+    }
+
+    #[test]
+    fn opensuse_uses_zypper() {
+        let os =
+            "NAME=\"openSUSE Tumbleweed\"\nID=\"opensuse-tumbleweed\"\nID_LIKE=\"opensuse suse\"\n";
+        assert_eq!(plan_pm(os), Some("zypper"));
+    }
+
+    #[test]
+    fn unknown_distro_has_no_plan() {
+        let os = "NAME=\"Gentoo\"\nID=gentoo\n";
+        assert_eq!(plan_pm(os), None);
+    }
+
+    #[test]
+    fn empty_os_release_has_no_plan() {
+        assert_eq!(plan_pm(""), None);
+    }
+
+    #[test]
+    fn fedora_plan_installs_evdi_package() {
+        let plan = evdi_fix_plan_for_os_release("ID=fedora\n").expect("fedora plan");
+        assert!(plan.install_cmd.contains(&"evdi".to_string()));
+        assert!(plan.install_cmd.iter().any(|c| c == "sudo"));
+    }
+
+    #[test]
+    fn apt_plan_installs_evdi_dkms_with_headers() {
+        let plan = evdi_fix_plan_for_os_release("ID=ubuntu\n").expect("apt plan");
+        assert!(plan.install_cmd.contains(&"evdi-dkms".to_string()));
+        assert!(plan
+            .install_cmd
+            .contains(&"linux-headers-generic".to_string()));
     }
 }

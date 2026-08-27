@@ -3,6 +3,7 @@
 use gstreamer::prelude::*;
 use gstreamer::{ClockTime, ElementFactory, Pipeline};
 use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
+use orbiscreen_core::frame_pool::PooledFrameBuffer;
 use thiserror::Error;
 use tokio::sync::mpsc;
 use tracing::{info, instrument, warn};
@@ -305,6 +306,35 @@ impl Encoder {
             buffer_mut
                 .copy_from_slice(0, frame)
                 .map_err(|e| EncodeError::Pipeline(format!("copy_from_slice: {e}")))?;
+            buffer_mut.set_pts(ClockTime::from_nseconds(pts_ns));
+        }
+        self.appsrc
+            .push_buffer(buffer)
+            .map_err(|e| EncodeError::Pipeline(format!("push_buffer: {e}")))?;
+        Ok(())
+    }
+
+    pub fn push_frame_owned(
+        &self,
+        frame: PooledFrameBuffer,
+        width: u32,
+        height: u32,
+        pts_ns: u64,
+    ) -> Result<(), EncodeError> {
+        let expected = self.width as usize * self.height as usize * 4;
+        if frame.len() != expected || width != self.width || height != self.height {
+            return Err(EncodeError::FrameSizeMismatch {
+                got: frame.len(),
+                expected,
+                width: self.width,
+                height: self.height,
+            });
+        }
+        let mut buffer = gstreamer::Buffer::from_mut_slice(frame);
+        {
+            let buffer_mut = buffer.get_mut().ok_or_else(|| {
+                EncodeError::Pipeline("buffer not uniquely owned after wrapping".into())
+            })?;
             buffer_mut.set_pts(ClockTime::from_nseconds(pts_ns));
         }
         self.appsrc

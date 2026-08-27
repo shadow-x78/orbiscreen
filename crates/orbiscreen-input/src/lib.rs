@@ -1,10 +1,13 @@
 // Orbiscreen - orbiscreen-input library (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 pub mod wayland;
+pub mod wlroots;
 pub mod x11;
+pub mod xtest;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tracing::{info, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum PointerEvent {
@@ -60,67 +63,144 @@ pub enum InputError {
     NotImplemented(&'static str),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct VirtualTouchscreenSpec {
     pub width: u32,
     pub height: u32,
+    pub output_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InjectorKind {
+    Uinput,
+    Xtest,
+    Portal,
+    Wlroots,
+}
+
+impl std::fmt::Display for InjectorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Uinput => write!(f, "uinput"),
+            Self::Xtest => write!(f, "xtest"),
+            Self::Portal => write!(f, "portal-remotedesktop"),
+            Self::Wlroots => write!(f, "wlroots-native"),
+        }
+    }
+}
+
+#[allow(missing_debug_implementations)]
+enum InjectorInner {
+    Uinput(Box<x11::UinputInjector>),
+    Xtest(Box<xtest::XtestInjector>),
+    Portal(Box<wayland::WaylandInjector>),
+    Wlroots(Box<wlroots::WlrootsInjector>),
 }
 
 #[allow(missing_debug_implementations)]
 pub struct InputInjector {
-    backend: InputBackend,
-    x11: Option<x11::UinputInjector>,
-    wayland: Option<wayland::WaylandInjector>,
+    inner: InjectorInner,
 }
 
 impl InputInjector {
     pub async fn open_async(spec: VirtualTouchscreenSpec) -> Result<Self, InputError> {
         match detect_backend() {
-            InputBackend::X11 => Ok(Self {
-                backend: InputBackend::X11,
-                x11: Some(x11::UinputInjector::open(spec)?),
-                wayland: None,
-            }),
+            InputBackend::X11 => {
+                let spec_for_uinput = spec.clone();
+                match xtest::XtestInjector::open(spec) {
+                    Ok(injector) => {
+                        info!("input injection via XTEST (rootless)");
+                        Ok(Self {
+                            inner: InjectorInner::Xtest(Box::new(injector)),
+                        })
+                    }
+                    Err(e) => {
+                        warn!("XTEST injection unavailable ({e}); falling back to uinput");
+                        Ok(Self {
+                            inner: InjectorInner::Uinput(Box::new(x11::UinputInjector::open(
+                                spec_for_uinput,
+                            )?)),
+                        })
+                    }
+                }
+            }
             InputBackend::Wayland => {
-                let wayland = wayland::WaylandInjector::open().await?;
-                Ok(Self {
-                    backend: InputBackend::Wayland,
-                    x11: None,
-                    wayland: Some(wayland),
+                let spec_for_portal = spec.clone();
+                let wlr_result = tokio::task::spawn_blocking(move || {
+                    wlroots::WlrootsInjector::open(spec_for_portal)
                 })
+                .await
+                .map_err(|e| InputError::Uinput(format!("wlroots input task: {e}")))?;
+                match wlr_result {
+                    Ok(injector) => Ok(Self {
+                        inner: InjectorInner::Wlroots(Box::new(injector)),
+                    }),
+                    Err(e) => {
+                        warn!("wlroots native input unavailable ({e}); falling back to the RemoteDesktop portal");
+                        match wayland::WaylandInjector::open().await {
+                            Ok(injector) => Ok(Self {
+                                inner: InjectorInner::Portal(Box::new(injector)),
+                            }),
+                            Err(portal_error) => {
+                                warn!(
+                                    "portal RemoteDesktop unavailable ({portal_error}); \
+                                     falling back to uinput (needs /dev/uinput)"
+                                );
+                                Ok(Self {
+                                    inner: InjectorInner::Uinput(Box::new(
+                                        x11::UinputInjector::open(spec)?,
+                                    )),
+                                })
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
-    pub fn backend(&self) -> InputBackend {
-        self.backend
+    pub fn backend(&self) -> InjectorKind {
+        match &self.inner {
+            InjectorInner::Uinput(_) => InjectorKind::Uinput,
+            InjectorInner::Xtest(_) => InjectorKind::Xtest,
+            InjectorInner::Portal(_) => InjectorKind::Portal,
+            InjectorInner::Wlroots(_) => InjectorKind::Wlroots,
+        }
     }
 
     pub async fn inject_pointer(&mut self, event: PointerEvent) -> Result<(), InputError> {
-        match (&mut self.x11, &mut self.wayland) {
-            (Some(dev), _) => dev.inject_pointer(event),
-            (_, Some(dev)) => dev.inject_pointer(event).await,
-            (None, None) => Err(InputError::NotImplemented("no input backend open")),
+        match &mut self.inner {
+            InjectorInner::Uinput(injector) => injector.inject_pointer(event),
+            InjectorInner::Xtest(injector) => injector.inject_pointer(event),
+            InjectorInner::Portal(injector) => injector.inject_pointer(event).await,
+            InjectorInner::Wlroots(injector) => injector.inject_pointer(event).await,
         }
     }
 
     pub async fn inject_key(&mut self, event: KeyEvent) -> Result<(), InputError> {
-        match (&mut self.x11, &mut self.wayland) {
-            (Some(dev), _) => dev.inject_key(event.code, event.pressed),
-            (_, Some(dev)) => dev.inject_key(event).await,
-            (None, None) => Err(InputError::NotImplemented("no input backend open")),
+        match &mut self.inner {
+            InjectorInner::Uinput(injector) => injector.inject_key(event.code, event.pressed),
+            InjectorInner::Xtest(injector) => injector.inject_key(event.code, event.pressed),
+            InjectorInner::Portal(injector) => injector.inject_key(event).await,
+            InjectorInner::Wlroots(injector) => injector.inject_key(event).await,
         }
     }
 
     pub async fn inject_stylus(&mut self, event: StylusEvent) -> Result<(), InputError> {
-        if let Some(dev) = self.x11.as_mut() {
-            return dev.inject_stylus(event);
-        }
         match event {
             StylusEvent::Pressure { x, y, .. } | StylusEvent::Tilt { x, y, .. } => {
+                if matches!(self.inner, InjectorInner::Uinput(_)) {
+                    let InjectorInner::Uinput(injector) = &mut self.inner else {
+                        unreachable!("uinput variant checked above");
+                    };
+                    return injector.inject_stylus(event);
+                }
                 self.inject_pointer(PointerEvent::Move { x, y }).await
             }
-            StylusEvent::Proximity { .. } => Ok(()),
+            StylusEvent::Proximity { .. } => match &mut self.inner {
+                InjectorInner::Uinput(injector) => injector.inject_stylus(event),
+                _ => Ok(()),
+            },
         }
     }
 }

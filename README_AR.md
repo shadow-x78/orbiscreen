@@ -90,8 +90,22 @@
 | 3 | التقاط Wayland + portal + الإدخال | ✅ مكتملة |
 | 4 | التغليف + واجهة GTK4 + خدمة D-Bus + التثبيت المستقل | ✅ مكتملة |
 | 5 | واجهة Material 3 + الاكتشاف المباشر + لوحة التحكم | ✅ مكتملة |
+| 6 | تكافؤ بيئات سطح المكتب: مخرجات افتراضية من الـ compositor، التقاط wlr-screencopy، إدخال بلا root، وأمر `doctor` | ✅ مكتملة |
 
 > راجع `CHANGELOG.md` لسجل الإصدارات الكامل.
+
+### مصفوفة دعم البيئات
+
+| البيئة | شاشة ثانية افتراضية | الالتقاط | الإدخال |
+|--------|---------------------|----------|---------|
+| KDE Plasma (Wayland) | ✅ أصلي (zkde-screencast، بلا root وبلا حوار) | ✅ PipeWire | ✅ portal RemoteDesktop |
+| Sway / wlroots عام | ✅ مخرج headless عبر IPC الـ compositor (بلا root) | ✅ wlr-screencopy (بلا حوار) | ✅ virtual-pointer / virtual-keyboard (بلا portal) |
+| Hyprland | ✅ مخرج headless عبر IPC الـ compositor (بلا root) | ✅ wlr-screencopy (بلا حوار) | ✅ virtual-pointer / virtual-keyboard (بلا portal) |
+| GNOME (Wayland) | ⚠️ عبر EVDI | ✅ portal — حوار مرة واحدة فقط (توكن إصرار محفوظ) | ✅ portal RemoteDesktop — بالمثل محفوظ |
+| XFCE / MATE / LXQt / Cinnamon (X11) | ✅ عبر EVDI | ✅ XShm للشاشة الجذرية (مجمّع، مع تجاوز الإطارات المتطابقة) | ✅ XTEST (بلا root)، مع تراجع إلى uinput |
+| أي بيئة أخرى | ✅ عبر EVDI (بإرشاد `orbiscreen doctor --fix`) | أفضل واجهة متاحة | أفضل واجهة متاحة |
+
+يطبع `orbiscreen doctor` الـ compositor المكتشف وخطة الالتقاط التي سيتبعها `auto` وما الناقص في النظام؛ وينفّذ `orbiscreen doctor --fix` تثبيت وحدة نواة EVDI على التوزيعات المكتشفة. التفاصيل الكاملة في [`docs/DE_SUPPORT_AR.md`](docs/DE_SUPPORT_AR.md).
 
 ---
 
@@ -140,17 +154,19 @@ cd ~/Orbiscreen
 ./scripts/install.sh
 
 # وحدة النواة evdi عبر DKMS - مطلوبة لشاشة ثانية حقيقية على أغلب بيئات
-# سطح المكتب. على KDE Plasma Wayland لا حاجة لأي وحدة نواة: ينشئ الـ daemon
-# مونيتوراً افتراضياً عبر KWin من تلقاء نفسه (بلا root وبلا نافذة مشاركة).
-# وبدون أيٍّ من المسارين يبث Orbiscreen شاشة تختارها من نافذة مشاركة portal.
+# سطح المكتب. على KDE Plasma Wayland وعلى compositors عائلة wlroots (Sway,
+# Hyprland) لا حاجة لأي وحدة نواة: ينشئ الـ daemon مونيتوراً افتراضياً أصلياً
+# من الـ compositor من تلقاء نفسه (بلا root وبلا نافذة مشاركة). وبدون أيٍّ من
+# تلك المسارات يبث Orbiscreen شاشة تختارها من نافذة مشاركة portal.
+# شغّل `orbiscreen doctor` لترى ما ينطبق على نظامك.
 # راجع docs/TROUBLESHOOTING_AR.md لخطوات التوزيعات. ثم:
 sudo modprobe evdi
 
-# فحص واجهات الالتقاط والإدخال والشاشة المحلية
-orbiscreen probe
+# تشخيص البيئة: الـ compositor المكتشف، خطة الالتقاط، النواقص
+orbiscreen doctor
 
-# تشغيل خدمة Orbiscreen (مع تراجع تلقائي: EVDI DRM أو شاشة KWin الافتراضية
-# أو Wayland Portal)
+# تشغيل خدمة Orbiscreen (مع تراجع تلقائي: EVDI DRM أو شاشة افتراضية من
+# KWin/wlroots أو Wayland Portal)
 orbiscreen start
 ```
 
@@ -163,15 +179,16 @@ orbiscreen start
 
 ```toml
 [capture]
-preferred = "auto"   # auto (الافتراضي) | kwin-virtual | evdi | portal | mirror
+preferred = "auto"   # auto (الافتراضي) | kwin-virtual | screencopy | evdi | portal | mirror
 ```
 
 | القيمة | السلوك |
 |--------|--------|
-| `auto` | KDE Plasma Wayland: شاشة KWin الافتراضية (بلا root وبلا نافذة حوار) ثم portal. X11: ‏EVDI عند تحميل وحدتها، وإلا التقاط الشاشة الجذر. |
-| `kwin-virtual` | شاشة KWin الافتراضية دائماً (فشل صريح على غير KDE). |
-| `evdi` | شاشة EVDI DRM الافتراضية دائماً (اختيارية — تتطلب وحدة نواة مثبتة بـ root). |
-| `portal` | نافذة مشاركة portal دائماً؛ اختر أي شاشة. |
+| `auto` | KDE Plasma Wayland: شاشة KWin الافتراضية. ‏Sway/Hyprland/wlroots: مخرج افتراضي من الـ compositor عبر IPC، وإلا عكس شاشة موجودة عبر wlr-screencopy، وإلا portal. ‏X11: ‏EVDI عند تحميل وحدتها، وإلا التقاط الشاشة الجذر. |
+| `kwin-virtual` | شاشة KWin الافتراضية دائماااً (فشل صريح على غير KDE). |
+| `screencopy` | التقاط wlroots screencopy دائماااً (يتطلب compositor من عائلة wlroots). |
+| `evdi` | شاشة EVDI DRM الافتراضية دائماااً (اختيارية — تتطلب وحدة نواة مثبتة بـ root). |
+| `portal` | نافذة مشاركة portal دائماااً؛ اختر أي شاشة. |
 | `mirror` | اعرض **سطح مكتبك الحقيقي** بدل شاشة ثانية: اختر الشاشة المراد عكسها من نافذة المشاركة. |
 
 > الشاشة الافتراضية تبدأ **فارغة** (خلفية سطح المكتب فقط) — هذا معنى الشاشة الثانية. اسحب النوافذ إلى `Virtual-ORBISCREEN`، أو استخدم `mirror` لبث شاشتك الفعلية.
@@ -194,6 +211,9 @@ preferred = "auto"   # auto (الافتراضي) | kwin-virtual | evdi | portal 
 | `orbiscreen stop` | إيقاف دامن قيد التشغيل رشيقاً عبر D-Bus |
 | `orbiscreen list-displays` | سرد الشاشات الافتراضية المُهيّأة |
 | `orbiscreen probe` | فحص واجهات الالتقاط / الإدخال / الشاشة |
+| `orbiscreen doctor` | تشخيص البيئة: الـ compositor، خطة الالتقاط، الأذونات والأدوات الناقصة |
+| `orbiscreen doctor --json` | تقرير doctor بصيغة آلية (تستهلكه لوحة GTK) |
+| `orbiscreen doctor --fix` | كشف التوزيعة وعرض تثبيت/تحميل وحدة نواة EVDI مع التأكيد (`--yes` لتجاوز السؤال) |
 | `orbiscreen print-config` | طباعة الإعدادات الفعلية |
 | `orbiscreen uninstall` | إزالة الخدمة وخدمة systemd ومدخلات سطح المكتب |
 
@@ -294,6 +314,7 @@ orbiscreen/
 | المستند | الوصف |
 |---------|-------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | طوبولوجيا النظام وخط أنابيب الإطارات ومعمارية D-Bus |
+| [docs/DE_SUPPORT.md](docs/DE_SUPPORT.md) · [AR](docs/DE_SUPPORT_AR.md) | مصفوفة دعم كل بيئة سطح مكتب وخطط الالتقاط وحلول الأعطال |
 | [docs/INSTALL.md](docs/INSTALL.md) · [AR](docs/INSTALL_AR.md) | خطوات التثبيت عبر التوزيعات |
 | [docs/PACKAGING.md](docs/PACKAGING.md) · [AR](docs/PACKAGING_AR.md) | مواصفات التغليف متعدد التوزيعات ‏(.deb، .rpm، AppImage، Flatpak)‏ |
 | [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) · [AR](docs/DBUS_SPEC_AR.md) | مواصفات واجهة D-Bus Session Bus |

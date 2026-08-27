@@ -11,12 +11,16 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 homepage.workspace = true
-description = "Input injection: evdevil for X11, ashpd RemoteDesktop for Wayland"
+description = "Input injection: uinput/XTest for X11, wlroots virtual-pointer/virtual-keyboard or RemoteDesktop portal for Wayland"
+
+[package.metadata.cargo-machete]
+ignored = ["wayland-backend"]
 
 [lints]
 workspace = true
 
 [dependencies]
+orbiscreen-core = { path = "../orbiscreen-core" }
 evdevil = { workspace = true }
 ashpd = { workspace = true }
 enumflags2 = { workspace = true }
@@ -24,6 +28,13 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
+wayland-client = { workspace = true }
+wayland-backend = { workspace = true }
+wayland-protocols-wlr = { workspace = true }
+wayland-scanner = { workspace = true }
+xkbcommon = { workspace = true }
+libc = { workspace = true }
+x11rb = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }

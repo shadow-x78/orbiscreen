@@ -4,10 +4,12 @@ use std::os::fd::{AsRawFd, OwnedFd};
 
 use ashpd::desktop::screencast::{
     CursorMode, OpenPipeWireRemoteOptions, Screencast, SelectSourcesOptions, SourceType,
-    StartCastOptions,
+    StartCastOptions, Streams,
 };
-use ashpd::desktop::{ResponseError, Session};
+use ashpd::desktop::{PersistMode, ResponseError, Session};
 use enumflags2::BitFlags;
+use orbiscreen_core::frame_pool::FramePool;
+use orbiscreen_core::portal_state;
 use thiserror::Error;
 use tracing::instrument;
 
@@ -60,6 +62,33 @@ fn virtual_only_options() -> SelectSourcesOptions {
         .set_sources(Some(BitFlags::from(SourceType::Monitor)))
         .set_cursor_mode(CursorMode::Hidden)
         .set_multiple(false)
+        .set_persist_mode(PersistMode::ExplicitlyRevoked)
+}
+
+async fn negotiate_screencast(
+    screencast: &Screencast,
+    restore_token: Option<&str>,
+) -> Result<(Session<Screencast>, Streams), WaylandCaptureError> {
+    let session = screencast
+        .create_session(Default::default())
+        .await
+        .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
+    screencast
+        .select_sources(
+            &session,
+            virtual_only_options().set_restore_token(restore_token),
+        )
+        .await
+        .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
+    let request = screencast
+        .start(&session, None, StartCastOptions::default())
+        .await
+        .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
+    let streams = request.response().map_err(|e| match e {
+        ashpd::Error::Response(ResponseError::Cancelled) => WaylandCaptureError::PermissionDenied,
+        other => WaylandCaptureError::Dbus(other.to_string()),
+    })?;
+    Ok((session, streams))
 }
 
 #[allow(missing_debug_implementations)]
@@ -79,24 +108,33 @@ impl WaylandCapture {
         let screencast = Screencast::new()
             .await
             .map_err(|e| WaylandCaptureError::PortalUnavailable(e.to_string()))?;
-        let session = screencast
-            .create_session(Default::default())
-            .await
-            .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
-        screencast
-            .select_sources(&session, virtual_only_options())
-            .await
-            .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
-        let request = screencast
-            .start(&session, None, StartCastOptions::default())
-            .await
-            .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
-        let streams = request.response().map_err(|e| match e {
-            ashpd::Error::Response(ResponseError::Cancelled) => {
-                WaylandCaptureError::PermissionDenied
+        let mut state = portal_state::load_portal_state();
+        let saved_token = state.screencast_restore_token.clone();
+        let (session, streams) =
+            match negotiate_screencast(&screencast, saved_token.as_deref()).await {
+                Ok(pair) => pair,
+                Err(first_error) => {
+                    if saved_token.is_some() {
+                        tracing::warn!(
+                            "saved screencast restore token was not accepted ({first_error}); \
+                             asking for a fresh selection"
+                        );
+                        negotiate_screencast(&screencast, None).await?
+                    } else {
+                        return Err(first_error);
+                    }
+                }
+            };
+        if let Some(token) = streams.restore_token() {
+            state.screencast_restore_token = Some(token.to_string());
+            match portal_state::save_portal_state(&state) {
+                Ok(()) => tracing::info!(
+                    "screencast permission persisted — the share dialog will not \
+                     reappear on the next runs"
+                ),
+                Err(e) => tracing::warn!("failed to persist portal state: {e}"),
             }
-            other => WaylandCaptureError::Dbus(other.to_string()),
-        })?;
+        }
         let first = streams
             .streams()
             .first()
@@ -130,6 +168,7 @@ impl WaylandCapture {
             .map_err(|_| WaylandCaptureError::Dbus("Failed to downcast appsink".into()))?;
 
         let (tx, rx) = mpsc::channel::<CapturedFrame>(FRAME_CHANNEL_CAPACITY);
+        let pool = FramePool::new();
 
         appsink.set_callbacks(
             AppSinkCallbacks::builder()
@@ -141,7 +180,7 @@ impl WaylandCapture {
                             return Err(gstreamer::FlowError::Eos);
                         }
                     };
-                    if let Some(frame) = super::sample_to_captured_frame(&sample) {
+                    if let Some(frame) = super::sample_to_captured_frame(&sample, &pool) {
                         if tx.try_send(frame).is_err() {
                             tracing::debug!("capture frame dropped: consumer channel full");
                         }

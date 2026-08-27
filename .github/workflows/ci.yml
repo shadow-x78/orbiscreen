@@ -42,6 +42,27 @@ jobs:
       - name: Test
         run: cargo test --workspace --locked --verbose
 
+  sway-headless:
+    name: Integration test on sway (headless)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+      - name: Cache cargo registry & target
+        uses: Swatinem/rust-cache@8cbdedb5103daa674dcf46d3590fe06a76645684 # v2.8.0
+      - name: Install sway and build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            sway \
+            libx11-dev libxcb1-dev libxrandr-dev \
+            libevdev-dev libxkbcommon-dev libwayland-dev \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+            libgl1-mesa-dri libegl1 libpixman-1-0 xkb-data
+      - name: Run sway headless integration test
+        run: cargo test -p orbiscreen-capture --test sway_headless --locked -- --nocapture
+
   licenses:
     name: Verify dependency licenses
     runs-on: ubuntu-latest
