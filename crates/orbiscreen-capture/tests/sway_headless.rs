@@ -1,6 +1,7 @@
 // Orbiscreen - orbiscreen-capture integration tests (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 use std::io::{Read as _, Write as _};
+use std::os::unix::fs::FileTypeExt as _;
 use std::os::unix::io::IntoRawFd;
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
@@ -45,9 +46,12 @@ fn wait_for_wayland_socket(dir: &Path) -> Option<String> {
     while Instant::now() < deadline {
         if let Ok(entries) = std::fs::read_dir(dir) {
             for entry in entries.flatten() {
-                let name = entry.file_name().to_string_lossy().into_owned();
-                if name.starts_with("wayland-") {
-                    return Some(name);
+                let is_socket = entry.file_type().map(|t| t.is_socket()).unwrap_or(false);
+                if is_socket {
+                    let name = entry.file_name().to_string_lossy().into_owned();
+                    if name.starts_with("wayland-") {
+                        return Some(name);
+                    }
                 }
             }
         }
