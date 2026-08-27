@@ -51,7 +51,13 @@ fn start_sway() -> Option<SwaySession> {
 
     let mut command = Command::new(sway);
     command
-        .args(["-d", "-c", config_path.to_str()?])
+        .args([
+            "-d",
+            "-c",
+            config_path.to_str()?,
+            "--socket",
+            WAYLAND_DISPLAY,
+        ])
         .stdin(Stdio::null())
         .stdout(Stdio::from(log_file))
         .stderr(Stdio::from(log_err))
