@@ -101,8 +101,13 @@ class InputDispatcher(
         discrete.tryEmit(payload)
     }
 
-    fun control(action: String, args: JSONObject = JSONObject()) {
+    fun control(
+        action: String,
+        args: JSONObject = JSONObject(),
+        onResult: ((Boolean) -> Unit)? = null,
+    ) {
         scope.launch {
+            var ok = false
             try {
                 val body = JSONObject().apply {
                     put("action", action)
@@ -115,10 +120,16 @@ class InputDispatcher(
                 if (token.isNotBlank()) {
                     builder.header("Authorization", "Bearer $token")
                 }
-                http.newCall(builder.build()).execute().close()
+                http.newCall(builder.build()).execute().use { resp ->
+                    ok = resp.isSuccessful
+                    if (!ok) {
+                        Log.w(TAG, "control $action rejected with HTTP ${resp.code}")
+                    }
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "control $action failed: ${e.message}")
             }
+            onResult?.invoke(ok)
         }
     }
 

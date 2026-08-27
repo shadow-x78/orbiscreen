@@ -123,9 +123,13 @@ class StreamViewModel(
     }
 
     fun blank() {
-        val blanked = !_state.value.blanked
-        ensureInput().control(if (blanked) "blank" else "unblank")
-        _state.value = _state.value.copy(blanked = blanked)
+        val target = !_state.value.blanked
+        _state.value = _state.value.copy(blanked = target)
+        ensureInput().control(if (target) "blank" else "unblank") { ok ->
+            if (!ok) {
+                _state.value = _state.value.copy(blanked = !target)
+            }
+        }
     }
 
     fun lock() {
