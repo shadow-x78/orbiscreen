@@ -19,10 +19,9 @@ import com.orbiscreen.android.ui.theme.ThemeMode
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val splash = installSplashScreen()
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        splash.setKeepOnScreenCondition { false }
         val prefs = PrefsStore(this)
         setContent {
             App(prefs)

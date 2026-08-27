@@ -83,8 +83,13 @@ impl XtestInjector {
                 self.fake(type_, detail, 0, 0)
             }
             PointerEvent::Wheel { delta_y } => {
-                let steps = delta_y.clamp(i32::MIN as f64, i32::MAX as f64).round() as i32;
-                let button = if steps >= 0 { 4 } else { 5 };
+                let steps = delta_y
+                    .clamp(
+                        -(crate::MAX_WHEEL_STEPS as f64),
+                        crate::MAX_WHEEL_STEPS as f64,
+                    )
+                    .round() as i32;
+                let button = if steps >= 0 { 5 } else { 4 };
                 for _ in 0..steps.unsigned_abs() {
                     self.fake(BUTTON_PRESS_EVENT, button, 0, 0)?;
                     self.fake(BUTTON_RELEASE_EVENT, button, 0, 0)?;

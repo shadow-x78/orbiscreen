@@ -1,11 +1,3 @@
----
-name: Pull request
-about: Submit changes against the main branch
-title: ""
-labels: []
-assignees: []
----
-
 ### What does this PR do?
 
 ### Why?

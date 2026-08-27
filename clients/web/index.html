@@ -6,6 +6,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'" />
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     <title>Orbiscreen Client</title>
@@ -23,7 +24,7 @@
             </div>
         </div>
     </div>
-    <div id="touchIndicator" class="touchIndicator" hidden></div>
+    <div id="touchIndicator" class="touchIndicator hidden"></div>
     <script src="vendor/mpegts.js"></script>
     <script src="app.js"></script>
 </body>

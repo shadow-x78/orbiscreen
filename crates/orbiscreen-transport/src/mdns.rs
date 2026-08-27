@@ -64,16 +64,20 @@ impl Advertiser {
         if let Ok(rx) = daemon.monitor() {
             std::thread::spawn(move || {
                 while let Ok(event) = rx.recv() {
-                    let kind = match &event {
-                        DaemonEvent::Announce(..) => "announce",
-                        DaemonEvent::Error(_) => "error",
-                        DaemonEvent::IpAdd(_) => "ip-add",
-                        DaemonEvent::IpDel(_) => "ip-del",
-                        DaemonEvent::NameChange(_) => "name-change",
-                        DaemonEvent::Respond(_) => "respond",
-                        _ => "other",
-                    };
-                    debug!(kind, "mDNS daemon event");
+                    match &event {
+                        DaemonEvent::Error(e) => warn!("mDNS daemon error: {e:?}"),
+                        other => {
+                            let kind = match other {
+                                DaemonEvent::Announce(..) => "announce",
+                                DaemonEvent::IpAdd(_) => "ip-add",
+                                DaemonEvent::IpDel(_) => "ip-del",
+                                DaemonEvent::NameChange(_) => "name-change",
+                                DaemonEvent::Respond(_) => "respond",
+                                _ => "other",
+                            };
+                            debug!(kind, "mDNS daemon event");
+                        }
+                    }
                 }
             });
         }
@@ -87,7 +91,9 @@ impl Advertiser {
 impl Drop for Advertiser {
     fn drop(&mut self) {
         match self.daemon.unregister(&self.fullname) {
-            Ok(_rx) => {}
+            Ok(rx) => {
+                let _ = rx.recv_timeout(std::time::Duration::from_secs(2));
+            }
             Err(e) => warn!(fullname = %self.fullname, "mDNS unregister failed: {e}"),
         }
         let _ = self.daemon.shutdown();

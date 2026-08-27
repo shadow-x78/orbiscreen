@@ -118,6 +118,9 @@ impl Mapping {
 impl Drop for Mapping {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
+        if self.ptr.is_null() {
+            return;
+        }
         unsafe { libc::munmap(self.ptr.cast(), self.len) };
     }
 }
@@ -225,12 +228,11 @@ impl Dispatch<WlBuffer, ()> for CaptureState {
     fn event(
         _: &mut Self,
         _: &WlBuffer,
-        event: wl_buffer::Event,
+        _: wl_buffer::Event,
         _: &(),
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
-        if matches!(event, wl_buffer::Event::Release) {}
     }
 }
 
@@ -275,7 +277,18 @@ impl Dispatch<ZwlrScreencopyFrameV1, ()> for CaptureState {
                         return;
                     }
                 };
-                let len = (stride * height) as usize;
+                let dims_fit = width <= i32::MAX as u32
+                    && height <= i32::MAX as u32
+                    && stride <= i32::MAX as u32;
+                let len = u64::from(stride)
+                    .checked_mul(u64::from(height))
+                    .filter(|l| *l <= i32::MAX as u64)
+                    .and_then(|l| usize::try_from(l).ok());
+                let Some(len) = len.filter(|_| dims_fit) else {
+                    tracing::warn!("screencopy offered frame with out-of-range dimensions");
+                    state.pending = Some(PendingFrame::failed(width, height, stride));
+                    return;
+                };
                 let Ok(file) = anonymous_shm_file("orbiscreen-screencopy") else {
                     state.pending = Some(PendingFrame::failed(width, height, stride));
                     return;
@@ -405,10 +418,15 @@ impl WlrScreencopyCapture {
             queue
                 .roundtrip(&mut state)
                 .map_err(|e| WlrScreencopyError::Wayland(e.to_string()))?;
-            let ready = state.manager.is_some()
-                && state.shm.is_some()
-                && state.outputs.iter().any(|o| o.got_done || o.width > 0);
-            if ready {
+            let globals_ready = state.manager.is_some() && state.shm.is_some();
+            let output_ready = match &spec.output_name {
+                Some(name) => state
+                    .outputs
+                    .iter()
+                    .any(|o| o.name.as_deref() == Some(name.as_str()) && o.width > 0),
+                None => state.outputs.iter().any(|o| o.got_done || o.width > 0),
+            };
+            if globals_ready && output_ready {
                 break;
             }
             if Instant::now() >= deadline {
@@ -431,7 +449,11 @@ impl WlrScreencopyCapture {
                 .iter()
                 .position(|o| o.name.as_deref() == Some(name))
                 .ok_or_else(|| WlrScreencopyError::OutputNotFound(name.clone()))?,
-            None => 0,
+            None => state
+                .outputs
+                .iter()
+                .position(|o| o.got_done || o.width > 0)
+                .unwrap_or(0),
         };
         let output = state.outputs[output_index].clone();
         if output.width <= 0 || output.height <= 0 {
@@ -539,8 +561,10 @@ fn run_capture_loop(
         };
         let frame = manager.capture_output(0, &output.proxy, &qh, ());
 
+        let mut stopped = false;
         loop {
             if stop.load(Ordering::Relaxed) {
+                stopped = true;
                 break;
             }
             if let Err(e) = queue.dispatch_pending(&mut state) {
@@ -582,8 +606,17 @@ fn run_capture_loop(
 
         let mut pending = match state.pending.take() {
             Some(p) => p,
-            None => continue,
+            None => {
+                if stopped {
+                    break;
+                }
+                continue;
+            }
         };
+        if stopped {
+            pending.release();
+            break;
+        }
         if pending.failed || pending.mapping.len == 0 {
             pending.release();
             ended.store(true, Ordering::Relaxed);
@@ -613,7 +646,13 @@ fn poll_fd_readable(fds: &mut [libc::pollfd; 1]) -> libc::c_int {
 }
 
 fn copy_frame(pending: &PendingFrame, pool: &Arc<FramePool>) -> Option<CapturedFrame> {
-    let len = (pending.width as usize) * 4 * pending.height as usize;
+    let row_bytes = u64::from(pending.width).checked_mul(4)?;
+    let len = row_bytes.checked_mul(u64::from(pending.height))?;
+    let len = usize::try_from(len).ok()?;
+    if row_bytes > u64::from(pending.stride) || len > pending.mapping.len {
+        tracing::warn!("screencopy frame dimensions inconsistent with buffer; dropping");
+        return None;
+    }
     let mut data = pool.acquire(len);
     if !assemble_frame_rows(
         &mut data,
@@ -693,11 +732,9 @@ mod tests {
 
     #[test]
     fn assembly_strips_stride_padding() {
-        // Two 2x1 rows padded to a 16-byte stride (width*4 = 8).
         let src = [
-            0xAA, 0xBB, 0xCC, 0xDD, 0x01, 0x02, 0x03, 0x04, //
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // padding row 0
-            0x11, 0x22, 0x33, 0x44, 0x05, 0x06, 0x07, 0x08, //
+            0xAA, 0xBB, 0xCC, 0xDD, 0x01, 0x02, 0x03, 0x04, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x05, 0x06, 0x07, 0x08,
         ];
         let data = assemble(&src, 2, 2, 16, false).expect("assembly");
         assert_eq!(data.len(), 16);

@@ -20,7 +20,7 @@ sudo depmod -a
 sudo modprobe evdi
 echo evdi | sudo tee /etc/modules-load.d/evdi.conf > /dev/null
 
-if lsmod | grep -q '^evdi '; then
+if [ -d "/sys/module/evdi" ]; then
     echo "[Orbiscreen] evdi module loaded and persisted across reboots."
 else
     echo "[Orbiscreen] WARNING: modprobe returned success but module is not listed."

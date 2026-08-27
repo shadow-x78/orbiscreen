@@ -3,12 +3,14 @@
 pub mod adb;
 pub mod mdns;
 
+use std::collections::VecDeque;
+use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use axum::extract::{Query, State};
-use axum::http::{HeaderMap, StatusCode};
+use axum::extract::State;
+use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{Html, IntoResponse, Json};
 use axum::routing::{get, post};
 use axum::{middleware, Router};
@@ -33,7 +35,7 @@ pub enum TransportError {
 
 use orbiscreen_input::{KeyEvent, PointerEvent, StylusEvent};
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub enum IncomingInput {
     Pointer(PointerEvent),
     Key(KeyEvent),
@@ -56,7 +58,6 @@ pub struct Stats {
     frames_forwarded: AtomicU64,
     active_clients: AtomicUsize,
     total_clients: AtomicU64,
-    stream_starts: AtomicU64,
     auth_failures: AtomicU64,
 }
 
@@ -73,23 +74,11 @@ impl Stats {
         self.total_clients.load(Ordering::Relaxed)
     }
 
-    pub fn stream_starts(&self) -> u64 {
-        self.stream_starts.load(Ordering::Relaxed)
-    }
-
-    pub fn auth_failures(&self) -> u64 {
-        self.auth_failures.load(Ordering::Relaxed)
-    }
-
     fn note_frame(&self) {
         self.frames_forwarded.fetch_add(1, Ordering::Relaxed);
     }
 
-    fn note_stream_start(&self) {
-        self.stream_starts.fetch_add(1, Ordering::Relaxed);
-    }
-
-    pub fn note_auth_failure(&self) {
+    fn note_auth_failure(&self) {
         self.auth_failures.fetch_add(1, Ordering::Relaxed);
     }
 
@@ -122,21 +111,25 @@ pub fn generate_token() -> String {
 fn token_eq(a: &str, b: &str) -> bool {
     let ab = a.as_bytes();
     let bb = b.as_bytes();
-    if ab.len() != bb.len() {
-        return false;
+    let max_len = ab.len().max(bb.len());
+    let mut diff = u8::from(ab.len() != bb.len());
+    for i in 0..max_len {
+        let x = ab.get(i).copied().unwrap_or(0);
+        let y = bb.get(i).copied().unwrap_or(0);
+        diff |= x ^ y;
     }
-    ab.iter().zip(bb).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+    diff == 0
 }
 
 #[allow(missing_debug_implementations)]
 pub struct Transport {
     cfg: ServerConfig,
-    input_tx: mpsc::UnboundedSender<IncomingInput>,
+    input_tx: mpsc::Sender<IncomingInput>,
     token: String,
 }
 
 impl Transport {
-    pub fn new(cfg: ServerConfig, input_tx: mpsc::UnboundedSender<IncomingInput>) -> Self {
+    pub fn new(cfg: ServerConfig, input_tx: mpsc::Sender<IncomingInput>) -> Self {
         Self {
             cfg,
             input_tx,
@@ -159,7 +152,7 @@ impl Transport {
     ) -> Result<(), TransportError> {
         let input_tx = self.input_tx;
         let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<SeqPacket>(360);
-        let join_buffer: Arc<Mutex<Vec<SeqPacket>>> = Arc::new(Mutex::new(Vec::new()));
+        let join_buffer: Arc<Mutex<VecDeque<SeqPacket>>> = Arc::new(Mutex::new(VecDeque::new()));
         let state = AppState {
             config: self.cfg.clone(),
             input_tx,
@@ -184,36 +177,50 @@ impl Transport {
             .unwrap_or_else(|_| "?".into());
         info!("orbiscreen transport listening on http://{local}");
 
-        match adb::setup_reverse_for_all(adb::default_adb_path(), self.cfg.signaling_port) {
-            Ok(devices) => info!("ADB reverse port forwarding configured for devices: {devices:?}"),
-            Err(adb::AdbError::NoDevice | adb::AdbError::NotInstalled) => {}
-            Err(e) => debug!("ADB reverse port forwarding inactive: {e}"),
-        }
+        let adb_port = self.cfg.signaling_port;
+        tokio::spawn(async move {
+            let joined = tokio::task::spawn_blocking(move || {
+                adb::setup_reverse_for_all(adb::default_adb_path(), adb_port)
+            })
+            .await;
+            match joined {
+                Ok(Ok(devices)) => {
+                    info!("ADB reverse port forwarding configured for devices: {devices:?}")
+                }
+                Ok(Err(adb::AdbError::NoDevice | adb::AdbError::NotInstalled)) => {}
+                Ok(Err(e)) => debug!("ADB reverse port forwarding inactive: {e}"),
+                Err(_) => debug!("ADB reverse port forwarding task aborted"),
+            }
+        });
 
         let stats_pump = state.stats.clone();
         tokio::spawn(async move {
             let mut frames = frames;
             let next_seq = std::sync::atomic::AtomicU64::new(0);
             while let Some(pkt) = frames.recv().await {
-                stats_pump.note_frame();
                 let seq = next_seq.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 let sp = SeqPacket { seq, pkt };
+                if stats_pump.active_clients() > 0 {
+                    stats_pump.note_frame();
+                }
                 let mut jb = join_buffer.lock().unwrap_or_else(|e| e.into_inner());
                 if sp.pkt.is_keyframe {
                     jb.clear();
                 }
                 if jb.len() >= JOIN_BUFFER_MAX_PACKETS {
-                    jb.remove(0);
+                    jb.pop_front();
                 }
-                jb.push(sp.clone());
+                jb.push_back(sp.clone());
                 let _ = video_tx.send(sp);
-                drop(jb);
             }
         });
 
-        axum::serve(listener, app)
-            .await
-            .map_err(|e| TransportError::Http(e.to_string()))?;
+        axum::serve(
+            listener,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await
+        .map_err(|e| TransportError::Http(e.to_string()))?;
         Ok(())
     }
 }
@@ -236,9 +243,9 @@ const JOIN_BUFFER_MAX_PACKETS: usize = 32;
 #[derive(Clone)]
 struct AppState {
     config: ServerConfig,
-    input_tx: mpsc::UnboundedSender<IncomingInput>,
+    input_tx: mpsc::Sender<IncomingInput>,
     video_tx: tokio::sync::broadcast::Sender<SeqPacket>,
-    join_buffer: Arc<Mutex<Vec<SeqPacket>>>,
+    join_buffer: Arc<Mutex<VecDeque<SeqPacket>>>,
     stats: Arc<Stats>,
     token: String,
     display_width: u32,
@@ -251,7 +258,7 @@ struct AppState {
 
 fn build_router(state: AppState) -> Router {
     Router::new()
-        .route("/stream", get(stream_handler))
+        .route("/stream", get(stream_handler).head(stream_head_handler))
         .route("/input", post(input_post))
         .route("/api/control", post(api_control))
         .route_layer(middleware::from_fn_with_state(state.clone(), auth_check))
@@ -270,42 +277,56 @@ async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
         "encoder": state.encoder_kind,
         "frames_forwarded": state.stats.frames_forwarded(),
         "active_clients": state.stats.active_clients(),
-        "total_clients": state.stats.total_clients(),
-        "stream_starts": state.stats.stream_starts(),
-        "auth_failures": state.stats.auth_failures(),
         "uptime_seconds": state.started.elapsed().as_secs(),
     }))
+}
+
+fn query_token(uri_query: Option<&str>) -> Option<&str> {
+    uri_query?
+        .split('&')
+        .find_map(|pair| pair.strip_prefix("token="))
+        .filter(|t| !t.is_empty())
 }
 
 async fn auth_check(
     State(state): State<AppState>,
     headers: HeaderMap,
-    query: Query<std::collections::HashMap<String, String>>,
     request: axum::extract::Request,
     next: middleware::Next,
-) -> Result<axum::response::Response, StatusCode> {
+) -> Result<axum::response::Response, axum::response::Response> {
     let header_ok = headers
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
+        .and_then(|v| {
+            if v.len() > 7 && v[..7].eq_ignore_ascii_case("bearer ") {
+                Some(&v[7..])
+            } else {
+                None
+            }
+        })
         .is_some_and(|t| token_eq(t, &state.token));
-    let query_ok = query
-        .0
-        .get("token")
-        .is_some_and(|t| token_eq(t, &state.token));
+    let query_ok = query_token(request.uri().query()).is_some_and(|t| token_eq(t, &state.token));
     if header_ok || query_ok {
         Ok(next.run(request).await)
     } else {
         state.stats.note_auth_failure();
-        warn!(
+        debug!(
             "unauthorized request rejected (peer={})",
             request
                 .extensions()
-                .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+                .get::<axum::extract::ConnectInfo<SocketAddr>>()
                 .map(|c| c.0.to_string())
                 .unwrap_or_else(|| "?".into())
         );
-        Err(StatusCode::UNAUTHORIZED)
+        Err((
+            StatusCode::UNAUTHORIZED,
+            [(
+                axum::http::header::WWW_AUTHENTICATE,
+                HeaderValue::from_static("Bearer"),
+            )],
+            "unauthorized",
+        )
+            .into_response())
     }
 }
 
@@ -378,7 +399,7 @@ async fn dpms_force(on: bool) -> bool {
     run_command("xset", &["dpms", "force", state]).await
 }
 
-fn inject_ctrl_alt_del(tx: &mpsc::UnboundedSender<IncomingInput>) {
+fn inject_ctrl_alt_del(tx: &mpsc::Sender<IncomingInput>) {
     const KEY_LEFTCTRL: u32 = 29;
     const KEY_LEFTALT: u32 = 56;
     const KEY_DELETE: u32 = 111;
@@ -390,7 +411,7 @@ fn inject_ctrl_alt_del(tx: &mpsc::UnboundedSender<IncomingInput>) {
         (KEY_LEFTALT, false),
         (KEY_DELETE, false),
     ] {
-        let _ = tx.send(IncomingInput::Key(KeyEvent { code, pressed }));
+        let _ = tx.try_send(IncomingInput::Key(KeyEvent { code, pressed }));
     }
 }
 
@@ -464,24 +485,13 @@ async fn input_post(
     State(state): State<AppState>,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    debug!("received /input payload: {payload}");
-    let event = serde_json::from_value::<IncomingInput>(payload.clone()).ok();
-    match event {
-        Some(ev) => {
-            let _ = state.input_tx.send(ev);
-        }
-        None => {
-            if let (Some(x), Some(y)) = (
-                payload.get("x").and_then(|v| v.as_f64()),
-                payload.get("y").and_then(|v| v.as_f64()),
-            ) {
-                let _ = state
-                    .input_tx
-                    .send(IncomingInput::Pointer(PointerEvent::Move { x, y }));
-            } else {
-                return StatusCode::BAD_REQUEST;
+    match serde_json::from_value::<IncomingInput>(payload) {
+        Ok(ev) => {
+            if state.input_tx.try_send(ev).is_err() {
+                debug!("input queue full; dropping event");
             }
         }
+        Err(_) => return StatusCode::BAD_REQUEST,
     }
     StatusCode::ACCEPTED
 }
@@ -490,10 +500,10 @@ fn push_h264_packet(
     appsrc: &gstreamer_app::AppSrc,
     pkt: &H264Packet,
 ) -> Result<(), gstreamer::FlowError> {
-    let valid = pkt.bytes.len() >= 4
-        && (pkt.bytes[0] == 0
-            && pkt.bytes[1] == 0
-            && (pkt.bytes[2] == 1 || pkt.bytes[2..4] == [0, 1]));
+    let valid = pkt.bytes.len() >= 3
+        && pkt.bytes[0] == 0
+        && pkt.bytes[1] == 0
+        && (pkt.bytes[2] == 1 || pkt.bytes.len() >= 4 && pkt.bytes[2] == 0 && pkt.bytes[3] == 1);
     if !valid {
         let header_len = pkt.bytes.len().min(4);
         debug!(
@@ -523,10 +533,21 @@ fn push_h264_packet(
     appsrc.push_buffer(buffer).map(|_| ())
 }
 
+const MAX_STREAM_CLIENTS: usize = 8;
+
+async fn stream_head_handler() -> impl IntoResponse {
+    ([("content-type", "video/mp2t")], StatusCode::OK)
+}
+
 async fn stream_handler(State(state): State<AppState>) -> axum::response::Response {
     use gstreamer::prelude::*;
     use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
     use tokio_stream::StreamExt;
+
+    if state.stats.active_clients() >= MAX_STREAM_CLIENTS {
+        warn!("stream client limit reached ({MAX_STREAM_CLIENTS}); rejecting connection");
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    }
 
     gstreamer::init().ok();
 
@@ -580,18 +601,14 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     };
 
     let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(1024);
-    let stream_broken = Arc::new(AtomicBool::new(false));
-    let broken_flag = Arc::clone(&stream_broken);
+    let tx_alive = tx.clone();
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
             .new_sample(move |sink| match sink.pull_sample() {
                 Ok(sample) => {
                     if let Some(buffer) = sample.buffer() {
                         if let Ok(map) = buffer.map_readable() {
-                            if tx.try_send(map.to_vec()).is_err() {
-                                broken_flag.store(true, Ordering::Relaxed);
-                                return Err(gstreamer::FlowError::Eos);
-                            }
+                            let _ = tx.try_send(map.to_vec());
                         }
                     }
                     Ok(gstreamer::FlowSuccess::Ok)
@@ -631,7 +648,6 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     }
 
     state.stats.client_started();
-    state.stats.note_stream_start();
     let appsrc_clone = appsrc.clone();
     let stats = state.stats.clone();
 
@@ -643,16 +659,17 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     }
     let pipeline_for_task = pipeline.clone();
 
-    let (last_buffered_seq, mut video_rx) = {
+    let (join_packets, last_buffered_seq, mut video_rx) = {
         let jb = state.join_buffer.lock().unwrap_or_else(|e| e.into_inner());
-        for sp in jb.iter() {
-            if push_h264_packet(&appsrc_clone, &sp.pkt).is_err() {
-                break;
-            }
-        }
-        let last = jb.last().map(|sp| sp.seq);
-        (last, state.video_tx.subscribe())
+        let last = jb.back().map(|sp| sp.seq);
+        let rx = state.video_tx.subscribe();
+        (jb.clone(), last, rx)
     };
+    for sp in &join_packets {
+        if push_h264_packet(&appsrc_clone, &sp.pkt).is_err() {
+            break;
+        }
+    }
 
     tokio::spawn(async move {
         let _pipeline_guard = PipelineGuard(pipeline_for_task);
@@ -660,8 +677,8 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
         let mut wait_keyframe = false;
         loop {
-            if stream_broken.load(Ordering::Relaxed) {
-                debug!("per-client queue overflowed; ending stream for clean reconnect");
+            if tx_alive.is_closed() {
+                debug!("stream client disconnected");
                 break;
             }
             let sp = match video_rx.recv().await {

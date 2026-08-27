@@ -68,7 +68,6 @@ class PlayerHolder(
         OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.MILLISECONDS)
-            .pingInterval(20, TimeUnit.SECONDS)
             .build()
     }
 
@@ -105,7 +104,7 @@ class PlayerHolder(
 
         val player = try {
             val httpFactory = OkHttpDataSource.Factory(okHttp)
-                .setUserAgent("Orbiscreen-Android/1.0")
+                .setUserAgent("Orbiscreen-Android/${com.orbiscreen.android.BuildConfig.VERSION_NAME}")
                 .setDefaultRequestProperties(
                     if (token.isNotBlank()) mapOf("Authorization" to "Bearer $token") else emptyMap()
                 )

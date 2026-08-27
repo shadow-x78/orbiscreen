@@ -114,7 +114,7 @@ fun SettingsScreen(
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text("${recent?.host}:${recent?.port}", style = MaterialTheme.typography.titleMedium)
-                            Text(recent?.label ?: "Recent connection", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Recent connection", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         IconButton(onClick = {
                             prefs.clearRecent()

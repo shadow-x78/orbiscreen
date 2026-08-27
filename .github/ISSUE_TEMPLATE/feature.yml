@@ -1,27 +1,33 @@
-# ─────────────────────────────────────────────
-# Orbiscreen - Feature Request Template
-# ─────────────────────────────────────────────
-
----
 name: Feature request
-about: Suggest a change for Orbiscreen v1+
-title: ""
+description: Suggest a change for Orbiscreen v1+
 labels: ["enhancement"]
-assignees: []
----
-
-### Problem
-
-What user-visible problem are we solving?
-
-### Proposal
-
-What would change in the codebase / daemon / clients?
-
-### Alternatives considered
-
-What else have you weighed, and why is this proposal better?
-
-### Out of scope
-
-iOS / iPhone / Safari - explicitly not part of Orbiscreen, ever.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user-visible problem are we solving?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What would change in the codebase / daemon / clients?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What else have you weighed, and why is this proposal better?
+    validations:
+      required: false
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Anything explicitly not part of this request?
+      value: iOS / iPhone / Safari - explicitly not part of Orbiscreen, ever.
+    validations:
+      required: false

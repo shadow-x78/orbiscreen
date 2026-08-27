@@ -94,8 +94,15 @@ impl X11Capture {
 
 struct ShmSegment {
     seg: shm::Seg,
+    conn: Arc<XCBConnection>,
     _file: std::fs::File,
     mapping: Mapping,
+}
+
+impl Drop for ShmSegment {
+    fn drop(&mut self) {
+        let _ = shm::detach(&self.conn, self.seg);
+    }
 }
 
 struct Mapping {
@@ -162,7 +169,7 @@ fn anonymous_memfd(label: &str) -> Result<OwnedFd, CaptureError> {
     Ok(unsafe { OwnedFd::from_raw_fd(fd) })
 }
 
-fn open_shm_segment(conn: &XCBConnection, width: u32, height: u32) -> Option<ShmSegment> {
+fn open_shm_segment(conn: &Arc<XCBConnection>, width: u32, height: u32) -> Option<ShmSegment> {
     let len = (width as usize) * (height as usize) * 4;
     conn.extension_information(shm::X11_EXTENSION_NAME)
         .ok()
@@ -192,9 +199,17 @@ fn open_shm_segment(conn: &XCBConnection, width: u32, height: u32) -> Option<Shm
         tracing::warn!("MIT-SHM attach_fd was rejected; using plain GetImage");
         return None;
     }
-    let mapping = Mapping::new(file.as_raw_fd(), len).ok()?;
+    let mapping = match Mapping::new(file.as_raw_fd(), len) {
+        Ok(m) => m,
+        Err(e) => {
+            tracing::warn!("shm mmap failed: {e}; using plain GetImage");
+            let _ = shm::detach(conn, seg);
+            return None;
+        }
+    };
     Some(ShmSegment {
         seg,
+        conn: Arc::clone(conn),
         _file: file,
         mapping,
     })
@@ -227,9 +242,7 @@ fn capture_changed_frame(
             Ok(()) => FrameSource::Shm(segment.mapping.as_slice()),
             Err(e) => {
                 tracing::warn!("MIT-SHM capture failed ({e}); falling back to plain GetImage");
-                let segment = shm_guard.take().expect("segment present");
-                let _ = shm::detach(conn, segment.seg);
-                drop(segment);
+                let _seg = shm_guard.take();
                 FrameSource::Fallback
             }
         },

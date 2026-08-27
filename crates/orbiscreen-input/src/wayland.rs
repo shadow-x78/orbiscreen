@@ -158,12 +158,29 @@ impl WaylandInjector {
 impl Drop for WaylandInjector {
     fn drop(&mut self) {
         let session = self.session.clone();
-        if let Ok(handle) = tokio::runtime::Handle::try_current() {
-            handle.spawn(async move {
-                if let Err(e) = session.close().await {
-                    warn!("failed to close RemoteDesktop session: {e}");
-                }
-            });
+        let close = async move {
+            if let Err(e) = session.close().await {
+                warn!("failed to close RemoteDesktop session: {e}");
+            }
+        };
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle) => {
+                handle.spawn(close);
+            }
+            Err(_) => {
+                let _ = std::thread::Builder::new()
+                    .name("orbiscreen-portal-close".into())
+                    .spawn(move || {
+                        if let Ok(runtime) = tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build()
+                        {
+                            runtime.block_on(close);
+                        } else {
+                            warn!("could not start a runtime to close the RemoteDesktop session");
+                        }
+                    });
+            }
         }
     }
 }

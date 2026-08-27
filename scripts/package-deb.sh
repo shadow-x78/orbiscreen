@@ -3,6 +3,8 @@
 # https://github.com/shadow-x78/orbiscreen
 set -euo pipefail
 
+cd "$(dirname "$0")/.."
+
 VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
 ARCH="amd64"
 BUILD_DIR="target/deb-staging"
@@ -15,6 +17,7 @@ if [ ! -f target/release/orbiscreen ] || [ ! -f target/release/orbiscreen-gtk ];
     cargo build --release --workspace
 fi
 
+rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}/DEBIAN"
 mkdir -p "${BUILD_DIR}/usr/bin"
 mkdir -p "${BUILD_DIR}/usr/share/applications"
@@ -25,8 +28,8 @@ mkdir -p "${BUILD_DIR}/usr/share/orbiscreen/client/vendor"
 cp -f target/release/orbiscreen "${BUILD_DIR}/usr/bin/"
 cp -f target/release/orbiscreen-gtk "${BUILD_DIR}/usr/bin/"
 
-cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_DIR}/usr/share/applications/" || true
-cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg" || true
+cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_DIR}/usr/share/applications/"
+cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"
 
 cp -f clients/web/index.html "${BUILD_DIR}/usr/share/orbiscreen/client/"
 cp -f clients/web/style.css "${BUILD_DIR}/usr/share/orbiscreen/client/"
@@ -74,8 +77,8 @@ cat <<'EOF' > "${BUILD_DIR}/DEBIAN/prerm"
 set -e
 if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
 
-    for u in $(users); do
-        su -s /bin/sh -c "systemctl --user stop orbiscreen || true" "$u"
+    for u in $(users | tr ' ' '\n' | sort -u); do
+        su -s /bin/sh -c "systemctl --user stop orbiscreen || true" "$u" || true
     done
 fi
 exit 0

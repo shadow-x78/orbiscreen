@@ -132,7 +132,7 @@ private fun StatusOverlay(event: StreamEvent) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 when (event) {
-                    is StreamEvent.Idle, is StreamEvent.Connecting -> {
+                    is StreamEvent.Idle, is StreamEvent.Connecting, is StreamEvent.Playing -> {
                         CircularProgressIndicator(modifier = Modifier.size(40.dp))
                         Text(stringResource(R.string.connecting), style = MaterialTheme.typography.titleMedium)
                         if (event is StreamEvent.Connecting) {
@@ -142,10 +142,6 @@ private fun StatusOverlay(event: StreamEvent) {
                     is StreamEvent.Buffering -> {
                         CircularProgressIndicator(modifier = Modifier.size(40.dp))
                         Text(stringResource(R.string.buffering), style = MaterialTheme.typography.titleMedium)
-                    }
-                    is StreamEvent.Playing -> {
-                        CircularProgressIndicator(modifier = Modifier.size(40.dp))
-                        Text(stringResource(R.string.loading_video), style = MaterialTheme.typography.titleMedium)
                     }
                     is StreamEvent.Error -> {
                         Icon(Icons.Filled.WifiTethering, contentDescription = null, tint = MaterialTheme.colorScheme.error)
@@ -252,8 +248,6 @@ private fun KeyPill(label: String, modifier: Modifier, onClick: () -> Unit) {
 private fun SpacerW() = androidx.compose.foundation.layout.Spacer(Modifier.size(12.dp))
 
 private fun keyCodeFor(c: Char): Int = when (c) {
-    ' ' -> 57
-    '\n' -> 28
     '0' -> 11; '1' -> 2; '2' -> 3; '3' -> 4; '4' -> 5
     '5' -> 6; '6' -> 7; '7' -> 8; '8' -> 9; '9' -> 10
     'q','Q' -> 16; 'w','W' -> 17; 'e','E' -> 18; 'r','R' -> 19; 't','T' -> 20

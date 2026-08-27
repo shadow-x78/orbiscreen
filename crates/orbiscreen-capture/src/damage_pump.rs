@@ -1,6 +1,7 @@
 // Orbiscreen - orbiscreen-capture - damage pump module (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-use std::io::Write as _;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use std::os::fd::AsFd as _;
@@ -13,17 +14,35 @@ use wayland_protocols_wlr::layer_shell::v1::client::{zwlr_layer_shell_v1, zwlr_l
 
 const OUTPUT_HINT: &str = "ORBISCREEN";
 
-pub(crate) fn spawn(period: Duration) {
-    let _ = std::thread::Builder::new()
-        .name("orbiscreen-damage".into())
-        .spawn(move || {
-            if let Err(e) = run(period) {
-                tracing::warn!("damage pump disabled: {e}");
-            }
-        });
+pub(crate) struct DamagePumpHandle {
+    stop: Arc<AtomicBool>,
+    thread: Option<std::thread::JoinHandle<()>>,
 }
 
-fn run(period: Duration) -> Result<(), String> {
+impl Drop for DamagePumpHandle {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
+pub(crate) fn spawn(period: Duration) -> DamagePumpHandle {
+    let stop = Arc::new(AtomicBool::new(false));
+    let pump_stop = Arc::clone(&stop);
+    let thread = std::thread::Builder::new()
+        .name("orbiscreen-damage".into())
+        .spawn(move || {
+            if let Err(e) = run(period, pump_stop) {
+                tracing::warn!("damage pump disabled: {e}");
+            }
+        })
+        .ok();
+    DamagePumpHandle { stop, thread }
+}
+
+fn run(period: Duration, stop: Arc<AtomicBool>) -> Result<(), String> {
     let conn = Connection::connect_to_env().map_err(|e| format!("wayland connect: {e}"))?;
     let (globals, mut queue) = wayland_client::globals::registry_queue_init::<PumpState>(&conn)
         .map_err(|e| format!("registry: {e}"))?;
@@ -87,18 +106,23 @@ fn run(period: Duration) -> Result<(), String> {
     let Some((serial, width, height)) = state.configured else {
         return Err("layer surface never configured".into());
     };
-    if width == 0 || height == 0 {
+    if width <= 0 || height <= 0 {
         return Err("layer surface configured with empty size".into());
-    }
+    };
     layer_surface.ack_configure(serial);
 
-    let stride = width * 4;
-    let pool_size = stride * height * 2;
-    let mut file = anonymous_shm_file()?;
+    let stride = (width as i64)
+        .checked_mul(4)
+        .filter(|v| *v <= i32::MAX as i64)
+        .ok_or("configured width too large for the damage pump")? as i32;
+    let pool_size = (stride as i64)
+        .checked_mul(height as i64)
+        .and_then(|v| v.checked_mul(2))
+        .filter(|v| *v <= i32::MAX as i64)
+        .ok_or("configured surface too large for the damage pump")? as i32;
+    let file = anonymous_shm_file()?;
     file.set_len(u64::try_from(pool_size).map_err(|e| format!("shm size: {e}"))?)
         .map_err(|e| format!("shm ftruncate: {e}"))?;
-    file.write_all(&vec![0u8; pool_size as usize])
-        .map_err(|e| format!("shm write: {e}"))?;
     let pool = shm.create_pool(file.as_fd(), pool_size, &qh, ());
     let buffer_a = pool.create_buffer(0, width, height, stride, wl_shm::Format::Argb8888, &qh, ());
     let buffer_b = pool.create_buffer(
@@ -121,9 +145,15 @@ fn run(period: Duration) -> Result<(), String> {
     surface.commit();
 
     let mut flip = false;
-    let mut tick = 0u64;
     loop {
         std::thread::sleep(period);
+        if stop.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+        queue
+            .dispatch_pending(&mut state)
+            .map_err(|e| format!("dispatch: {e}"))?;
+        let _ = conn.flush();
         if state.closed {
             return Err("layer surface closed by compositor".into());
         }
@@ -132,12 +162,6 @@ fn run(period: Duration) -> Result<(), String> {
         surface.damage_buffer(0, 0, width, height);
         surface.commit();
         flip = !flip;
-        tick += 1;
-        if tick % 8 == 0 {
-            queue
-                .roundtrip(&mut state)
-                .map_err(|e| format!("roundtrip: {e}"))?;
-        }
     }
 }
 
@@ -252,7 +276,7 @@ impl Dispatch<zwlr_layer_shell_v1::ZwlrLayerShellV1, ()> for PumpState {
 impl Dispatch<zwlr_layer_surface_v1::ZwlrLayerSurfaceV1, ()> for PumpState {
     fn event(
         state: &mut Self,
-        layer: &zwlr_layer_surface_v1::ZwlrLayerSurfaceV1,
+        _layer: &zwlr_layer_surface_v1::ZwlrLayerSurfaceV1,
         event: zwlr_layer_surface_v1::Event,
         _: &(),
         _: &Connection,
@@ -265,7 +289,6 @@ impl Dispatch<zwlr_layer_surface_v1::ZwlrLayerSurfaceV1, ()> for PumpState {
                 height,
             } => {
                 state.configured = Some((serial, width as i32, height as i32));
-                let _ = layer;
             }
             zwlr_layer_surface_v1::Event::Closed => {
                 tracing::warn!("damage pump surface closed by compositor");

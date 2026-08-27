@@ -30,20 +30,6 @@ pub enum CapturePreference {
     Screencopy,
 
     Portal,
-
-    Mirror,
-}
-
-impl CapturePreference {
-    pub fn parse(value: &str) -> Self {
-        match value {
-            "kwin-virtual" => Self::KwinVirtual,
-            "screencopy" => Self::Screencopy,
-            "portal" => Self::Portal,
-            "mirror" => Self::Mirror,
-            _ => Self::Auto,
-        }
-    }
 }
 
 #[derive(Debug, Error)]
@@ -88,7 +74,10 @@ impl std::fmt::Debug for CapturedFrame {
 
 impl CapturedFrame {
     pub fn size_in_bytes(width: u32, height: u32) -> usize {
-        (width as usize) * (height as usize) * 4
+        (width as usize)
+            .checked_mul(height as usize)
+            .and_then(|v| v.checked_mul(4))
+            .unwrap_or(usize::MAX)
     }
 }
 
@@ -123,11 +112,21 @@ pub(crate) fn sample_to_captured_frame(
         tracing::warn!("skipping sample with missing width/height in caps");
         return None;
     };
+    if width <= 0 || height <= 0 {
+        tracing::warn!("skipping sample with non-positive dimensions {width}x{height}");
+        return None;
+    }
     let Ok(map) = buffer.map_readable() else {
         tracing::warn!("buffer not readable; skipping sample");
         return None;
     };
-    let expected = (width as usize) * (height as usize) * 4;
+    let expected = (width as usize)
+        .checked_mul(height as usize)
+        .and_then(|v| v.checked_mul(4));
+    let Some(expected) = expected else {
+        tracing::warn!("skipping sample with overflowing dimensions {width}x{height}");
+        return None;
+    };
     if map.size() != expected {
         tracing::warn!(
             "frame size mismatch: got {} B, expected {expected} B ({width}x{height}); dropping",
@@ -230,9 +229,9 @@ impl CaptureSession {
                 CapturePreference::Screencopy => Err(CaptureError::BackendUnavailable(
                     "screencopy capture requires a Wayland session",
                 )),
-                CapturePreference::Portal | CapturePreference::Mirror => Err(
-                    CaptureError::BackendUnavailable("portal capture requires a Wayland session"),
-                ),
+                CapturePreference::Portal => Err(CaptureError::BackendUnavailable(
+                    "portal capture requires a Wayland session",
+                )),
             };
         }
         match preference {
@@ -248,12 +247,6 @@ impl CaptureSession {
             CapturePreference::KwinVirtual => Self::open_kwin(width, height).await,
             CapturePreference::Screencopy => Self::open_screencopy(None).await,
             CapturePreference::Portal => Self::open_portal(width, height).await,
-            CapturePreference::Mirror => {
-                tracing::info!(
-                    "mirror capture — pick the real screen you want to show in the share dialog"
-                );
-                Self::open_portal(width, height).await
-            }
         }
     }
 
@@ -314,23 +307,6 @@ mod tests {
             Some(value) => std::env::set_var("WAYLAND_DISPLAY", value),
             None => std::env::remove_var("WAYLAND_DISPLAY"),
         }
-    }
-
-    #[test]
-    fn capture_preference_parses_known_values() {
-        assert_eq!(
-            CapturePreference::parse("kwin-virtual"),
-            CapturePreference::KwinVirtual
-        );
-        assert_eq!(
-            CapturePreference::parse("portal"),
-            CapturePreference::Portal
-        );
-        assert_eq!(CapturePreference::parse("auto"), CapturePreference::Auto);
-        assert_eq!(
-            CapturePreference::parse("nonsense"),
-            CapturePreference::Auto
-        );
     }
 
     #[test]

@@ -137,8 +137,12 @@ Download pre-built packages from [GitHub Releases](https://github.com/shadow-x78
 - **Standalone Tarball (`.tar.gz`):**
   ```bash
   tar -xzvf orbiscreen-linux-x86_64.tar.gz
-  cd release-bundle && ./install.sh
+  ./bin/orbiscreen start
   ```
+  Put the files in `bin/` on your `PATH` (for example `~/.local/bin`) to run
+  `orbiscreen` from anywhere. The bundle contains prebuilt binaries only; for the
+  systemd unit, desktop entry and web-client files, use the DEB/RPM/AppImage
+  packages or install from source (below).
 
 - **Android (`.apk`):**
   Install `orbiscreen-android-release.apk` (cryptographically signed release build to bypass Play Protect warnings).

@@ -109,8 +109,7 @@ fun DiscoveryScreen(
             ExtendedFloatingActionButton(
                 onClick = {
                     if (valid) {
-                        val (h, p) = HostSpec.parse(manualText.text)!!
-                        onConnect(h, p)
+                        HostSpec.parse(manualText.text)?.let { (h, p) -> onConnect(h, p) }
                     } else {
                         manualExpanded = true
                     }
@@ -137,8 +136,7 @@ fun DiscoveryScreen(
                 valid = valid,
                 onConnect = {
                     if (valid) {
-                        val (h, p) = HostSpec.parse(manualText.text)!!
-                        onConnect(h, p)
+                        HostSpec.parse(manualText.text)?.let { (h, p) -> onConnect(h, p) }
                     }
                 },
             )

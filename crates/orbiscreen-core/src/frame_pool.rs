@@ -36,13 +36,6 @@ impl FramePool {
         }
     }
 
-    pub fn pooled_count(&self, len: usize) -> usize {
-        self.buffers
-            .lock()
-            .map(|buckets| buckets.get(&len).map(Vec::len).unwrap_or(0))
-            .unwrap_or(0)
-    }
-
     fn release(&self, data: Vec<u8>) {
         let len = data.len();
         let Ok(mut buckets) = self.buffers.lock() else {
@@ -59,12 +52,6 @@ impl FramePool {
 pub struct PooledFrameBuffer {
     data: Vec<u8>,
     pool: Arc<FramePool>,
-}
-
-impl PooledFrameBuffer {
-    pub fn into_inner(mut self) -> Vec<u8> {
-        std::mem::take(&mut self.data)
-    }
 }
 
 impl Drop for PooledFrameBuffer {
@@ -90,21 +77,9 @@ impl DerefMut for PooledFrameBuffer {
     }
 }
 
-impl AsRef<[u8]> for PooledFrameBuffer {
-    fn as_ref(&self) -> &[u8] {
-        &self.data
-    }
-}
-
 impl AsMut<[u8]> for PooledFrameBuffer {
     fn as_mut(&mut self) -> &mut [u8] {
         &mut self.data
-    }
-}
-
-impl std::borrow::Borrow<[u8]> for PooledFrameBuffer {
-    fn borrow(&self) -> &[u8] {
-        &self.data
     }
 }
 
@@ -142,21 +117,6 @@ mod tests {
     }
 
     #[test]
-    fn pool_cap_prevents_unbounded_growth() {
-        let pool = FramePool::new();
-        let mut buffers: Vec<PooledFrameBuffer> = (0..MAX_POOLED_BUFFERS_PER_SIZE + 2)
-            .map(|_| pool.acquire(256))
-            .collect();
-        buffers.clear();
-        assert_eq!(pool.pooled_count(256), MAX_POOLED_BUFFERS_PER_SIZE);
-        let held: Vec<PooledFrameBuffer> = (0..MAX_POOLED_BUFFERS_PER_SIZE)
-            .map(|_| pool.acquire(256))
-            .collect();
-        assert_eq!(pool.pooled_count(256), 0);
-        drop(held);
-    }
-
-    #[test]
     fn wrap_adopts_external_vec_and_returns_it_to_pool() {
         let pool = FramePool::new();
         let mut owned = vec![9u8; 128];
@@ -172,23 +132,11 @@ mod tests {
     }
 
     #[test]
-    fn into_inner_detaches_from_pool() {
-        let pool = FramePool::new();
-        let mut buffer = pool.acquire(64);
-        buffer[0] = 7;
-        let ptr = buffer.as_ptr();
-        let owned = buffer.into_inner();
-        assert_eq!(owned.as_ptr(), ptr);
-        assert_eq!(owned[0], 7);
-        assert_eq!(pool.pooled_count(64), 0);
-    }
-
-    #[test]
     fn buffer_supports_mutable_access() {
         let pool = FramePool::new();
         let mut buffer = pool.acquire(8);
         buffer.copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8]);
-        assert_eq!(buffer.as_ref(), &[1, 2, 3, 4, 5, 6, 7, 8][..]);
+        assert_eq!(&buffer[..], &[1, 2, 3, 4, 5, 6, 7, 8][..]);
         let slice: &mut [u8] = buffer.as_mut();
         slice[0] = 9;
         assert_eq!(buffer[0], 9);

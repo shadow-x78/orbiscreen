@@ -18,9 +18,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.12.x | ✅ Active development |
+| 0.13.x | ✅ Active development |
+| 0.12.x | ⚠️ Maintenance |
 | 0.11.x | ⚠️ Maintenance |
-| 0.10.x | ⚠️ Maintenance |
 | < 0.10 | ❌ Not supported |
 
 Only the latest minor release receives security updates. Ensure you build from `main` before reporting.
@@ -78,15 +78,17 @@ We follow a **coordinated disclosure** model:
 <a id="considerations"></a>
 ## 🔍 Security Considerations
 
-### Scope (v0.11.0)
+### Scope (v0.13.1)
 
 Orbiscreen is a Linux host daemon plus a Material 3 Android client and a browser web client that:
-- Creates kernel-level virtual displays via the `evdi` DRM module, falling back to primary-desktop capture (Wayland portal or X11) when the module is absent
-- Captures screen contents via the evdi framebuffer, Wayland (`ashpd` + PipeWire), or X11 (`x11rb`)
-- Injects input events via `evdevil` (uinput) or `ashpd` RemoteDesktop
+- Creates compositor-native virtual displays without root: KWin's `zkde_screencast_unstable_v1` on Plasma, headless outputs via sway/Hyprland IPC on wlroots, falling back to the `evdi` kernel module or primary-desktop capture (Wayland portal or X11) when unavailable
+- Captures screen contents via the evdi framebuffer, `zwlr_screencopy_manager_v1` (wlroots), Wayland portal (`ashpd` + PipeWire), KWin virtual streams, or X11 (MIT-SHM `x11rb`)
+- Injects input events via wlroots-native protocols (`virtual-keyboard` / `wlr-virtual-pointer`), X11 XTEST, `ashpd` RemoteDesktop, or `evdevil` (uinput)
 - Streams MPEG-TS/H.264 over HTTP (`/stream`) to Android and browser clients - WebRTC is not used
 - Exposes a token-authenticated control-plane HTTP API at `/api/control` (lock, blank, unblank, ctrl-alt-del)
 - Exposes public `/api/info` (display resolution, encoder, version) and `/health`
+- Persists portal restore tokens (GNOME dialog-free re-grant) in `$XDG_STATE_HOME/orbiscreen/portal.json`
+- Provides `orbiscreen doctor` for diagnostics and `doctor --fix` to install/load the EVDI module via the distro package manager
 
 ### Token Model and Its Limits
 
@@ -111,13 +113,16 @@ Run `orbiscreen start --no-mdns` to stop advertising the host (and the token TXT
 | Area | Risk | Mitigation |
 |------|------|------------|
 | `uinput` injection | Any process holding the virtual touchscreen can inject arbitrary input | The daemon opens the uinput device exclusively; restrict `/dev/uinput` permissions on the host |
-| Screen capture | Frames contain everything rendered to the captured display | With evdi, capture is limited to the virtual display; without evdi the fallback captures the *primary* desktop (see `GetStatus.capture_backend`) |
+| Screen capture | Frames contain everything rendered to the captured display | With evdi/KWin/wlroots virtual outputs capture targets a dedicated output; portal/X11 fallbacks capture the *primary* desktop (see `GetStatus.capture_backend`) |
 | Cleartext HTTP `/stream` | A LAN attacker who knows the token can view the desktop stream | Binds on `0.0.0.0` by default so Android/web clients can connect on the LAN; access requires the per-session token; use `adb reverse` and firewall the port on untrusted networks |
 | `/api/control` | A client holding the token can call lock/blank/ctrl-alt-del | Token-authenticated since v0.11.0; host tools (`loginctl`, `xset`, …) are invoked as the daemon user |
 | evdi kernel module | DKMS + Secure Boot signing is distro-specific | Module loading is the host administrator's responsibility |
 | mDNS advertising (`_orbiscreen._tcp.`) | Host name, port and session token are broadcast on the local network | Start with `--no-mdns` to disable advertising |
-| Android / web input model | `InputDispatcher` / web client post absolute pointer / wheel / stylus / keyboard events to `/input` | `/input` requires the session token (v0.11.0) |
+| Android / web input model | `InputDispatcher` / web client post absolute pointer / wheel / stylus / keyboard events to `/input` | `/input` requires the session token (v0.11.0); wheel steps are clamped per event on the host |
 | Token readable at `/client/config.json` | Any peer reaching the port can learn the token | LAN convenience, documented above - abuse protection only; restrict the port or use TLS when available |
+| Compositor IPC (sway/Hyprland) | The daemon trusts `$SWAYSOCK` / the Hyprland instance socket from the session environment to create/destroy headless outputs | Sockets are local and owned by the session user; output names returned by the compositor are charset-validated before use in IPC commands; a compromised compositor already owns the session |
+| Portal restore tokens | `$XDG_STATE_HOME/orbiscreen/portal.json` holds ScreenCast/RemoteDesktop grants; theft allows silent screen sharing as long as the grant lives | Written atomically with `0600` file and `0700` state directory (v0.13.0); delete the file to revoke; GNOME revokes grants marked `ExplicitlyRevoked` when the token is removed |
+| `orbiscreen doctor --fix` | Runs the detected package manager (`dnf`/`apt`/`pacman`/`zypper`) and `sudo modprobe evdi` | Install commands are hardcoded per-distro (never built from file contents), the plan is printed and requires explicit confirmation unless `--yes` is given, and it only runs when the user invokes it |
 
 ### Keystore Rotation (Android)
 
@@ -151,15 +156,17 @@ The Android release signing key (`orbiscreen-release.keystore`) was removed from
 <a id="audit"></a>
 ## 🔬 Security Audit
 
-Orbiscreen (v0.11.0) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose) and a small browser web client (MSE via vendored mpegts.js). A running daemon performs:
+Orbiscreen (v0.13.1) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose) and a small browser web client (MSE via vendored mpegts.js). A running daemon performs:
 
 - `open()` on `/dev/dri/card*` evdi nodes for capture
-- `GetImage` (X11) or `Screencast` portal (Wayland) capture as a degraded fallback
-- `UinputDevice` construction via `evdevil` for reverse input injection
+- Compositor IPC over session-local Unix sockets: sway i3-ipc (`$SWAYSOCK`) and Hyprland (`HYPRLAND_INSTANCE_SIGNATURE`) to create/destroy headless outputs
+- `zwlr_screencopy_manager_v1` SHM capture on wlroots, `zkde_screencast_unstable_v1` + PipeWire on KWin, Screencast portal (Wayland) or MIT-SHM/`GetImage` (X11) as fallbacks
+- Input injection via `zwp_virtual_keyboard_v1` + `zwlr_virtual_pointer_v1` (wlroots), XTEST (X11), RemoteDesktop portal, or `UinputDevice` via `evdevil`
 - GStreamer pipeline construction for H.264 encoding
 - `axum` HTTP listener serving `/stream`, `/input`, `/api/control` behind a per-session token, plus public `/health`, `/api/info`, `/client/config.json`, and `/client/*`
 - A D-Bus session service (`com.orbiscreen.Daemon`) exposing `GetStatus` / `Stop` / `Start` / `ListClients` / `GetConfig`
 - `adb reverse` subprocess invocation when a USB device is attached
+- On explicit user request (`doctor --fix`): the distro package manager for EVDI installation and `sudo modprobe evdi`
 - `NsdManager.discoverServices` on the Android client (no outbound traffic outside the LAN)
 
 All logic is readable in plain Rust and Kotlin. If you perform an audit, please share findings via the private reporting channels above.

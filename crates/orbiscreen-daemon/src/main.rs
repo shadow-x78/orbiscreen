@@ -2,7 +2,7 @@
 // https://github.com/shadow-x78/orbiscreen
 pub mod dbus;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
 
@@ -29,7 +29,7 @@ use tracing_subscriber::EnvFilter;
 )]
 struct Cli {
     #[arg(short, long, global = true)]
-    config: Option<String>,
+    config: Option<PathBuf>,
 
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
     verbose: u8,
@@ -70,12 +70,11 @@ fn init_tracing(verbose: u8) {
     let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }
 
-fn load_or_default_config(path: &str) -> Result<Config, Box<dyn std::error::Error + Send + Sync>> {
-    if std::path::Path::new(path).exists() {
-        let s = std::fs::read_to_string(path)?;
-        Ok(load_config(&s)?)
-    } else {
-        Ok(Config::default())
+fn load_or_default_config(path: &Path) -> Result<Config, Box<dyn std::error::Error + Send + Sync>> {
+    match std::fs::read_to_string(path) {
+        Ok(s) => Ok(load_config(&s)?),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Config::default()),
+        Err(e) => Err(e.into()),
     }
 }
 
@@ -104,7 +103,7 @@ fn probe() {
     }
 }
 
-fn list_displays(path: &str) {
+fn list_displays(path: &Path) {
     match load_or_default_config(path) {
         Ok(cfg) => {
             println!(
@@ -128,7 +127,6 @@ enum FrameSource {
     Capture(CaptureSession),
     WlrVirtual {
         session: CaptureSession,
-        #[allow(dead_code)]
         output: WlrootsVirtualOutput,
     },
 }
@@ -204,11 +202,10 @@ async fn main() -> ExitCode {
     let cli = Cli::parse();
     init_tracing(cli.verbose);
 
-    let config_path = cli.config.clone().unwrap_or_else(|| {
-        orbiscreen_core::default_config_path()
-            .to_string_lossy()
-            .into_owned()
-    });
+    let config_path = cli
+        .config
+        .clone()
+        .unwrap_or_else(orbiscreen_core::default_config_path);
     let cfg = match load_or_default_config(&config_path) {
         Ok(c) => c,
         Err(e) => {
@@ -242,10 +239,10 @@ async fn main() -> ExitCode {
                 ExitCode::from(1)
             }
         },
-        Command::Uninstall => {
-            run_uninstall();
-            ExitCode::SUCCESS
-        }
+        Command::Uninstall => match tokio::task::spawn_blocking(run_uninstall).await {
+            Ok(code) => code,
+            Err(_) => ExitCode::from(1),
+        },
         Command::ListDisplays => {
             list_displays(&config_path);
             ExitCode::SUCCESS
@@ -274,46 +271,85 @@ async fn main() -> ExitCode {
     }
 }
 
-fn run_uninstall() {
+fn run_uninstall() -> ExitCode {
     println!("[Orbiscreen] Uninstalling...");
+    let mut failures = 0u32;
 
-    if let Err(e) = std::process::Command::new("systemctl")
-        .args(["--user", "stop", "orbiscreen"])
-        .status()
-    {
-        warn!("Failed to stop service: {e}");
-    }
-    if let Err(e) = std::process::Command::new("systemctl")
-        .args(["--user", "disable", "orbiscreen"])
-        .status()
-    {
-        warn!("Failed to disable service: {e}");
-    }
-    let _ = std::process::Command::new("systemctl")
-        .args(["--user", "daemon-reload"])
-        .status();
-
-    if let Ok(home) = std::env::var("HOME") {
-        let home = PathBuf::from(home);
-        let _ = std::fs::remove_file(home.join(".local/bin/orbiscreen"));
-        let _ = std::fs::remove_file(home.join(".config/systemd/user/orbiscreen.service"));
-        let _ = std::fs::remove_file(
-            home.join(".local/share/applications/com.orbiscreen.OrbiscreenGtk.desktop"),
-        );
-        let _ = std::fs::remove_file(
-            home.join(".local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"),
-        );
-        let _ = std::fs::remove_dir_all(home.join(".local/share/orbiscreen"));
+    for (program, args) in [
+        ("systemctl", ["--user", "stop", "orbiscreen"].as_slice()),
+        ("systemctl", ["--user", "disable", "orbiscreen"].as_slice()),
+        ("systemctl", ["--user", "daemon-reload"].as_slice()),
+    ] {
+        match std::process::Command::new(program).args(args).status() {
+            Ok(status) if status.success() => {}
+            Ok(status) => {
+                warn!("{program} {args:?} exited with {status} (may be already removed)");
+            }
+            Err(e) => {
+                warn!("failed to run {program}: {e}");
+            }
+        }
     }
 
-    let _ = std::fs::remove_file("/usr/bin/orbiscreen");
-    let _ = std::fs::remove_file("/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop");
-    let _ = std::fs::remove_file(
-        "/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg",
+    let remove_file = |path: &Path, failures: &mut u32| match std::fs::remove_file(path) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            warn!("failed to remove {}: {e}", path.display());
+            *failures += 1;
+        }
+    };
+    let remove_dir = |path: &Path, failures: &mut u32| match std::fs::remove_dir_all(path) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            warn!("failed to remove {}: {e}", path.display());
+            *failures += 1;
+        }
+    };
+
+    match std::env::var_os("HOME").map(PathBuf::from) {
+        Some(home) if home.is_absolute() => {
+            remove_file(&home.join(".local/bin/orbiscreen"), &mut failures);
+            remove_file(
+                &home.join(".config/systemd/user/orbiscreen.service"),
+                &mut failures,
+            );
+            remove_file(
+                &home.join(".local/share/applications/com.orbiscreen.OrbiscreenGtk.desktop"),
+                &mut failures,
+            );
+            remove_file(
+                &home.join(
+                    ".local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg",
+                ),
+                &mut failures,
+            );
+            remove_dir(&home.join(".local/share/orbiscreen"), &mut failures);
+        }
+        _ => warn!("HOME is not set or not absolute; skipping user-level removal"),
+    }
+
+    remove_file(Path::new("/usr/bin/orbiscreen"), &mut failures);
+    remove_file(
+        Path::new("/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop"),
+        &mut failures,
     );
-    let _ = std::fs::remove_dir_all("/usr/share/orbiscreen");
+    remove_file(
+        Path::new("/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"),
+        &mut failures,
+    );
+    remove_dir(Path::new("/usr/share/orbiscreen"), &mut failures);
 
-    println!("[Orbiscreen] Uninstallation complete.");
+    if failures == 0 {
+        println!("[Orbiscreen] Uninstallation complete.");
+        ExitCode::SUCCESS
+    } else {
+        println!(
+            "[Orbiscreen] Uninstallation finished with {failures} error(s); see warnings above."
+        );
+        ExitCode::from(1)
+    }
 }
 
 type DynError = Box<dyn std::error::Error + Send + Sync>;
@@ -452,14 +488,12 @@ fn has_binary(name: &str) -> bool {
         return false;
     };
     std::env::split_paths(&paths).any(|dir| {
-        let path = dir.join(name);
-        path.is_file()
-            && std::fs::metadata(&path)
-                .map(|m| {
-                    use std::os::unix::fs::PermissionsExt as _;
-                    m.permissions().mode() & 0o111 != 0
-                })
-                .unwrap_or(false)
+        std::fs::metadata(dir.join(name))
+            .map(|m| {
+                use std::os::unix::fs::PermissionsExt as _;
+                m.is_file() && m.permissions().mode() & 0o111 != 0
+            })
+            .unwrap_or(false)
     })
 }
 
@@ -729,36 +763,54 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
         return ExitCode::from(1);
     }
 
-    let (program, args) = plan
-        .install_cmd
-        .split_first()
-        .expect("install command is not empty");
-    let status = match std::process::Command::new(program).args(args).status() {
-        Ok(status) => status,
-        Err(e) => {
-            eprintln!("[doctor --fix] failed to run {program}: {e}");
+    let Some((program, args)) = plan.install_cmd.split_first() else {
+        eprintln!("[doctor --fix] the detected fix plan has an empty install command");
+        return ExitCode::from(1);
+    };
+    let program = program.to_string();
+    let args = args.to_vec();
+    let program_label = program.clone();
+    let status = match tokio::task::spawn_blocking(move || {
+        std::process::Command::new(&program).args(&args).status()
+    })
+    .await
+    {
+        Ok(Ok(status)) => status,
+        Ok(Err(e)) => {
+            eprintln!("[doctor --fix] failed to run {program_label}: {e}");
+            return ExitCode::from(1);
+        }
+        Err(_) => {
+            eprintln!("[doctor --fix] install task aborted");
             return ExitCode::from(1);
         }
     };
     if !status.success() {
         eprintln!(
-            "[doctor --fix] {program} exited with {status}; the package may not exist for \
-             this distro — try: bash scripts/install-evdi-module.sh"
+            "[doctor --fix] {program_label} exited with {status}; the package may not exist \
+             for this distro — try: bash scripts/install-evdi-module.sh"
         );
         return ExitCode::from(1);
     }
 
-    let status = std::process::Command::new("sudo")
-        .args(["modprobe", "evdi"])
-        .status();
+    let status = tokio::task::spawn_blocking(|| {
+        std::process::Command::new("sudo")
+            .args(["modprobe", "evdi"])
+            .status()
+    })
+    .await;
     match status {
-        Ok(s) if s.success() => {}
-        Ok(s) => {
+        Ok(Ok(s)) if s.success() => {}
+        Ok(Ok(s)) => {
             eprintln!("[doctor --fix] modprobe evdi failed: {s}");
             return ExitCode::from(1);
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             eprintln!("[doctor --fix] failed to run modprobe: {e}");
+            return ExitCode::from(1);
+        }
+        Err(_) => {
+            eprintln!("[doctor --fix] modprobe task aborted");
             return ExitCode::from(1);
         }
     }
@@ -889,9 +941,24 @@ async fn run_start(
     info!("D-Bus session service registered: com.orbiscreen.Daemon");
 
     let (video_tx, video_rx) = mpsc::channel::<H264Packet>(64);
+    let encoder_dump = match std::env::var("ORBISCREEN_ENCODER_DUMP") {
+        Ok(path) => match std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+        {
+            Ok(file) => Some(file),
+            Err(e) => {
+                warn!("ORBISCREEN_ENCODER_DUMP={path} could not be opened: {e}");
+                None
+            }
+        },
+        Err(_) => None,
+    };
     let frame_pump = tokio::spawn(async move {
         let mut n = 0u64;
         let mut ts_base: Option<u64> = None;
+        let mut dump_file = encoder_dump;
         while let Some(chunk) = encoded_rx.recv().await {
             n += 1;
             let base = *ts_base.get_or_insert(chunk.pts_ns);
@@ -909,15 +976,9 @@ async fn run_start(
                 is_keyframe: chunk.is_keyframe,
                 pts_ns,
             };
-            if let Ok(path) = std::env::var("ORBISCREEN_ENCODER_DUMP") {
+            if let Some(file) = dump_file.as_mut() {
                 use std::io::Write;
-                if let Ok(mut f) = std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(&path)
-                {
-                    let _ = f.write_all(&pkt.bytes);
-                }
+                let _ = file.write_all(&pkt.bytes);
             }
             if video_tx.send(pkt).await.is_err() {
                 break;
@@ -937,7 +998,7 @@ async fn run_start(
         let started = std::time::Instant::now();
         let mut last_pts_ns: u64 = frame_dur;
         let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = None;
-        let mut last_snapshot = std::time::Instant::now() - KEEPALIVE;
+        let mut last_snapshot: Option<std::time::Instant> = None;
         loop {
             let outcome = match tokio::time::timeout(KEEPALIVE, source.next_frame()).await {
                 Ok(outcome) => outcome,
@@ -963,9 +1024,9 @@ async fn run_start(
                 SourceOutcome::Frame(frame) => {
                     let n = fc.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
                     let (width, height, data_len) = (frame.width, frame.height, frame.data.len());
-                    if last_snapshot.elapsed() >= KEEPALIVE {
+                    if last_snapshot.map_or(true, |t| t.elapsed() >= KEEPALIVE) {
                         keepalive_frame = Some((width, height, frame.data.to_vec()));
-                        last_snapshot = std::time::Instant::now();
+                        last_snapshot = Some(std::time::Instant::now());
                     }
                     let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
                     last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
@@ -982,7 +1043,6 @@ async fn run_start(
                             width, height, data_len
                         );
                     }
-                    tokio::time::sleep(std::time::Duration::from_nanos(frame_dur)).await;
                 }
                 SourceOutcome::Retryable(e) => {
                     if source.is_ended() {
@@ -1003,24 +1063,24 @@ async fn run_start(
     });
 
     let enc_check = frame_count.clone();
-    let _watchdog = tokio::spawn(async move {
-        let mut warned = false;
+    let watchdog = tokio::spawn(async move {
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
             let n = enc_check.load(std::sync::atomic::Ordering::Relaxed);
-            if n == 0 && !warned {
+            if n == 0 {
                 warn!(
                     "no frames captured yet - compositor may not be drawing on the virtual \
                      display (evdi) or the portal is not delivering buffers"
                 );
-                warned = true;
+            } else {
+                break;
             }
         }
     });
 
-    let (input_tx, mut input_rx) = mpsc::unbounded_channel::<orbiscreen_transport::IncomingInput>();
+    let (input_tx, mut input_rx) = mpsc::channel::<orbiscreen_transport::IncomingInput>(1024);
     let mut injector = injector;
-    let _input_pump = tokio::spawn(async move {
+    let input_pump = tokio::spawn(async move {
         use orbiscreen_input::PointerEvent;
         use orbiscreen_transport::IncomingInput;
         let (cap_w, cap_h) = cap_dims;
@@ -1029,8 +1089,13 @@ async fn run_start(
             let y = y * f64::from(spec.height) / f64::from(cap_h.max(1));
             (x, y)
         };
+        let mut warned_no_injector = false;
         while let Some(event) = input_rx.recv().await {
             let Some(injector) = injector.as_mut() else {
+                if !warned_no_injector {
+                    warn!("input event received but no injector is available; dropping events");
+                    warned_no_injector = true;
+                }
                 continue;
             };
             match event {
@@ -1060,7 +1125,11 @@ async fn run_start(
 
     let client_dir = std::env::var_os("ORBISCREEN_CLIENT_DIR")
         .map(PathBuf::from)
+        .filter(|p| p.exists())
         .or_else(|| {
+            if std::env::var_os("ORBISCREEN_CLIENT_DIR").is_some() {
+                warn!("ORBISCREEN_CLIENT_DIR does not exist; falling back to defaults");
+            }
             let mut paths = vec![
                 std::env::current_dir()
                     .unwrap_or_default()
@@ -1135,6 +1204,8 @@ async fn run_start(
     encoder.stop();
     cap_pump.abort();
     frame_pump.abort();
+    input_pump.abort();
+    watchdog.abort();
     serve_res.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
     Ok(())
 }
@@ -1145,7 +1216,8 @@ mod tests {
 
     #[test]
     fn default_config_loads_when_file_absent() {
-        let cfg = load_or_default_config("/tmp/orbiscreen-nonexistent-config.toml").unwrap();
+        let cfg =
+            load_or_default_config(Path::new("/tmp/orbiscreen-nonexistent-config.toml")).unwrap();
         assert_eq!(cfg.display.width, 1920);
     }
 

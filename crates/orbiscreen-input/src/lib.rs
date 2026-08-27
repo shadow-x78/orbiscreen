@@ -18,9 +18,7 @@ pub enum PointerEvent {
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum StylusEvent {
-    Proximity {
-        in_range: bool,
-    },
+    Proximity {},
     Pressure {
         x: f64,
         y: f64,
@@ -59,8 +57,6 @@ pub fn detect_backend() -> InputBackend {
 pub enum InputError {
     #[error("uinput error: {0}")]
     Uinput(String),
-    #[error("not implemented: {0}")]
-    NotImplemented(&'static str),
 }
 
 #[derive(Debug, Clone)]
@@ -78,16 +74,7 @@ pub enum InjectorKind {
     Wlroots,
 }
 
-impl std::fmt::Display for InjectorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Uinput => write!(f, "uinput"),
-            Self::Xtest => write!(f, "xtest"),
-            Self::Portal => write!(f, "portal-remotedesktop"),
-            Self::Wlroots => write!(f, "wlroots-native"),
-        }
-    }
-}
+pub(crate) const MAX_WHEEL_STEPS: i32 = 12;
 
 #[allow(missing_debug_implementations)]
 enum InjectorInner {
@@ -189,15 +176,12 @@ impl InputInjector {
     pub async fn inject_stylus(&mut self, event: StylusEvent) -> Result<(), InputError> {
         match event {
             StylusEvent::Pressure { x, y, .. } | StylusEvent::Tilt { x, y, .. } => {
-                if matches!(self.inner, InjectorInner::Uinput(_)) {
-                    let InjectorInner::Uinput(injector) = &mut self.inner else {
-                        unreachable!("uinput variant checked above");
-                    };
-                    return injector.inject_stylus(event);
+                match &mut self.inner {
+                    InjectorInner::Uinput(injector) => injector.inject_stylus(event),
+                    _ => self.inject_pointer(PointerEvent::Move { x, y }).await,
                 }
-                self.inject_pointer(PointerEvent::Move { x, y }).await
             }
-            StylusEvent::Proximity { .. } => match &mut self.inner {
+            StylusEvent::Proximity {} => match &mut self.inner {
                 InjectorInner::Uinput(injector) => injector.inject_stylus(event),
                 _ => Ok(()),
             },

@@ -22,30 +22,48 @@ fn device_serials(out: &str) -> Vec<&str> {
             let mut parts = line.split_whitespace();
             let serial = parts.next()?;
             let state = parts.next()?;
-            (state == "device").then_some(serial)
+            (state == "device" && serial_is_safe(serial)).then_some(serial)
         })
         .collect()
 }
 
+fn serial_is_safe(serial: &str) -> bool {
+    !serial.is_empty()
+        && serial.len() <= 128
+        && serial
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | ':' | '_' | '-'))
+}
+
 pub fn reverse_port(adb_path: &Path, device: &str, host_port: u16) -> Result<(), AdbError> {
     let port = format!("tcp:{host_port}");
-    let status = Command::new(adb_path)
+    let out = Command::new(adb_path)
         .args(["-s", device, "reverse", &port, &port])
-        .status()
-        .map_err(|_| AdbError::NotInstalled)?;
-    if !status.success() {
+        .output()
+        .map_err(spawn_error)?;
+    if !out.status.success() {
         return Err(AdbError::Failed(format!(
-            "adb reverse exited with {status}"
+            "adb reverse exited with {}: {}",
+            out.status,
+            String::from_utf8_lossy(&out.stderr).trim()
         )));
     }
     Ok(())
+}
+
+fn spawn_error(e: std::io::Error) -> AdbError {
+    if e.kind() == std::io::ErrorKind::NotFound {
+        AdbError::NotInstalled
+    } else {
+        AdbError::Failed(e.to_string())
+    }
 }
 
 pub fn setup_reverse_for_all(adb_path: &Path, host_port: u16) -> Result<Vec<String>, AdbError> {
     let out = Command::new(adb_path)
         .arg("devices")
         .output()
-        .map_err(|_| AdbError::NotInstalled)?;
+        .map_err(spawn_error)?;
     if !out.status.success() {
         return Err(AdbError::Failed(
             String::from_utf8_lossy(&out.stderr).into_owned(),

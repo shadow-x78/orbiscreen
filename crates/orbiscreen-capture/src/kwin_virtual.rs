@@ -46,6 +46,8 @@ pub enum KwinVirtualError {
     ProtocolUnavailable,
     #[error("compositor is too old: virtual output streaming needs protocol version >= 2")]
     ProtocolTooOld,
+    #[error("requested size {0}x{1} exceeds the protocol's i32 dimensions")]
+    UnsupportedSize(u32, u32),
     #[error("KWin rejected the virtual output stream: {0}")]
     StreamFailed(String),
     #[error("timed out waiting for KWin to create the virtual output stream")]
@@ -141,10 +143,10 @@ impl Dispatch<ZkdeScreencastStreamUnstableV1, Arc<StreamShared>> for HandshakeSt
     ) {
         match event {
             StreamEvent::Created { node } => {
-                *shared.node_id.lock().expect("node_id mutex") = Some(node);
+                *shared.node_id.lock().unwrap_or_else(|e| e.into_inner()) = Some(node);
             }
             StreamEvent::Failed { error } => {
-                *shared.failed.lock().expect("failed mutex") = Some(error);
+                *shared.failed.lock().unwrap_or_else(|e| e.into_inner()) = Some(error);
             }
             StreamEvent::Closed => {
                 shared.closed.store(true, Ordering::Relaxed);
@@ -306,11 +308,18 @@ pub struct KwinVirtualCapture {
     ended: Arc<AtomicBool>,
     ended_notify: Arc<Notify>,
     event_thread: Option<std::thread::JoinHandle<()>>,
+    _damage_pump: super::damage_pump::DamagePumpHandle,
 }
 
 impl KwinVirtualCapture {
     #[instrument(skip_all, fields(width = spec.width, height = spec.height))]
     pub fn open(spec: KwinVirtualSpec) -> Result<Self, KwinVirtualError> {
+        let Ok(width) = i32::try_from(spec.width) else {
+            return Err(KwinVirtualError::UnsupportedSize(spec.width, spec.height));
+        };
+        let Ok(height) = i32::try_from(spec.height) else {
+            return Err(KwinVirtualError::UnsupportedSize(spec.width, spec.height));
+        };
         gstreamer::init().map_err(|e| KwinVirtualError::Wayland(format!("gst init: {e}")))?;
 
         let mut session = WaylandSession::connect()?;
@@ -351,8 +360,8 @@ impl KwinVirtualCapture {
             screencast.stream_virtual_output_with_description(
                 "ORBISCREEN".to_string(),
                 "Orbiscreen Virtual Display".to_string(),
-                spec.width as i32,
-                spec.height as i32,
+                width,
+                height,
                 1.0,
                 POINTER_EMBEDDED,
                 &session.queue.handle(),
@@ -361,8 +370,8 @@ impl KwinVirtualCapture {
         } else {
             screencast.stream_virtual_output(
                 "ORBISCREEN".to_string(),
-                spec.width as i32,
-                spec.height as i32,
+                width,
+                height,
                 1.0,
                 POINTER_EMBEDDED,
                 &session.queue.handle(),
@@ -376,7 +385,12 @@ impl KwinVirtualCapture {
                 .queue
                 .roundtrip(&mut session.state)
                 .map_err(|e| KwinVirtualError::Wayland(e.to_string()))?;
-            if let Some(err) = shared.failed.lock().expect("failed mutex").clone() {
+            if let Some(err) = shared
+                .failed
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .clone()
+            {
                 return Err(KwinVirtualError::StreamFailed(err));
             }
             if shared.closed.load(Ordering::Relaxed) {
@@ -384,7 +398,7 @@ impl KwinVirtualCapture {
                     "compositor closed the stream during setup".into(),
                 ));
             }
-            if let Some(node) = *shared.node_id.lock().expect("node_id mutex") {
+            if let Some(node) = *shared.node_id.lock().unwrap_or_else(|e| e.into_inner()) {
                 break node;
             }
             if Instant::now() >= deadline {
@@ -460,7 +474,7 @@ impl KwinVirtualCapture {
             .set_state(gstreamer::State::Playing)
             .map_err(|e| KwinVirtualError::Wayland(format!("State error: {e}")))?;
 
-        super::damage_pump::spawn(Duration::from_millis(500));
+        let damage_pump = super::damage_pump::spawn(Duration::from_millis(500));
 
         let ended = Arc::new(AtomicBool::new(false));
         let ended_notify = Arc::new(Notify::new());
@@ -496,6 +510,7 @@ impl KwinVirtualCapture {
             ended,
             ended_notify,
             event_thread: Some(event_thread),
+            _damage_pump: damage_pump,
         })
     }
 

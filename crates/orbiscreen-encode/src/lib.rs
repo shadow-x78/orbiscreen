@@ -75,13 +75,17 @@ pub fn init() -> Result<(), EncodeError> {
 }
 
 fn detect_available(preferred: EncoderKind) -> EncoderKind {
+    let registry = gstreamer::Registry::get();
     for kind in [
         preferred,
         EncoderKind::X264,
         EncoderKind::Vaapi,
         EncoderKind::Nvenc,
     ] {
-        if ElementFactory::make(kind.gst_element()).build().is_ok() {
+        if registry
+            .find_feature(kind.gst_element(), gstreamer::ElementFactory::static_type())
+            .is_some()
+        {
             return kind;
         }
     }
@@ -244,7 +248,10 @@ impl Encoder {
                         .map_err(|_| gstreamer::FlowError::Eos)?;
                     let bytes = map.to_vec();
                     let is_keyframe = !buffer.flags().contains(gstreamer::BufferFlags::DELTA_UNIT);
-                    let pts_ns = buffer.pts().map(|t| t.nseconds()).unwrap_or(0);
+                    let Some(pts_ns) = buffer.pts().map(|t| t.nseconds()) else {
+                        tracing::debug!("encoded chunk without PTS dropped");
+                        return Ok(gstreamer::FlowSuccess::Ok);
+                    };
                     if tx
                         .try_send(EncodedChunk {
                             bytes,

@@ -43,7 +43,6 @@ pub struct OutputSnapshot {
     pub name: String,
     pub width: u32,
     pub height: u32,
-    pub active: bool,
 }
 
 #[derive(Debug, Error)]
@@ -58,8 +57,6 @@ pub enum WlrootsVirtualOutputError {
     Rejected(String),
     #[error("the virtual output did not appear within {0:.1}s")]
     Timeout(f64),
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
 }
 
 #[derive(Debug, Clone)]
@@ -148,6 +145,10 @@ impl Ipc {
 
     fn set_mode_best_effort(&self, name: &str, spec: VirtualOutputSpec) {
         if let Self::Sway(sock) = self {
+            if !output_name_is_safe(name) {
+                tracing::warn!(output = name, "refusing unsafe output name in mode command");
+                return;
+            }
             let cmd = format!(
                 "output {name} mode {}x{}@{}",
                 spec.width, spec.height, spec.refresh_rate_hz
@@ -165,6 +166,11 @@ impl Ipc {
     }
 
     fn remove(&self, name: &str) -> Result<(), WlrootsVirtualOutputError> {
+        if !output_name_is_safe(name) {
+            return Err(WlrootsVirtualOutputError::Rejected(format!(
+                "refusing unsafe output name {name:?}"
+            )));
+        }
         match self {
             Self::Sway(sock) => {
                 let cmd = format!("output {name} remove");
@@ -183,6 +189,14 @@ impl Ipc {
             }
         }
     }
+}
+
+fn output_name_is_safe(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 64
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
 }
 
 fn encode_sway_message(msg_type: u32, payload: &str) -> Vec<u8> {
@@ -281,15 +295,10 @@ fn parse_sway_outputs(json: &str) -> Result<Vec<OutputSnapshot>, WlrootsVirtualO
             .and_then(|r| r.get("height"))
             .and_then(|h| h.as_u64())
             .unwrap_or(0) as u32;
-        let active = item
-            .get("active")
-            .and_then(|a| a.as_bool())
-            .unwrap_or(false);
         outputs.push(OutputSnapshot {
             name: name.to_string(),
             width,
             height,
-            active,
         });
     }
     Ok(outputs)
@@ -341,16 +350,10 @@ fn parse_hyprland_monitors(json: &str) -> Result<Vec<OutputSnapshot>, WlrootsVir
         };
         let width = item.get("width").and_then(|w| w.as_u64()).unwrap_or(0) as u32;
         let height = item.get("height").and_then(|h| h.as_u64()).unwrap_or(0) as u32;
-        let reserved_ok = item
-            .get("reserved")
-            .and_then(|r| r.as_array())
-            .map(|r| r.iter().all(|v| v.as_i64() == Some(0)))
-            .unwrap_or(true);
         outputs.push(OutputSnapshot {
             name: name.to_string(),
             width,
             height,
-            active: reserved_ok || width > 0,
         });
     }
     Ok(outputs)
@@ -475,7 +478,6 @@ mod tests {
         assert_eq!(outputs.len(), 2);
         assert_eq!(outputs[0].name, "eDP-1");
         assert_eq!((outputs[0].width, outputs[0].height), (1920, 1080));
-        assert!(outputs[0].active);
         assert_eq!(outputs[1].name, "HEADLESS-1");
         assert_eq!((outputs[1].width, outputs[1].height), (1280, 720));
     }
@@ -490,12 +492,28 @@ mod tests {
         assert_eq!(outputs.len(), 2);
         assert_eq!(outputs[1].name, "HEADLESS-A-1");
         assert_eq!((outputs[1].width, outputs[1].height), (1920, 1080));
-        assert!(outputs[1].active);
     }
 
     #[test]
     fn hyprland_bad_reply_is_reported() {
         assert!(parse_hyprland_monitors("unknown request").is_err());
         assert!(parse_hyprland_monitors(r#"{"oops": 1}"#).is_err());
+    }
+
+    #[test]
+    fn output_names_with_only_safe_chars_pass() {
+        assert!(output_name_is_safe("HEADLESS-1"));
+        assert!(output_name_is_safe("eDP-1"));
+        assert!(output_name_is_safe("DP-2.1_x"));
+    }
+
+    #[test]
+    fn output_names_with_command_chars_are_rejected() {
+        assert!(!output_name_is_safe(""));
+        assert!(!output_name_is_safe("x remove"));
+        assert!(!output_name_is_safe("a;exec foo"));
+        assert!(!output_name_is_safe("name;exec"));
+        assert!(!output_name_is_safe("a,b"));
+        assert!(!output_name_is_safe(&"n".repeat(65)));
     }
 }

@@ -21,6 +21,12 @@ class HostApi {
         .readTimeout(2, TimeUnit.SECONDS)
         .build()
 
+    private fun readBoundedBody(resp: okhttp3.Response): String? {
+        val source = resp.body?.source() ?: return null
+        source.request(MAX_RESPONSE_BYTES)
+        return source.buffer.snapshot(MAX_RESPONSE_BYTES.toInt()).utf8()
+    }
+
     data class HostInfo(
         val width: Int = 1920,
         val height: Int = 1080,
@@ -35,7 +41,7 @@ class HostApi {
                 val req = Request.Builder().url("http://$host:$port/client/config.json").build()
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) return@withTimeoutOrNull null
-                    val body = resp.body?.string() ?: return@withTimeoutOrNull null
+                    val body = readBoundedBody(resp) ?: return@withTimeoutOrNull null
                     JSONObject(body).optString("token").takeIf { it.isNotBlank() }
                 }
             } catch (e: Exception) {
@@ -51,7 +57,7 @@ class HostApi {
                 val req = Request.Builder().url("http://$host:$port/api/info").build()
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) return@withTimeoutOrNull null
-                    val body = resp.body?.string() ?: return@withTimeoutOrNull null
+                    val body = readBoundedBody(resp) ?: return@withTimeoutOrNull null
                     val obj = JSONObject(body)
                     HostInfo(
                         width = obj.optInt("display_width", 1920),
@@ -66,5 +72,9 @@ class HostApi {
                 null
             }
         }
+    }
+
+    companion object {
+        private const val MAX_RESPONSE_BYTES = 64L * 1024L
     }
 }

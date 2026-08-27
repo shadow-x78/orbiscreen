@@ -1,36 +1,76 @@
-# ─────────────────────────────────────────────
-# Orbiscreen - Bug Report Template
-# ─────────────────────────────────────────────
-
----
 name: Bug report
-about: Report broken behaviour or unexpected output
+description: Report broken behaviour or unexpected output
 title: "[bug] "
 labels: ["bug"]
-assignees: []
----
-
-### Environment
-
-- OS / distro + version: <!-- e.g. Pop!_OS 24.04 -->
-- COSMIC / GNOME / KDE / Sway / Hyprland / other:
-- evdi version / `modinfo evdi` (if available):
-- GStreamer version (`gst-inspect-1.0 --version`):
-- Rust toolchain (`rustc --version`):
-- Orbiscreen version (`orbiscreen --version`):
-
-### Steps to reproduce
-
-1.
-2.
-3.
-
-### Expected behaviour
-
-### Actual behaviour
-
-### Logs
-
-```
-<paste from `RUST_LOG=orbiscreen=trace cargo run -p orbiscreen-daemon -- start`>
-```
+body:
+  - type: input
+    id: os
+    attributes:
+      label: OS / distro + version
+      placeholder: e.g. Pop!_OS 24.04
+    validations:
+      required: true
+  - type: input
+    id: compositor
+    attributes:
+      label: Desktop / compositor
+      placeholder: COSMIC / GNOME / KDE / Sway / Hyprland / other
+    validations:
+      required: true
+  - type: input
+    id: evdi
+    attributes:
+      label: evdi version (output of `modinfo evdi`, if available)
+    validations:
+      required: false
+  - type: input
+    id: gstreamer
+    attributes:
+      label: GStreamer version
+      description: Output of `gst-inspect-1.0 --version`
+    validations:
+      required: false
+  - type: input
+    id: rust
+    attributes:
+      label: Rust toolchain
+      description: Output of `rustc --version`
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Orbiscreen version
+      description: Output of `orbiscreen --version`
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Output of `RUST_LOG=orbiscreen=trace cargo run -p orbiscreen-daemon -- start` (or the installed `orbiscreen start`)
+      render: shell
+    validations:
+      required: true

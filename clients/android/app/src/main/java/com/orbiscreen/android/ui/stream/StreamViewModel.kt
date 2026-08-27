@@ -86,8 +86,11 @@ class StreamViewModel(
                 _state.value.displayWidth,
                 _state.value.displayHeight,
             )
-            withContext(Dispatchers.Main) {
-                playerHolder.build(host, port) { freshToken() }
+            playerHolder.build(host, port) { freshToken() }
+        }
+        viewModelScope.launch {
+            _state.collect { s ->
+                inputDispatcher?.resize(s.displayWidth, s.displayHeight)
             }
         }
         viewModelScope.launch {

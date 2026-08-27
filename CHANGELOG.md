@@ -9,6 +9,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.13.1] - 2026-08-27
+
+Full-project audit round two (`docs/AUDIT.md`): the Rust transport/daemon, Android client, web client, shell scripts, and CI matrix re-audited line by line; all security, correctness, and packaging findings fixed or explicitly documented as accepted design.
+
+### Fixed — web client
+- **Keyboard letter keys were wrong**: the QWERTY-layout Linux input codes were assigned to letters in alphabetical order, so every typed letter sent the wrong key (`KeyA` → KEY_Q, …). Each letter now maps to its real input code; numpad, function, and media keys audited against `linux/input-event-codes.h`.
+- **Pointer control was frozen under pointer lock**: `clientX/Y` do not move while locked. A virtual cursor now accumulates `movementX/Y`, so remote control actually works with a mouse.
+- **Touch devices could not control at all** when `requestPointerLock` was absent or rejected; pointer events fell back to direct absolute input, and lock failures are handled (including the unhandled promise rejection).
+- **Wheel scroll jumped ~12 steps per notch**: raw `deltaY` was sent as discrete steps; it is now normalized per `deltaMode` and clamped.
+- OS key auto-repeat no longer floods the daemon (`event.repeat` filtered); pointer coordinates clamp to the last valid pixel; the MSE-unsupported path no longer hides the overlay; a CSP meta (`default-src 'self'`) was added.
+
+### Fixed — Android client
+- NSD discovery now stops when the discovery view model clears (previously leaked for the process lifetime); subnet-scan results merge into the same state pipeline instead of racing it.
+- The input dispatcher is (re)sized from the reported display dimensions, so touching the surface before `/api/info` returns no longer pins coordinate mapping to 1920×1080.
+- Manifest: removed the unused `CHANGE_WIFI_MULTICAST_LOCK` and `ACCESS_WIFI_STATE` permissions; V1 (JAR) APK signing disabled (minSdk 26 uses V2/V3).
+- `HostApi` reads response bodies with a bound; user agent comes from `BuildConfig`; dead ProGuard rules removed (the blanket `-keep` previously disabled all shrinking); dead UI branches, `RecentHost.label`, and the theme `dynamicColor` parameter removed; `as Activity` cast made safe.
+
+### Fixed — daemon & transport
+- Input queue is bounded (1024) with explicit drop counting; stream clients capped with 503; join-buffer lock no longer spans blocking pushes; token comparison constant-time; `Bearer` matched case-insensitively with `WWW-Authenticate` on 401; `/health`/`/api/info` slimmed; auth failures logged at debug with peer addresses; adb serials charset-validated with proper spawn-error mapping; blocking `adb`/`systemctl`/package-manager calls moved off the async runtime; uninstall reports real failures and returns non-zero; portal state saved with a per-process temp-file nonce and permissions set before rename; wlr-screencopy size/stride math validated against compositor-supplied values; encoded chunks without PTS are dropped instead of timestamped to zero; watchdog exits once frames flow.
+
+### Fixed — scripts & CI
+- `package-appimage.sh`: `find` no longer scans non-existent distro lib dirs (aborted the build under `pipefail`); AppImage output name follows `uname -m`.
+- `setup-dev-env.sh`: corrected Fedora names (`libwayland-client`, `xorg-x11-server-utils`), stopped offering un-packaged `libevdi`/`evdi` from official repos, and completed every distro list with the X11/wayland/GTK4 dev packages CI actually needs.
+- GitHub issue templates rewritten to the issue-forms schema (the legacy front matter made GitHub fail to load them); the PR template front matter removed.
+- `install.sh` stops the running user service and installs binaries via temp+rename (no more `ETXTBSY`); install/uninstall/package scripts guard their working directory; evdi module check uses `/sys/module` (no `lsmod | grep -q` SIGPIPE); deb/rpm maintainer scripts deduplicate logged-in users and clean stale staging.
+- Release workflow: signing secrets are verified explicitly before use, keystore written with `umask 077` and removed on every exit path, `keytool` uses `-storepass:env`, release notes extracted without regex interpolation with a fallback, VERSION quoted throughout, and job timeouts added. The Linux tarball bundles a README instead of a repo-layout installer, and README instructions match.
+
+### Removed
+- Dead code: `FramePool::pooled_count` (test-only), manual `Debug` on the D-Bus server, the `unreachable!`-padded stylus match in the uinput backend, the web client's dead letter-key shims.
+
 ## [v0.13.0] - 2026-08-27
 
 Desktop-environment parity release: the full KDE-level experience (a real compositor-native virtual display, no root, no dialogs) now extends to wlroots compositors, portal grants persist across runs on GNOME, input injection is rootless on X11 and portal-free on wlroots, and per-frame allocations/copies were removed across the whole pipeline.

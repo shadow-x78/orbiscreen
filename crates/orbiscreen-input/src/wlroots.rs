@@ -213,14 +213,14 @@ fn compile_keymap() -> Result<Vec<u8>, String> {
     let ctx = xkbcommon::xkb::Context::new(xkbcommon::xkb::CONTEXT_NO_FLAGS);
     let keymap = xkbcommon::xkb::Keymap::new_from_names(
         &ctx,
-        "evdev",
         "",
-        "us",
+        "",
+        "",
         "",
         None,
         xkbcommon::xkb::COMPILE_NO_FLAGS,
     )
-    .ok_or_else(|| "xkbcommon failed to compile the evdev/us keymap".to_string())?;
+    .ok_or_else(|| "xkbcommon failed to compile the default keymap".to_string())?;
     let mut bytes = keymap
         .get_as_string(xkbcommon::xkb::KEYMAP_FORMAT_TEXT_V1)
         .into_bytes();
@@ -416,6 +416,10 @@ fn apply_command(state: &mut WlState, cmd: WlCmd, extent: (u32, u32), start: Ins
             };
             match event {
                 PointerEvent::Move { x, y } => {
+                    if !x.is_finite() || !y.is_finite() {
+                        warn!("ignoring pointer move with non-finite coordinates");
+                        return;
+                    }
                     let (xw, yw) = extent;
                     let x = x.clamp(0.0, f64::from(xw)).round() as u32;
                     let y = y.clamp(0.0, f64::from(yw)).round() as u32;
@@ -436,12 +440,17 @@ fn apply_command(state: &mut WlState, cmd: WlCmd, extent: (u32, u32), start: Ins
                     pointer.frame();
                 }
                 PointerEvent::Wheel { delta_y } => {
-                    let steps = delta_y.clamp(i32::MIN as f64, i32::MAX as f64).round() as i32;
+                    let steps = delta_y
+                        .clamp(
+                            -(crate::MAX_WHEEL_STEPS as f64),
+                            crate::MAX_WHEEL_STEPS as f64,
+                        )
+                        .round() as i32;
                     if steps != 0 {
                         pointer.axis_discrete(
                             time,
                             wl_pointer::Axis::VerticalScroll,
-                            WHEEL_STEP_VALUE * f64::from(steps.abs()),
+                            WHEEL_STEP_VALUE * f64::from(steps),
                             steps,
                         );
                         pointer.frame();

@@ -84,12 +84,15 @@ pub struct OwnedFrame {
 
 impl OwnedFrame {
     pub fn size_in_bytes(width: u32, height: u32) -> usize {
-        (width as usize) * (height as usize) * 4
+        (width as usize)
+            .checked_mul(height as usize)
+            .and_then(|v| v.checked_mul(4))
+            .unwrap_or(usize::MAX)
     }
 }
 
 fn pick_node() -> Result<(DeviceNode, u32), DisplayError> {
-    let mut ids: Vec<i32> = std::fs::read_dir("/dev/dri")
+    let id = std::fs::read_dir("/dev/dri")
         .map_err(|e| DisplayError::OpenDevice(format!("/dev/dri: {e:?}")))?
         .flatten()
         .filter_map(|entry| {
@@ -97,11 +100,7 @@ fn pick_node() -> Result<(DeviceNode, u32), DisplayError> {
             let id = name.strip_prefix("card")?.parse::<i32>().ok()?;
             (DeviceNode::new(id).status() == DeviceNodeStatus::Available).then_some(id)
         })
-        .collect();
-    ids.sort_unstable();
-    let id = ids
-        .into_iter()
-        .next_back()
+        .max()
         .ok_or(DisplayError::NoDeviceNode)?;
     Ok((DeviceNode::new(id), id as u32))
 }
@@ -290,7 +289,7 @@ pub struct EvdiPumpInfo {
 
 #[allow(missing_debug_implementations)]
 pub struct EvdiFramePump {
-    rx: tokio::sync::mpsc::UnboundedReceiver<OwnedFrame>,
+    rx: tokio::sync::mpsc::Receiver<OwnedFrame>,
     stop: Arc<AtomicBool>,
     info: EvdiPumpInfo,
     thread: Option<std::thread::JoinHandle<()>>,
@@ -299,7 +298,7 @@ pub struct EvdiFramePump {
 impl EvdiFramePump {
     pub fn spawn(spec: VirtualDisplaySpec) -> Result<Self, DisplayError> {
         let (done_tx, done_rx) = std::sync::mpsc::channel::<Result<EvdiPumpInfo, DisplayError>>();
-        let (frames_tx, frames_rx) = tokio::sync::mpsc::unbounded_channel::<OwnedFrame>();
+        let (frames_tx, frames_rx) = tokio::sync::mpsc::channel::<OwnedFrame>(4);
         let stop = Arc::new(AtomicBool::new(false));
         let stop_for_thread = Arc::clone(&stop);
 
@@ -341,7 +340,7 @@ impl EvdiFramePump {
                         }
                         match display.next_frame().await {
                             Ok(Some(frame)) => {
-                                if frames_tx.send(frame).is_err() {
+                                if frames_tx.send(frame).await.is_err() {
                                     break;
                                 }
                             }
@@ -360,9 +359,19 @@ impl EvdiFramePump {
             })
             .map_err(|e| DisplayError::OpenDevice(format!("spawn pump thread: {e}")))?;
 
-        let info = done_rx
-            .recv_timeout(Duration::from_secs(10))
-            .map_err(|_| DisplayError::ModeTimeout)??;
+        let info = match done_rx.recv_timeout(Duration::from_secs(10)) {
+            Ok(Ok(info)) => info,
+            Ok(Err(e)) => {
+                stop.store(true, std::sync::atomic::Ordering::Relaxed);
+                let _ = thread.join();
+                return Err(e);
+            }
+            Err(_) => {
+                stop.store(true, std::sync::atomic::Ordering::Relaxed);
+                let _ = thread.join();
+                return Err(DisplayError::ModeTimeout);
+            }
+        };
 
         Ok(Self {
             rx: frames_rx,
@@ -448,6 +457,9 @@ fn build_edid(width: u32, height: u32) -> [u8; 128] {
     let name = b"Orbiscreen";
     for (i, byte) in name.iter().enumerate().take(13) {
         edid[95 + i] = *byte;
+    }
+    for byte in edid[95 + name.len()..108].iter_mut() {
+        *byte = 0x0A;
     }
 
     let mut sum: u8 = 0;

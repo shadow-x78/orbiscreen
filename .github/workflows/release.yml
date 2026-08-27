@@ -22,6 +22,7 @@ jobs:
   verify:
     name: Verify code integrity (release gate)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -63,11 +64,15 @@ jobs:
     name: Build & Package Release Artifacts
     needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+
+      - name: Cache cargo registry & target
+        uses: Swatinem/rust-cache@8cbdedb5103daa674dcf46d3590fe06a76645684 # v2.8.0
 
       - name: Install system dependencies
         run: |
@@ -89,7 +94,14 @@ jobs:
           mkdir -p release-bundle/bin
           cp target/release/orbiscreen release-bundle/bin/
           cp target/release/orbiscreen-gtk release-bundle/bin/
-          cp scripts/install.sh release-bundle/
+          cat > release-bundle/README.md <<'README'
+          # Orbiscreen
+
+          Place the files in `bin/` on your `PATH` (for example `~/.local/bin`).
+
+          Full installation instructions, usage, and troubleshooting are at
+          https://github.com/shadow-x78/orbiscreen
+          README
           tar -czvf orbiscreen-linux-x86_64.tar.gz -C release-bundle .
 
       - name: Package Debian DEB package
@@ -98,13 +110,17 @@ jobs:
           RPM_GPG_NAME: ${{ secrets.RPM_GPG_NAME }}
         run: |
           chmod +x scripts/package-deb.sh
-          VERSION=${GITHUB_REF_NAME#v}
-          ./scripts/package-deb.sh $VERSION
-          mv orbiscreen_${VERSION}_amd64.deb orbiscreen_amd64.deb
-          
+          VERSION="${GITHUB_REF_NAME#v}"
+          ./scripts/package-deb.sh "$VERSION"
+          mv "orbiscreen_${VERSION}_amd64.deb" orbiscreen_amd64.deb
+
+          if [ -z "$RPM_GPG_KEY" ] || [ -z "$RPM_GPG_NAME" ]; then
+            echo "::error::RPM_GPG_KEY / RPM_GPG_NAME secrets are not set; cannot sign the DEB"
+            exit 1
+          fi
           echo "Signing DEB package..."
           sudo apt-get install -y debsigs gnupg2
-          echo "$RPM_GPG_KEY" | gpg --import
+          echo "$RPM_GPG_KEY" | gpg2 --import
           debsigs --sign=origin --default-key="$RPM_GPG_NAME" orbiscreen_amd64.deb
 
       - name: Package RPM package
@@ -113,10 +129,14 @@ jobs:
           RPM_GPG_NAME: ${{ secrets.RPM_GPG_NAME }}
         run: |
           chmod +x scripts/package-rpm.sh
-          VERSION=${GITHUB_REF_NAME#v}
-          ./scripts/package-rpm.sh $VERSION
-          mv orbiscreen-${VERSION}-1.x86_64.rpm orbiscreen_x86_64.rpm
-          
+          VERSION="${GITHUB_REF_NAME#v}"
+          ./scripts/package-rpm.sh "$VERSION"
+          mv "orbiscreen-${VERSION}-1.x86_64.rpm" orbiscreen_x86_64.rpm
+
+          if [ -z "$RPM_GPG_KEY" ] || [ -z "$RPM_GPG_NAME" ]; then
+            echo "::error::RPM_GPG_KEY / RPM_GPG_NAME secrets are not set; cannot sign the RPM"
+            exit 1
+          fi
           echo "Signing RPM package..."
           sudo apt-get install -y rpm gnupg2
           echo "$RPM_GPG_KEY" | gpg2 --import
@@ -124,15 +144,10 @@ jobs:
           rpmsign --addsign orbiscreen_x86_64.rpm
 
       - name: Package AppImage
-        env:
-          RPM_GPG_KEY: ${{ secrets.RPM_GPG_KEY }}
-          SIGN: 1
         run: |
-          echo "Importing GPG key for AppImage..."
-          echo "$RPM_GPG_KEY" | gpg2 --import
           chmod +x scripts/package-appimage.sh
-          VERSION=${GITHUB_REF_NAME#v}
-          ./scripts/package-appimage.sh $VERSION
+          VERSION="${GITHUB_REF_NAME#v}"
+          ./scripts/package-appimage.sh "$VERSION"
           cp dist/orbiscreen-x86_64.AppImage orbiscreen-x86_64.AppImage
 
       - name: Set up JDK 17 for Android
@@ -153,6 +168,7 @@ jobs:
             echo "::error::ANDROID_KEYSTORE_B64 secret is not set in the repository"
             exit 1
           fi
+          umask 077
           echo "$ORBISCREEN_KEYSTORE_B64" | base64 -d > /tmp/orbiscreen-release.keystore
           export ORBISCREEN_KEYSTORE_PATH=/tmp/orbiscreen-release.keystore
           chmod +x gradlew
@@ -162,7 +178,10 @@ jobs:
             exit 1
           fi
           cp app/build/outputs/apk/release/app-release.apk ../../orbiscreen-android-release.apk
-          rm -f /tmp/orbiscreen-release.keystore
+
+      - name: Remove Android keystore
+        if: always()
+        run: rm -f /tmp/orbiscreen-release.keystore
 
       - name: Generate SHA256 sums
         run: |
@@ -175,8 +194,16 @@ jobs:
       - name: Extract Release Notes
         id: extract_notes
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          awk "/^## \[v$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > release_notes.txt
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="v$VERSION" '
+            flag && /^## \[/ { flag = 0 }
+            !flag && index($0, "## [" ver "]") == 1 { flag = 1; next }
+            flag { print }
+          ' CHANGELOG.md > release_notes.txt
+          if [ ! -s release_notes.txt ]; then
+            echo "release_notes.txt is empty - no CHANGELOG entry found for v$VERSION; using fallback notes"
+            printf 'Orbiscreen %s\n\nSee https://github.com/shadow-x78/orbiscreen/blob/main/CHANGELOG.md for details.\n' "v$VERSION" > release_notes.txt
+          fi
           cat release_notes.txt
 
       - name: Generate GitHub Build Attestations

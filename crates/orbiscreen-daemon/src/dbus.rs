@@ -17,17 +17,9 @@ pub struct DaemonHandles {
     pub shutdown_tx: tokio::sync::watch::Sender<bool>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct OrbiscreenDbusServer {
     handles: Arc<DaemonHandles>,
-}
-
-impl std::fmt::Debug for OrbiscreenDbusServer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("OrbiscreenDbusServer")
-            .field("handles", &self.handles)
-            .finish()
-    }
 }
 
 impl OrbiscreenDbusServer {

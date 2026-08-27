@@ -3,6 +3,8 @@
 # https://github.com/shadow-x78/orbiscreen
 set -euo pipefail
 
+cd "$(dirname "$0")/.."
+
 echo "[Orbiscreen] Installing Secondary Display..."
 
 INSTALL_DIR="${HOME}/.local/bin"
@@ -11,10 +13,12 @@ mkdir -p "${INSTALL_DIR}"
 if command -v cargo >/dev/null 2>&1; then
     echo "[Orbiscreen] Building daemon..."
     cargo build --release -p orbiscreen-daemon
-    cp target/release/orbiscreen "${INSTALL_DIR}/"
+    systemctl --user stop orbiscreen 2>/dev/null || true
+    install -m755 target/release/orbiscreen "${INSTALL_DIR}/orbiscreen.new"
+    mv -f "${INSTALL_DIR}/orbiscreen.new" "${INSTALL_DIR}/orbiscreen"
 
     if cargo build --release -p orbiscreen-gtk; then
-        cp target/release/orbiscreen-gtk "${INSTALL_DIR}/"
+        install -m755 target/release/orbiscreen-gtk "${INSTALL_DIR}/orbiscreen-gtk"
 
         echo "[Orbiscreen] Installing desktop entry and icon..."
         mkdir -p ~/.local/share/applications

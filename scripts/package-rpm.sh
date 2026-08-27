@@ -3,6 +3,8 @@
 # https://github.com/shadow-x78/orbiscreen
 set -euo pipefail
 
+cd "$(dirname "$0")/.."
+
 VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
 ARCH="x86_64"
 RPM_NAME="orbiscreen-${VERSION}-1.${ARCH}.rpm"
@@ -10,6 +12,7 @@ BUILD_ROOT="target/rpm-staging"
 
 echo "[Orbiscreen] Building RPM package for Orbiscreen v${VERSION} (${ARCH})..."
 
+rm -rf "${BUILD_ROOT}"
 mkdir -p "${BUILD_ROOT}/usr/bin"
 mkdir -p "${BUILD_ROOT}/usr/share/applications"
 mkdir -p "${BUILD_ROOT}/usr/share/icons/hicolor/scalable/apps"
@@ -25,8 +28,8 @@ if [ ! -f target/release/orbiscreen ] || [ ! -f target/release/orbiscreen-gtk ];
 fi
 
 cp -f target/release/orbiscreen "${BUILD_ROOT}/usr/bin/"
-cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_ROOT}/usr/share/applications/" || true
-cp -f data/orbiscreen.svg "${BUILD_ROOT}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg" || true
+cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_ROOT}/usr/share/applications/"
+cp -f data/orbiscreen.svg "${BUILD_ROOT}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"
 
 if command -v rpmbuild >/dev/null 2>&1; then
     rpmbuild -bb \

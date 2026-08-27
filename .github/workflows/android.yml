@@ -16,6 +16,7 @@ jobs:
   android:
     name: Build Release APK
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: clients/android
@@ -43,11 +44,12 @@ jobs:
             echo "::error::ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD secrets are empty"
             exit 1
           fi
+          umask 077
           echo "$ORBISCREEN_KEYSTORE_B64" | base64 -d > /tmp/orbiscreen-release.keystore
           keytool -list -keystore /tmp/orbiscreen-release.keystore \
-            -storepass "$ORBISCREEN_STORE_PASSWORD" >/dev/null
+            -storepass:env ORBISCREEN_STORE_PASSWORD >/dev/null
           keytool -list -keystore /tmp/orbiscreen-release.keystore \
-            -storepass "$ORBISCREEN_STORE_PASSWORD" \
+            -storepass:env ORBISCREEN_STORE_PASSWORD \
             -alias "$ORBISCREEN_KEY_ALIAS" >/dev/null
       - name: Build
         env:

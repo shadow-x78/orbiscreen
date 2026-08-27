@@ -90,9 +90,14 @@ impl UinputInjector {
             }
             PointerEvent::Wheel { delta_y } => {
                 let mut events: Vec<InputEvent> = Vec::new();
-                let delta = delta_y.clamp(i32::MIN as f64, i32::MAX as f64).round() as i32;
-                if delta != 0 {
-                    events.push(RelEvent::new(Rel::WHEEL, delta).into());
+                let steps = delta_y
+                    .clamp(
+                        -(crate::MAX_WHEEL_STEPS as f64),
+                        crate::MAX_WHEEL_STEPS as f64,
+                    )
+                    .round() as i32;
+                for _ in 0..steps.unsigned_abs() {
+                    events.push(RelEvent::new(Rel::WHEEL, -steps.signum()).into());
                     events.push(SynEvent::new(Syn::REPORT).into());
                 }
                 events
@@ -103,7 +108,7 @@ impl UinputInjector {
     }
 
     pub fn inject_key(&mut self, code: u32, pressed: bool) -> Result<(), InputError> {
-        if code == 0 || code > u32::from(u16::MAX) {
+        if code == 0 || code > 0x2FF {
             return Err(InputError::Uinput(format!("invalid key code: {code}")));
         }
         let state = if pressed {
@@ -119,10 +124,8 @@ impl UinputInjector {
     }
 
     pub fn inject_stylus(&mut self, event: StylusEvent) -> Result<(), InputError> {
-        if matches!(event, StylusEvent::Proximity { .. }) {
-            return Ok(());
-        }
         let (x, y, pressure, tilt) = match event {
+            StylusEvent::Proximity { .. } => return Ok(()),
             StylusEvent::Pressure { x, y, pressure } => (x, y, pressure, None),
             StylusEvent::Tilt {
                 x,
@@ -131,7 +134,6 @@ impl UinputInjector {
                 tilt_x_deg,
                 tilt_y_deg,
             } => (x, y, pressure, Some((tilt_x_deg, tilt_y_deg))),
-            StylusEvent::Proximity { .. } => unreachable!(),
         };
         let (xi, yi) = self.clamp_point(x, y);
         let pressure =

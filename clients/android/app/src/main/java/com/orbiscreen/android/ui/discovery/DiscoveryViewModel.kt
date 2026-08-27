@@ -36,18 +36,19 @@ class DiscoveryViewModel(
     val state: StateFlow<DiscoveryState> = _state.asStateFlow()
 
     private val _scanTick = MutableStateFlow(0)
+    private val scannedHosts = MutableStateFlow<Map<String, DiscoveredHost>>(emptyMap())
 
     init {
         discovery.start()
         viewModelScope.launch {
-            combine(discovery.hosts, _scanTick) { hosts, _ ->
-                hosts.values
+            combine(discovery.hosts, scannedHosts, _scanTick) { live, scanned, _ ->
+                (live + scanned).values
                     .sortedBy { it.name.lowercase() }
                     .map { if (it.host == prefs.recentHost?.host) it.copy(isRecent = true) else it }
-            }.collect { live ->
+            }.collect { merged ->
                 val recent = prefs.recentHost
                 _state.value = _state.value.copy(
-                    hosts = mergeRecent(live, recent),
+                    hosts = mergeRecent(merged, recent),
                     recent = recent,
                 )
             }
@@ -68,15 +69,16 @@ class DiscoveryViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             val gateway = gatewayProvider() ?: return@launch
             subnetScanner.sweep(gateway).collect { host ->
-                if (_state.value.hosts.any { it.host == host }) return@collect
                 if (hostApi.info(host, 8788) == null) return@collect
-                val current = _state.value.hosts.toMutableList()
-                if (current.none { it.host == host }) {
-                    current += DiscoveredHost(name = host, host = host, port = 8788)
-                    _state.value = _state.value.copy(hosts = current.sortedBy { it.name.lowercase() })
-                }
+                val found = DiscoveredHost(name = host, host = host, port = 8788)
+                scannedHosts.value = scannedHosts.value + (host to found)
             }
         }
+    }
+
+    override fun onCleared() {
+        discovery.stop()
+        super.onCleared()
     }
 
     private fun mergeRecent(live: List<DiscoveredHost>, recent: RecentHost?): List<DiscoveredHost> {
@@ -84,7 +86,7 @@ class DiscoveryViewModel(
         val has = live.any { it.host == recent.host }
         return if (!has) {
             val stub = DiscoveredHost(
-                name = recent.label?.takeIf { it.isNotBlank() } ?: recent.host,
+                name = recent.host,
                 host = recent.host,
                 port = recent.port,
                 isRecent = true,

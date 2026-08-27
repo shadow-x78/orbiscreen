@@ -27,5 +27,4 @@
     <string name="about">About</string>
     <string name="connecting">Connecting…</string>
     <string name="buffering">Buffering…</string>
-    <string name="loading_video">Rendering video…</string>
 </resources>

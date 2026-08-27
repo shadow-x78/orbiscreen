@@ -17,8 +17,8 @@ android {
         applicationId = "com.orbiscreen.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 26
-        versionName = "0.13.0"
+        versionCode = 27
+        versionName = "0.13.1"
     }
 
     signingConfigs {
@@ -43,7 +43,7 @@ android {
                 storePassword = storePw
                 keyAlias = alias
                 keyPassword = keyPw
-                enableV1Signing = true
+                enableV1Signing = false
                 enableV2Signing = true
                 enableV3Signing = true
             } else {

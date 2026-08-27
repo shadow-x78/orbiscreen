@@ -22,12 +22,14 @@ install_fedora() {
         rust cargo \
         pkg-config \
         gcc make \
-        libevdi \
         gstreamer1-devel gstreamer1-plugins-base-devel \
         gstreamer1-plugins-good gstreamer1-plugins-bad-free \
         libxkbcommon-devel libevdev-devel \
-        wayland-devel libwayland-client0 \
-        xrandr
+        wayland-devel libwayland-client \
+        libX11-devel libxcb-devel libXrandr-devel \
+        gtk4-devel libadwaita-devel \
+        xorg-x11-server-utils
+    echo "[Orbiscreen] note: evdi is not packaged for Fedora; build it with scripts/install-evdi-module.sh"
 }
 
 install_debian_like() {
@@ -39,16 +41,20 @@ install_debian_like() {
         libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
         gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
         libevdev-dev libwayland-dev libxkbcommon-dev \
+        libx11-dev libxcb1-dev libxrandr-dev \
+        libgtk-4-dev libadwaita-1-dev \
         x11-xserver-utils
 }
 
 install_arch() {
     $SUDO pacman -S --needed \
         rust base-devel pkg-config \
-        evdi \
         gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad \
         libevdev wayland libxkbcommon \
+        libx11 libxcb libxrandr \
+        gtk4 libadwaita \
         xorg-xrandr
+    echo "[Orbiscreen] note: evdi is only available from the AUR (package: evdi); install it with an AUR helper"
 }
 
 main() {
