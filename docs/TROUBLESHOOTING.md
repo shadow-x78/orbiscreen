@@ -1,12 +1,21 @@
+<div align="center">
+
 # Troubleshooting - Orbiscreen
+
+[![Version](https://img.shields.io/badge/version-0.13.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
+![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
+
+</div>
+
+---
 
 ## 🌐 Language
 
 <a href="TROUBLESHOOTING.md">🇬🇧 English</a> · <a href="TROUBLESHOOTING_AR.md">🇸🇦 العربية</a>
 
 ---
-
-> Applies to **v0.11.0** and later.
 
 ## 📋 Table of Contents
 
@@ -22,7 +31,7 @@
 ### Runtime
 
 - [Runtime: `orbiscreen start` fails - `kernel module is not installed`](#runtime-evdi)
-- [Runtime: KDE Plasma — virtual display without evdi or root](#runtime-kwin)
+- [Runtime: KDE Plasma (virtual display without evdi or root)](#runtime-kwin)
 - [Runtime: capture backend unavailable on Wayland](#runtime-wayland)
 - [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations` lint warnings](#runtime-lints)
 
@@ -182,15 +191,15 @@ Error: evdi kernel module is not installed
 ---
 
 <a id="runtime-kwin"></a>
-## 🚀 Runtime: KDE Plasma — virtual display without evdi or root
+## 🚀 Runtime: KDE Plasma (virtual display without evdi or root)
 
 **Symptom:** `orbiscreen start` logs `EVDI kernel module not active` and you do not want to build a kernel module.
 
-**Fix:** on KDE Plasma Wayland nothing else is needed. With the default `[capture] preferred = "auto"`, the daemon asks KWin to create a virtual monitor (`Virtual-ORBISCREEN`, visible in System Settings → Display Configuration) through the `zkde_screencast_unstable_v1` Wayland protocol and streams it over PipeWire — no root, no share dialog. KWin only exposes that protocol to allow-listed executables, so the daemon maintains `~/.local/share/applications/orbiscreen.kwin.desktop` (user-writable) and refreshes the KService cache automatically; the first run may take a few extra seconds while the grant becomes visible.
+**Fix:** on KDE Plasma Wayland nothing else is needed. With the default `[capture] preferred = "auto"`, the daemon asks KWin to create a virtual monitor (`Virtual-ORBISCREEN`, visible in System Settings → Display Configuration) through the `zkde_screencast_unstable_v1` Wayland protocol and streams it over PipeWire, no root, no share dialog. KWin only exposes that protocol to allow-listed executables, so the daemon maintains `~/.local/share/applications/orbiscreen.kwin.desktop` (user-writable) and refreshes the KService cache automatically; the first run may take a few extra seconds while the grant becomes visible.
 
 Notes:
 - Force the path with `[capture] preferred = "kwin-virtual"` (fail loudly if unavailable) or `"portal"` (always show the share dialog).
-- The virtual output disappears when the daemon stops — that is expected.
+- The virtual output disappears when the daemon stops; that is expected.
 - **You see only the desktop wallpaper in the stream?** That is correct: the virtual monitor is a *second, empty* screen. Drag windows onto `Virtual-ORBISCREEN`, or set `[capture] preferred = "mirror"` to stream your real screen instead.
 - On GNOME / wlroots compositors the protocol does not exist and `auto` falls back to the portal share dialog.
 - EVDI is now opt-in (`preferred = "evdi"`); `auto` on Wayland never touches it, so the old `EVDI kernel module not active` line no longer appears on KDE.

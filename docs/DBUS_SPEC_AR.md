@@ -1,12 +1,21 @@
+<div align="center">
+
 # مواصفات واجهة D-Bus - Orbiscreen
+
+[![الإصدار](https://img.shields.io/badge/version-0.13.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
+![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
+![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
+
+</div>
+
+---
 
 ## 🌐 اللغة
 
 <a href="DBUS_SPEC.md">🇬🇧 English</a> · <a href="DBUS_SPEC_AR.md">🇸🇦 العربية</a>
 
 ---
-
-> ينطبق على **v0.11.0** والإصدارات الأحدث.
 
 يكشف Orbiscreen واجهة D-Bus Session Service تتيح للوحات تحكم سطح المكتب (واجهة GTK4)، وسكربتات CLI، ومؤشرات شريط النظام فحص الحالة الحية والتحكم في عملية الـ daemon. التطبيق الفعلي موجود في `crates/orbiscreen-daemon/src/dbus.rs` - توثّق هذه المواصفات بالضبط ما يعرضه ذلك الكود.
 
@@ -77,7 +86,7 @@
 
 أمر `orbiscreen stop` عميل رقيق لهذا التابع تحديداً: يستدعي `Stop()` عبر ناقل الجلسة، يطبع الرد، ويخرج بالرمز 1 مع تلميح `systemctl --user stop orbiscreen` عندما لا يُعثر على اسم الخدمة.
 
-لا يمكن تشغيل الدامن عبر D-Bus: لا يوجد تفعيل للواجهة ولا تابع `Start()` — تُدار خدمة systemd بدل ذلك (`systemctl --user start orbiscreen`).
+لا يمكن تشغيل الدامن عبر D-Bus: لا يوجد تفعيل للواجهة ولا تابع `Start()`؛ تُدار خدمة systemd بدل ذلك (`systemctl --user start orbiscreen`).
 
 ### 3. `ListClients() -> Array of String` (التوقيع `as`)
 

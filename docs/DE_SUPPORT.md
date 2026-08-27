@@ -1,4 +1,15 @@
+<div align="center">
+
 # Desktop Environment Support - Orbiscreen
+
+[![Version](https://img.shields.io/badge/version-0.13.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
+![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
+
+</div>
+
+---
 
 ## 🌐 Language
 
@@ -6,13 +17,11 @@
 
 ---
 
-> Applies to **v0.13.0** and later.
-
 Orbiscreen adapts to the desktop environment it runs on. This document lists,
 for every supported family of compositors, which virtual-display path is used,
 what the requirements are, and how to fix common problems.
 
-Start with the doctor — it prints everything on this page for *your* machine:
+Start with the doctor; it prints everything on this page for *your* machine:
 
 ```bash
 orbiscreen doctor          # human-readable
@@ -39,7 +48,7 @@ ordered capture plan. The plan is logged on every `orbiscreen start`:
   virtual-output support.
 
 - `wlroots-virtual`, `kwin-virtual`, and `evdi` create a **real second
-  display** that starts empty — drag windows onto it.
+  display** that starts empty; drag windows onto it.
 - `wlr-screencopy`, `x11-root`, and `portal` **mirror an existing screen**.
 
 ## KDE Plasma (Wayland)
@@ -49,7 +58,7 @@ ordered capture plan. The plan is logged on every `orbiscreen start`:
   `Virtual-ORBISCREEN`.
 - **Capture:** PipeWire stream from the virtual monitor.
 - **Input:** RemoteDesktop portal (the grant is remembered after the first
-  run — no dialog afterwards).
+  run, no dialog afterwards).
 - **Nothing to install.**
 
 ## Sway and general wlroots
@@ -61,18 +70,18 @@ ordered capture plan. The plan is logged on every `orbiscreen start`:
   Sway has no IPC command to destroy a dynamically created headless output, so
   the daemon disables it as the closest cleanup (it no longer receives
   frames); it is reclaimed when the compositor exits.
-- **Capture:** `zwlr_screencopy_manager_v1` (the same protocol `grim` uses) —
+- **Capture:** `zwlr_screencopy_manager_v1` (the same protocol `grim` uses):
   no portal, no dialog, damage-driven, by output name.
 - **Input:** `virtual-keyboard-unstable-v1` + `wlr-virtual-pointer-unstable-v1`
-  directly on the Wayland socket — no `xdg-desktop-portal-wlr` required.
+  directly on the Wayland socket, no `xdg-desktop-portal-wlr` required.
 - **Requirements:** Sway ≥ 1.6 (or any wlroots compositor with `create_output`).
   If the IPC is not reachable, `auto` falls back to mirroring an
   existing output via screencopy.
 - **Troubleshooting:**
-  - `doctor` shows `virtual out: no compositor IPC reachable` — check that
+  - `doctor` shows `virtual out: no compositor IPC reachable`; check that
     `SWAYSOCK` is set in the daemon's environment (systemd user units inherit
     it from the session).
-  - Capture fails with `zwlr_screencopy_manager_v1 is not available` — the
+  - Capture fails with `zwlr_screencopy_manager_v1 is not available`; the
     compositor disabled screencopy; mirroring via the portal still works.
 
 ## Hyprland
@@ -89,7 +98,7 @@ ordered capture plan. The plan is logged on every `orbiscreen start`:
 Mutter has no public API to hot-plug a virtual monitor inside a running
 graphical session, so:
 
-- **Virtual display:** via **EVDI** (kernel module) — the guided path is
+- **Virtual display:** via **EVDI** (kernel module): the guided path is
   `orbiscreen doctor --fix`.
 - **Capture:** portal ScreenCast. Since v0.13.0 the permission grant is
   **persisted** (restore token in `$XDG_STATE_HOME/orbiscreen/portal.json`):
@@ -111,7 +120,7 @@ graphical session, so:
   image the X server writes into directly (no per-frame reply payload), with
   pooled frame buffers and automatic skipping of frames identical to the
   previous one. Falls back to plain `GetImage` when MIT-SHM ≥ 1.2 is absent.
-- **Input:** **XTEST** injection — rootless, works for any user on any X11.
+- **Input:** **XTEST** injection, rootless, works for any user on any X11.
   uinput is kept as the stronger fallback (needs `/dev/uinput`).
 - **Troubleshooting:**
   - `display: kernel module missing` → `orbiscreen doctor --fix`, or build

@@ -1,7 +1,3 @@
-<!--
-  Orbiscreen - README (GPL-3.0-or-later)
-  https://github.com/shadow-x78/orbiscreen
--->
 <div align="center">
 
 <img src="data/orbiscreen.svg" alt="Orbiscreen" width="160" />
@@ -10,7 +6,7 @@
 
 Real virtual secondary displays for Linux, streamed to Android - one command, zero hassle
 
-[![Version](https://img.shields.io/badge/version-0.11.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.13.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -65,7 +61,7 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 <a id="highlights"></a>
 ## ✨ Highlights
 
-- Real virtual display via `evdi` (X11 *and* Wayland), **or with zero root on KDE Plasma** — a KWin virtual monitor created through `zkde-screencast` (no kernel module, no portal dialog), with portal capture fallback elsewhere
+- Real virtual display via `evdi` (X11 *and* Wayland), **or with zero root on KDE Plasma**: a KWin virtual monitor created through `zkde-screencast` (no kernel module, no portal dialog), with portal capture fallback elsewhere
 - **Material 3 Android client** - Jetpack Compose, Catppuccin Mocha / Latte brand palette, light/dark theme
 - **Built-in web client** - watch from any browser at `http://<host>:8788/` (MSE via the locally bundled `mpegts.js`, no CDN)
 - **Live discovery** - NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner
@@ -101,7 +97,7 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 | KDE Plasma (Wayland) | ✅ Native (zkde-screencast, no root / no dialog) | ✅ PipeWire | ✅ RemoteDesktop portal |
 | Sway / wlroots general | ✅ Headless output via compositor IPC (no root) | ✅ wlr-screencopy (no dialog) | ✅ virtual-pointer / virtual-keyboard (no portal) |
 | Hyprland | ✅ Headless output via compositor IPC (no root) | ✅ wlr-screencopy (no dialog) | ✅ virtual-pointer / virtual-keyboard (no portal) |
-| GNOME (Wayland) | ⚠️ Via EVDI | ✅ Portal — dialog only on the first run (saved restore token) | ✅ RemoteDesktop portal — likewise persisted |
+| GNOME (Wayland) | ⚠️ Via EVDI | ✅ Portal: dialog only on the first run (saved restore token) | ✅ RemoteDesktop portal: likewise persisted |
 | XFCE / MATE / LXQt / Cinnamon (X11) | ✅ Via EVDI | ✅ XShm mirrored root (pooled, duplicate frames skipped) | ✅ XTEST (rootless), uinput fallback |
 | Anything else | ✅ Via EVDI (guided by `orbiscreen doctor --fix`) | Best available backend | Best available backend |
 
@@ -191,11 +187,11 @@ preferred = "auto"   # auto (default) | kwin-virtual | screencopy | evdi | porta
 | `auto` | KDE Plasma Wayland: KWin virtual display. Sway/Hyprland/wlroots: compositor virtual output via IPC, else wlr-screencopy mirror, else portal. X11: EVDI when its module is loaded, else root capture. |
 | `kwin-virtual` | Always the KWin virtual monitor (fails on non-KDE compositors). |
 | `screencopy` | Always wlroots screencopy capture (needs a wlroots-based compositor). |
-| `evdi` | Always the EVDI DRM virtual display (opt-in — needs the root-installed kernel module). |
+| `evdi` | Always the EVDI DRM virtual display (opt-in, needs the root-installed kernel module). |
 | `portal` | Always the portal share dialog; pick any screen. |
 | `mirror` | Show your **real** desktop instead of a second monitor: pick the screen to mirror in the share dialog. |
 
-> A virtual display starts **empty** (desktop wallpaper only) — that is what a second monitor is. Drag windows onto `Virtual-ORBISCREEN`, or use `mirror` to stream your actual screen.
+> A virtual display starts **empty** (desktop wallpaper only); that is what a second monitor is. Drag windows onto `Virtual-ORBISCREEN`, or use `mirror` to stream your actual screen.
 
 ### 3. Connect
 

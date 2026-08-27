@@ -1,4 +1,15 @@
+<div align="center">
+
 # دعم بيئات سطح المكتب - Orbiscreen
+
+[![الإصدار](https://img.shields.io/badge/version-0.13.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
+![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
+![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
+
+</div>
+
+---
 
 ## 🌐 اللغة
 
@@ -6,13 +17,11 @@
 
 ---
 
-> ينطبق على **v0.13.0** وما بعده.
-
 يتكيّف Orbiscreen مع بيئة سطح المكتب التي يعمل عليها. تسرد هذه الوثيقة لكل
 عائلة من الـ compositors مسار الشاشة الافتراضية المستخدم، والمتطلبات، وحلول
 الأعطال الشائعة.
 
-ابدأ بالفحص — يطبع كل ما في هذه الصفحة *لجهازك*:
+ابدأ بالفحص؛ يطبع كل ما في هذه الصفحة *لجهازك*:
 
 ```bash
 orbiscreen doctor          # بصيغة مقروءة
@@ -38,7 +47,7 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
   متاحاً، لذا تغطي الخطة أعلاه أيضاً compositors عائلة wlroots بلا دعم
   للمخرجات الافتراضية.
 - ‏`wlroots-virtual` و`kwin-virtual` و`evdi` تنشئ **شاشة ثانية حقيقية** تبدأ
-  فارغة — اسحب النوافذ إليها.
+  فارغة؛ اسحب النوافذ إليها.
 - ‏`wlr-screencopy` و`x11-root` و`portal` **تعكس شاشة موجودة**.
 
 ## KDE Plasma (Wayland)
@@ -46,7 +55,7 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
 - **الشاشة الافتراضية:** أصلية عبر `zkde_screencast_unstable_v1`. بلا root،
   بلا وحدة نواة، بلا نافذة مشاركة. تظهر الشاشة باسم `Virtual-ORBISCREEN`.
 - **الالتقاط:** بث PipeWire من المونيتور الافتراضي.
-- **الإدخال:** portal RemoteDesktop (يُحفظ الإذن بعد أول تشغيل — لا حوار بعد
+- **الإدخال:** portal RemoteDesktop (يُحفظ الإذن بعد أول تشغيل، لا حوار بعد
   ذلك).
 - **لا شيء يُثبَّت.**
 
@@ -59,15 +68,15 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
   لذلك يعطّله الدامن كأقرب تنظيف ممكن (يتوقف عن استقبال الإطارات) ويستعيده
   الـ compositor عند خروجه.
 - **الالتقاط:** `zwlr_screencopy_manager_v1` (البروتوكول نفسه الذي يستخدمه
-  ‏`grim`) — بلا portal، بلا حوار، مدفوع بالـ damage، باسم المخرج.
+  ‏`grim`): بلا portal، بلا حوار، مدفوع بالـ damage، باسم المخرج.
 - **الإدخال:** `virtual-keyboard-unstable-v1` + `wlr-virtual-pointer-unstable-v1`
-  مباشرة على مقبس Wayland — لا حاجة إلى `xdg-desktop-portal-wlr`.
+  مباشرة على مقبس Wayland، لا حاجة إلى `xdg-desktop-portal-wlr`.
 - **المتطلبات:** ‏Sway ≥ 1.6 (أو أي wlroots compositor يدعم `create_output`).
   إن لم يكن IPC متاحاً يتراجع `auto` إلى عكس مخرج موجود عبر screencopy.
 - **حلول الأعطال:**
-  - ‏`doctor` يطبع `virtual out: no compositor IPC reachable` — تحقق من أن
+  - ‏`doctor` يطبع `virtual out: no compositor IPC reachable`؛ تحقق من أن
     ‏`SWAYSOCK` معرّف في بيئة الدامن (وحدات systemd للمستخدم ترثه من الجلسة).
-  - الالتقاط يفشل بـ `zwlr_screencopy_manager_v1 is not available` — عطّل
+  - الالتقاط يفشل بـ `zwlr_screencopy_manager_v1 is not available`؛ عطّل
     الـ compositor الـ screencopy؛ العكس عبر portal ما زال يعمل.
 
 ## Hyprland
@@ -84,7 +93,7 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
 لا تملك Mutter واجهة عامة لإضافة مونيتور افتراضي داخل جلسة رسومية قائمة،
 لذلك:
 
-- **الشاشة الافتراضية:** عبر **EVDI** (وحدة نواة) — المسار الموجَّه هو
+- **الشاشة الافتراضية:** عبر **EVDI** (وحدة نواة): المسار الموجَّه هو
   ‏`orbiscreen doctor --fix`.
 - **الالتقاط:** ‏portal ScreenCast. منذ v0.13.0 **يُحفظ إذن** المشاركة
   (restore token في `$XDG_STATE_HOME/orbiscreen/portal.json`): تظهر نافذة
@@ -104,7 +113,7 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
   يكتب فيها خادم X مباشرة (بلا حمولة رد لكل إطار)، مع مجمّعات إطارات
   وتجاوز تلقائي للإطارات المطابقة للإطار السابق. يتراجع إلى `GetImage`
   العادي عند غياب MIT-SHM ≥ 1.2.
-- **الإدخال:** حقن **XTEST** — بلا root، يعمل لأي مستخدم على أي X11. يبقى
+- **الإدخال:** حقن **XTEST**: بلا root، يعمل لأي مستخدم على أي X11. يبقى
   ‏uinput كخيار أقوى (يحتاج `/dev/uinput`).
 - **حلول الأعطال:**
   - ‏`display: kernel module missing` → ‏`orbiscreen doctor --fix`، أو البناء

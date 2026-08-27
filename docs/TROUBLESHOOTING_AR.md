@@ -1,12 +1,21 @@
+<div align="center">
+
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
+
+[![الإصدار](https://img.shields.io/badge/version-0.13.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
+![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
+![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
+
+</div>
+
+---
 
 ## 🌐 اللغة
 
 <a href="TROUBLESHOOTING.md">🇬🇧 English</a> · <a href="TROUBLESHOOTING_AR.md">🇸🇦 العربية</a>
 
 ---
-
-> ينطبق على **v0.11.0** والإصدارات الأحدث.
 
 ## 📋 المحتويات
 
@@ -22,7 +31,7 @@
 ### وقت التشغيل
 
 - [وقت التشغيل: فشل `orbiscreen start` - `kernel module is not installed`](#runtime-evdi)
-- [وقت التشغيل: KDE Plasma — شاشة افتراضية بدون evdi وبدون root](#runtime-kwin)
+- [وقت التشغيل: KDE Plasma (شاشة افتراضية بدون evdi وبدون root)](#runtime-kwin)
 - [وقت التشغيل: واجهة الالتقاط غير متاحة على Wayland](#runtime-wayland)
 - [وقت التشغيل: تحذيرات lint `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`](#runtime-lints)
 
@@ -182,15 +191,15 @@ Error: evdi kernel module is not installed
 ---
 
 <a id="runtime-kwin"></a>
-## 🚀 وقت التشغيل: KDE Plasma — شاشة افتراضية بدون evdi وبدون root
+## 🚀 وقت التشغيل: KDE Plasma (شاشة افتراضية بدون evdi وبدون root)
 
 **الأعراض:** يسجّل `orbiscreen start` رسالة `EVDI kernel module not active` ولا تريد بناء وحدة نواة.
 
-**الحل:** على KDE Plasma Wayland لا شيء إضافي مطلوب. مع الإعداد الافتراضي `[capture] preferred = "auto"` يطلب الـ daemon من KWin إنشاء مونيتور افتراضي (`Virtual-ORBISCREEN`، يظهر في إعدادات النظام ← إعداد العرض) عبر بروتوكول Wayland‏ `zkde_screencast_unstable_v1` ويبثه عبر PipeWire مباشرة — بلا root وبلا نافذة مشاركة. KWin لا يعرض هذا البروتوكول إلا للتنفيذيات المصرّح لها، لذا يحافظ الـ daemon على الملف `~/.local/share/applications/orbiscreen.kwin.desktop` (قابل للكتابة من المستخدم) ويحدّث ذاكرة KService تلقائياً؛ قد يستغرق التشغيل الأول ثوانٍ إضافية حتى يصبح الترخيص مرئياً.
+**الحل:** على KDE Plasma Wayland لا شيء إضافي مطلوب. مع الإعداد الافتراضي `[capture] preferred = "auto"` يطلب الـ daemon من KWin إنشاء مونيتور افتراضي (`Virtual-ORBISCREEN`، يظهر في إعدادات النظام ← إعداد العرض) عبر بروتوكول Wayland‏ `zkde_screencast_unstable_v1` ويبثه عبر PipeWire مباشرة، بلا root وبلا نافذة مشاركة. KWin لا يعرض هذا البروتوكول إلا للتنفيذيات المصرّح لها، لذا يحافظ الـ daemon على الملف `~/.local/share/applications/orbiscreen.kwin.desktop` (قابل للكتابة من المستخدم) ويحدّث ذاكرة KService تلقائياً؛ قد يستغرق التشغيل الأول ثوانٍ إضافية حتى يصبح الترخيص مرئياً.
 
 ملاحظات:
 - يمكن فرض المسار عبر `[capture] preferred = "kwin-virtual"` (فشل صريح إن لم يتوفر) أو `"portal"` (إظهار نافذة المشاركة دائماً).
-- تختفي الشاشة الافتراضية عند إيقاف الـ daemon — هذا متوقع.
+- تختفي الشاشة الافتراضية عند إيقاف الـ daemon؛ هذا متوقع.
 - **ترى خلفية سطح المكتب فقط في البث؟** هذا صحيح: الشاشة الافتراضية هي *شاشة ثانية فارغة*. اسحب النوافذ إلى `Virtual-ORBISCREEN`، أو اجعل `[capture] preferred = "mirror"` لبث شاشتك الحقيقية بدلاً منها.
 - على GNOME / wlroots البروتوكول غير موجود ويرجع `auto` تلقائياً إلى نافذة مشاركة portal.
 - أصبح EVDI اختيارياً (`preferred = "evdi"`)؛ لا يلمسه `auto` على Wayland إطلاقاً، لذا لن يظهر سطر `EVDI kernel module not active` القديم على KDE.

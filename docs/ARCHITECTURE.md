@@ -1,6 +1,21 @@
+<div align="center">
+
 # Architecture Specification - Orbiscreen
 
-> Applies to **v0.11.0** and later.
+[![Version](https://img.shields.io/badge/version-0.13.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
+![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
+
+</div>
+
+---
+
+## 🌐 Language
+
+<a href="ARCHITECTURE.md">🇬🇧 English</a> · <a href="ARCHITECTURE_AR.md">🇸🇦 العربية</a>
+
+---
 
 Orbiscreen is built as a modular multi-crate Rust workspace separating system display drivers, frame capture engines, hardware-accelerated video encoders, inter-process communication (D-Bus), and multi-protocol network transports.
 
@@ -46,7 +61,7 @@ graph TD
 |-------|----------------|------------------|
 | `orbiscreen-core` | Shared configuration, error types, serialization | `serde`, `toml` |
 | `orbiscreen-display` | EVDI DRM virtual display creation, EDID synthesis, framebuffer → tight BGRA conversion, `EvdiFramePump` | `evdi`, `drm-fourcc`, `libc` |
-| `orbiscreen-capture` | Wayland Portal (ashpd) & X11 (x11rb) capture engines — **fallback source only** | `ashpd`, `x11rb` |
+| `orbiscreen-capture` | Wayland Portal (ashpd) & X11 (x11rb) capture engines: **fallback source only** | `ashpd`, `x11rb` |
 | `orbiscreen-encode` | Hardware & software H.264 encoding pipelines | `gstreamer`, `gstreamer-app` |
 | `orbiscreen-input` | Reverse touch, stylus, and keyboard injection (uinput) | `evdev`, `ashpd` |
 | `orbiscreen-transport` | Axum HTTP `/stream` + token auth, mDNS, ADB reverse, `/api/info`, `/api/control`, `/health` | `axum`, `gstreamer`, `tokio`, `rand`, `base64` |
@@ -85,7 +100,7 @@ com.orbiscreen.android/
 
 ## 🎞 Stream Pipeline
 
-Each stage owns its data; frames are copied between stages (no zero-copy — this keeps the lifetimes simple at the cost of one extra copy per stage):
+Each stage owns its data; frames are copied between stages (no zero-copy, this keeps the lifetimes simple at the cost of one extra copy per stage):
 
 1. **Virtual Monitor Provisioning:** `orbiscreen-display` provisions a virtual DRM connector via EVDI and the compositor draws onto it. When the EVDI kernel module is unavailable, the daemon falls back to capturing the **primary desktop** via `xdg-desktop-portal` ScreenCast (Wayland) or X11 `GetImage`, and logs a prominent warning that clients will see the host's main screen instead of the virtual display.
 2. **Frame Read & Conversion:** `orbiscreen-display::EvdiFramePump` drives EVDI on a dedicated thread (the underlying handle is `!Send`), waiting on content updates (`request_update` with `UPDATE_BUFFER_TIMEOUT`) and converting the stride-padded XRGB8888/Rgb565 framebuffer to tightly-packed BGRA in `to_tight_bgra()`.
@@ -98,7 +113,7 @@ Each stage owns its data; frames are copied between stages (no zero-copy — thi
 5. **Reverse Input:**
    - Clients send pointer / wheel / stylus / keyboard events to `POST /input` (token required). Coordinates map from client rect to the **actual** stream resolution. Events are debounced through `MutableSharedFlow` with `BufferOverflow.DROP_OLDEST` to prevent backlog during fast drags.
 6. **Host Control:**
-   - `HostApi.sendControl` posts JSON to `POST /api/control` (token required): `{"action":"lock"}` (loginctl/xdg-screensaver), `{"action":"blank"}`/`{"action":"unblank"}` (DPMS via swaymsg/hyprctl/xset), `{"action":"ctrl_alt_del"}` (injected through the input pipeline). The legacy `open` action is rejected — opening arbitrary URLs from remote clients is not permitted.
+   - `HostApi.sendControl` posts JSON to `POST /api/control` (token required): `{"action":"lock"}` (loginctl/xdg-screensaver), `{"action":"blank"}`/`{"action":"unblank"}` (DPMS via swaymsg/hyprctl/xset), `{"action":"ctrl_alt_del"}` (injected through the input pipeline). The legacy `open` action is rejected: opening arbitrary URLs from remote clients is not permitted.
 7. **CLI Control:**
    - `orbiscreen stop` calls the D-Bus `Stop` method to shut the running daemon down gracefully; the GTK control panel polls `GetStatus` once per second and shows live encoder/frame/client counters from the same D-Bus service.
 
@@ -112,7 +127,7 @@ Every session generates a random 32-byte base64url token at startup:
 - Required on `POST /input`, `GET /stream` and `POST /api/control` via `Authorization: Bearer <token>` header or a `?token=` query parameter (compared constant-time).
 - `/health` and `/api/info` remain open so discovery and health checks work without credentials.
 
-**Scope note:** anyone who can reach the HTTP port can read the token from `/client/config.json` or mDNS. The token is a convenience guard against accidental/ambient use, not strong authentication — a hostile device on the same LAN can obtain it. Strong auth (TLS/mTLS) is future work; see SECURITY.md.
+**Scope note:** anyone who can reach the HTTP port can read the token from `/client/config.json` or mDNS. The token is a convenience guard against accidental/ambient use, not strong authentication; a hostile device on the same LAN can obtain it. Strong auth (TLS/mTLS) is future work; see SECURITY.md.
 
 ---
 

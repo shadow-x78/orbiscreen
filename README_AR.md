@@ -1,7 +1,3 @@
-<!--
-  Orbiscreen - README (Arabic) (GPL-3.0-or-later)
-  https://github.com/shadow-x78/orbiscreen
--->
 <div align="center">
 
 <img src="data/orbiscreen.svg" alt="Orbiscreen" width="160" />
@@ -10,7 +6,7 @@
 
 شاشة افتراضية ثانية حقيقية لنظام Linux، تُبَثّ إلى Android - أمر واحد، بلا تعقيد
 
-[![الإصدار](https://img.shields.io/badge/version-0.11.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.13.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -65,7 +61,7 @@
 <a id="highlights"></a>
 ## ✨ المميزات
 
-- شاشة افتراضية حقيقية عبر `evdi` (X11 *و* Wayland)، **أو بدون أي صلاحيات root على KDE Plasma** — مونيتور افتراضي يُنشئه KWin عبر `zkde-screencast` (بلا وحدة نواة وبلا نافذة مشاركة)، مع تراجع التقاط portal في غير ذلك
+- شاشة افتراضية حقيقية عبر `evdi` (X11 *و* Wayland)، **أو بدون أي صلاحيات root على KDE Plasma**: مونيتور افتراضي يُنشئه KWin عبر `zkde-screencast` (بلا وحدة نواة وبلا نافذة مشاركة)، مع تراجع التقاط portal في غير ذلك
 - **عميل Android بواجهة Material 3** - Jetpack Compose، لوحة ألوان Catppuccin Mocha / Latte، بسمة فاتحة وداكنة
 - **عميل ويب مبنّى داخلياً** - شاهد من أي متصفح على `http://<host>:8788/` (MSE عبر `mpegts.js` المضمنة محلياً، دون CDN)
 - **اكتشاف مباشر** - مسح NSD للمضيفين القريبين، إدخال يدوي `host:port`، وماسح Subnet اختياري
@@ -101,7 +97,7 @@
 | KDE Plasma (Wayland) | ✅ أصلي (zkde-screencast، بلا root وبلا حوار) | ✅ PipeWire | ✅ portal RemoteDesktop |
 | Sway / wlroots عام | ✅ مخرج headless عبر IPC الـ compositor (بلا root) | ✅ wlr-screencopy (بلا حوار) | ✅ virtual-pointer / virtual-keyboard (بلا portal) |
 | Hyprland | ✅ مخرج headless عبر IPC الـ compositor (بلا root) | ✅ wlr-screencopy (بلا حوار) | ✅ virtual-pointer / virtual-keyboard (بلا portal) |
-| GNOME (Wayland) | ⚠️ عبر EVDI | ✅ portal — حوار مرة واحدة فقط (توكن إصرار محفوظ) | ✅ portal RemoteDesktop — بالمثل محفوظ |
+| GNOME (Wayland) | ⚠️ عبر EVDI | ✅ portal: حوار مرة واحدة فقط (توكن إصرار محفوظ) | ✅ portal RemoteDesktop: بالمثل محفوظ |
 | XFCE / MATE / LXQt / Cinnamon (X11) | ✅ عبر EVDI | ✅ XShm للشاشة الجذرية (مجمّع، مع تجاوز الإطارات المتطابقة) | ✅ XTEST (بلا root)، مع تراجع إلى uinput |
 | أي بيئة أخرى | ✅ عبر EVDI (بإرشاد `orbiscreen doctor --fix`) | أفضل واجهة متاحة | أفضل واجهة متاحة |
 
@@ -173,7 +169,7 @@ orbiscreen start
 #### تفضيل واجهة الالتقاط (`orbiscreen.toml`)
 
 يقرأ الخادم افتراضيًا `$XDG_CONFIG_HOME/orbiscreen/orbiscreen.toml`
-(أو `~/.config/orbiscreen/orbiscreen.toml` عندما لا يكون `XDG_CONFIG_HOME` معرّفًا) —
+(أو `~/.config/orbiscreen/orbiscreen.toml` عندما لا يكون `XDG_CONFIG_HOME` معرّفًا)،
 وهو المسار نفسه الذي تستخدمه وحدة systemd للمستخدم. أنشئ الملف هناك، أو
 حدّد موقعًا آخر عبر `--config /path/to/orbiscreen.toml`.
 
@@ -187,11 +183,11 @@ preferred = "auto"   # auto (الافتراضي) | kwin-virtual | screencopy | e
 | `auto` | KDE Plasma Wayland: شاشة KWin الافتراضية. ‏Sway/Hyprland/wlroots: مخرج افتراضي من الـ compositor عبر IPC، وإلا عكس شاشة موجودة عبر wlr-screencopy، وإلا portal. ‏X11: ‏EVDI عند تحميل وحدتها، وإلا التقاط الشاشة الجذر. |
 | `kwin-virtual` | شاشة KWin الافتراضية دائماااً (فشل صريح على غير KDE). |
 | `screencopy` | التقاط wlroots screencopy دائماااً (يتطلب compositor من عائلة wlroots). |
-| `evdi` | شاشة EVDI DRM الافتراضية دائماااً (اختيارية — تتطلب وحدة نواة مثبتة بـ root). |
+| `evdi` | شاشة EVDI DRM الافتراضية دائماااً (اختيارية، تتطلب وحدة نواة مثبتة بـ root). |
 | `portal` | نافذة مشاركة portal دائماااً؛ اختر أي شاشة. |
 | `mirror` | اعرض **سطح مكتبك الحقيقي** بدل شاشة ثانية: اختر الشاشة المراد عكسها من نافذة المشاركة. |
 
-> الشاشة الافتراضية تبدأ **فارغة** (خلفية سطح المكتب فقط) — هذا معنى الشاشة الثانية. اسحب النوافذ إلى `Virtual-ORBISCREEN`، أو استخدم `mirror` لبث شاشتك الفعلية.
+> الشاشة الافتراضية تبدأ **فارغة** (خلفية سطح المكتب فقط)، هذا معنى الشاشة الثانية. اسحب النوافذ إلى `Virtual-ORBISCREEN`، أو استخدم `mirror` لبث شاشتك الفعلية.
 
 ### 3. الاتصال
 

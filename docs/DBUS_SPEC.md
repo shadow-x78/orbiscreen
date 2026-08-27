@@ -1,12 +1,21 @@
+<div align="center">
+
 # D-Bus API Specification - Orbiscreen
+
+[![Version](https://img.shields.io/badge/version-0.13.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
+![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
+
+</div>
+
+---
 
 ## 🌐 Language
 
 <a href="DBUS_SPEC.md">🇬🇧 English</a> · <a href="DBUS_SPEC_AR.md">🇸🇦 العربية</a>
 
 ---
-
-> Applies to **v0.11.0** and later.
 
 Orbiscreen exposes a D-Bus Session Service interface allowing desktop control panels (the GTK4 GUI), CLI scripts, and system tray indicators to inspect live status and control the daemon process. The implementation lives in `crates/orbiscreen-daemon/src/dbus.rs` - this spec documents exactly what that code exposes.
 

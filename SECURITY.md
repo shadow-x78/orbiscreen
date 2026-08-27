@@ -1,6 +1,15 @@
+<div align="center">
+
 # Security Policy - Orbiscreen
 
-> Applies to **v0.11.0** and later.
+[![Version](https://img.shields.io/badge/version-0.13.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
+![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
+
+</div>
+
+---
 
 ## 📋 Table of Contents
 
@@ -97,7 +106,7 @@ Since v0.11.0, `/stream`, `/input` and `/api/control` require a per-session acce
 Clients obtain the token in two ways:
 
 1. **mDNS TXT record** of the advertised `_orbiscreen._tcp.` service (`token=...`)
-2. **`GET /client/config.json`** — intentionally unauthenticated, so the bundled web client can bootstrap itself
+2. **`GET /client/config.json`:** intentionally unauthenticated, so the bundled web client can bootstrap itself
 
 **Threat model:** anyone who can reach the HTTP port can read `/client/config.json` and therefore learn the token. The token is therefore **abuse protection against casual/unintended use** (scanners, wrong-device connections, neighbors probing the port), **not** protection against a determined attacker on your LAN. It stops nothing from an attacker who already has network access to the port, and it is transmitted in cleartext.
 

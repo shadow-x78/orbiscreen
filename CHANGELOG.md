@@ -1,84 +1,67 @@
-<!--
-  Orbiscreen - Changelog (GPL-3.0-or-later)
-  https://github.com/shadow-x78/orbiscreen
--->
 # Changelog
 
 All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [v0.13.1] - 2026-08-27
 
 Full-project audit round two: the Rust transport/daemon, Android client, web client, shell scripts, and CI matrix re-audited line by line; all security, correctness, and packaging findings fixed or explicitly documented as accepted design.
 
-### Fixed — web client
-- **Keyboard letter keys were wrong**: the QWERTY-layout Linux input codes were assigned to letters in alphabetical order, so every typed letter sent the wrong key (`KeyA` → KEY_Q, …). Each letter now maps to its real input code; numpad, function, and media keys audited against `linux/input-event-codes.h`.
-- **Pointer control was frozen under pointer lock**: `clientX/Y` do not move while locked. A virtual cursor now accumulates `movementX/Y`, so remote control actually works with a mouse.
+### 🌐 Web Client
+- **Keyboard letter keys were wrong:** the QWERTY-layout Linux input codes were assigned to letters in alphabetical order, so every typed letter sent the wrong key (`KeyA` → KEY_Q, …). Each letter now maps to its real input code; numpad, function, and media keys audited against `linux/input-event-codes.h`.
+- **Pointer control was frozen under pointer lock:** `clientX/Y` do not move while locked. A virtual cursor now accumulates `movementX/Y`, so remote control actually works with a mouse.
 - **Touch devices could not control at all** when `requestPointerLock` was absent or rejected; pointer events fell back to direct absolute input, and lock failures are handled (including the unhandled promise rejection).
-- **Wheel scroll jumped ~12 steps per notch**: raw `deltaY` was sent as discrete steps; it is now normalized per `deltaMode` and clamped.
+- **Wheel scroll jumped ~12 steps per notch:** raw `deltaY` was sent as discrete steps; it is now normalized per `deltaMode` and clamped.
 - OS key auto-repeat no longer floods the daemon (`event.repeat` filtered); pointer coordinates clamp to the last valid pixel; the MSE-unsupported path no longer hides the overlay; a CSP meta (`default-src 'self'`) was added.
 
-### Fixed — Android client
+### 📱 Android
 - NSD discovery now stops when the discovery view model clears (previously leaked for the process lifetime); subnet-scan results merge into the same state pipeline instead of racing it.
 - The input dispatcher is (re)sized from the reported display dimensions, so touching the surface before `/api/info` returns no longer pins coordinate mapping to 1920×1080.
 - Manifest: removed the unused `CHANGE_WIFI_MULTICAST_LOCK` and `ACCESS_WIFI_STATE` permissions; V1 (JAR) APK signing disabled (minSdk 26 uses V2/V3).
 - `HostApi` reads response bodies with a bound; user agent comes from `BuildConfig`; dead ProGuard rules removed (the blanket `-keep` previously disabled all shrinking); dead UI branches, `RecentHost.label`, and the theme `dynamicColor` parameter removed; `as Activity` cast made safe.
 
-### Fixed — daemon & transport
+### 🐛 Fixed
 - Input queue is bounded (1024) with explicit drop counting; stream clients capped with 503; join-buffer lock no longer spans blocking pushes; token comparison constant-time; `Bearer` matched case-insensitively with `WWW-Authenticate` on 401; `/health`/`/api/info` slimmed; auth failures logged at debug with peer addresses; adb serials charset-validated with proper spawn-error mapping; blocking `adb`/`systemctl`/package-manager calls moved off the async runtime; uninstall reports real failures and returns non-zero; portal state saved with a per-process temp-file nonce and permissions set before rename; wlr-screencopy size/stride math validated against compositor-supplied values; encoded chunks without PTS are dropped instead of timestamped to zero; watchdog exits once frames flow.
+- **Virtual-output creation never worked on sway:** the daemon sent the two-word command `create output`, but sway's IPC command is the single token `create_output` (verified against sway 1.6 through master), so sway always rejected it with `Unknown/invalid command 'create'`. The daemon now sends `create_output`.
+- **Virtual-output teardown was invalid on sway:** sway has no `output … remove` subcommand (checked 1.6 through master). The daemon now attempts `remove` and, when the compositor rejects it, falls back to `output … disable` so the output stops receiving frames; `create()` also waits for the requested mode to settle before reporting dimensions instead of returning mid-modeset. Found by the new sway headless CI job, which exercises virtual output end-to-end for the first time.
 
-### Fixed — wlroots virtual display (sway)
-- **Virtual-output creation never worked on sway**: the daemon sent the two-word command `create output`, but sway's IPC command is the single token `create_output` (verified against sway 1.6 through master), so sway always rejected it with `Unknown/invalid command 'create'`. The daemon now sends `create_output`.
-- **Virtual-output teardown was invalid on sway**: sway has no `output … remove` subcommand (checked 1.6 through master). The daemon now attempts `remove` and, when the compositor rejects it, falls back to `output … disable` so the output stops receiving frames; `create()` also waits for the requested mode to settle before reporting dimensions instead of returning mid-modeset. Found by the new sway headless CI job, which exercises virtual output end-to-end for the first time.
-
-### Fixed — scripts & CI
+### ⚡ Scripts & CI
 - `package-appimage.sh`: `find` no longer scans non-existent distro lib dirs (aborted the build under `pipefail`); AppImage output name follows `uname -m`.
 - `setup-dev-env.sh`: corrected Fedora names (`libwayland-client`, `xorg-x11-server-utils`), stopped offering un-packaged `libevdi`/`evdi` from official repos, and completed every distro list with the X11/wayland/GTK4 dev packages CI actually needs.
 - GitHub issue templates rewritten to the issue-forms schema (the legacy front matter made GitHub fail to load them); the PR template front matter removed.
 - `install.sh` stops the running user service and installs binaries via temp+rename (no more `ETXTBSY`); install/uninstall/package scripts guard their working directory; evdi module check uses `/sys/module` (no `lsmod | grep -q` SIGPIPE); deb/rpm maintainer scripts deduplicate logged-in users and clean stale staging.
 - Release workflow: signing secrets are verified explicitly before use, keystore written with `umask 077` and removed on every exit path, `keytool` uses `-storepass:env`, release notes extracted without regex interpolation with a fallback, VERSION quoted throughout, and job timeouts added. The Linux tarball bundles a README instead of a repo-layout installer, and README instructions match.
 
-### Removed
+### 🗑️ Removed
 - Dead code: `FramePool::pooled_count` (test-only), manual `Debug` on the D-Bus server, the `unreachable!`-padded stylus match in the uinput backend, the web client's dead letter-key shims.
 
 ## [v0.13.0] - 2026-08-27
 
 Desktop-environment parity release: the full KDE-level experience (a real compositor-native virtual display, no root, no dialogs) now extends to wlroots compositors, portal grants persist across runs on GNOME, input injection is rootless on X11 and portal-free on wlroots, and per-frame allocations/copies were removed across the whole pipeline.
 
-### Added — discovery & diagnostics
-- **`orbiscreen doctor`** (`--json` for the GTK panel): prints the detected session/compositor, the exact ordered capture plan `auto` will follow, EVDI module state, portal presence on the session bus, saved permission grants, swaymsg/hyprctl availability, wlroots virtual-output IPC reachability, and `/dev/uinput` writability — each finding paired with the fix.
-- **`orbiscreen doctor --fix [--yes]`**: detects the distro from `/etc/os-release` (dnf/apt/pacman/zypper incl. `ID_LIKE` derivatives), offers to install the EVDI package (`evdi` / `evdi-dkms` + headers), loads the module, and re-verifies.
+### ✨ Added
+- **`orbiscreen doctor`** (`--json` for the GTK panel): prints the detected session/compositor, the exact ordered capture plan `auto` will follow, EVDI module state, portal presence on the session bus, saved permission grants, swaymsg/hyprctl availability, wlroots virtual-output IPC reachability, and `/dev/uinput` writability, each finding paired with the fix.
+- **`orbiscreen doctor --fix [--yes]`:** detects the distro from `/etc/os-release` (dnf/apt/pacman/zypper incl. `ID_LIKE` derivatives), offers to install the EVDI package (`evdi` / `evdi-dkms` + headers), loads the module, and re-verifies.
 - **Central environment analyzer** (`capabilities.rs`): session + compositor detection from `XDG_SESSION_TYPE`, `WAYLAND_DISPLAY`, `XDG_CURRENT_DESKTOP`, `DESKTOP_SESSION`, `KDE_FULL_SESSION`, `HYPRLAND_INSTANCE_SIGNATURE`, `SWAYSOCK`, `GAMESCOPE_WAYLAND_DISPLAY`, with a full detection-matrix test suite.
-- **Capability-driven capture plan**: `auto` no longer uses a hardcoded chain; it resolves the try-chain from detected capabilities and logs the resolved plan and the reason every step succeeds or falls through. Plans: KDE `kwin-virtual → portal`; wlroots `wlroots-virtual → wlr-screencopy → portal → evdi`; other Wayland `portal`; X11 `evdi → x11-root`.
+- **Capability-driven capture plan:** `auto` no longer uses a hardcoded chain; it resolves the try-chain from detected capabilities and logs the resolved plan and the reason every step succeeds or falls through. Plans: KDE `kwin-virtual → portal`; wlroots `wlroots-virtual → wlr-screencopy → portal → evdi`; other Wayland `portal`; X11 `evdi → x11-root`.
 - GTK panel shows the active capture backend in its status row.
-
-### Added — wlroots capture & virtual displays
-- **New `wlr-screencopy` capture backend**: `zwlr_screencopy_manager_v1` with SHM buffers (memfd-backed), damage-aware copies where the compositor supports them, per-output capture by name, stride padding removed, XRGB→opaque alpha normalization, strict frame validation, and clean teardown. No portal, no share dialog.
+- **New `wlr-screencopy` capture backend:** `zwlr_screencopy_manager_v1` with SHM buffers (memfd-backed), damage-aware copies where the compositor supports them, per-output capture by name, stride padding removed, XRGB→opaque alpha normalization, strict frame validation, and clean teardown. No portal, no share dialog.
 - **New capture preference `screencopy`** (`[capture] preferred = "screencopy"`), accepted by config validation.
 - **Compositor-native virtual outputs on wlroots** (`WlrootsVirtualOutput`): the daemon creates a headless output via Sway IPC (`SWAYSOCK`, native i3-ipc framing, `create output` + mode) or Hyprland IPC (`HYPRLAND_INSTANCE_SIGNATURE` socket, `output create/destroy`), waits until the output is advertised and active, captures it by name with screencopy, and removes the output on stop/crash/drop. IPC failure falls back cleanly to mirroring an existing output; the doctor explains which IPC (if any) is reachable.
-- **CI integration test on headless sway**: a dedicated job spawns sway with `WLR_BACKENDS=headless` and exercises real screencopy capture, virtual-output create/list/drop lifecycle, and output teardown.
-
-### Added — GNOME / portal UX
-- **Dialog-free portal sessions**: ScreenCast permissions are persisted via restore tokens (`PersistMode::ExplicitlyRevoked`) in `$XDG_STATE_HOME/orbiscreen/portal.json`; a failed/stale token automatically retries with a fresh selection. After the first grant, GNOME streams start instantly with no dialog.
+- **CI integration test on headless sway:** a dedicated job spawns sway with `WLR_BACKENDS=headless` and exercises real screencopy capture, virtual-output create/list/drop lifecycle, and output teardown.
+- **Dialog-free portal sessions:** ScreenCast permissions are persisted via restore tokens (`PersistMode::ExplicitlyRevoked`) in `$XDG_STATE_HOME/orbiscreen/portal.json`; a failed/stale token automatically retries with a fresh selection. After the first grant, GNOME streams start instantly with no dialog.
 - The RemoteDesktop **input** session persists its grant the same way (separate token).
 - `doctor` reports whether each grant is saved.
+- **wlroots-native input injection** (`virtual-keyboard-unstable-v1` + `wlr-virtual-pointer-unstable-v1`, protocol XML vendored): absolute pointer events and keyboard injection directly on the Wayland socket, no `xdg-desktop-portal-wlr` needed. Pointer coordinates are normalized to the captured output when one is known.
+- **New input order on Wayland:** wlroots-native → RemoteDesktop portal → uinput, each with an explanatory fallback warning.
+- **XTEST injector for X11:** rootless pointer/keyboard injection via xcb-xtest for any user; uinput remains the stronger fallback when `/dev/uinput` is available.
+- **Pooled frame buffers** (`FramePool`/`PooledFrameBuffer` in `orbiscreen-core`): X11, wlr-screencopy, portal, and KWin capture now fill recycled buffers instead of allocating per frame; the encoder wraps pooled buffers directly into GStreamer buffers (`gst_buffer_new_wrapped` semantics); the previous per-frame `appsrc` alloc+copy is gone, and each buffer returns to the pool when GStreamer releases the frame.
+- **X11 capture upgraded to MIT-SHM:** one persistent shared image (memfd + `attach_fd`, requires MIT-SHM ≥ 1.2) that the X server writes into directly (no per-frame reply payload over the socket), with automatic fallback to plain `GetImage` when the extension is absent (verified live against Xwayland).
+- **Identical-frame skipping on X11 mirroring:** a fast 128-bit frame hash suppresses duplicate frames, so an idle mirrored desktop no longer burns CPU re-encoding unchanged content (keepalive pacing unchanged).
 
-### Added — rootless / portal-free input
-- **wlroots-native input injection** (`virtual-keyboard-unstable-v1` + `wlr-virtual-pointer-unstable-v1`, protocol XML vendored): absolute pointer events and keyboard injection directly on the Wayland socket — no `xdg-desktop-portal-wlr` needed. Pointer coordinates are normalized to the captured output when one is known.
-- **New input order on Wayland**: wlroots-native → RemoteDesktop portal → uinput, each with an explanatory fallback warning.
-- **XTEST injector for X11**: rootless pointer/keyboard injection via xcb-xtest for any user; uinput remains the stronger fallback when `/dev/uinput` is available.
-
-### Added — frame-pipeline efficiency
-- **Pooled frame buffers** (`FramePool`/`PooledFrameBuffer` in `orbiscreen-core`): X11, wlr-screencopy, portal, and KWin capture now fill recycled buffers instead of allocating per frame; the encoder wraps pooled buffers directly into GStreamer buffers (`gst_buffer_new_wrapped` semantics) — the previous per-frame `appsrc` alloc+copy is gone, and each buffer returns to the pool when GStreamer releases the frame.
-- **X11 capture upgraded to MIT-SHM**: one persistent shared image (memfd + `attach_fd`, requires MIT-SHM ≥ 1.2) that the X server writes into directly — no per-frame reply payload over the socket — with automatic fallback to plain `GetImage` when the extension is absent (verified live against Xwayland).
-- **Identical-frame skipping on X11 mirroring**: a fast 128-bit frame hash suppresses duplicate frames, so an idle mirrored desktop no longer burns CPU re-encoding unchanged content (keepalive pacing unchanged).
-
-### Tests
+### 🧪 Tests
 - Frame-assembly unit tests (stride stripping, premultiplied alpha, truncation), frame-pool recycling/cap tests, hash tests, distro-detection tests for `doctor --fix`, capability matrix tests, plus the sway-headless and live-DISPLAY X11 integration tests.
 
-### Deferred to a follow-up
+### ⏳ Deferred to a follow-up
 - **DMA-BUF zero-copy** (planned phase-5 item): requires per-hardware validation that cannot be done in headless CI; the SHM path stays the default.
 - **GTK panel EVDI wizard** (planned phase-6 item): `doctor --fix` covers the guided flow on the CLI in the meantime.
 - KDE/sway/Xvfb side-by-side performance measurements: to be published once measured on reference hardware.
@@ -87,124 +70,124 @@ Desktop-environment parity release: the full KDE-level experience (a real compos
 
 Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, build, tests, audit, machete, deny, shellcheck, gradle assemble+lint) re-run and all findings fixed.
 
-### Fixed
+### 🐛 Fixed
 - **EVDI pump never terminated on fatal errors:** after the kernel closed the event channel or the registered buffer vanished, the pump thread retried the failed operation forever and warned every 50 ms while the daemon kept streaming stale keepalive frames. Terminal errors now end the source, which flows through as a clean capture-pump shutdown.
 - **KWin virtual-display open blocked a tokio worker:** `KwinVirtualCapture::open` performs blocking wayland round-trips, permission-file retries (up to 2.5 s) and a 5 s handshake deadline; called from an async context it stalled a runtime thread for up to ~7.5 s. The open now runs on `spawn_blocking`.
 - **Damage pump zombie after compositor close:** when the compositor closed the layer-shell surface the pump kept attaching/committing to the dead surface forever and swallowed roundtrip errors. It now exits on `Closed` and on connection errors.
-- **Truncated X11 `GetImage` replies were zero-padded**, masking real capture failures as black frames — short replies are now capture errors.
+- **Truncated X11 `GetImage` replies were zero-padded**, masking real capture failures as black frames; short replies are now capture errors.
 - **Mouse buttons 7 and 8 mapped to the same uinput code** (`0x117`); buttons 4–8 now map distinctly onto `BTN_SIDE`..`BTN_TASK` (`0x113`–`0x117`).
 - **Encoder input queue allowed 60 raw frames** (`set_max_bytes`), ~475 MB at 1080p and ~2 GB at 4K before backpressure engaged; capped at 4 frames.
 - Transport join-buffer mutex locks are now poisoning-tolerant instead of panicking a serving task if another thread ever panicked mid-update.
 - `display` config gained upper clamps (7680×4320), matching the existing lower bounds and the two-sided clamps for refresh rate and bitrate.
 - A relative `XDG_CONFIG_HOME` is now ignored per the XDG spec (same filter `XDG_DATA_HOME` already had).
-- The MPEG-TS integration test's monotonicity check compared every timestamp against the *first* frame instead of its predecessor — it now catches real ordering regressions.
+- The MPEG-TS integration test's monotonicity check compared every timestamp against the *first* frame instead of its predecessor; it now catches real ordering regressions.
 
-### Fixed (Android)
+### 📱 Android
 - **Tapping Refresh killed discovery permanently:** `DiscoveryService.stop()` cancelled the caller-supplied `viewModelScope`, freezing the host list and silently ignoring every subsequent restart. The service now owns its own scope, and `restart()` waits for the NsdManager stop callback before discovering again (also removing a start/stop race that could throw on some devices).
-- **Auto-reconnect built the player with an empty token:** the reconnect job called `build()`, whose first action was `reconnectJob?.cancel()` — cancelling the very coroutine it ran in; the resulting `CancellationException` was swallowed by the token fetch, so every reconnect streamed unauthenticated into a 401 loop. External builds cancel pending reconnects; the reconnect path no longer cancels itself and no longer swallows cancellation.
-- The `DiscoveryService`/gateway provider captured the Activity context into a ViewModel — now the application context.
+- **Auto-reconnect built the player with an empty token:** the reconnect job called `build()`, whose first action was `reconnectJob?.cancel()`, cancelling the very coroutine it ran in; the resulting `CancellationException` was swallowed by the token fetch, so every reconnect streamed unauthenticated into a 401 loop. External builds cancel pending reconnects; the reconnect path no longer cancels itself and no longer swallows cancellation.
+- The `DiscoveryService`/gateway provider captured the Activity context into a ViewModel; it now uses the application context.
 - "Forget recent host" in Settings left the stale card on screen until navigation; the row now recomposes immediately.
 - `roundIcon` pointed at the square launcher mipmap; it now references `@mipmap/ic_launcher_round`.
 
-### Security
+### 🔒 Security
 - `event-listener` 5.4.1 → 5.4.2 (RUSTSEC-2026-0221, unsound `!Send` tag across threads). The remaining `derivative` unmaintained advisory is unfixable upstream (`evdi` 0.8.0 is the final release) and stays an accepted warning.
-- The damage pump's shared-memory file moved from a predictable fixed path in `/tmp` to an anonymous `memfd_create` region — no world-writable pathname, no cross-instance interference, nothing left on disk.
+- The damage pump's shared-memory file moved from a predictable fixed path in `/tmp` to an anonymous `memfd_create` region: no world-writable pathname, no cross-instance interference, nothing left on disk.
 - Android release workflow: fails fast when `ANDROID_KEY_PASSWORD` is unset, rejects an unsigned APK after `assembleRelease` (previously uploadable), and removes the decoded keystore in an `if: always()` cleanup step.
 
-### Removed
-- `transport.webrtc_port_range` config field — dead since the WebRTC teardown (v0.12.1): normalized but never read. Existing config files containing it still parse (the key is ignored).
+### 🗑️ Removed
+- `transport.webrtc_port_range` config field: dead since the WebRTC teardown (v0.12.1), normalized but never read. Existing config files containing it still parse (the key is ignored).
 - Dead code: `VirtualDisplay::open_at`/indexed node selection and the `spec()` getter, `EncodeError::EncoderUnavailable`, Android `HostApi.health`/`sendControl`, `InputDispatcher.wheel`/`stylus`, `DiscoveryViewModel.saveRecent`, `StreamViewModel.toggleToolbar` + the never-changing `toolbarVisible` (toolbar is always shown), the navigation route's unused `label` parameter, the unreachable "idle" branch of the discovery status banner, 15 unused theme colors, 10 unused strings, 8 unused XML colors and dead imports across the client.
 - The empty deb `postinst` script and the `packaging/` directory (the AppImage build merged into `scripts/build-appimage.sh`, with `package-appimage.sh` kept as the stable entry point used by the release workflow).
 
-### Changed
+### 🔧 Changed
 - `scripts/install.sh` now also builds and installs `orbiscreen-gtk`; previously the installed desktop entry's `Exec=orbiscreen-gtk` pointed at a binary the script never installed (the GTK build is best-effort so the daemon still installs where GTK 4 dev libraries are missing). The desktop entry's `Icon=` now matches the icon filename every installer ships, and `uninstall.sh` removes the GTK binary too.
 - `package-deb.sh` builds both binaries when missing (previously copied them blindly) and carries a valid RFC822 `Maintainer` address; `package-rpm.sh` checks for both binaries, not only the daemon.
 - AppImage build script: fixed a shellcheck SC2227 redirection placed between `find` actions.
 
-### Documentation
+### 📝 Documentation
 - `DBUS_SPEC.md` / `DBUS_SPEC_AR.md`: `GetConfig` example matches the current schema (removed the deleted `display.count` and `webrtc_port_range` lines, added the `[capture]` section).
 - Bug-report template no longer suggests a `RUST_LOG` target for the long-removed `webrtc_rs` crate.
 - `SECURITY.md` / `PACKAGING.md` / `PACKAGING_AR.md` version matrices updated to the current release.
 
 ## [v0.12.5] - 2026-08-26
 
-### Fixed
-- **Unbounded frame channel in the portal/mirror capture path:** the Wayland portal backend passed raw BGRA frames (~8 MB/frame at 1080p) over an unbounded channel, so a stalled consumer could grow memory without limit — the exact failure mode the KWin backend's bounded queue (v0.12.0) was built to prevent. The portal path now uses the same bounded channel (capacity 2) with drop-on-full and a debug log.
-- **Config silently ignored under systemd:** the default `--config` was the relative path `orbiscreen.toml`, and no install path (manual / deb / rpm) set `WorkingDirectory=` or passed `--config`, so the service resolved the file against `$HOME` and silently fell back to defaults — custom resolution, port or encoder choices never took effect. The default is now the XDG path `$XDG_CONFIG_HOME/orbiscreen/orbiscreen.toml` (`~/.config/orbiscreen/orbiscreen.toml` when unset), used identically by the daemon, the GTK panel and the systemd user unit, and documented in the README and INSTALL guide.
+### 🐛 Fixed
+- **Unbounded frame channel in the portal/mirror capture path:** the Wayland portal backend passed raw BGRA frames (~8 MB/frame at 1080p) over an unbounded channel, so a stalled consumer could grow memory without limit, the exact failure mode the KWin backend's bounded queue (v0.12.0) was built to prevent. The portal path now uses the same bounded channel (capacity 2) with drop-on-full and a debug log.
+- **Config silently ignored under systemd:** the default `--config` was the relative path `orbiscreen.toml`, and no install path (manual / deb / rpm) set `WorkingDirectory=` or passed `--config`, so the service resolved the file against `$HOME` and silently fell back to defaults; custom resolution, port or encoder choices never took effect. The default is now the XDG path `$XDG_CONFIG_HOME/orbiscreen/orbiscreen.toml` (`~/.config/orbiscreen/orbiscreen.toml` when unset), used identically by the daemon, the GTK panel and the systemd user unit, and documented in the README and INSTALL guide.
 - **Session token duplicated in the stream URL:** the Android client sent the token both as an `Authorization: Bearer` header (the actual authentication source) and as a `?token=` query parameter; the query parameter is gone, removing a leak path through verbose HTTP/ExoPlayer logs.
 - **X11 capture errors lost their detail:** `GetImage` reply failures were collapsed to a constant error code `0`; real X11 protocol error codes are now surfaced, and connection failures are reported as a distinct connect error.
-- **Android: deprecated OkHttp API** — `RequestBody.create(...)` in the control API client replaced with the `toRequestBody(...)` extension, matching the rest of the client.
+- **Android: deprecated OkHttp API:** `RequestBody.create(...)` in the control API client replaced with the `toRequestBody(...)` extension, matching the rest of the client.
 
-### Security
-- **Android `network_security_config.xml`:** removed the dead `<domain-config>` LAN list — Android `<domain>` entries do not match CIDR ranges, so the list matched only network/broadcast addresses and enforced nothing. Cleartext HTTP remains globally permitted by design (the app only contacts LAN hosts the user selects via mDNS or manual entry); the decision is now stated explicitly in `SECURITY.md`.
+### 🔒 Security
+- **Android `network_security_config.xml`:** removed the dead `<domain-config>` LAN list: Android `<domain>` entries do not match CIDR ranges, so the list matched only network/broadcast addresses and enforced nothing. Cleartext HTTP remains globally permitted by design (the app only contacts LAN hosts the user selects via mDNS or manual entry); the decision is now stated explicitly in `SECURITY.md`.
 
-### Removed
+### 🗑️ Removed
 - **`display.count` config field:** it was read for display purposes only and never created more than one virtual display, so it looked configurable but had no effect. Removed from the config schema, `list-displays` output, GTK panel and tests until real multi-display support lands.
 - Unused `gstreamer-video` dependency from `orbiscreen-encode` (confirmed by `cargo machete`).
 - Orphaned allow-list entries in `deny.toml` (licenses encountered by no current dependency).
 
-### Changed
+### 🔧 Changed
 - Comment policy applied project-wide: explanatory comments removed from code files while every source, config and template file carries a consistent top-of-file header (GPL-3.0-or-later notice + repository link, banner-style for config/CI files); third-party vendored code (`clients/web/vendor/mpegts.js`) untouched.
 - Missing final newlines added across manifests, config and web files (`.editorconfig` `insert_final_newline` compliance).
 
-### Documentation
+### 📝 Documentation
 - README / README_AR and docs/INSTALL / INSTALL_AR: XDG config location, `--config` override, and a dedicated **Configuration** install section.
 - SECURITY.md: cleartext-HTTP decision for the Android client documented next to the token threat model.
 
 ## [v0.12.4] - 2026-08-26
 
-### Added
-- **Client diagnostics in `/health`:** new `stream_starts` and `auth_failures` counters, plus a warning line with the peer address on every rejected request — makes "phone shows nothing" diagnosable from the server side in one curl.
+### ✨ Added
+- **Client diagnostics in `/health`:** new `stream_starts` and `auth_failures` counters, plus a warning line with the peer address on every rejected request, making "phone shows nothing" diagnosable from the server side in one curl.
 - Web client now plays with ~100 ms of buffer: IO stash disabled and live-latency chasing tuned to chase whenever buffered latency exceeds 1 s down to 200 ms (`liveSync` enabled).
 
-### Changed
+### 🔧 Changed
 - `scripts/verify-stream.sh` no longer hard-requires ffprobe; it falls back to ffmpeg-only detection when ffprobe is missing or broken.
 
 ## [v0.12.3] - 2026-08-25
 
-### Fixed
+### 🐛 Fixed
 - **Growing playback latency ("slow stream"):** stream timestamps advanced one frame duration per pushed packet regardless of real elapsed time, so during idle periods PTS ran many times slower than the wall clock and live players accumulated delay they could never chase back. Timestamps now follow the wall clock: keepalives stamp 500 ms apart, active streaming stamps at real time.
-- **Garbage frames right after connecting:** new clients previously started receiving packets from the middle of a GOP — deltas without their references, which decoders render as corruption until the next natural keyframe. The transport now keeps the current GOP since its last keyframe and replays it to every joining client under the pump lock before going live, making joins gap-free, duplicate-free and instant.
-- **Silent mid-stream packet loss:** a slow client's mux queue used to drop chunks quietly, corrupting that client's decode until an arbitrary keyframe. Queues no longer emit holes — on overflow the client's stream ends cleanly instead, and clients rejoin at a keyframe via the self-healing reconnect. After any broadcast lag, clients also freeze on the last good frame and resume at the next keyframe rather than decoding orphaned deltas.
+- **Garbage frames right after connecting:** new clients previously started receiving packets from the middle of a GOP, deltas without their references, which decoders render as corruption until the next natural keyframe. The transport now keeps the current GOP since its last keyframe and replays it to every joining client under the pump lock before going live, making joins gap-free, duplicate-free and instant.
+- **Silent mid-stream packet loss:** a slow client's mux queue used to drop chunks quietly, corrupting that client's decode until an arbitrary keyframe. Queues no longer emit holes; on overflow the client's stream ends cleanly instead, and clients rejoin at a keyframe via the self-healing reconnect. After any broadcast lag, clients also freeze on the last good frame and resume at the next keyframe rather than decoding orphaned deltas.
 
-### Changed
+### 🔧 Changed
 - Removed the obsolete EVDI install hint from RPM `%post` and deb `postinst` scriptlets (EVDI is opt-in; KDE Wayland needs no kernel module) and corrected the deb description accordingly.
 - Added `ORBISCREEN_ENCODER_DUMP=<path>` diagnostics hook: appends raw Annex-B encoder output to a file for bitstream debugging.
 
 ## [v0.12.2] - 2026-08-25
 
-### Fixed
-- **Black stream on idle desktop (the "no image at all" bug):** compositors deliver screencast frames on damage only, and a freshly created virtual display is completely static — the capture received exactly one pre-paint black buffer and froze on it forever. A new damage pump keeps the virtual output recompositing (~2 fps) via an invisible, click-transparent layer-shell surface, so the capture always reflects the real display content.
+### 🐛 Fixed
+- **Black stream on idle desktop (the "no image at all" bug):** compositors deliver screencast frames on damage only, and a freshly created virtual display is completely static; the capture received exactly one pre-paint black buffer and froze on it forever. A new damage pump keeps the virtual output recompositing (~2 fps) via an invisible, click-transparent layer-shell surface, so the capture always reflects the real display content.
 - **Corrupted H.264 bitstream from forced key units:** `UpstreamForceKeyUnitEvent` on the x264enc src pad produced malformed I-frames (decoder errors like `out of range intra chroma pred mode`, black concealment output) regardless of threading mode. Forced key units are gone; clean joins are guaranteed by the intact delta chain plus natural IDRs (`key-int-max` lowered 30 → 10, worst-case idle join ≤ 5 s, active join ≤ 200 ms).
 - **Startup blocked forever on the input portal:** the daemon now waits at most 20 s for the RemoteDesktop portal and starts streaming anyway with a clear warning when it hangs or needs interactive approval; remote control comes online on the next restart once granted.
 
-### Changed
+### 🔧 Changed
 - x264enc runs with `sliced-threads=false` and 2 frame threads: slice-level threading (implicit in `zerolatency`) is fragile around keyframe requests and produced 18 slices per frame; frame-level threading keeps each access unit atomic.
 
 ## [v0.12.1] - 2026-08-25
 
-### Added
-- **Mirror capture mode:** `[capture] preferred = "mirror"` streams your real desktop (picked in the portal share dialog) instead of a second virtual monitor — for when you want to *see* your screen rather than extend it.
+### ✨ Added
+- **Mirror capture mode:** `[capture] preferred = "mirror"` streams your real desktop (picked in the portal share dialog) instead of a second virtual monitor, for when you want to *see* your screen rather than extend it.
 - **Detailed `/health`:** now returns JSON with `version`, `encoder`, `frames_forwarded`, `active_clients`, `total_clients` and `uptime_seconds`, making stream diagnosis a single curl.
-- **`scripts/verify-stream.sh`:** end-to-end stream sanity check — records a few seconds of `/stream`, decodes with ffprobe and measures frame brightness to catch black/empty-stream regressions automatically.
+- **`scripts/verify-stream.sh`:** end-to-end stream sanity check: records a few seconds of `/stream`, decodes with ffprobe and measures frame brightness to catch black/empty-stream regressions automatically.
 - **Full project audit hardening:** GitHub Actions pinned to commit SHAs (supply-chain), `gitleaks`/`shellcheck`/`cargo-deny` clean runs documented, comment policy applied (comment-free code files, banner-style headers on config files).
 
-### Changed
+### 🔧 Changed
 - **EVDI is opt-in.** `[capture] preferred = "evdi"` requests the EVDI DRM virtual display explicitly; on Wayland, `auto` never touches EVDI anymore, so the recurring `EVDI kernel module not active` line is gone on KDE and the portal is reached directly on other compositors. On X11, `auto` still uses EVDI when its module is already loaded.
 - The encoder-to-transport video channel is bounded (64 packets) so a stalled transport backpressures the pipeline instead of growing memory without limit.
 
-### Fixed
-- **New clients saw an endless black screen on idle virtual displays.** KWin delivers virtual-display frames on damage only: a static desktop stops producing frames entirely, and keepalive re-pushes encoded as deltas — which `h264parse`/`mpegtsmux` hold back until the first keyframe, so a freshly connected client received nothing. The daemon now re-pushes the last frame every 500 ms **with a forced IDR**, so any new client decodes within half a second no matter how idle the display is.
-- **Android: the app never recovers after a daemon restart.** The stream token is rotated on every daemon start, but the Android client cached it forever — every reconnect looped on 401 with a black screen. The player now re-fetches a fresh token before each reconnect/retry, and input/control pick up rotated tokens automatically (periodic refresh + `InputDispatcher.updateToken`), mirroring the web client's self-healing reconnect.
+### 🐛 Fixed
+- **New clients saw an endless black screen on idle virtual displays.** KWin delivers virtual-display frames on damage only: a static desktop stops producing frames entirely, and keepalive re-pushes encoded as deltas, which `h264parse`/`mpegtsmux` hold back until the first keyframe, so a freshly connected client received nothing. The daemon now re-pushes the last frame every 500 ms **with a forced IDR**, so any new client decodes within half a second no matter how idle the display is.
+- **Android: the app never recovers after a daemon restart.** The stream token is rotated on every daemon start, but the Android client cached it forever; every reconnect looped on 401 with a black screen. The player now re-fetches a fresh token before each reconnect/retry, and input/control pick up rotated tokens automatically (periodic refresh + `InputDispatcher.updateToken`), mirroring the web client's self-healing reconnect.
 - **Android: `build.gradle.kts` hard-failed configuration without a signing keystore**, blocking `lintDebug`/`assembleDebug` on dev machines. Signing is now conditional (release builds unsigned with a warning when secrets are absent) and CI explicitly rejects unsigned APKs.
 
 ## [v0.12.0] - 2026-08-24
 
-### Added
-- **KWin virtual display backend (no root, no portal):** on KDE Plasma the daemon now creates a real virtual monitor (`Virtual-ORBISCREEN`, visible in Display Settings) through KWin's `zkde_screencast_unstable_v1` Wayland protocol and streams it over PipeWire directly — bypassing xdg-desktop-portal entirely, so no share dialog appears and the portal's crash-prone path is avoided. KWin only exposes the protocol to allow-listed executables, so the daemon maintains `~/.local/share/applications/orbiscreen.kwin.desktop` (user-writable, no sudo) with `X-KDE-Wayland-Interfaces=zkde_screencast_unstable_v1` and its own executable path, refreshing the KService cache and retrying the connection until the grant is visible. Closing the stream removes the virtual output automatically. New `[capture] preferred = "auto" | "kwin-virtual" | "portal"` config option; `auto` (default) tries KWin first on Wayland and falls back to the portal on non-KDE compositors, while explicit preferences fail loudly on non-Wayland sessions instead of silently capturing the real desktop.
+### ✨ Added
+- **KWin virtual display backend (no root, no portal):** on KDE Plasma the daemon now creates a real virtual monitor (`Virtual-ORBISCREEN`, visible in Display Settings) through KWin's `zkde_screencast_unstable_v1` Wayland protocol and streams it over PipeWire directly, bypassing xdg-desktop-portal entirely, so no share dialog appears and the portal's crash-prone path is avoided. KWin only exposes the protocol to allow-listed executables, so the daemon maintains `~/.local/share/applications/orbiscreen.kwin.desktop` (user-writable, no sudo) with `X-KDE-Wayland-Interfaces=zkde_screencast_unstable_v1` and its own executable path, refreshing the KService cache and retrying the connection until the grant is visible. Closing the stream removes the virtual output automatically. New `[capture] preferred = "auto" | "kwin-virtual" | "portal"` config option; `auto` (default) tries KWin first on Wayland and falls back to the portal on non-KDE compositors, while explicit preferences fail loudly on non-Wayland sessions instead of silently capturing the real desktop.
 - **Web client self-healing reconnect:** after a daemon restart the stream token changes, and any already-open browser tab used to loop forever on a silent black screen (the overlay was hidden and the stale token was never refreshed). The client now re-shows the status overlay on stream loss and re-fetches `/client/config.json` before each reconnect, so tabs recover automatically once the daemon is back.
 
-### Changed
+### 🔧 Changed
 - Capture fallback log no longer claims a portal dialog is always required; the hint is logged only when the portal path is actually taken.
 - Frame validation is shared between the portal and KWin backends (`sample_to_captured_frame`), so size-mismatch and malformed-sample diagnostics can no longer drift; the KWin backend uses a bounded frame queue (drops under stall instead of growing without limit).
 - A compositor-side close of the virtual output is reported as terminal (`CaptureSession::is_ended`) and stops the capture pump instead of retrying forever with warning spam.
@@ -212,7 +195,7 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 ## [v0.11.2] - 2026-08-23
 
 ### 🐛 Fixed
-- **X11 input registration:** the uinput device registered keys only up to `KEY_KPDOT` (code 83), so the kernel silently dropped everything above it — arrow keys, Insert/Delete/Home/End/PageUp/PageDown, right Ctrl/Alt, Meta, F11/F12 and most numpad keys never reached the host on the X11 path; wheel input sent `REL_WHEEL` without registering the axis at all. The virtual touchscreen now registers the full key range (`KEY_MAX`) plus `REL_WHEEL`, making every mapped client key functional.
+- **X11 input registration:** the uinput device registered keys only up to `KEY_KPDOT` (code 83), so the kernel silently dropped everything above it: arrow keys, Insert/Delete/Home/End/PageUp/PageDown, right Ctrl/Alt, Meta, F11/F12 and most numpad keys never reached the host on the X11 path; wheel input sent `REL_WHEEL` without registering the axis at all. The virtual touchscreen now registers the full key range (`KEY_MAX`) plus `REL_WHEEL`, making every mapped client key functional.
 - **Stream task panic on short packets:** the non-NAL debug log sliced `bytes[..4]` unguarded, so any packet shorter than 4 bytes killed the per-client streaming task; the slice is now length-clamped.
 - **Daemon exit on D-Bus failure:** when the session bus was unavailable, dropping the D-Bus handles closed the shutdown watch channel, so the daemon exited immediately after start with a misleading "D-Bus Stop received" log; a keep-alive sender now holds the channel open until a real stop.
 - **RPM version drift:** `package-rpm.sh` hardcoded a stale `VERSION=0.6.0` fallback; it now extracts the workspace version from `Cargo.toml` dynamically like the deb builder.
@@ -222,23 +205,23 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 - **Wayland capture diagnostics:** the portal pipeline now watches the GStreamer bus and logs real negotiation/caps errors instead of failing silently with zero frames, and `pipewiresrc` output is pinned to system memory so compositors offering DMA-BUF buffers cannot stall negotiation.
 - **Portal log noise:** the ashpd/zbus property-cache warnings are filtered from the GTK binary's logs as well (the daemon already did).
 - **Portal denial handling:** dismissing or denying the screen-share prompt now fails with an explicit "user denied the ScreenCast permission" message instead of the cryptic "Portal request didn't succeed with no information".
-- **Monotonic stream timestamps:** captured frames were pushed to the encoder with `PTS=0`, producing non-monotonic chunk timestamps (first keyframe stamped at a huge running-time base, everything else at 0) that made `mpegtsmux` stall right after the first AU — clients froze on the initial, often-black frame. The pump now stamps every frame with `frame_index × 1/fps`, so the MPEG-TS stream flows continuously and late-joining clients pick up on the next keyframe.
-- **H.264 byte-stream format (root cause of the black screen):** `x264enc` defaults to `byte-stream=false`, and the encoder pipeline's appsink accepted any stream-format — so `h264parse` silently converted the output to AVCC (length-prefixed NALs) while the transport advertised `stream-format=byte-stream`. The transport's `h264parse` then waited forever for Annex B start codes that never arrived, and `mpegtsmux` emitted zero bytes: every client saw a frozen black frame. The encoder now forces `byte-stream=true` and its appsink pins `stream-format=byte-stream, alignment=au`; an integration test feeds real encoder output through the muxer and asserts MPEG-TS bytes come out.
-- **Accurate EVDI fallback message:** without the evdi kernel module the daemon no longer claims "clients will see the host's main display" — portal capture lets you pick any display, including virtual monitors, in the share dialog (now logged at info, not warn).
-- **Universal H.264 profile:** the encoder negotiated Y444 input, producing High 4:4:4 Predictive video that Android hardware decoders cannot play — phones showed a black frame even while browsers with software decoding managed. The pipeline now pins `NV12` before `x264enc`, yielding Constrained Baseline output that decodes everywhere (verified with ffprobe on a live stream: ~7 MB over 7 s at 1080p60).
-- **Per-client pipeline lifetime:** a teardown guard placed in the HTTP handler scope set the client's muxer pipeline to flushing as soon as the handler returned, so `/stream` delivered HTTP 200 with zero bytes. The guard now lives inside the streaming task itself, which also guarantees clean NULL transitions when clients disconnect or the daemon shuts down — silencing the burst of GStreamer "Trying to dispose element … PLAYING" CRITICALs.
+- **Monotonic stream timestamps:** captured frames were pushed to the encoder with `PTS=0`, producing non-monotonic chunk timestamps (first keyframe stamped at a huge running-time base, everything else at 0) that made `mpegtsmux` stall right after the first AU; clients froze on the initial, often-black frame. The pump now stamps every frame with `frame_index × 1/fps`, so the MPEG-TS stream flows continuously and late-joining clients pick up on the next keyframe.
+- **H.264 byte-stream format (root cause of the black screen):** `x264enc` defaults to `byte-stream=false`, and the encoder pipeline's appsink accepted any stream-format, so `h264parse` silently converted the output to AVCC (length-prefixed NALs) while the transport advertised `stream-format=byte-stream`. The transport's `h264parse` then waited forever for Annex B start codes that never arrived, and `mpegtsmux` emitted zero bytes: every client saw a frozen black frame. The encoder now forces `byte-stream=true` and its appsink pins `stream-format=byte-stream, alignment=au`; an integration test feeds real encoder output through the muxer and asserts MPEG-TS bytes come out.
+- **Accurate EVDI fallback message:** without the evdi kernel module the daemon no longer claims "clients will see the host's main display"; portal capture lets you pick any display, including virtual monitors, in the share dialog (now logged at info, not warn).
+- **Universal H.264 profile:** the encoder negotiated Y444 input, producing High 4:4:4 Predictive video that Android hardware decoders cannot play; phones showed a black frame even while browsers with software decoding managed. The pipeline now pins `NV12` before `x264enc`, yielding Constrained Baseline output that decodes everywhere (verified with ffprobe on a live stream: ~7 MB over 7 s at 1080p60).
+- **Per-client pipeline lifetime:** a teardown guard placed in the HTTP handler scope set the client's muxer pipeline to flushing as soon as the handler returned, so `/stream` delivered HTTP 200 with zero bytes. The guard now lives inside the streaming task itself, which also guarantees clean NULL transitions when clients disconnect or the daemon shuts down, silencing the burst of GStreamer "Trying to dispose element … PLAYING" CRITICALs.
 - **Web control gating (mouse hijack):** moving the mouse over the browser player forwarded every movement as absolute pointer injection, yanking the host cursor across monitors. Control now requires an explicit click that engages Pointer Lock ("Click to control" hint, Esc to release); wheel and keyboard follow the same gate.
 - **evdi module helper bundled:** `install-evdi-module.sh` ships inside the deb/RPM packages with a post-install hint, and it now builds the module automatically from DisplayLink main when no prebuilt `evdi.ko` is found (required on kernels newer than the vendored 1.9.1 sources support).
 
 ### 🔒 Security
 - **systemd hardening:** `NoNewPrivileges=true` added to all shipped user units (install.sh, deb builder, RPM spec).
 - **Android permissions pruned:** removed unused `VIBRATE`, `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` from the manifest.
-- Full security re-audit: constant-time token comparison, bounded queues, `/api/control` auth + fixed-argument commands, no WebView in the Android client, OkHttp timeouts everywhere, secrets only via CI env — verified sound, no changes required.
+- Full security re-audit: constant-time token comparison, bounded queues, `/api/control` auth + fixed-argument commands, no WebView in the Android client, OkHttp timeouts everywhere, secrets only via CI env; verified sound, no changes required.
 
 ### 🗑️ Removed
 - Dead transport API: `find_usb_device()`, `remove_reverse()`, `first_device_serial()` (+ their tests); the dead `StreamUrl.mimeType()` with its suppress/import; the unused synchronous `InputInjector::open()`.
 - The unreferenced `gen-key-script` GPG helper.
-- Residual inline comments across Rust/Kotlin/web/shell/spec/drawable sources — code files keep only the standard two-line license headers, while env-style config files (`gradle.properties`, ProGuard rules, `deny.toml`, `rustfmt.toml`, `.gitignore`, `.editorconfig`, RPM spec, desktop entry, `lint.xml`, AndroidManifest) carry uniform decorative section banners instead.
+- Residual inline comments across Rust/Kotlin/web/shell/spec/drawable sources: code files keep only the standard two-line license headers, while env-style config files (`gradle.properties`, ProGuard rules, `deny.toml`, `rustfmt.toml`, `.gitignore`, `.editorconfig`, RPM spec, desktop entry, `lint.xml`, AndroidManifest) carry uniform decorative section banners instead.
 
 ### 🔧 Changed
 - Release workflow builds with `--locked`; Android `versionCode` 17 → 18.
@@ -328,7 +311,7 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 ### 🔧 Changed
 - **Legacy Launcher PNGs:** Regenerated every `mipmap-*dpi/ic_launcher.png` from `data/orbiscreen-app.svg` on a white background with properly scaled artwork (was full-bleed on transparent).
 - **README Restyle:** Reworked both `README.md` and `README_AR.md` to the concise project pattern (comparison table, highlights list, screen-summary table for the Android app instead of long prose, full uninstall command documented).
-- **Docs Typography:** Replaced all em dashes (`—`) with standard hyphens across `README*.md`, `CHANGELOG.md`, `SECURITY.md`, and `docs/*.md` for a cleaner, tool-agnostic documentation style.
+- **Docs Typography:** Replaced all em dashes with standard hyphens across `README*.md`, `CHANGELOG.md`, `SECURITY.md`, and `docs/*.md` for a cleaner, tool-agnostic documentation style.
 
 ## [v0.10.3] - 2026-08-10
 
