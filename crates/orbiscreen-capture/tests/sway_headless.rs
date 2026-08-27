@@ -38,6 +38,22 @@ fn wait_for_file(dir: &Path, name: &str) -> Option<PathBuf> {
     None
 }
 
+fn wait_for_wayland_socket(dir: &Path) -> Option<String> {
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while Instant::now() < deadline {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().into_owned();
+                if name.starts_with("wayland-") {
+                    return Some(name);
+                }
+            }
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    None
+}
+
 fn start_sway() -> Option<SwaySession> {
     let sway = which("sway")?;
     let runtime_dir =
@@ -51,13 +67,7 @@ fn start_sway() -> Option<SwaySession> {
 
     let mut command = Command::new(sway);
     command
-        .args([
-            "-d",
-            "-c",
-            config_path.to_str()?,
-            "--socket",
-            WAYLAND_DISPLAY,
-        ])
+        .args(["-d", "-c", config_path.to_str()?])
         .stdin(Stdio::null())
         .stdout(Stdio::from(log_file))
         .stderr(Stdio::from(log_err))
@@ -83,7 +93,7 @@ fn start_sway() -> Option<SwaySession> {
     let Some(socket) = wait_for_file(&runtime_dir, &ipc_name) else {
         return fail(child, "IPC socket never appeared");
     };
-    let Some(_wayland) = wait_for_file(&runtime_dir, WAYLAND_DISPLAY) else {
+    let Some(wayland_name) = wait_for_wayland_socket(&runtime_dir) else {
         return fail(child, "wayland socket never appeared");
     };
     match child.try_wait() {
@@ -96,7 +106,7 @@ fn start_sway() -> Option<SwaySession> {
         .iter()
         .map(|key| (*key, std::env::var_os(key)))
         .collect();
-    std::env::set_var("WAYLAND_DISPLAY", WAYLAND_DISPLAY);
+    std::env::set_var("WAYLAND_DISPLAY", &wayland_name);
     std::env::set_var("XDG_RUNTIME_DIR", &runtime_dir);
     std::env::set_var("SWAYSOCK", &socket);
 
@@ -120,6 +130,18 @@ impl Drop for SwaySession {
         let _ = self.child.wait();
         let _ = std::fs::remove_dir_all(&self.runtime_dir);
     }
+}
+
+fn open_capture(spec: WlrScreencopySpec, what: &str) -> WlrScreencopyCapture {
+    let mut last_err = None;
+    for _ in 0..25 {
+        match WlrScreencopyCapture::open(spec.clone()) {
+            Ok(capture) => return capture,
+            Err(e) => last_err = Some(e),
+        }
+        std::thread::sleep(Duration::from_millis(200));
+    }
+    panic!("{what} did not open after retries: {last_err:?}");
 }
 
 fn collect_frame(capture: &WlrScreencopyCapture) -> CapturedFrame {
@@ -169,8 +191,7 @@ fn sway_headless_capture_and_virtual_output() {
         panic!("failed to start sway in headless mode");
     };
 
-    let capture = WlrScreencopyCapture::open(WlrScreencopySpec::default())
-        .expect("screencopy capture opens against headless sway");
+    let capture = open_capture(WlrScreencopySpec::default(), "headless output capture");
     let (w, h) = capture.dimensions();
     assert!(w > 0 && h > 0, "headless output reports dimensions");
     let frame = collect_frame(&capture);
@@ -191,10 +212,12 @@ fn sway_headless_capture_and_virtual_output() {
         "the created output is visible to sway IPC"
     );
 
-    let virtual_capture = WlrScreencopyCapture::open(WlrScreencopySpec {
-        output_name: Some(virtual_name.clone()),
-    })
-    .expect("screencopy capture opens on the virtual output by name");
+    let virtual_capture = open_capture(
+        WlrScreencopySpec {
+            output_name: Some(virtual_name.clone()),
+        },
+        "virtual-output capture",
+    );
     assert_eq!(virtual_capture.dimensions(), virtual_output.dimensions());
     let frame = collect_frame(&virtual_capture);
     assert_eq!(frame.data.len() as u32, frame.width * frame.height * 4);
