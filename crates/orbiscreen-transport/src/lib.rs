@@ -293,7 +293,7 @@ async fn auth_check(
     headers: HeaderMap,
     request: axum::extract::Request,
     next: middleware::Next,
-) -> Result<axum::response::Response, axum::response::Response> {
+) -> axum::response::Response {
     let header_ok = headers
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
@@ -307,7 +307,7 @@ async fn auth_check(
         .is_some_and(|t| token_eq(t, &state.token));
     let query_ok = query_token(request.uri().query()).is_some_and(|t| token_eq(t, &state.token));
     if header_ok || query_ok {
-        Ok(next.run(request).await)
+        next.run(request).await
     } else {
         state.stats.note_auth_failure();
         debug!(
@@ -318,7 +318,7 @@ async fn auth_check(
                 .map(|c| c.0.to_string())
                 .unwrap_or_else(|| "?".into())
         );
-        Err((
+        (
             StatusCode::UNAUTHORIZED,
             [(
                 axum::http::header::WWW_AUTHENTICATE,
@@ -326,7 +326,7 @@ async fn auth_check(
             )],
             "unauthorized",
         )
-            .into_response())
+            .into_response()
     }
 }
 

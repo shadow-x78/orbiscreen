@@ -26,16 +26,12 @@ fn which(binary: &str) -> Option<PathBuf> {
         .find(|path| path.is_file())
 }
 
-fn wait_for_socket(runtime_dir: &Path, uid: u32, pid: u32) -> Option<PathBuf> {
-    let wanted = format!("sway-ipc.{uid}.{pid}.sock");
-    let deadline = Instant::now() + Duration::from_secs(20);
+fn wait_for_file(dir: &Path, name: &str) -> Option<PathBuf> {
+    let wanted = dir.join(name);
+    let deadline = Instant::now() + Duration::from_secs(30);
     while Instant::now() < deadline {
-        if let Ok(entries) = std::fs::read_dir(runtime_dir) {
-            for entry in entries.flatten() {
-                if entry.file_name().to_string_lossy() == wanted {
-                    return Some(entry.path());
-                }
-            }
+        if wanted.exists() {
+            return Some(wanted);
         }
         std::thread::sleep(Duration::from_millis(100));
     }
@@ -49,34 +45,45 @@ fn start_sway() -> Option<SwaySession> {
     std::fs::create_dir_all(&runtime_dir).ok()?;
     let config_path = runtime_dir.join("sway-config");
     std::fs::write(&config_path, "xwayland disable\n").ok()?;
+    let log_path = runtime_dir.join("sway.log");
+    let log_file = std::fs::File::create(&log_path).ok()?;
+    let log_err = log_file.try_clone().ok()?;
 
     let mut command = Command::new(sway);
     command
-        .args(["-c", config_path.to_str()?])
+        .args(["-d", "-c", config_path.to_str()?])
         .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stdout(Stdio::from(log_file))
+        .stderr(Stdio::from(log_err))
         .env("WLR_BACKENDS", "headless")
+        .env("WLR_RENDERER", "pixman")
         .env("WLR_LIBINPUT_NO_DEVICES", "1")
         .env("XDG_RUNTIME_DIR", &runtime_dir)
         .env("WAYLAND_DISPLAY", WAYLAND_DISPLAY)
         .env_remove("SWAYSOCK");
-    let child = command.spawn().ok()?;
+    let mut child = command.spawn().ok()?;
     let pid = child.id();
     #[allow(unsafe_code)]
     let uid = unsafe { libc::getuid() };
-    let socket = wait_for_socket(&runtime_dir, uid, pid);
-    let Some(socket) = socket else {
-        let mut c = child;
-        let mut log = String::new();
-        if let Some(mut err) = c.stderr.take() {
-            let _ = err.read_to_string(&mut log);
-        }
+    let ipc_name = format!("sway-ipc.{uid}.{pid}.sock");
+    let fail = |mut c: Child, reason: &str| -> Option<SwaySession> {
         let _ = c.kill();
         let _ = c.wait();
-        eprintln!("sway did not open its IPC socket (log: {log})");
-        return None;
+        let log = std::fs::read_to_string(&log_path).unwrap_or_default();
+        eprintln!("sway headless test setup failed ({reason}); sway log:\n{log}");
+        let _ = std::fs::remove_dir_all(&runtime_dir);
+        None
     };
+    let Some(socket) = wait_for_file(&runtime_dir, &ipc_name) else {
+        return fail(child, "IPC socket never appeared");
+    };
+    let Some(_wayland) = wait_for_file(&runtime_dir, WAYLAND_DISPLAY) else {
+        return fail(child, "wayland socket never appeared");
+    };
+    match child.try_wait() {
+        Ok(None) => {}
+        status => return fail(child, &format!("sway exited early: {status:?}")),
+    }
 
     let keys = ["WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "SWAYSOCK"];
     let saved = keys
