@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.13.1] - 2026-08-27
 
-Full-project audit round two (`docs/AUDIT.md`): the Rust transport/daemon, Android client, web client, shell scripts, and CI matrix re-audited line by line; all security, correctness, and packaging findings fixed or explicitly documented as accepted design.
+Full-project audit round two: the Rust transport/daemon, Android client, web client, shell scripts, and CI matrix re-audited line by line; all security, correctness, and packaging findings fixed or explicitly documented as accepted design.
 
 ### Fixed — web client
 - **Keyboard letter keys were wrong**: the QWERTY-layout Linux input codes were assigned to letters in alphabetical order, so every typed letter sent the wrong key (`KeyA` → KEY_Q, …). Each letter now maps to its real input code; numpad, function, and media keys audited against `linux/input-event-codes.h`.
