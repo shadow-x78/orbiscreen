@@ -1,6 +1,7 @@
 // Orbiscreen - orbiscreen-capture integration tests (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 use std::io::{Read as _, Write as _};
+use std::os::unix::io::IntoRawFd;
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -16,6 +17,7 @@ struct SwaySession {
     child: Child,
     runtime_dir: PathBuf,
     socket: PathBuf,
+    wayland_socket: PathBuf,
     saved: Vec<(&'static str, Option<std::ffi::OsString>)>,
 }
 
@@ -96,17 +98,29 @@ fn start_sway() -> Option<SwaySession> {
     let Some(wayland_name) = wait_for_wayland_socket(&runtime_dir) else {
         return fail(child, "wayland socket never appeared");
     };
+    let wayland_socket = runtime_dir.join(&wayland_name);
+    if let Err(e) = UnixStream::connect(&wayland_socket) {
+        return fail(
+            child,
+            &format!("discovered wayland socket {wayland_socket:?} is not connectable: {e}"),
+        );
+    }
     match child.try_wait() {
         Ok(None) => {}
         status => return fail(child, &format!("sway exited early: {status:?}")),
     }
 
-    let keys = ["WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "SWAYSOCK"];
+    let keys = [
+        "WAYLAND_DISPLAY",
+        "XDG_RUNTIME_DIR",
+        "SWAYSOCK",
+        "WAYLAND_SOCKET",
+    ];
     let saved = keys
         .iter()
         .map(|key| (*key, std::env::var_os(key)))
         .collect();
-    std::env::set_var("WAYLAND_DISPLAY", &wayland_name);
+    std::env::remove_var("WAYLAND_DISPLAY");
     std::env::set_var("XDG_RUNTIME_DIR", &runtime_dir);
     std::env::set_var("SWAYSOCK", &socket);
 
@@ -114,6 +128,7 @@ fn start_sway() -> Option<SwaySession> {
         child,
         runtime_dir,
         socket,
+        wayland_socket,
         saved,
     })
 }
@@ -132,16 +147,23 @@ impl Drop for SwaySession {
     }
 }
 
-fn open_capture(spec: WlrScreencopySpec, what: &str) -> WlrScreencopyCapture {
-    let mut last_err = None;
-    for _ in 0..25 {
-        match WlrScreencopyCapture::open(spec.clone()) {
-            Ok(capture) => return capture,
-            Err(e) => last_err = Some(e),
+fn open_capture(socket_path: &Path, spec: WlrScreencopySpec, what: &str) -> WlrScreencopyCapture {
+    let mut last_err: Option<String> = None;
+    let deadline = Instant::now() + Duration::from_secs(15);
+    while Instant::now() < deadline {
+        match UnixStream::connect(socket_path) {
+            Ok(stream) => {
+                std::env::set_var("WAYLAND_SOCKET", stream.into_raw_fd().to_string());
+                match WlrScreencopyCapture::open(spec.clone()) {
+                    Ok(capture) => return capture,
+                    Err(e) => last_err = Some(e.to_string()),
+                }
+            }
+            Err(e) => last_err = Some(format!("connect {socket_path:?}: {e}")),
         }
         std::thread::sleep(Duration::from_millis(200));
     }
-    panic!("{what} did not open after retries: {last_err:?}");
+    panic!("{what} did not open within the deadline: {:?}", last_err);
 }
 
 fn collect_frame(capture: &WlrScreencopyCapture) -> CapturedFrame {
@@ -191,7 +213,11 @@ fn sway_headless_capture_and_virtual_output() {
         panic!("failed to start sway in headless mode");
     };
 
-    let capture = open_capture(WlrScreencopySpec::default(), "headless output capture");
+    let capture = open_capture(
+        &session.wayland_socket,
+        WlrScreencopySpec::default(),
+        "headless output capture",
+    );
     let (w, h) = capture.dimensions();
     assert!(w > 0 && h > 0, "headless output reports dimensions");
     let frame = collect_frame(&capture);
@@ -213,6 +239,7 @@ fn sway_headless_capture_and_virtual_output() {
     );
 
     let virtual_capture = open_capture(
+        &session.wayland_socket,
         WlrScreencopySpec {
             output_name: Some(virtual_name.clone()),
         },
