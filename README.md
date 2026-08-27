@@ -319,7 +319,6 @@ orbiscreen/
 |----------|-------------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | System topology, frame pipeline & D-Bus architecture |
 | [docs/DE_SUPPORT.md](docs/DE_SUPPORT.md) · [AR](docs/DE_SUPPORT_AR.md) | Per-desktop support matrix, capture plans & troubleshooting |
-| [docs/INSTALL.md](docs/INSTALL.md) · [AR](docs/INSTALL_AR.md) | Multi-distro installation walkthroughs |
 | [docs/PACKAGING.md](docs/PACKAGING.md) · [AR](docs/PACKAGING_AR.md) | Multi-distro packaging specs (.deb, .rpm, AppImage, Flatpak) |
 | [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) · [AR](docs/DBUS_SPEC_AR.md) | D-Bus Session Bus IPC interface specifications |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) · [AR](docs/TROUBLESHOOTING_AR.md) | Common issues, diagnostics & hardware acceleration fixes |

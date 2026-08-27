@@ -315,7 +315,6 @@ orbiscreen/
 |---------|-------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | طوبولوجيا النظام وخط أنابيب الإطارات ومعمارية D-Bus |
 | [docs/DE_SUPPORT.md](docs/DE_SUPPORT.md) · [AR](docs/DE_SUPPORT_AR.md) | مصفوفة دعم كل بيئة سطح مكتب وخطط الالتقاط وحلول الأعطال |
-| [docs/INSTALL.md](docs/INSTALL.md) · [AR](docs/INSTALL_AR.md) | خطوات التثبيت عبر التوزيعات |
 | [docs/PACKAGING.md](docs/PACKAGING.md) · [AR](docs/PACKAGING_AR.md) | مواصفات التغليف متعدد التوزيعات ‏(.deb، .rpm، AppImage، Flatpak)‏ |
 | [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) · [AR](docs/DBUS_SPEC_AR.md) | مواصفات واجهة D-Bus Session Bus |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) · [AR](docs/TROUBLESHOOTING_AR.md) | المشاكل الشائعة والتشخيص وإصلاحات التسريع العتادي |
