@@ -165,7 +165,7 @@ impl CaptureSession {
 
     async fn open_portal(width: u32, height: u32) -> Result<Self, CaptureError> {
         tracing::info!(
-            "using the screencast portal — pick the display to stream in the share dialog"
+            "using the screencast portal; pick the display to stream in the share dialog"
         );
         let capture =
             wayland::WaylandCapture::open(wayland::WaylandCaptureSpec { width, height }).await?;
@@ -186,7 +186,7 @@ impl CaptureSession {
         .map_err(|e| CaptureError::Io(format!("kwin-virtual open task: {e}")))??;
         let (actual_w, actual_h) = capture.dimensions();
         tracing::info!(
-            "KWin virtual display created via zkde-screencast — no root, no share dialog"
+            "KWin virtual display created via zkde-screencast: no root, no share dialog"
         );
         Ok(Self {
             backend_kind: CaptureBackend::KwinVirtual,
@@ -205,7 +205,7 @@ impl CaptureSession {
         .await
         .map_err(|e| CaptureError::Io(format!("wlr-screencopy open task: {e}")))??;
         let (actual_w, actual_h) = capture.dimensions();
-        tracing::info!("wlroots screencopy capture open — no portal, no share dialog");
+        tracing::info!("wlroots screencopy capture open: no portal, no share dialog");
         Ok(Self {
             backend_kind: CaptureBackend::WlrScreencopy,
             inner: Arc::new(CaptureInner::WlrScreencopy(capture)),

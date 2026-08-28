@@ -152,7 +152,7 @@ class PlayerHolder(
                                     _event.value = StreamEvent.Playing
                                 }
                                 Player.STATE_ENDED -> {
-                                    _event.value = StreamEvent.Error(-1, "Stream ended — reconnecting")
+                                    _event.value = StreamEvent.Error(-1, "Stream ended, reconnecting")
                                     scheduleReconnect()
                                 }
                                 Player.STATE_IDLE -> Unit

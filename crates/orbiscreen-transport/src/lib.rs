@@ -310,13 +310,34 @@ async fn auth_check(
         next.run(request).await
     } else {
         state.stats.note_auth_failure();
+        let peer = request
+            .extensions()
+            .get::<axum::extract::ConnectInfo<SocketAddr>>()
+            .map(|c| c.0.to_string())
+            .unwrap_or_else(|| "?".into());
+        let auth_desc = match headers.get(axum::http::header::AUTHORIZATION) {
+            None => "missing".to_string(),
+            Some(v) => match v.to_str() {
+                Err(_) => "non-utf8".to_string(),
+                Ok(s) if s.len() > 7 && s[..7].eq_ignore_ascii_case("bearer ") => {
+                    let t = &s[7..];
+                    format!("bearer(len={} prefix={})", t.len(), t.get(..4).unwrap_or(t))
+                }
+                Ok(s) => format!(
+                    "unexpected(scheme={})",
+                    s.split_whitespace().next().unwrap_or("?")
+                ),
+            },
+        };
         debug!(
-            "unauthorized request rejected (peer={})",
-            request
-                .extensions()
-                .get::<axum::extract::ConnectInfo<SocketAddr>>()
-                .map(|c| c.0.to_string())
-                .unwrap_or_else(|| "?".into())
+            "unauthorized request rejected (peer={}, {} {}, auth={}, query_token={}, expected prefix={} len={})",
+            peer,
+            request.method(),
+            request.uri().path(),
+            auth_desc,
+            query_token(request.uri().query()).is_some(),
+            state.token.get(..4).unwrap_or(""),
+            state.token.len(),
         );
         (
             StatusCode::UNAUTHORIZED,
@@ -341,7 +362,18 @@ async fn api_info(State(state): State<AppState>) -> impl IntoResponse {
     Json(envelope)
 }
 
-async fn client_config(State(state): State<AppState>) -> impl IntoResponse {
+async fn client_config(
+    State(state): State<AppState>,
+    request: axum::extract::Request,
+) -> impl IntoResponse {
+    debug!(
+        "client config served with live token (peer={})",
+        request
+            .extensions()
+            .get::<axum::extract::ConnectInfo<SocketAddr>>()
+            .map(|c| c.0.to_string())
+            .unwrap_or_else(|| "?".into())
+    );
     Json(serde_json::json!({
         "token": state.token,
         "display_width": state.display_width,

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.13.2] - 2026-08-28
+
+Hotfix: the web client rendered a permanent black screen after the v0.13.1 CSP hardening, and auth rejections were opaque in the daemon log. Both fixed, verified end-to-end against a live KDE/KWin virtual display.
+
+### 🐛 Fixed
+- **Web client black screen (regression from v0.13.1):** the audit-added CSP meta `default-src 'self'` blocked the `blob:` MediaSource URL that the vendored mpegts.js attaches to the `<video>` element (`media-src` was unset, so `default-src` applied), so `play()` failed with `NotSupportedError` and the client looped on "Stream lost (media error)" with no picture. The policy is now `default-src 'self'; media-src 'self' blob:`, MSE playback restored, everything else still locked to same-origin. Verified live: token fetch, `401`→`200` on `/stream`, and a real 1920×1080 stream decoding and playing in-browser with no console errors.
+
+### 🔍 Diagnostics
+- **Auth rejections are now self-explaining:** the `unauthorized request rejected` log carries the peer address, method + path, what was presented (`missing` / `bearer(len=…, prefix=…)` / `unexpected(scheme=…)`), whether a `?token=` was present, and the daemon's expected token prefix + length, so a stale-token vs old-client vs missing-header failure is identifiable from one log line.
+- Token generation now logs a short prefix for cross-checking against what a client presents; serving `/client/config.json` logs the requesting peer.
+
+### 🧹 Cleanup
+- Removed every em dash from the repo (log/error/UI strings, CI step names, changelog); range en dashes in the changelog normalized to plain hyphens.
+
 ## [v0.13.1] - 2026-08-27
 
 Full-project audit round two: the Rust transport/daemon, Android client, web client, shell scripts, and CI matrix re-audited line by line; all security, correctness, and packaging findings fixed or explicitly documented as accepted design.
@@ -75,7 +89,7 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 - **KWin virtual-display open blocked a tokio worker:** `KwinVirtualCapture::open` performs blocking wayland round-trips, permission-file retries (up to 2.5 s) and a 5 s handshake deadline; called from an async context it stalled a runtime thread for up to ~7.5 s. The open now runs on `spawn_blocking`.
 - **Damage pump zombie after compositor close:** when the compositor closed the layer-shell surface the pump kept attaching/committing to the dead surface forever and swallowed roundtrip errors. It now exits on `Closed` and on connection errors.
 - **Truncated X11 `GetImage` replies were zero-padded**, masking real capture failures as black frames; short replies are now capture errors.
-- **Mouse buttons 7 and 8 mapped to the same uinput code** (`0x117`); buttons 4–8 now map distinctly onto `BTN_SIDE`..`BTN_TASK` (`0x113`–`0x117`).
+- **Mouse buttons 7 and 8 mapped to the same uinput code** (`0x117`); buttons 4-8 now map distinctly onto `BTN_SIDE`..`BTN_TASK` (`0x113`-`0x117`).
 - **Encoder input queue allowed 60 raw frames** (`set_max_bytes`), ~475 MB at 1080p and ~2 GB at 4K before backpressure engaged; capped at 4 frames.
 - Transport join-buffer mutex locks are now poisoning-tolerant instead of panicking a serving task if another thread ever panicked mid-update.
 - `display` config gained upper clamps (7680×4320), matching the existing lower bounds and the two-sided clamps for refresh rate and bitrate.
@@ -386,7 +400,7 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 
 ### 🔄 Updated
 - **Build & Dependencies:** Add Compose BOM, `navigation-compose`, `material-icons-extended`, proguard rules for Media3/OkHttp/Compose/NSD, and opt-in lint rules.
-- **Documentation:** Comprehensive documentation update across `README.md`, `docs/ARCHITECTURE.md`, `DBUS_SPEC.md`, `INSTALL.md`, `PACKAGING.md`, `TROUBLESHOOTING.md`, and `SECURITY.md`.
+- **Documentation:** refreshed across `README.md`, `docs/ARCHITECTURE.md`, `DBUS_SPEC.md`, `INSTALL.md`, `PACKAGING.md`, `TROUBLESHOOTING.md`, and `SECURITY.md`.
 
 ## [v0.9.0] - 2026-07-26
 

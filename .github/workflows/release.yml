@@ -46,7 +46,7 @@ jobs:
       - name: Format check
         run: cargo fmt --all -- --check
 
-      - name: Clippy (deny warnings; GTK excluded — needs gtk4 system libs)
+      - name: Clippy (deny warnings; GTK excluded, needs gtk4 system libs)
         run: cargo clippy --workspace --exclude orbiscreen-gtk --all-targets --locked -- -D warnings
 
       - name: Build (non-GTK crates)

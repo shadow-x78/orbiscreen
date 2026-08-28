@@ -214,7 +214,7 @@ fn sway_output_states(socket: &Path) -> Vec<(String, bool)> {
 #[test]
 fn sway_headless_capture_and_virtual_output() {
     if which("sway").is_none() {
-        eprintln!("sway is not installed — skipping headless integration test");
+        eprintln!("sway is not installed; skipping headless integration test");
         return;
     }
     let Some(session) = start_sway() else {

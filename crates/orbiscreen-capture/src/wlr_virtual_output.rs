@@ -48,7 +48,7 @@ pub struct OutputSnapshot {
 
 #[derive(Debug, Error)]
 pub enum WlrootsVirtualOutputError {
-    #[error("no wlroots compositor IPC found — neither a sway socket ($SWAYSOCK) nor a Hyprland socket is available")]
+    #[error("no wlroots compositor IPC found: neither a sway socket ($SWAYSOCK) nor a Hyprland socket is available")]
     IpcUnavailable,
     #[error("sway IPC error: {0}")]
     Sway(String),
@@ -412,7 +412,7 @@ impl WlrootsVirtualOutput {
                             output = output.name,
                             width = output.width,
                             height = output.height,
-                            "wlroots virtual output created via compositor IPC — no root, no dialog"
+                            "wlroots virtual output created via compositor IPC: no root, no dialog"
                         );
                         return Ok(Self {
                             ipc,

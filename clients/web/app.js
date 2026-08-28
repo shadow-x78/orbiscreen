@@ -235,7 +235,7 @@ function scheduleReconnect(reason) {
     if (reconnectTimer) return;
     destroyPlayer();
     overlayEl.classList.remove("hidden");
-    setStatus(`Stream lost (${reason}) — retrying in ${reconnectDelay / 1000}s…`);
+    setStatus(`Stream lost (${reason}), retrying in ${reconnectDelay / 1000}s…`);
     reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         (async () => {

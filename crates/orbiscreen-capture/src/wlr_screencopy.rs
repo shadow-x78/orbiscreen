@@ -37,9 +37,9 @@ pub struct WlrScreencopySpec {
 
 #[derive(Debug, Error)]
 pub enum WlrScreencopyError {
-    #[error("zwlr_screencopy_manager_v1 is not available — this compositor is not wlroots-based (or the protocol is disabled)")]
+    #[error("zwlr_screencopy_manager_v1 is not available: this compositor is not wlroots-based (or the protocol is disabled)")]
     ProtocolUnavailable,
-    #[error("no wl_shm global — cannot allocate shared buffers")]
+    #[error("no wl_shm global: cannot allocate shared buffers")]
     ShmUnavailable,
     #[error("no wl_output global is available to capture")]
     NoOutputs,

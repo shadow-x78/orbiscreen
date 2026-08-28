@@ -268,7 +268,7 @@ impl WlrootsInjector {
         }
         if state.pointer_manager.is_none() || state.keyboard_manager.is_none() {
             return Err(InputError::Uinput(
-                "virtual-pointer/virtual-keyboard protocols are not available — the compositor \
+                "virtual-pointer/virtual-keyboard protocols are not available; the compositor \
                  is not wlroots-based or the protocols are disabled"
                     .into(),
             ));
@@ -318,7 +318,7 @@ impl WlrootsInjector {
         conn.flush()
             .map_err(|e| InputError::Uinput(format!("wayland flush: {e}")))?;
         info!(
-            "wlroots native input ready (virtual-pointer + virtual-keyboard) — no portal, \
+            "wlroots native input ready (virtual-pointer + virtual-keyboard): no portal, \
              no root"
         );
 

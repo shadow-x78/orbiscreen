@@ -100,7 +100,7 @@ fn apply_status(handles: &UiHandles, status: &DaemonStatus, busy: &Mutex<bool>) 
     let is_busy = busy.lock().map(|g| *g).unwrap_or(false);
     if !status.available {
         handles.daemon_row.set_subtitle(
-            "Daemon not running — start it with: orbiscreen start \
+            "Daemon not running; start it with: orbiscreen start \
              (or: systemctl --user start orbiscreen)",
         );
         handles.switch.set_sensitive(false);
@@ -122,7 +122,7 @@ fn apply_status(handles: &UiHandles, status: &DaemonStatus, busy: &Mutex<bool>) 
     }
     if status.running {
         handles.daemon_row.set_subtitle(
-            "Running (com.orbiscreen.Daemon) — toggle off to stop the stream gracefully",
+            "Running (com.orbiscreen.Daemon): toggle off to stop the stream gracefully",
         );
         handles.stream_row.set_subtitle(&format!(
             "encoder: {} · source: {} · frames forwarded: {}",
@@ -135,7 +135,7 @@ fn apply_status(handles: &UiHandles, status: &DaemonStatus, busy: &Mutex<bool>) 
     } else {
         handles
             .daemon_row
-            .set_subtitle("Stopped — D-Bus name is owned but the stream is down");
+            .set_subtitle("Stopped: D-Bus name is owned but the stream is down");
         handles.stream_row.set_subtitle("stream inactive");
         handles
             .transport_row

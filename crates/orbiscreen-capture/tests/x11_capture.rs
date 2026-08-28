@@ -14,13 +14,13 @@ fn runtime() -> tokio::runtime::Runtime {
 #[test]
 fn x11_capture_delivers_frames_on_live_display() {
     if std::env::var_os("DISPLAY").is_none() {
-        eprintln!("DISPLAY is not set — skipping live X11 capture test");
+        eprintln!("DISPLAY is not set; skipping live X11 capture test");
         return;
     }
     let capture = match X11Capture::open(640, 480) {
         Ok(capture) => capture,
         Err(e) => {
-            eprintln!("cannot open X11 capture ({e}) — skipping live X11 capture test");
+            eprintln!("cannot open X11 capture ({e}); skipping live X11 capture test");
             return;
         }
     };
@@ -49,13 +49,13 @@ fn x11_capture_delivers_frames_on_live_display() {
 #[test]
 fn x11_capture_skips_unchanged_frames() {
     if std::env::var_os("DISPLAY").is_none() {
-        eprintln!("DISPLAY is not set — skipping live X11 capture test");
+        eprintln!("DISPLAY is not set; skipping live X11 capture test");
         return;
     }
     let capture = match X11Capture::open(320, 240) {
         Ok(capture) => capture,
         Err(e) => {
-            eprintln!("cannot open X11 capture ({e}) — skipping live X11 capture test");
+            eprintln!("cannot open X11 capture ({e}); skipping live X11 capture test");
             return;
         }
     };

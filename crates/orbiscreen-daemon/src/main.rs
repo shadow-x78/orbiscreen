@@ -576,12 +576,12 @@ async fn run_doctor(json: bool) -> ExitCode {
             .join(" -> "),
     );
     println!(
-        "display:      evdi — {}  (kernel-level virtual display; used on X11 and as an \
+        "display:      evdi: {}  (kernel-level virtual display; used on X11 and as an \
          extension display anywhere)",
         display_status_text(display_status),
     );
     println!(
-        "input:        {input:?} — /dev/uinput writable: {}{}",
+        "input:        {input:?}, /dev/uinput writable: {}{}",
         if uinput_writable { "yes" } else { "no" },
         if uinput_writable {
             ""
@@ -594,7 +594,7 @@ async fn run_doctor(json: bool) -> ExitCode {
             println!("portal:       org.freedesktop.portal.Desktop is on the session bus")
         }
         Some(false) => println!(
-            "portal:       org.freedesktop.portal.Desktop NOT on the session bus — install \
+            "portal:       org.freedesktop.portal.Desktop NOT on the session bus; install \
              xdg-desktop-portal and the backend for your compositor"
         ),
         None => {}
@@ -612,13 +612,13 @@ async fn run_doctor(json: bool) -> ExitCode {
     );
     match wlr_virtual_ipc {
         Some(kind) => println!(
-            "virtual out:  {kind} IPC detected — `auto` will create a compositor virtual \
+            "virtual out:  {kind} IPC detected; `auto` will create a compositor virtual \
              output (no root, no dialog)"
         ),
         None => {
             if caps.is_wlroots() {
                 println!(
-                    "virtual out:  no compositor IPC reachable — `auto` will mirror an existing \
+                    "virtual out:  no compositor IPC reachable; `auto` will mirror an existing \
                      screen via wlr-screencopy/portal instead"
                 );
             }
@@ -726,7 +726,7 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
     let display_status = orbiscreen_display::probe();
     match display_status {
         DisplayStatus::Compatible => {
-            println!("[doctor --fix] evdi is already available — nothing to do");
+            println!("[doctor --fix] evdi is already available, nothing to do");
             return ExitCode::SUCCESS;
         }
         DisplayStatus::NoDeviceNode => {
@@ -738,7 +738,7 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
         }
         DisplayStatus::Outdated => {
             println!(
-                "[doctor --fix] the loaded evdi module is older than libevdi requires — \
+                "[doctor --fix] the loaded evdi module is older than libevdi requires; \
                  update/rebuild evdi (see docs/PACKAGING.md), then reboot"
             );
             return ExitCode::from(1);
@@ -788,7 +788,7 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
     if !status.success() {
         eprintln!(
             "[doctor --fix] {program_label} exited with {status}; the package may not exist \
-             for this distro — try: bash scripts/install-evdi-module.sh"
+             for this distro; try: bash scripts/install-evdi-module.sh"
         );
         return ExitCode::from(1);
     }
@@ -822,7 +822,7 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
         }
         other => {
             eprintln!(
-                "[doctor --fix] module still not ready after install ({}) — a reboot may be \
+                "[doctor --fix] module still not ready after install ({}); a reboot may be \
                  required",
                 display_status_text(other)
             );
@@ -1155,8 +1155,8 @@ async fn run_start(
         input_tx,
     );
     let token = transport.token().to_owned();
-    info!("stream access token generated ({len} chars); clients fetch it via mDNS TXT or /client/config.json",
-        len = token.len());
+    info!("stream access token generated ({len} chars, prefix={prefix}); clients fetch it via mDNS TXT or /client/config.json",
+        len = token.len(), prefix = token.get(..4).unwrap_or(""));
 
     let _mdns = if !no_mdns && cfg.transport.mdns_advertise {
         match orbiscreen_transport::mdns::Advertiser::register(

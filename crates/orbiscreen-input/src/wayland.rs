@@ -95,7 +95,7 @@ impl WaylandInjector {
             state.remote_desktop_restore_token = Some(token.to_string());
             match portal_state::save_portal_state(&state) {
                 Ok(()) => info!(
-                    "remote-desktop permission persisted — the grant dialog will not \
+                    "remote-desktop permission persisted; the grant dialog will not \
                      reappear on the next runs"
                 ),
                 Err(e) => warn!("failed to persist portal state: {e}"),

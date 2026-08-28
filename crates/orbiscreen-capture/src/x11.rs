@@ -177,7 +177,7 @@ fn open_shm_segment(conn: &Arc<XCBConnection>, width: u32, height: u32) -> Optio
     let version = shm::query_version(conn).ok()?.reply().ok()?;
     if (version.major_version, version.minor_version) < (1, 2) {
         tracing::info!(
-            "MIT-SHM {}.{} is older than 1.2 — no fd passing; using plain GetImage",
+            "MIT-SHM {}.{} is older than 1.2: no fd passing; using plain GetImage",
             version.major_version,
             version.minor_version
         );

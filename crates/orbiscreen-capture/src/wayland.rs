@@ -129,7 +129,7 @@ impl WaylandCapture {
             state.screencast_restore_token = Some(token.to_string());
             match portal_state::save_portal_state(&state) {
                 Ok(()) => tracing::info!(
-                    "screencast permission persisted — the share dialog will not \
+                    "screencast permission persisted; the share dialog will not \
                      reappear on the next runs"
                 ),
                 Err(e) => tracing::warn!("failed to persist portal state: {e}"),
