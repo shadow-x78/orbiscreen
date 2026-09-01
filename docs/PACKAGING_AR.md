@@ -84,12 +84,14 @@ dnf install orbiscreen
 
 ### Arch Linux (AUR)
 
-`PKGBUILD` في جذر المستودع يبني من tarball الريليز عبر cargo (مع checksum مثبّت للريليز؛ يُحدّثه المصين بـ `updpkgsums` مع كل رفع إصدار). تدفق النشر/التحديث:
+`PKGBUILD` في جذر المستودع يبني من tarball الريليز عبر cargo. تحمل نسخة المستودع `sha256sums=('SKIP')` عمداً: بصمة أرشيف الوسم لا توجد إلا بعد اكتمال سير الريليز، فتثبيتها بالمستودع سيجعلها تتخلف عن الوسم دائماً. التثبيت يحدث وقت النشر - أمر `updpkgsums` على جهاز المصين يكتب البصمة الحقيقية في نسخة PKGBUILD الخاصة بـAUR (وليس في هذا المستودع أبداً). تدفق النشر/التحديث:
 ```bash
 git clone ssh://aur@aur.archlinux.org/orbiscreen.git aur-orbiscreen
 cp PKGBUILD aur-orbiscreen/
-cd aur-orbiscreen && makepkg --printsrcinfo > .SRCINFO
-git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.16.1" && git push
+cd aur-orbiscreen
+updpkgsums                     # يجلب أرشيف الوسم ويثبّت sha256 الحقيقية
+makepkg --printsrcinfo > .SRCINFO
+git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.16.2" && git push
 ```
 تثبيت المستخدم: `yay -S orbiscreen` (أو أي مساعد AUR) / `makepkg -si`.
 
