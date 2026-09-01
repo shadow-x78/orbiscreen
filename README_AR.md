@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="data/orbiscreen.svg" alt="شعار Orbiscreen - حرف O من Orbiscreen كحلقة عرض، وشاشة الجهاز نقطة مصمتة تركب مسارها" width="180" />
+<img src="assets/logo/orbiscreen-logo.svg" alt="شعار Orbiscreen - حرف O من Orbiscreen كحلقة عرض، وشاشة الجهاز نقطة مصمتة تركب مسارها" width="180" />
 
 # Orbiscreen
 
 شاشة افتراضية ثانية حقيقية لنظام Linux، تُبَثّ إلى Android - أمر واحد، بلا تعقيد
 
-[![الإصدار](https://img.shields.io/badge/version-0.15.2-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.15.3-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)

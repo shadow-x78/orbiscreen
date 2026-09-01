@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.15.3] - 2026-09-01
+
+Full-project audit round four, after three releases of heavy brand and documentation churn (v0.13.3 - v0.15.2). Every crate, client, script, workflow, document, and asset re-verified with live tooling: clippy zero warnings, fmt clean, 123 tests pass, cargo-deny clean, cargo-machete finds no unused dependencies, zero inline comments in any code file, zero secrets embedded, every README/docs link and anchor resolves in both languages.
+
+### 🐛 Fixed
+- **Fork pull requests could never pass the Android workflow:** the signing step unconditionally fails when repo secrets are absent - which is exactly the case for every pull request opened from a fork (GitHub never exposes secrets to fork PRs). The keystore-preparation step now runs only on trusted events (push, dispatch, and same-repo PRs), and the build's unsigned-APK check is skipped with an explicit notice on fork PRs, so external contributors get a green unsigned build instead of a guaranteed red one. No secrets handling changed: the guard reads only event metadata.
+- **Two files still carried the plain pre-brand comment style:** `clients/web/index.html`'s license header and `clients/android/gradlew`'s starter description now use the house `─`-rule style with a `── Section ──` split, matching every other config file in the tree.
+
+### 🎨 Changed
+- **The READMEs now embed the mark from `assets/logo/` (UMO convention):** both language READMEs referenced the master SVG from `data/` while the full brand set (`orbiscreen-logo.svg` + the six PNG renders + preview) lived in `assets/logo/` unreferenced by anything but the changelog. The header image now points at `assets/logo/orbiscreen-logo.svg`, giving the brand directory its canonical consumer (the `data/` master stays the packaging/scripts reference, as before).
+
 ## [v0.15.2] - 2026-09-01
 
 The mark chosen by the maintainer from a rendered concept board. The v0.15.1 side-by-side pairing (hollow monitor rectangle + lit phone rectangle) was rejected for reading as two detached shapes rather than one form - boring, identity-less, and badly proportioned. Five concept directions were rendered as full preview boards (dark canvas, light canvas, and a simulated circular launcher icon for each) and reviewed visually; concept D - the interlock - was selected, then engineered into its final geometry.

@@ -1,8 +1,12 @@
 #!/bin/sh
-# Gradle wrapper starter (POSIX).
-# On first invocation it downloads `gradle-wrapper.jar` from the official
-# Gradle distribution server. Operators who already have a system-wide
-# `gradle` may instead run: `gradle assembleDebug`.
+# ─────────────────────────────────────────────
+# Orbiscreen - Gradle Wrapper Starter (POSIX)
+# ─────────────────────────────────────────────
+
+# ── First-Run Bootstrap ──
+# Downloads `gradle-wrapper.jar` from the official Gradle
+# distribution server. Operators who already have a
+# system-wide `gradle` may instead run: `gradle assembleDebug`.
 
 set -e
 

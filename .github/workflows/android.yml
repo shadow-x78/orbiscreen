@@ -30,6 +30,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Prepare signing keystore
+        # ── Fork PRs get no repo secrets, so signing is skipped and the
+        # ── build runs unsigned; the sign check only runs on trusted events.
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
           ORBISCREEN_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           ORBISCREEN_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -59,7 +62,9 @@ jobs:
           ORBISCREEN_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           ./gradlew assembleRelease
-          if ls app/build/outputs/apk/release/*-unsigned.apk >/dev/null 2>&1; then
+          if [ "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}" = "true" ]; then
+            echo "::notice::fork PR: skipping the signed-APK check (unsigned build)"
+          elif ls app/build/outputs/apk/release/*-unsigned.apk >/dev/null 2>&1; then
             echo "::error::assembleRelease produced an unsigned APK; signing configuration is broken"
             exit 1
           fi
