@@ -4,12 +4,11 @@
      https://github.com/shadow-x78/orbiscreen
 
      The project mark at launcher scale: the host
-     monitor with the phone (the second screen)
-     stepping in front of its corner, and the
-     stream arc carrying the signal into it.
-     Drawn on the 512 logo grid, scaled into the
-     66/108 adaptive safe zone so no launcher mask
-     shape ever clips it.
+     monitor beside the phone with its extended
+     screen lit. Drawn on the 512 logo grid,
+     axis-aligned, scaled into the 66/108 adaptive
+     safe zone so no launcher mask shape ever
+     clips it.
      ───────────────────────────────────────────── -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -21,28 +20,18 @@
         android:scaleY="0.129"
         android:translateX="163"
         android:translateY="163">
-        <group android:rotation="-8" android:pivotX="197.32" android:pivotY="160.72">
-            <path
-                android:fillColor="@android:color/transparent"
-                android:strokeColor="#89B4FA"
-                android:strokeWidth="34"
-                android:pathData="M91.32,67.72 h212 a30,30 0 0 1 30,30 v126 a30,30 0 0 1 -30,30 h-212 a30,30 0 0 1 -30,-30 v-126 a30,30 0 0 1 30,-30 z" />
-        </group>
-        <group android:rotation="-8" android:pivotX="369.32" android:pivotY="318.72">
-            <path
-                android:fillColor="@android:color/transparent"
-                android:strokeColor="#89B4FA"
-                android:strokeWidth="34"
-                android:pathData="M324.32,184.27 h90 a30,30 0 0 1 30,30 v208.9 a30,30 0 0 1 -30,30 h-90 a30,30 0 0 1 -30,-30 v-208.9 a30,30 0 0 1 30,-30 z" />
-        </group>
         <path
             android:fillColor="@android:color/transparent"
             android:strokeColor="#89B4FA"
             android:strokeWidth="26"
-            android:strokeLineCap="round"
-            android:pathData="M202,190 Q250,220 292,310" />
+            android:pathData="M67,181 h161 a18,18 0 0 1 18,18 v114 a18,18 0 0 1 -18,18 h-161 a18,18 0 0 1 -18,-18 v-114 a18,18 0 0 1 18,-18 z" />
+        <path
+            android:fillColor="@android:color/transparent"
+            android:strokeColor="#89B4FA"
+            android:strokeWidth="26"
+            android:pathData="M317,49 h122 a24,24 0 0 1 24,24 v366 a24,24 0 0 1 -24,24 h-122 a24,24 0 0 1 -24,-24 v-366 a24,24 0 0 1 24,-24 z" />
         <path
             android:fillColor="#89B4FA"
-            android:pathData="M306,330 l-52,2 l40,34 z" />
+            android:pathData="M327,71 h102 a12,12 0 0 1 12,12 v346 a12,12 0 0 1 -12,12 h-102 a12,12 0 0 1 -12,-12 v-346 a12,12 0 0 1 12,-12 z" />
     </group>
 </vector>

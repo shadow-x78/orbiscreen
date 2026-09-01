@@ -3,28 +3,21 @@
        Orbiscreen - Project Logo
        ─────────────────────────────────────────────
        What the product does, drawn as one picture:
-       the host monitor (the big screen) with the
-       phone (the tall second screen) stepping in
-       front of its corner, and the stream arc
-       carrying the signal from the host into the
-       phone - a virtual display being extended.
-       Flat single-color mark, one role class
-       (.orbi-s stroke) plus the solid arrowhead
-       (.orbi-f). Both screens lean the same -8
-       degrees so the pair reads as one moving
-       shape; the content box is square and
-       dead-centered on the 512 canvas by
-       construction.
+       the host monitor, and beside it the phone
+       showing the extended screen - lit in the
+       brand blue. Zero rotation, zero overlap,
+       zero decoration: every edge is perfectly
+       horizontal or vertical, and the pairing
+       alone tells the story of a second display.
+       One accent color, two role classes
+       (.orbi-s stroke, .orbi-f fill). Square
+       content box, dead-centered on the 512
+       canvas by construction.
        ───────────────────────────────────────────── -->
   <defs>
     <style>.orbi-f{fill:#89b4fa;}.orbi-s{fill:none;stroke:#89b4fa;}</style>
   </defs>
-  <g transform="rotate(-8 197.32 160.72)">
-    <rect class="orbi-s" x="61.32" y="67.72" width="272" height="186" rx="30" stroke-width="34"/>
-  </g>
-  <g transform="rotate(-8 369.32 318.72)">
-    <rect class="orbi-s" x="294.32" y="184.27" width="150" height="268.9" rx="30" stroke-width="34"/>
-  </g>
-  <path class="orbi-s" d="M 202 190 Q 250 220 292 310" stroke-width="26" stroke-linecap="round"/>
-  <path class="orbi-f" d="M 306 330 l -52 2 l 40 34 z"/>
+  <rect class="orbi-s" x="49" y="181" width="217" height="150" rx="18" stroke-width="26"/>
+  <rect class="orbi-s" x="293" y="49" width="170" height="414" rx="24" stroke-width="26"/>
+  <rect class="orbi-f" x="315" y="71" width="126" height="370" rx="12"/>
 </svg>

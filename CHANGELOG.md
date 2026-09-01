@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.15.1] - 2026-09-01
+
+The mark rebuilt on honest geometry. The v0.15.0 two-screen scene (rotated pair + floating stream arc + arrowhead) read as broken and mismatched - the -8 degree rotation put a visible slant on every edge, the arc floated unattached inside the hollow host screen, and the solid arrowhead collided with the phone's frame stroke, producing a fused blob at the join.
+
+### 🎨 Changed
+- **Every edge is now perfectly horizontal or vertical, and the composition has zero rotation, zero overlap, and zero decoration:** the mark is the pairing alone - the host monitor (a hollow rounded rectangle, 217x150 on the logo grid) beside the phone (a 170x414 rounded rectangle whose screen area is solid brand blue), with a 14-unit breath between them. No tilt, no arc, no arrow, no content bars: the two shapes read instantly as "computer screen + phone showing a screen", which is the product. The content box is exactly square (440x440 measured, ratio 1.000 at every render size from 48px to 512px) and dead-centered (measured center 256.0, 256.0 on the 512 canvas); both shapes share the vertical centerline of the mark. The full asset set (`assets/logo/` SVG master + 48/64/96/128/256/512 PNGs + dark-canvas preview) is regenerated, the Android adaptive foreground is redrawn axis-aligned from the same geometry with every blue pixel verified inside the 66/108 circular-mask safe zone, and all density mipmaps (square and round) are re-rendered from the new mark.
+
 ## [v0.15.0] - 2026-09-01
 
 The mark now draws the product, and the READMEs now follow the UMO house style end to end. This release replaces the v0.14.0 mark (whose frame-and-dots composition was judged too close to the UMO logo structure) with a picture of what Orbiscreen actually does, and rebuilds both READMEs from scratch in the UMO convention.
