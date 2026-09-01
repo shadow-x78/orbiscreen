@@ -2,7 +2,11 @@
 <!-- ─────────────────────────────────────────────
      Orbiscreen - Android Launcher Background
      https://github.com/shadow-x78/orbiscreen
+
+     Catppuccin Mocha base - the brand dark canvas
+     the mark was drawn on (orbi_background), so the
+     adaptive icon and the legacy mipmaps match.
      ───────────────────────────────────────────── -->
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="ic_launcher_background">#11111B</color>
 </resources>

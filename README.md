@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="data/orbiscreen.svg" alt="Orbiscreen" width="160" />
+<img src="data/orbiscreen.svg" alt="Orbiscreen logo - the display bezel frame with three transport dots on its edge and the double chevron stream signal at its center" width="160" />
 
 # Orbiscreen
 
 Real virtual secondary displays for Linux, streamed to Android - one command, zero hassle
 
-[![Version](https://img.shields.io/badge/version-0.13.3-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.14.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
