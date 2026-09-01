@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.13.3] - 2026-09-01
+
+Full-project audit round three: every crate, client, script, workflow, and document re-verified with live tooling (clippy/fmt/tests/cargo-deny/machete all clean; 123 tests pass; zero dead code files, zero inline comments in code files, zero stale dependencies). Every finding fixed, every version home rotated in one release commit - and the release process itself is now documented the way it actually works.
+
+### 🐛 Fixed
+- **Android version string lagged the workspace:** `versionName` was still `0.13.1` after the v0.13.2 release bump updated Cargo, lock, README badges, SECURITY, and PACKAGING but skipped the Gradle manifest. This release rotates every home together (see the CONTRIBUTING release process below) and bumps `versionCode` 27 → 28 so store tooling accepts the APK.
+- **PACKAGING docs described build commands that do not exist:** the `.deb`/`.rpm` sections instructed `cargo-deb`/`cargo-generate-rpm`, but the project has never shipped their metadata; the real builders are `scripts/package-deb.sh` and `scripts/package-rpm.sh` (+ `package-appimage.sh`, previously absent from the local-build list). The docs now reference the actual scripts and their tool requirements (`dpkg-deb`, `rpm-build`).
+- **PACKAGING and README docs advertised a Flatpak that was never shipped:** no flatpak manifest exists in the repo (and one is not technically viable for a daemon needing evdi, uinput, and raw compositor sockets); the bullet and the docs-table mention are removed from both language versions.
+- **PACKAGING docs claimed V1 APK signing:** the Gradle release config sets `enableV1Signing = false` (minSdk 26); the docs now say V2/V3 and reference the keystore env vars instead of the removed in-repo keystore.
+
+### 🔍 Diagnostics
+- **`auth_failures` was counted but never surfaced:** the transport increments a counter on every unauthorized request, yet it appeared in neither `GET /health` nor the D-Bus `GetStatus` payload. It is now exposed on both (with a getter, tests, and DBUS_SPEC entries in English and Arabic), making token-probing activity observable without enabling debug logs.
+
+### 📖 Docs
+- **CONTRIBUTING now documents the real release process:** the generic branch/commit/PR sections collapse into a "Day-to-Day Work" block, and a new "Release Process" section lists every version home the bump must touch - the Cargo workspace (plus `cargo update -w` so the lock matches `--locked` builds), the Gradle `versionName`/`versionCode`, all thirteen doc badges (README/README_AR/SECURITY and eight docs files bilingual), the PACKAGING release-matrix line, and the SECURITY scope - plus the bump rule by CHANGELOG convention (`✨ Added` = minor, fixes/cleanup only = patch) and the one-commit-one-tag push that triggers the release workflow.
+- **`scripts/verify-stream.sh` and `scripts/setup-dev-env.sh` were referenced nowhere despite being useful:** both are now documented in TROUBLESHOOTING.md/TROUBLESHOOTING_AR.md (end-to-end stream verification with H.264 decode and black-frame detection; distro-detected dev dependency install) and CONTRIBUTING.md.
+
+### 🧹 Cleanup
+- Removed the stale `webrtc` desktop-entry keyword (the transport has been HTTP/MPEG-TS since v0.2); replaced with `streaming`.
+- Removed the dead `flatpak-builder-sources` entry from `.gitattributes` (no flatpak sources exist).
+- Added `.kotlin/` (Kotlin 2.x session dirs) to `.gitignore` alongside the existing Gradle ignores.
+- `gradlew` now verifies the `gradle-wrapper.jar` download against a pinned SHA256 and refuses to run a tampered jar (defense-in-depth for the rare no-jar-first-run path; the jar is committed).
+
 ## [v0.13.2] - 2026-08-28
 
 Hotfix: the web client rendered a permanent black screen after the v0.13.1 CSP hardening, and auth rejections were opaque in the daemon log. Both fixed, verified end-to-end against a live KDE/KWin virtual display.

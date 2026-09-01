@@ -2,7 +2,7 @@
 
 # مواصفات واجهة D-Bus - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.13.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.13.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -63,6 +63,7 @@
   "frames_forwarded": 184320,
   "active_clients": 2,
   "total_clients": 5,
+  "auth_failures": 0,
   "encoder": "x264",
   "capture_backend": "evdi"
 }
@@ -74,6 +75,7 @@
 | `frames_forwarded` | u64 | عدد الإطارات المسلّمة إلى النقل منذ البدء |
 | `active_clients` | u64 | عملاء `/stream` المتصلون حالياً |
 | `total_clients` | u64 | إجمالي اتصالات `/stream` منذ البدء |
+| `auth_failures` | u64 | الطلبات غير المصرّ بها المرفوضة منذ البدء (يظهر أيضاً في `GET /health`) |
 | `encoder` | string | المُرمّز الفعلي قيد الاستخدام ‏(`x264`، `vaapi`، `nvenc`)‏ |
 | `capture_backend` | string | `evdi` للشاشة الافتراضية؛ `x11-portal-fallback` / `wayland-portal-fallback` عند غياب وحدة evdi |
 

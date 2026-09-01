@@ -11,5 +11,5 @@ Icon=com.orbiscreen.OrbiscreenGtk
 Terminal=false
 Type=Application
 Categories=Utility;GTK;GNOME;
-Keywords=display;virtual;monitor;android;spacedesk;webrtc;
+Keywords=display;virtual;monitor;android;spacedesk;streaming;
 StartupNotify=true

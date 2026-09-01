@@ -2,7 +2,7 @@
 
 # Troubleshooting - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.13.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.13.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -61,6 +61,8 @@
 
 - [Build still failing? Check the action logs](#still-stuck)
 - [Re-run a single CI job](#re-run-job)
+- [Verify a live stream end to end (`scripts/verify-stream.sh`)](#verify-stream)
+- [Set up a development environment (`scripts/setup-dev-env.sh`)](#setup-dev-env)
 
 ---
 
@@ -470,6 +472,24 @@ Use `.github/ISSUE_TEMPLATE/bug.yml`. Include:
 - The CI run URL.
 - The OS / compositor of the host (if runtime-related).
 - `adb logcat *:E` output (if Android-related).
+
+<a id="verify-stream"></a>
+### Verify a live stream end to end
+
+```bash
+./scripts/verify-stream.sh [port] [duration_seconds]
+```
+
+Records a few seconds of `/stream`, checks that the payload decodes as H.264, and measures frame brightness (YAVG) to catch black/empty-stream regressions automatically. Requires `curl`, `python3`, and `ffmpeg` on the host.
+
+<a id="setup-dev-env"></a>
+### Set up a development environment
+
+```bash
+./scripts/setup-dev-env.sh
+```
+
+Installs the Rust toolchain and the build dependencies (GStreamer, Wayland/X11, GTK4/libadwaita, libevdev) for Fedora-, Debian-, and Arch-based distros from the detected `/etc/os-release`.
 
 ---
 

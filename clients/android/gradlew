@@ -15,6 +15,12 @@ if [ ! -f "$WRAPPER_JAR" ]; then
     curl -sSL \
         https://raw.githubusercontent.com/gradle/gradle/v8.9.0/gradle/wrapper/gradle-wrapper.jar \
         -o "$WRAPPER_JAR"
+    echo "498495120a03b9a6ab5d155f5de3c8f0d986a449153702fb80fc80e134484f17  $WRAPPER_JAR" \
+        | sha256sum -c - >/dev/null 2>&1 || {
+            echo "error: gradle-wrapper.jar checksum mismatch; refusing to run" >&2
+            rm -f "$WRAPPER_JAR"
+            exit 1
+        }
 fi
 
 exec "${JAVA_HOME:-/usr}/bin/java" \

@@ -74,6 +74,10 @@ impl Stats {
         self.total_clients.load(Ordering::Relaxed)
     }
 
+    pub fn auth_failures(&self) -> u64 {
+        self.auth_failures.load(Ordering::Relaxed)
+    }
+
     fn note_frame(&self) {
         self.frames_forwarded.fetch_add(1, Ordering::Relaxed);
     }
@@ -277,6 +281,7 @@ async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
         "encoder": state.encoder_kind,
         "frames_forwarded": state.stats.frames_forwarded(),
         "active_clients": state.stats.active_clients(),
+        "auth_failures": state.stats.auth_failures(),
         "uptime_seconds": state.started.elapsed().as_secs(),
     }))
 }
@@ -811,5 +816,14 @@ mod tests {
         assert_eq!(stats.total_clients(), 2);
         drop(ClientGuard(Arc::clone(&stats)));
         assert_eq!(stats.active_clients(), 0);
+    }
+
+    #[test]
+    fn stats_track_auth_failures() {
+        let stats = Arc::new(Stats::default());
+        assert_eq!(stats.auth_failures(), 0);
+        stats.note_auth_failure();
+        stats.note_auth_failure();
+        assert_eq!(stats.auth_failures(), 2);
     }
 }

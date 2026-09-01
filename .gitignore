@@ -25,6 +25,7 @@ Cargo.lock.bak
 **/build/
 captures/
 .cxx/
+.kotlin/
 
 # ── Local secrets / keystores ──
 *.keystore

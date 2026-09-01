@@ -1,49 +1,52 @@
 # Contributing to Orbiscreen
 
-We welcome contributions to Orbiscreen! This document outlines our development guidelines.
+Contributions to Orbiscreen are welcome. This document describes the development workflow.
 
-## 🌿 Branch Naming
+## 🌿 Day-to-Day Work
 
-Use the following prefixes for your branches:
-- `feature/` - For new features
-- `fix/` - For bug fixes
-- `docs/` - For documentation changes
-- `chore/` - For maintenance tasks
+- **Branches:** `feature/`, `fix/`, `docs/`, `chore/` prefixes (e.g. `feature/wayland-clipboard`), branched from `main`.
+- **Commits:** `orbiscreen | <type>: <description>` for work, `orbiscreen | vX.Y.Z | <type>: <description>` for release commits. Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
+- **Style:** All Rust code formatted with `cargo fmt --all` and clean under `cargo clippy --workspace --all-targets --locked -- -D warnings` (GTK excluded on hosts without the gtk4 system libraries). Kotlin code follows the existing Compose idioms. Every file header follows the Orbiscreen style:
 
-Example: `feature/wayland-clipboard`
-
-## 💬 Commit Convention
-
-We enforce a strict commit message format for clarity:
-
-```text
-orbiscreen | <type>: <description>
-orbiscreen | vX.Y.Z | <type>: <description>
-```
-
-- `<type>` can be `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
-- `vX.Y.Z` should be the current workspace version (use on release commits).
-- A `release:` type denotes the bump commit (e.g. `orbiscreen | v0.11.2 | release: bump to 0.11.2`).
-
-Example: `orbiscreen | v0.11.2 | fix: respect display aspect ratio on rotation`
-
-## 💅 Code Style
-
-All Rust code must be formatted and pass Clippy without warnings.
-- Format: `cargo fmt --all`
-- Lint: `cargo clippy --workspace --all-targets --locked -- -D warnings`
-
-All file headers must match the Orbiscreen style:
 ```rust
 // Orbiscreen - <module name> (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 ```
 
-## ✅ Pull Requests
+- **Toolchain:** to install Rust and all build dependencies on Fedora-, Debian-, or Arch-based distros: `./scripts/setup-dev-env.sh`
+- **Pull requests:** from a fork, targeting `main`, with tests green, a `CHANGELOG.md` entry, and the PR template checklist filled in.
 
-1. Run `cargo test --workspace` to ensure all tests pass.
-2. Follow the checklist provided in the PR template (`.github/PULL_REQUEST_TEMPLATE.md`).
-3. Mention the `CHANGELOG.md` entry or the feature phase this PR belongs to.
+## 🚀 Release Process (maintainers)
+
+A release is ONE commit containing the pending work plus the version bump:
+
+1. Bump the version in **all version homes** so nothing can disagree with the tag:
+   - `Cargo.toml` (`[workspace.package]`) followed by `cargo update -w` so `Cargo.lock` matches (the release workflow builds `--locked`)
+   - `clients/android/app/build.gradle.kts`: `versionName` and `versionCode` (+1 every release; both are checked by the Play/F-Droid tooling)
+   - the version badges in `README.md`, `README_AR.md` (`version-X.Y.Z`), and the badge lines in every doc: `docs/ARCHITECTURE.md`(+AR), `docs/DBUS_SPEC.md`(+AR), `docs/DE_SUPPORT.md`(+AR), `docs/PACKAGING.md`(+AR), `docs/TROUBLESHOOTING.md`(+AR), and `SECURITY.md`
+   - the release-matrix line in `docs/PACKAGING.md`/`docs/PACKAGING_AR.md` and the scope heading in `SECURITY.md`
+2. Rotate the pending `CHANGELOG.md` entry into a `## [vX.Y.Z] - <date>` block dated today (the release notes are extracted from this heading by the workflow).
+3. Pick the bump by CHANGELOG convention: `✨ Added` work = minor (`0.14.0`), `🐛 Fixed`/`🎨 Changed`/`🧹 Cleanup` only = patch (`0.13.3`).
+4. Verify locally, commit everything as one release commit, and tag it:
+
+```bash
+cargo fmt --all --check
+cargo clippy --workspace --exclude orbiscreen-gtk --all-targets --locked -- -D warnings
+cargo test --workspace --exclude orbiscreen-gtk --locked
+cargo deny check
+
+git add -A
+git commit -m "orbiscreen | vX.Y.Z | <type>: one-line summary of the release"
+git tag -a vX.Y.Z -m "vX.Y.Z - <one-line summary>"
+```
+
+Then push the result:
+
+```bash
+git push origin main vX.Y.Z
+```
+
+The tag push triggers the [release workflow](.github/workflows/release.yml), which gates on fmt/clippy/tests/cargo-deny, then builds, signs, and attaches the tarball, `.deb`, `.rpm`, AppImage, and Android APK (each with a SHA256 checksum) to the GitHub release.
 
 ---
 

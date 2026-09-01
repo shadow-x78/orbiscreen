@@ -2,7 +2,7 @@
 
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.13.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.13.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -61,6 +61,8 @@
 
 - [ما زال البناء يفشل؟ راجع سجلات الإجراء](#still-stuck)
 - [إعادة تشغيل مهمة CI واحدة](#re-run-job)
+- [التحقق من بث حي من طرف إلى طرف ‏(`scripts/verify-stream.sh`)](#verify-stream)
+- [تجهيز بيئة تطوير ‏(`scripts/setup-dev-env.sh`)](#setup-dev-env)
 
 ---
 
@@ -470,6 +472,24 @@ gst-inspect-1.0 x264enc
 - رابط تشغيل CI.
 - نظام التشغيل / المنشّئ (compositor) للمضيف (إن كانت المشكلة وقت تشغيل).
 - مخرجات `adb logcat *:E` (إن كانت المشكلة متعلقة بـ Android).
+
+<a id="verify-stream"></a>
+### التحقق من بث حي من طرف إلى طرف
+
+```bash
+./scripts/verify-stream.sh [المنفذ] [مدة_بالثواني]
+```
+
+يسجّل بضع ثوانٍ من `/stream`، يتحقق من أن الحمولة تُفكّ ترميزها كـ H.264، ويقيس سطوع الإطارات (YAVG) لالتقاط تراجعات البث الأسود/الفارغ تلقائياً. يتطلب `curl` و`python3` و`ffmpeg` على المضيف.
+
+<a id="setup-dev-env"></a>
+### تجهيز بيئة تطوير
+
+```bash
+./scripts/setup-dev-env.sh
+```
+
+يثبّت سلسلة أدوات Rust واعتماديات البناء (GStreamer وWayland/X11 وGTK4/libadwaita وlibevdev) لتوزيعات Fedora وDebian وArch المكتشفة من `/etc/os-release`.
 
 ---
 

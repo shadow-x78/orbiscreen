@@ -2,7 +2,7 @@
 
 # D-Bus API Specification - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.13.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.13.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -63,6 +63,7 @@ Returns the live daemon status as a **JSON object string**:
   "frames_forwarded": 184320,
   "active_clients": 2,
   "total_clients": 5,
+  "auth_failures": 0,
   "encoder": "x264",
   "capture_backend": "evdi"
 }
@@ -74,6 +75,7 @@ Returns the live daemon status as a **JSON object string**:
 | `frames_forwarded` | u64 | Frames handed to the transport since start |
 | `active_clients` | u64 | Currently connected `/stream` clients |
 | `total_clients` | u64 | Total `/stream` connections since start |
+| `auth_failures` | u64 | Unauthorized requests rejected since start (also exposed on `GET /health`) |
 | `encoder` | string | Encoder actually in use (`x264`, `vaapi`, `nvenc`) |
 | `capture_backend` | string | `evdi` for the virtual display; `x11-portal-fallback` / `wayland-portal-fallback` when the evdi module is missing |
 
