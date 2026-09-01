@@ -60,9 +60,10 @@ jobs:
           ORBISCREEN_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ORBISCREEN_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ORBISCREEN_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ORBISCREEN_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
           ./gradlew assembleRelease
-          if [ "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}" = "true" ]; then
+          if [ "${ORBISCREEN_FORK_PR:-}" = "true" ]; then
             echo "::notice::fork PR: skipping the signed-APK check (unsigned build)"
           elif ls app/build/outputs/apk/release/*-unsigned.apk >/dev/null 2>&1; then
             echo "::error::assembleRelease produced an unsigned APK; signing configuration is broken"

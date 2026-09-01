@@ -163,7 +163,7 @@ impl Transport {
         display_height: u32,
         refresh_hz: u32,
         encoder_kind: &'static str,
-        shutdown_rx: tokio::sync::watch::Receiver<bool>,
+        mut shutdown_rx: tokio::sync::watch::Receiver<bool>,
     ) -> Result<(), TransportError> {
         let input_tx = self.input_tx;
         let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<SeqPacket>(360);
@@ -194,8 +194,9 @@ impl Transport {
 
         let adb_port = self.cfg.signaling_port;
         let adb_stats = state.stats.clone();
+        let adb_stats_for_exit = state.stats.clone();
         let mut adb_shutdown = shutdown_rx.clone();
-        tokio::spawn(async move {
+        let adb_task = tokio::spawn(async move {
             let mut known: Vec<String> = Vec::new();
             loop {
                 let port_now = adb_port;
@@ -235,18 +236,6 @@ impl Transport {
                 }
             }
             adb_stats.note_usb_devices(0);
-            let teardown = tokio::task::spawn_blocking(move || {
-                adb::teardown_reverse_for_all(adb::default_adb_path(), adb_port)
-            })
-            .await;
-            match teardown {
-                Ok(Ok(devices)) => {
-                    info!("ADB reverse tunnels removed for devices: {devices:?}")
-                }
-                Ok(Err(adb::AdbError::NoDevice | adb::AdbError::NotInstalled)) => {}
-                Ok(Err(e)) => debug!("ADB reverse teardown inactive: {e}"),
-                Err(_) => debug!("ADB reverse teardown task aborted"),
-            }
         });
 
         let stats_pump = state.stats.clone();
@@ -271,12 +260,32 @@ impl Transport {
             }
         });
 
-        axum::serve(
+        let serve_fut = axum::serve(
             listener,
             app.into_make_service_with_connect_info::<SocketAddr>(),
-        )
-        .await
-        .map_err(|e| TransportError::Http(e.to_string()))?;
+        );
+        tokio::select! {
+            res = serve_fut => {
+                res.map_err(|e| TransportError::Http(e.to_string()))?;
+            }
+            _ = shutdown_rx.changed() => {}
+            _ = tokio::signal::ctrl_c() => {}
+        }
+
+        adb_task.abort();
+        adb_stats_for_exit.note_usb_devices(0);
+        let teardown = tokio::task::spawn_blocking(move || {
+            adb::teardown_reverse_for_all(adb::default_adb_path(), adb_port)
+        })
+        .await;
+        match teardown {
+            Ok(Ok(devices)) => {
+                info!("ADB reverse tunnels removed for devices: {devices:?}")
+            }
+            Ok(Err(adb::AdbError::NoDevice | adb::AdbError::NotInstalled)) => {}
+            Ok(Err(e)) => debug!("ADB reverse teardown inactive: {e}"),
+            Err(_) => debug!("ADB reverse teardown task aborted"),
+        }
         Ok(())
     }
 }

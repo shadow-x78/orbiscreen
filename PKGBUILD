@@ -6,7 +6,7 @@
 # Maintainer: shadow-x78 <107577376+shadow-x78@users.noreply.github.com>
 
 pkgname=orbiscreen
-pkgver=0.16.1
+pkgver=0.16.2
 pkgrel=1
 pkgdesc="Real virtual secondary displays for Linux, streamed to Android over Wi-Fi or USB"
 arch=('x86_64')

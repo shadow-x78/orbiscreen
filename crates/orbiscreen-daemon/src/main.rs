@@ -1003,7 +1003,8 @@ async fn run_start(
     let stats = std::sync::Arc::new(Stats::default());
 
     let (shutdown_tx, mut shutdown_rx) = tokio::sync::watch::channel(false);
-    let _shutdown_keepalive = shutdown_tx.clone();
+    let shutdown_keepalive = shutdown_tx.clone();
+    let _shutdown_keepalive = shutdown_keepalive.clone();
     let dbus_handles = std::sync::Arc::new(dbus::DaemonHandles {
         is_running: is_running.clone(),
         stats: stats.clone(),
@@ -1258,7 +1259,7 @@ async fn run_start(
         None
     };
 
-    let serve_fut = transport.serve(
+    let mut serve_fut = std::pin::pin!(transport.serve(
         video_rx,
         stats,
         actual_dims.0,
@@ -1266,27 +1267,29 @@ async fn run_start(
         spec.refresh_rate_hz,
         encoder_name,
         shutdown_rx.clone(),
-    );
+    ));
 
-    let serve_res = tokio::select! {
-        res = serve_fut => res,
+    tokio::select! {
+        res = &mut serve_fut => {
+            res.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+        }
         _ = tokio::signal::ctrl_c() => {
             info!("Received SIGINT (Ctrl-C), initiating graceful shutdown...");
-            Ok(())
+            _ = shutdown_keepalive.send(true);
+            let _ = (&mut serve_fut).await;
         }
         _ = shutdown_rx.changed() => {
             info!("D-Bus Stop received, initiating graceful shutdown...");
-            Ok(())
+            _ = shutdown_keepalive.send(true);
+            let _ = (&mut serve_fut).await;
         }
-    };
-
+    }
     is_running.store(false, std::sync::atomic::Ordering::SeqCst);
     encoder.stop();
     cap_pump.abort();
     frame_pump.abort();
     input_pump.abort();
     watchdog.abort();
-    serve_res.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
     Ok(())
 }
 

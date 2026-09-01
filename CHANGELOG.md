@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.16.2] - 2026-09-01
+
+Full-project audit round five, after the USB feature (v0.16.0) and the distribution-repo groundwork (v0.16.1). All tooling gates green (clippy zero, fmt clean, 125 tests, cargo-deny clean, cargo-machete clean), zero inline comments in any code file, zero embedded secrets, all docs links and anchors resolve in both languages - and two real defects found and fixed, one of them proven by a live end-to-end test against a physical Android device.
+
+### 🐛 Fixed
+- **Graceful shutdown could leave the USB tunnel behind (proven live, then fixed):** the v0.16.0 supervisor task was detached, so when `main`'s select! caught Ctrl-C or D-Bus Stop and returned, the tokio runtime dropped the still-running supervisor mid-teardown - the exact stale-tunnel bug the feature was meant to eliminate, and my first live test confirmed it: after SIGINT, `adb reverse --list` still showed `tcp:8788`. The shutdown path is redesigned: `serve()` now owns the lifecycle - it races the HTTP accept loop against the daemon's shutdown channel and SIGINT itself, and on any exit it aborts the supervisor and runs `teardown_reverse_for_all` to completion before returning; `main` in turn sends the shutdown signal and *awaits* `serve_fut` (pinned) instead of abandoning it, then stops the encoder and pumps. Re-tested end-to-end against a real device: tunnel present while running, `ADB reverse tunnels removed for devices: [...]` logged on SIGINT, and `adb reverse --list` empty afterwards - the tunnel is now removed on Ctrl-C, D-Bus Stop, and serve's own error exit alike.
+- **GitHub expression inside a `run:` block (hardening):** the fork-PR check from v0.15.3 inlined `${{ github.event_name == ... }}` in the shell script. The expression only ever evaluates to true/false (no user-controlled text reaches the shell), but it violates GitHub's own hardening rule that workflow expressions never belong inside `run:`. The check now passes through an `env:` variable (`ORBISCREEN_FORK_PR`) and reads it as a plain environment variable - the same pattern as the secrets above it. A repo-wide scan confirms no other workflow inlines `${{ }}` in `run:`.
+
 ## [v0.16.1] - 2026-09-01
 
 The Linux distribution-repository groundwork: everything needed for Fedora COPR (via Packit) and the AUR now lives in the repo, ready for the one-time account activations, plus the AppStream metainfo every store front expects.

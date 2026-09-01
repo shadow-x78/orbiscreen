@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.16.1
+Version:        0.16.2
 Release:        1%{?dist}
 Summary:        Real virtual secondary displays for Linux, streamed to Android over Wi-Fi or USB
 

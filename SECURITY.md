@@ -2,7 +2,7 @@
 
 # Security Policy - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.16.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.16.2-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -87,7 +87,7 @@ We follow a **coordinated disclosure** model:
 <a id="considerations"></a>
 ## 🔍 Security Considerations
 
-### Scope (v0.16.1)
+### Scope (v0.16.2)
 
 Orbiscreen is a Linux host daemon plus a Material 3 Android client and a browser web client that:
 - Creates compositor-native virtual displays without root: KWin's `zkde_screencast_unstable_v1` on Plasma, headless outputs via sway/Hyprland IPC on wlroots, falling back to the `evdi` kernel module or primary-desktop capture (Wayland portal or X11) when unavailable
@@ -165,7 +165,7 @@ The Android release signing key (`orbiscreen-release.keystore`) was removed from
 <a id="audit"></a>
 ## 🔬 Security Audit
 
-Orbiscreen (v0.16.1) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose) and a small browser web client (MSE via vendored mpegts.js). A running daemon performs:
+Orbiscreen (v0.16.2) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose) and a small browser web client (MSE via vendored mpegts.js). A running daemon performs:
 
 - `open()` on `/dev/dri/card*` evdi nodes for capture
 - Compositor IPC over session-local Unix sockets: sway i3-ipc (`$SWAYSOCK`) and Hyprland (`HYPRLAND_INSTANCE_SIGNATURE`) to create/destroy headless outputs
