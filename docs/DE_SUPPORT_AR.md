@@ -2,7 +2,7 @@
 
 # دعم بيئات سطح المكتب - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.14.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.15.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -125,6 +125,29 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
 
 يتراجع `auto` عبر المتاح: عكس عبر portal على Wayland، عكس XShm على X11،
 وEVDI في كل مكان. يطبع `orbiscreen doctor` بالضبط أي خطوة ناقصة وكيف تُصلح.
+
+## تفضيل واجهة الالتقاط (`orbiscreen.toml`)
+
+يقرأ الخادم افتراضيًا `$XDG_CONFIG_HOME/orbiscreen/orbiscreen.toml`
+(أو `~/.config/orbiscreen/orbiscreen.toml` عندما لا يكون `XDG_CONFIG_HOME` معرّفًا)،
+وهو المسار نفسه الذي تستخدمه وحدة systemd للمستخدم. أنشئ الملف هناك، أو
+حدّد موقعًا آخر عبر `--config /path/to/orbiscreen.toml`.
+
+```toml
+[capture]
+preferred = "auto"
+```
+
+| القيمة | السلوك |
+|--------|--------|
+| `auto` | KDE Plasma Wayland: شاشة KWin الافتراضية. ‏Sway/Hyprland/wlroots: مخرج افتراضي من الـ compositor عبر IPC، وإلا عكس شاشة موجودة عبر wlr-screencopy، وإلا portal. ‏X11: ‏EVDI عند تحميل وحدتها، وإلا التقاط الشاشة الجذر. |
+| `kwin-virtual` | شاشة KWin الافتراضية دائماً (فشل صريح على غير KDE). |
+| `screencopy` | التقاط wlroots screencopy دائماً (يتطلب compositor من عائلة wlroots). |
+| `evdi` | شاشة EVDI DRM الافتراضية دائماً (اختيارية، تتطلب وحدة نواة مثبتة بـ root). |
+| `portal` | نافذة مشاركة portal دائماً؛ اختر أي شاشة. |
+| `mirror` | اعرض **سطح مكتبك الحقيقي** بدل شاشة ثانية: اختر الشاشة المراد عكسها من نافذة المشاركة. |
+
+> الشاشة الافتراضية تبدأ **فارغة** (خلفية سطح المكتب فقط)، هذا معنى الشاشة الثانية. اسحب النوافذ إلى `Virtual-ORBISCREEN`، أو استخدم `mirror` لبث شاشتك الفعلية.
 
 ## متغيرات البيئة التي يقرؤها Orbiscreen
 

@@ -2,25 +2,29 @@
   <!-- ─────────────────────────────────────────────
        Orbiscreen - Project Logo
        ─────────────────────────────────────────────
-       The frame, but whole - a display bezel ring
-       (the Linux host screen) with the three
-       transport dots riding its edge (Wi-Fi, USB,
-       the browser client - the Orbiscreen
-       triangle), and the double chevron (the
-       stream signal advancing, screen after
-       screen) as the hero in the center. Same
-       flat single-color language as the UMO mark.
-       One color, two role classes (.orbi-f fill,
-       .orbi-s stroke). Square content box, dead
-       centered on the 512 canvas.
+       What the product does, drawn as one picture:
+       the host monitor (the big screen) with the
+       phone (the tall second screen) stepping in
+       front of its corner, and the stream arc
+       carrying the signal from the host into the
+       phone - a virtual display being extended.
+       Flat single-color mark, one role class
+       (.orbi-s stroke) plus the solid arrowhead
+       (.orbi-f). Both screens lean the same -8
+       degrees so the pair reads as one moving
+       shape; the content box is square and
+       dead-centered on the 512 canvas by
+       construction.
        ───────────────────────────────────────────── -->
   <defs>
     <style>.orbi-f{fill:#89b4fa;}.orbi-s{fill:none;stroke:#89b4fa;}</style>
   </defs>
-  <rect class="orbi-s" x="80" y="80" width="352" height="376" rx="76" stroke-width="32"/>
-  <circle class="orbi-f" cx="256" cy="80" r="40"/>
-  <circle class="orbi-f" cx="432" cy="348" r="40"/>
-  <circle class="orbi-f" cx="80" cy="348" r="40"/>
-  <path class="orbi-s" d="M 178 178 L 256 256 L 178 334" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
-  <path class="orbi-s" d="M 288 178 L 366 256 L 288 334" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="rotate(-8 197.32 160.72)">
+    <rect class="orbi-s" x="61.32" y="67.72" width="272" height="186" rx="30" stroke-width="34"/>
+  </g>
+  <g transform="rotate(-8 369.32 318.72)">
+    <rect class="orbi-s" x="294.32" y="184.27" width="150" height="268.9" rx="30" stroke-width="34"/>
+  </g>
+  <path class="orbi-s" d="M 202 190 Q 250 220 292 310" stroke-width="26" stroke-linecap="round"/>
+  <path class="orbi-f" d="M 306 330 l -52 2 l 40 34 z"/>
 </svg>

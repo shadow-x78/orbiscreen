@@ -3,54 +3,46 @@
      Orbiscreen - Android Launcher Foreground Icon
      https://github.com/shadow-x78/orbiscreen
 
-     The project mark at display scale: the display
-     bezel frame, the three transport dots on its
-     edge, and the double chevron stream signal.
-     Drawn on a 512 grid, scaled into the adaptive
-     108dp safe zone (66/108) so nothing is clipped
-     by any mask shape.
+     The project mark at launcher scale: the host
+     monitor with the phone (the second screen)
+     stepping in front of its corner, and the
+     stream arc carrying the signal into it.
+     Drawn on the 512 logo grid, scaled into the
+     66/108 adaptive safe zone so no launcher mask
+     shape ever clips it.
      ───────────────────────────────────────────── -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="512"
     android:viewportHeight="512">
-    <!-- scale 512 -> 66dp of 108: 66/512; center offset (108-66)/2 = 21dp = 512*(21/66)=163.2 grid units
-         combined: scale=0.12890625, translate=(163.2, 163.2) in grid units -->
     <group
         android:scaleX="0.129"
         android:scaleY="0.129"
         android:translateX="163"
         android:translateY="163">
-        <group>
+        <group android:rotation="-8" android:pivotX="197.32" android:pivotY="160.72">
             <path
                 android:fillColor="@android:color/transparent"
                 android:strokeColor="#89B4FA"
-                android:strokeWidth="32"
-                android:pathData="M80,156 a76,76 0 0 1 76,-76 h200 a76,76 0 0 1 76,76 v224 a76,76 0 0 1 -76,76 h-200 a76,76 0 0 1 -76,-76 z" />
-            <path
-                android:fillColor="#89B4FA"
-                android:pathData="M256,80 m-40,0 a40,40 0 1 1 80,0 a40,40 0 1 1 -80,0 z" />
-            <path
-                android:fillColor="#89B4FA"
-                android:pathData="M432,348 m-40,0 a40,40 0 1 1 80,0 a40,40 0 1 1 -80,0 z" />
-            <path
-                android:fillColor="#89B4FA"
-                android:pathData="M80,348 m-40,0 a40,40 0 1 1 80,0 a40,40 0 1 1 -80,0 z" />
-            <path
-                android:fillColor="@android:color/transparent"
-                android:strokeColor="#89B4FA"
-                android:strokeWidth="44"
-                android:strokeLineCap="round"
-                android:strokeLineJoin="round"
-                android:pathData="M178,178 L256,256 L178,334" />
-            <path
-                android:fillColor="@android:color/transparent"
-                android:strokeColor="#89B4FA"
-                android:strokeWidth="44"
-                android:strokeLineCap="round"
-                android:strokeLineJoin="round"
-                android:pathData="M288,178 L366,256 L288,334" />
+                android:strokeWidth="34"
+                android:pathData="M91.32,67.72 h212 a30,30 0 0 1 30,30 v126 a30,30 0 0 1 -30,30 h-212 a30,30 0 0 1 -30,-30 v-126 a30,30 0 0 1 30,-30 z" />
         </group>
+        <group android:rotation="-8" android:pivotX="369.32" android:pivotY="318.72">
+            <path
+                android:fillColor="@android:color/transparent"
+                android:strokeColor="#89B4FA"
+                android:strokeWidth="34"
+                android:pathData="M324.32,184.27 h90 a30,30 0 0 1 30,30 v208.9 a30,30 0 0 1 -30,30 h-90 a30,30 0 0 1 -30,-30 v-208.9 a30,30 0 0 1 30,-30 z" />
+        </group>
+        <path
+            android:fillColor="@android:color/transparent"
+            android:strokeColor="#89B4FA"
+            android:strokeWidth="26"
+            android:strokeLineCap="round"
+            android:pathData="M202,190 Q250,220 292,310" />
+        <path
+            android:fillColor="#89B4FA"
+            android:pathData="M306,330 l-52,2 l40,34 z" />
     </group>
 </vector>

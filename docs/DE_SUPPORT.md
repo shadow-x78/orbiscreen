@@ -2,7 +2,7 @@
 
 # Desktop Environment Support - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.14.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.15.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -133,6 +133,29 @@ graphical session, so:
 `auto` falls back through whatever is available: portal mirror on Wayland,
 XShm mirror on X11, EVDI anywhere. `orbiscreen doctor` prints exactly which
 step is missing and how to fix it.
+
+## Capture backend preference (`orbiscreen.toml`)
+
+By default the daemon reads `$XDG_CONFIG_HOME/orbiscreen/orbiscreen.toml`
+(`~/.config/orbiscreen/orbiscreen.toml` when `XDG_CONFIG_HOME` is unset) -
+the same path used by the systemd user service. Create the file there, or
+point at another location with `--config /path/to/orbiscreen.toml`.
+
+```toml
+[capture]
+preferred = "auto"
+```
+
+| Value | Behaviour |
+|-------|-----------|
+| `auto` | KDE Plasma Wayland: KWin virtual display. Sway/Hyprland/wlroots: compositor virtual output via IPC, else wlr-screencopy mirror, else portal. X11: EVDI when its module is loaded, else root capture. |
+| `kwin-virtual` | Always the KWin virtual monitor (fails on non-KDE compositors). |
+| `screencopy` | Always wlroots screencopy capture (needs a wlroots-based compositor). |
+| `evdi` | Always the EVDI DRM virtual display (opt-in, needs the root-installed kernel module). |
+| `portal` | Always the portal share dialog; pick any screen. |
+| `mirror` | Show your **real** desktop instead of a second monitor: pick the screen to mirror in the share dialog. |
+
+> A virtual display starts **empty** (desktop wallpaper only); that is what a second monitor is. Drag windows onto `Virtual-ORBISCREEN`, or use `mirror` to stream your actual screen.
 
 ## Environment variables read by Orbiscreen
 

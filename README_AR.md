@@ -1,16 +1,16 @@
 <div align="center">
 
-<img src="data/orbiscreen.svg" alt="شعار Orbiscreen - إطار الشاشة مع نقاط النقل الثلاث على حافته وإشارة البث المزدوجة ❯❯ في مركزه" width="160" />
+<img src="data/orbiscreen.svg" alt="شعار Orbiscreen - شاشة المضيف يتقدم الهاتف أمام زاويتها، وقوس البث ينقل الإشارة إليه" width="180" />
 
 # Orbiscreen
 
 شاشة افتراضية ثانية حقيقية لنظام Linux، تُبَثّ إلى Android - أمر واحد، بلا تعقيد
 
-[![الإصدار](https://img.shields.io/badge/version-0.14.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.15.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
-[![النجوم](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&color=eab308&logo=github)](https://github.com/shadow-x78/orbiscreen/stargazers)
+[![النجوم](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&color=eab308&logo=github&label=النجوم)](https://github.com/shadow-x78/orbiscreen/stargazers)
 
 </div>
 
@@ -25,13 +25,13 @@
 ## 📋 فهرس المحتويات
 
 - [ما هو Orbiscreen؟](#what-is-orbiscreen)
-- [لماذا وُجد Orbiscreen](#why-orbiscreen-exists)
 - [المميزات](#highlights)
-- [الحالة](#status)
+- [دعم بيئات سطح المكتب](#desktop-support)
 - [البدء السريع](#quick-start)
 - [الأوامر](#commands)
 - [تطبيق Android](#android-app)
 - [المعمارية](#architecture)
+- [هيكل المشروع](#project-structure)
 - [التوثيق](#documentation)
 - [المساهمة](#contributing)
 - [الرخصة](#license)
@@ -41,27 +41,22 @@
 <a id="what-is-orbiscreen"></a>
 ## 🤔 ما هو Orbiscreen؟
 
-**Orbiscreen** يحوّل جهاز Android لوحياً أو هاتفاً إلى شاشة ثانية حقيقية لسطح مكتب Linux. على عكس الحلول البديلة المحدودة بـ X11 أو المتصفح فقط، ينشئ Orbiscreen **شاشة افتراضية على مستوى النواة** عبر `evdi` من DisplayLink، تظهر كشاشة حقيقية لكل من X11 وWayland، ويبثّها عبر **MPEG-TS/H.264** مع دعم إدخال اللمس العكسي natively على Android.
-
----
-
-<a id="why-orbiscreen-exists"></a>
-## 🧭 لماذا وُجد Orbiscreen
+**Orbiscreen** يحوّل جهاز Android لوحياً أو هاتفاً إلى شاشة ثانية حقيقية لسطح مكتب Linux. ينشئ **شاشة افتراضية على مستوى النواة** عبر `evdi` من DisplayLink، أو **مونيتوراً افتراضياً أصلياً من الـ compositor** على KDE Plasma وعلى wlroots - بلا root وبلا نافذة مشاركة - ثم يبثّها عبر **MPEG-TS/H.264** مع دعم إدخال اللمس العكسي natively على Android.
 
 | المشكلة | المشاريع الأخرى | Orbiscreen |
 |---------|----------------|------------|
-| لا يوجد دعم Host على Linux | ❌ spacedesk يرفض رسمياً | ✅ شاشة افتراضية حقيقية على مستوى النواة |
-| حل مؤقت محصور بـ X11 | ❌ VirtScreen غير محدّث منذ 2018 | ✅ X11 **و** Wayland عبر evdi/DRM |
-| غياب شاشة ثانية على Wayland | ❌ Weylus محدود بـ X11 | ✅ مسار Wayland كامل عبر ashpd + PipeWire |
-| إعداد يدوي لعناوين IP | ❌ معظم المشاريع | ✅ اكتشاف mDNS + مسح شبكي مباشر + إضافة يدوية |
-| عميل وحيد الغرض | ❌ spacedesk فقط | ✅ شاشة Android أصلية + لوحة تحكم بالمضيف |
+| لا دعم Linux للمضيف | ❌ أدوات محصورة بـ Windows | ✅ مبني لـ Linux أولاً |
+| حلول محصورة بـ X11 | ❌ تنكسر على Wayland | ✅ X11 **و** Wayland عبر evdi/DRM + IPC الـ compositor |
+| بث عبر المتصفح فقط | ❌ كمون عالٍ وبلا لمس | ✅ عميل Android أصلي + لمس عكسي |
+| إعداد يدوي لعناوين IP | ❌ كتابة العناوين يدوياً | ✅ اكتشاف mDNS + مسح شبكي مباشر + إضافة يدوية |
+| صلاحيات root في كل مكان | ❌ تعديلات نواة على جانب العميل | ✅ بلا root على wlroots وKDE؛ و`doctor --fix` يرشد الباقي |
 
 ---
 
 <a id="highlights"></a>
 ## ✨ المميزات
 
-- شاشة افتراضية حقيقية عبر `evdi` (X11 *و* Wayland)، **أو بدون أي صلاحيات root على KDE Plasma**: مونيتور افتراضي يُنشئه KWin عبر `zkde-screencast` (بلا وحدة نواة وبلا نافذة مشاركة)، مع تراجع التقاط portal في غير ذلك
+- **شاشة افتراضية حقيقية عبر `evdi`** (X11 *و* Wayland)، **أو بدون أي root على KDE Plasma**: مونيتور افتراضي يُنشئه KWin عبر `zkde-screencast` (بلا وحدة نواة وبلا نافذة مشاركة)، مع تراجع التقاط portal في غير ذلك
 - **عميل Android بواجهة Material 3** - Jetpack Compose، لوحة ألوان Catppuccin Mocha / Latte، بسمة فاتحة وداكنة
 - **عميل ويب مبنّى داخلياً** - شاهد من أي متصفح على `http://<host>:8788/` (MSE عبر `mpegts.js` المضمنة محلياً، دون CDN)
 - **اكتشاف مباشر** - مسح NSD للمضيفين القريبين، إدخال يدوي `host:port`، وماسح Subnet اختياري
@@ -75,40 +70,25 @@
 
 ---
 
-<a id="status"></a>
-## 📊 الحالة
-
-| المرحلة | الهدف | الحالة |
-|---------|-------|--------|
-| 0 | تهيئة مساحة العمل + جدوى evdi | ✅ مكتملة |
-| 1 | الشاشة + الالتقاط + الترميز + الإدخال (X11) | ✅ مكتملة |
-| 2 | عميل Android + نقل USB + mDNS | ✅ مكتملة |
-| 3 | التقاط Wayland + portal + الإدخال | ✅ مكتملة |
-| 4 | التغليف + واجهة GTK4 + خدمة D-Bus + التثبيت المستقل | ✅ مكتملة |
-| 5 | واجهة Material 3 + الاكتشاف المباشر + لوحة التحكم | ✅ مكتملة |
-| 6 | تكافؤ بيئات سطح المكتب: مخرجات افتراضية من الـ compositor، التقاط wlr-screencopy، إدخال بلا root، وأمر `doctor` | ✅ مكتملة |
-
-> راجع `CHANGELOG.md` لسجل الإصدارات الكامل.
-
-### مصفوفة دعم البيئات
+<a id="desktop-support"></a>
+## 🖥️ دعم بيئات سطح المكتب
 
 | البيئة | شاشة ثانية افتراضية | الالتقاط | الإدخال |
 |--------|---------------------|----------|---------|
 | KDE Plasma (Wayland) | ✅ أصلي (zkde-screencast، بلا root وبلا حوار) | ✅ PipeWire | ✅ portal RemoteDesktop |
-| Sway / wlroots عام | ✅ مخرج headless عبر IPC الـ compositor (بلا root) | ✅ wlr-screencopy (بلا حوار) | ✅ virtual-pointer / virtual-keyboard (بلا portal) |
-| Hyprland | ✅ مخرج headless عبر IPC الـ compositor (بلا root) | ✅ wlr-screencopy (بلا حوار) | ✅ virtual-pointer / virtual-keyboard (بلا portal) |
+| Sway / Hyprland / wlroots | ✅ مخرج headless عبر IPC الـ compositor (بلا root) | ✅ wlr-screencopy (بلا حوار) | ✅ virtual-pointer / virtual-keyboard (بلا portal) |
 | GNOME (Wayland) | ⚠️ عبر EVDI | ✅ portal: حوار مرة واحدة فقط (توكن إصرار محفوظ) | ✅ portal RemoteDesktop: بالمثل محفوظ |
 | XFCE / MATE / LXQt / Cinnamon (X11) | ✅ عبر EVDI | ✅ XShm للشاشة الجذرية (مجمّع، مع تجاوز الإطارات المتطابقة) | ✅ XTEST (بلا root)، مع تراجع إلى uinput |
 | أي بيئة أخرى | ✅ عبر EVDI (بإرشاد `orbiscreen doctor --fix`) | أفضل واجهة متاحة | أفضل واجهة متاحة |
 
-يطبع `orbiscreen doctor` الـ compositor المكتشف وخطة الالتقاط التي سيتبعها `auto` وما الناقص في النظام؛ وينفّذ `orbiscreen doctor --fix` تثبيت وحدة نواة EVDI على التوزيعات المكتشفة. التفاصيل الكاملة في [`docs/DE_SUPPORT_AR.md`](docs/DE_SUPPORT_AR.md).
+يطبع `orbiscreen doctor` الـ compositor المكتشف وخطة الالتقاط التي سيتبعها `auto` وما الناقص في النظام؛ وينفّذ `orbiscreen doctor --fix` تثبيت وحدة نواة EVDI على التوزيعات المكتشفة. التفاصيل الكاملة في [دليل دعم بيئات سطح المكتب](docs/DE_SUPPORT_AR.md).
 
 ---
 
 <a id="quick-start"></a>
 ## 🚀 البدء السريع
 
-### 1. الحزم الرسمية والملفات الجاهزة (GitHub Releases)
+### 1. الحزم الرسمية (GitHub Releases)
 
 حمّل الحزم المبنية مسبقاً من [GitHub Releases](https://github.com/shadow-x78/orbiscreen/releases):
 
@@ -133,67 +113,43 @@
 - **أرشيف مستقل (`.tar.gz`):**
   ```bash
   tar -xzvf orbiscreen-linux-x86_64.tar.gz
-  cd release-bundle && ./install.sh
+  ./bin/orbiscreen start
   ```
+  ضع ملفات `bin/` على `PATH` لديك (مثلاً `~/.local/bin`) لتشغيل `orbiscreen` من أي مكان. يحتوي الأرشيف على الثنائيات الجاهزة فقط؛ لوحدة systemd ومدخل سطح المكتب وملفات عميل الويب استخدم حزم DEB/RPM/AppImage أو ثبّت من المصدر (أدناه).
 
 - **Android (`.apk`):**
   ثبّت `orbiscreen-android-release.apk` (نسخة موقّعة لتجاوز تحذيرات Play Protect).
 
-### 2. البناء من المصدر
+### 2. البناء من المصدر (للمساهمين)
 
 ```bash
-# استنساخ المستودع
 git clone https://github.com/shadow-x78/orbiscreen.git ~/Orbiscreen
 cd ~/Orbiscreen
 
 # أمر التثبيت الواحد لنظام Linux
 ./scripts/install.sh
 
-# وحدة النواة evdi عبر DKMS - مطلوبة لشاشة ثانية حقيقية على أغلب بيئات
-# سطح المكتب. على KDE Plasma Wayland وعلى compositors عائلة wlroots (Sway,
-# Hyprland) لا حاجة لأي وحدة نواة: ينشئ الـ daemon مونيتوراً افتراضياً أصلياً
-# من الـ compositor من تلقاء نفسه (بلا root وبلا نافذة مشاركة). وبدون أيٍّ من
-# تلك المسارات يبث Orbiscreen شاشة تختارها من نافذة مشاركة portal.
-# شغّل `orbiscreen doctor` لترى ما ينطبق على نظامك.
-# راجع docs/TROUBLESHOOTING_AR.md لخطوات التوزيعات. ثم:
+# وحدة النواة evdi عبر DKMS - مطلوبة لشاشة ثانية حقيقية على X11 وGNOME.
+# على KDE Plasma Wayland وعلى compositors عائلة wlroots (Sway، Hyprland)
+# لا حاجة لأي وحدة نواة: ينشئ الـ daemon مونيتوراً افتراضياً أصلياً من
+# الـ compositor من تلقاء نفسه. شغّل `orbiscreen doctor` لترى ما ينطبق.
 sudo modprobe evdi
 
 # تشخيص البيئة: الـ compositor المكتشف، خطة الالتقاط، النواقص
 orbiscreen doctor
 
-# تشغيل خدمة Orbiscreen (مع تراجع تلقائي: EVDI DRM أو شاشة افتراضية من
+# تشغيل الخدمة (مع تراجع تلقائي: EVDI DRM أو شاشة افتراضية من
 # KWin/wlroots أو Wayland Portal)
 orbiscreen start
 ```
-
-#### تفضيل واجهة الالتقاط (`orbiscreen.toml`)
-
-يقرأ الخادم افتراضيًا `$XDG_CONFIG_HOME/orbiscreen/orbiscreen.toml`
-(أو `~/.config/orbiscreen/orbiscreen.toml` عندما لا يكون `XDG_CONFIG_HOME` معرّفًا)،
-وهو المسار نفسه الذي تستخدمه وحدة systemd للمستخدم. أنشئ الملف هناك، أو
-حدّد موقعًا آخر عبر `--config /path/to/orbiscreen.toml`.
-
-```toml
-[capture]
-preferred = "auto"   # auto (الافتراضي) | kwin-virtual | screencopy | evdi | portal | mirror
-```
-
-| القيمة | السلوك |
-|--------|--------|
-| `auto` | KDE Plasma Wayland: شاشة KWin الافتراضية. ‏Sway/Hyprland/wlroots: مخرج افتراضي من الـ compositor عبر IPC، وإلا عكس شاشة موجودة عبر wlr-screencopy، وإلا portal. ‏X11: ‏EVDI عند تحميل وحدتها، وإلا التقاط الشاشة الجذر. |
-| `kwin-virtual` | شاشة KWin الافتراضية دائماااً (فشل صريح على غير KDE). |
-| `screencopy` | التقاط wlroots screencopy دائماااً (يتطلب compositor من عائلة wlroots). |
-| `evdi` | شاشة EVDI DRM الافتراضية دائماااً (اختيارية، تتطلب وحدة نواة مثبتة بـ root). |
-| `portal` | نافذة مشاركة portal دائماااً؛ اختر أي شاشة. |
-| `mirror` | اعرض **سطح مكتبك الحقيقي** بدل شاشة ثانية: اختر الشاشة المراد عكسها من نافذة المشاركة. |
-
-> الشاشة الافتراضية تبدأ **فارغة** (خلفية سطح المكتب فقط)، هذا معنى الشاشة الثانية. اسحب النوافذ إلى `Virtual-ORBISCREEN`، أو استخدم `mirror` لبث شاشتك الفعلية.
 
 ### 3. الاتصال
 
 - **Android:** انقر المضيف المكتشف (عبر mDNS) أو أضفه يدوياً.
 - **متصفح الويب:** افتح `http://<host-ip>:8788/` - يخدم الدامن عميل MPEG-TS مباشرةً (MSE + حزمة `mpegts.js` المضمنة محلياً).
 - **التوكن:** تُولد كل بدءة للدامن توكن جلسة. يحصل Android عليه تلقائياً من الاكتشاف؛ عميل الويب يجلبه من `/client/config.json`. إذا رفض العميل برفض `401 Unauthorized`، أعد الاكتشاف أو أعد تشغيل العميل - قد يكون التوكن قد دار.
+
+> تفضيل واجهة الالتقاط عبر `orbiscreen.toml` (`auto` الافتراضي، مع `kwin-virtual` / `screencopy` / `evdi` / `portal` / `mirror`) موثق بالكامل في [دليل دعم بيئات سطح المكتب](docs/DE_SUPPORT_AR.md).
 
 ---
 
@@ -212,16 +168,6 @@ preferred = "auto"   # auto (الافتراضي) | kwin-virtual | screencopy | e
 | `orbiscreen doctor --fix` | كشف التوزيعة وعرض تثبيت/تحميل وحدة نواة EVDI مع التأكيد (`--yes` لتجاوز السؤال) |
 | `orbiscreen print-config` | طباعة الإعدادات الفعلية |
 | `orbiscreen uninstall` | إزالة الخدمة وخدمة systemd ومدخلات سطح المكتب |
-
-```bash
-orbiscreen --config orbiscreen.toml --verbose probe
-```
-
-لإزالة كل شيء، بما فيها الإعدادات المحفوظة وحالة وحدة evdi:
-
-```bash
-orbiscreen uninstall && ./scripts/uninstall.sh
-```
 
 ---
 
@@ -252,36 +198,6 @@ orbiscreen uninstall && ./scripts/uninstall.sh
 ## 🏗️ المعمارية
 
 ```
-orbiscreen/
-├── crates/
-│   ├── orbiscreen-core/        # الأنواع والإعدادات والأخطاء
-│   ├── orbiscreen-display/     # شاشات افتراضية مدعومة بـ evdi
-│   ├── orbiscreen-capture/     # X11 ‏(x11rb) + Wayland ‏(KWin zkde-screencast / ashpd portal + PipeWire)
-│   ├── orbiscreen-encode/      # خط أنابيب GStreamer ‏(VAAPI / NVENC / x264)
-│   ├── orbiscreen-input/       # evdevil + ashpd RemoteDesktop
-│   ├── orbiscreen-transport/   # axum + mDNS + /api/info + /api/control
-│   └── orbiscreen-daemon/      # ثنائي CLI يربط كل الطبقات
-├── clients/
-│   ├── web/                    # عميل متصفح MPEG-TS ‏(HTML / CSS / JS)
-│   └── android/                # تطبيق Material 3 Compose
-│       └── app/src/main/java/com/orbiscreen/android/
-│           ├── MainActivity.kt
-│           ├── data/           # PrefsStore ‏(المضيف الأخير + الإعدادات)
-│           ├── net/            # DiscoveryService, SubnetScanner, HostApi
-│           ├── player/         # PlayerHolder, StreamUrl
-│           ├── input/          # InputDispatcher
-│           └── ui/
-│               ├── theme/      # ألوان Material 3 وطباعة وسمات
-│               ├── nav/        # رسم بياني للتنقل Compose
-│               ├── discovery/  # DiscoveryScreen + ViewModel
-│               ├── stream/     # StreamScreen, PlayerSurface, ControlToolbar
-│               └── settings/   # SettingsScreen
-├── scripts/                    # التثبيت والحزم (deb / rpm / AppImage) وأدوات التطوير
-├── .github/{workflows/,ISSUE_TEMPLATE/,PULL_REQUEST_TEMPLATE.md}
-└── .editorconfig, .gitignore, .gitattributes, deny.toml, rustfmt.toml
-```
-
-```
 ┌──────────────────────────────────────────────────────────────┐
 │  orbiscreen-daemon ‏(CLI، clap)‏                               │
 │  ┌──────────────┐  ┌──────────────┐  ┌───────────────────┐   │
@@ -304,16 +220,50 @@ orbiscreen/
 
 ---
 
+<a id="project-structure"></a>
+## 🏗️ هيكل المشروع
+
+```
+orbiscreen/
+├── crates/
+│   ├── orbiscreen-core/        # الأنواع والإعدادات والأخطاء
+│   ├── orbiscreen-display/     # شاشات افتراضية مدعومة بـ evdi
+│   ├── orbiscreen-capture/     # X11 ‏(x11rb) + Wayland ‏(KWin zkde-screencast / ashpd portal + PipeWire)
+│   ├── orbiscreen-encode/      # خط أنابيب GStreamer ‏(VAAPI / NVENC / x264)
+│   ├── orbiscreen-input/       # evdevil + ashpd RemoteDesktop
+│   ├── orbiscreen-transport/   # axum + mDNS + /api/info + /api/control
+│   └── orbiscreen-daemon/      # ثنائي CLI يربط كل الطبقات
+├── clients/
+│   ├── web/                    # عميل متصفح MPEG-TS ‏(HTML / CSS / JS)
+│   └── android/                # تطبيق Material 3 Compose
+│       └── app/src/main/java/com/orbiscreen/android/
+│           ├── MainActivity.kt
+│           ├── data/           # PrefsStore ‏(المضيف الأخير + الإعدادات)
+│           ├── net/            # DiscoveryService, SubnetScanner, HostApi
+│           ├── player/         # PlayerHolder, StreamUrl
+│           ├── input/         # InputDispatcher
+│           └── ui/            # theme، nav، discovery، stream، settings
+├── assets/
+│   └── logo/                   # شعار المشروع ‏(SVG + مجموعة PNG)
+├── data/                       # مدخل سطح المكتب وspec RPM والـSVG الرئيسي
+├── scripts/                    # التثبيت والحزم (deb / rpm / AppImage) وأدوات التطوير
+├── docs/                       # أدلة ثنائية اللغة (EN + AR)
+├── .github/{workflows/,ISSUE_TEMPLATE/,PULL_REQUEST_TEMPLATE.md}
+└── .editorconfig, .gitignore, .gitattributes, deny.toml, rustfmt.toml
+```
+
+---
+
 <a id="documentation"></a>
 ## 📚 التوثيق
 
 | المستند | الوصف |
 |---------|-------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | طوبولوجيا النظام وخط أنابيب الإطارات ومعمارية D-Bus |
-| [docs/DE_SUPPORT.md](docs/DE_SUPPORT.md) · [AR](docs/DE_SUPPORT_AR.md) | مصفوفة دعم كل بيئة سطح مكتب وخطط الالتقاط وحلول الأعطال |
-| [docs/PACKAGING.md](docs/PACKAGING.md) · [AR](docs/PACKAGING_AR.md) | مواصفات التغليف متعدد التوزيعات ‏(.deb، .rpm، AppImage)‏ |
-| [docs/DBUS_SPEC.md](docs/DBUS_SPEC.md) · [AR](docs/DBUS_SPEC_AR.md) | مواصفات واجهة D-Bus Session Bus |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) · [AR](docs/TROUBLESHOOTING_AR.md) | المشاكل الشائعة والتشخيص وإصلاحات التسريع العتادي |
+| [ARCHITECTURE_AR.md](docs/ARCHITECTURE_AR.md) | طوبولوجيا النظام وخط أنابيب الإطارات ومعمارية D-Bus |
+| [DE_SUPPORT_AR.md](docs/DE_SUPPORT_AR.md) | مصفوفة دعم كل بيئة سطح مكتب وخطط الالتقاط وحلول الأعطال |
+| [PACKAGING_AR.md](docs/PACKAGING_AR.md) | مواصفات التغليف متعدد التوزيعات ‏(.deb، .rpm، AppImage)‏ |
+| [DBUS_SPEC_AR.md](docs/DBUS_SPEC_AR.md) | مواصفات واجهة D-Bus Session Bus |
+| [TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) | المشاكل الشائعة والتشخيص وإصلاحات التسريع العتادي |
 | [SECURITY.md](SECURITY.md) | نموذج الأمان وسلامة النقل وسياسات الشبكة |
 | [CHANGELOG.md](CHANGELOG.md) | سجل الإصدارات الكامل |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | إرشادات المساهمة والبناء من المصدر |
@@ -323,21 +273,13 @@ orbiscreen/
 <a id="contributing"></a>
 ## 🤝 المساهمة
 
-راجع [إرشادات المساهمة](CONTRIBUTING.md) لمعرفة كيفية تهيئة بيئة التطوير وتنسيق الكود وإرسال Pull Requests.
+1. اعمل Fork للمستودع
+2. أنشئ فرعاً جديداً: `git checkout -b feature/my-feature`
+3. التزم بالتغييرات: `orbiscreen | <type>: <description>`
+4. ادفع إلى الفرع
+5. افتح Pull Request
 
-عند الالتزام (commit)، اتبع الأسلوب التالي:
-
-```text
-orbiscreen | <النطاق>: <الرسالة>
-```
-
-على سبيل المثال:
-
-```text
-orbiscreen | android | player: retry on transient network errors
-orbiscreen | docs | readme: clarify mDNS discovery flow
-orbiscreen | v0.10.3 | release: host-input protocol alignment
-```
+راجع [إرشادات المساهمة](CONTRIBUTING.md) لبيئة التطوير وأسلوب الكود وعملية الإصدار.
 
 ---
 
@@ -351,7 +293,7 @@ orbiscreen | v0.10.3 | release: host-input protocol alignment
 <div align="center">
 
 بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
-[السجل](CHANGELOG.md) ·
+[سجل التغييرات](CHANGELOG.md) ·
 [الأمان](SECURITY.md)
 
 <sub>&copy; 2026 Orbiscreen</sub>
