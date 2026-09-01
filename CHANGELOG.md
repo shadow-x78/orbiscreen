@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.15.2] - 2026-09-01
+
+The mark chosen by the maintainer from a rendered concept board. The v0.15.1 side-by-side pairing (hollow monitor rectangle + lit phone rectangle) was rejected for reading as two detached shapes rather than one form - boring, identity-less, and badly proportioned. Five concept directions were rendered as full preview boards (dark canvas, light canvas, and a simulated circular launcher icon for each) and reviewed visually; concept D - the interlock - was selected, then engineered into its final geometry.
+
+### 🎨 Changed
+- **The mark is the O of Orbiscreen as a display ring with the device screen riding its path:** a thick-stroked ring (r=170, stroke 54 on the logo grid) with a solid dot (r=62) centered on the ring's own path at its lower-right arc - the extension entering the host display, one unbroken form. A plain two-circle interlock inside a square canvas was proven unrenderable cleanly (two max-size circles in a 440-unit box either miss each other or swallow each other - the geometry forbids a light overlap), so the dot rides the ring's path instead: the interlock reads instantly while the ring alone carries the letterform. Flat, one accent color (Catppuccin Blue `#89b4fa`), two role classes (`.orbi-s` stroke, `.orbi-f` fill), the design story documented inside the SVG. The content box is exactly square (394x394 measured, ratio 1.000 at every render size from 48px to 512px) and dead-centered (measured center 256.0, 256.0); the full asset set (`assets/logo/` SVG master + 48/64/96/128/256/512 PNGs + dark-canvas preview) is regenerated, the Android adaptive foreground is redrawn from the same geometry with every blue pixel verified inside the 66/108 circular-mask safe zone (bbox 117..315 of 432 vs mask 72..360), and all density mipmaps (square and round) are re-rendered.
+
 ## [v0.15.1] - 2026-09-01
 
 The mark rebuilt on honest geometry. The v0.15.0 two-screen scene (rotated pair + floating stream arc + arrowhead) read as broken and mismatched - the -8 degree rotation put a visible slant on every edge, the arc floated unattached inside the hollow host screen, and the solid arrowhead collided with the phone's frame stroke, producing a fused blob at the join.

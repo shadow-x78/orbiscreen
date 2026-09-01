@@ -3,12 +3,12 @@
      Orbiscreen - Android Launcher Foreground Icon
      https://github.com/shadow-x78/orbiscreen
 
-     The project mark at launcher scale: the host
-     monitor beside the phone with its extended
-     screen lit. Drawn on the 512 logo grid,
-     axis-aligned, scaled into the 66/108 adaptive
-     safe zone so no launcher mask shape ever
-     clips it.
+     The project mark at launcher scale: the O of
+     Orbiscreen as a display ring with the device
+     screen - a solid dot - riding its path. Drawn
+     on the 512 logo grid, scaled into the 66/108
+     adaptive safe zone so no launcher mask shape
+     ever clips it.
      ───────────────────────────────────────────── -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -23,15 +23,10 @@
         <path
             android:fillColor="@android:color/transparent"
             android:strokeColor="#89B4FA"
-            android:strokeWidth="26"
-            android:pathData="M67,181 h161 a18,18 0 0 1 18,18 v114 a18,18 0 0 1 -18,18 h-161 a18,18 0 0 1 -18,-18 v-114 a18,18 0 0 1 18,-18 z" />
-        <path
-            android:fillColor="@android:color/transparent"
-            android:strokeColor="#89B4FA"
-            android:strokeWidth="26"
-            android:pathData="M317,49 h122 a24,24 0 0 1 24,24 v366 a24,24 0 0 1 -24,24 h-122 a24,24 0 0 1 -24,-24 v-366 a24,24 0 0 1 24,-24 z" />
+            android:strokeWidth="54"
+            android:pathData="M256,256 m-170,0 a170,170 0 1 1 340,0 a170,170 0 1 1 -340,0" />
         <path
             android:fillColor="#89B4FA"
-            android:pathData="M327,71 h102 a12,12 0 0 1 12,12 v346 a12,12 0 0 1 -12,12 h-102 a12,12 0 0 1 -12,-12 v-346 a12,12 0 0 1 12,-12 z" />
+            android:pathData="M376,376 m-62,0 a62,62 0 1 1 124,0 a62,62 0 1 1 -124,0" />
     </group>
 </vector>

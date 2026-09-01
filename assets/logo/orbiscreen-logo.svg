@@ -2,22 +2,19 @@
   <!-- ─────────────────────────────────────────────
        Orbiscreen - Project Logo
        ─────────────────────────────────────────────
-       What the product does, drawn as one picture:
-       the host monitor, and beside it the phone
-       showing the extended screen - lit in the
-       brand blue. Zero rotation, zero overlap,
-       zero decoration: every edge is perfectly
-       horizontal or vertical, and the pairing
-       alone tells the story of a second display.
-       One accent color, two role classes
-       (.orbi-s stroke, .orbi-f fill). Square
-       content box, dead-centered on the 512
-       canvas by construction.
+       The O of Orbiscreen drawn as a display ring,
+       with the device screen - a solid dot - riding
+       its own path at the ring's edge, filling it:
+       the extension entering the host display, one
+       unbroken form. Flat, one accent color
+       (Catppuccin Blue #89b4fa, the brand accent),
+       two role classes (.orbi-s stroke, .orbi-f
+       fill). Square content box, dead-centered on
+       the 512 canvas by construction.
        ───────────────────────────────────────────── -->
   <defs>
     <style>.orbi-f{fill:#89b4fa;}.orbi-s{fill:none;stroke:#89b4fa;}</style>
   </defs>
-  <rect class="orbi-s" x="49" y="181" width="217" height="150" rx="18" stroke-width="26"/>
-  <rect class="orbi-s" x="293" y="49" width="170" height="414" rx="24" stroke-width="26"/>
-  <rect class="orbi-f" x="315" y="71" width="126" height="370" rx="12"/>
+  <circle class="orbi-s" cx="256" cy="256" r="170" stroke-width="54"/>
+  <circle class="orbi-f" cx="376" cy="376" r="62"/>
 </svg>
