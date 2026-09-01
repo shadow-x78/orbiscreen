@@ -59,6 +59,7 @@ pub struct Stats {
     active_clients: AtomicUsize,
     total_clients: AtomicU64,
     auth_failures: AtomicU64,
+    usb_devices: AtomicUsize,
 }
 
 impl Stats {
@@ -78,12 +79,20 @@ impl Stats {
         self.auth_failures.load(Ordering::Relaxed)
     }
 
+    pub fn usb_devices(&self) -> usize {
+        self.usb_devices.load(Ordering::Relaxed)
+    }
+
     fn note_frame(&self) {
         self.frames_forwarded.fetch_add(1, Ordering::Relaxed);
     }
 
     fn note_auth_failure(&self) {
         self.auth_failures.fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn note_usb_devices(&self, count: usize) {
+        self.usb_devices.store(count, Ordering::Relaxed);
     }
 
     pub fn client_started(&self) {
@@ -145,6 +154,7 @@ impl Transport {
         &self.token
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn serve(
         self,
         frames: mpsc::Receiver<H264Packet>,
@@ -153,6 +163,7 @@ impl Transport {
         display_height: u32,
         refresh_hz: u32,
         encoder_kind: &'static str,
+        shutdown_rx: tokio::sync::watch::Receiver<bool>,
     ) -> Result<(), TransportError> {
         let input_tx = self.input_tx;
         let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<SeqPacket>(360);
@@ -182,18 +193,59 @@ impl Transport {
         info!("orbiscreen transport listening on http://{local}");
 
         let adb_port = self.cfg.signaling_port;
+        let adb_stats = state.stats.clone();
+        let mut adb_shutdown = shutdown_rx.clone();
         tokio::spawn(async move {
-            let joined = tokio::task::spawn_blocking(move || {
-                adb::setup_reverse_for_all(adb::default_adb_path(), adb_port)
+            let mut known: Vec<String> = Vec::new();
+            loop {
+                let port_now = adb_port;
+                let joined = tokio::task::spawn_blocking(move || {
+                    adb::setup_reverse_for_all(adb::default_adb_path(), port_now)
+                })
+                .await;
+                match joined {
+                    Ok(Ok(devices)) => {
+                        for serial in &devices {
+                            if !known.contains(serial) {
+                                info!("ADB reverse tunnel established on USB device {serial}");
+                            }
+                        }
+                        for serial in &known {
+                            if !devices.contains(serial) {
+                                info!("USB device {serial} disconnected (tunnel closed by adb)");
+                            }
+                        }
+                        known = devices;
+                    }
+                    Ok(Err(adb::AdbError::NoDevice | adb::AdbError::NotInstalled)) => {
+                        if !known.is_empty() {
+                            for serial in &known {
+                                info!("USB device {serial} disconnected (tunnel closed by adb)");
+                            }
+                        }
+                        known.clear();
+                    }
+                    Ok(Err(e)) => debug!("ADB reverse port forwarding inactive: {e}"),
+                    Err(_) => break,
+                }
+                adb_stats.note_usb_devices(known.len());
+                tokio::select! {
+                    _ = tokio::time::sleep(std::time::Duration::from_secs(2)) => {}
+                    _ = adb_shutdown.changed() => break,
+                }
+            }
+            adb_stats.note_usb_devices(0);
+            let teardown = tokio::task::spawn_blocking(move || {
+                adb::teardown_reverse_for_all(adb::default_adb_path(), adb_port)
             })
             .await;
-            match joined {
+            match teardown {
                 Ok(Ok(devices)) => {
-                    info!("ADB reverse port forwarding configured for devices: {devices:?}")
+                    info!("ADB reverse tunnels removed for devices: {devices:?}")
                 }
                 Ok(Err(adb::AdbError::NoDevice | adb::AdbError::NotInstalled)) => {}
-                Ok(Err(e)) => debug!("ADB reverse port forwarding inactive: {e}"),
-                Err(_) => debug!("ADB reverse port forwarding task aborted"),
+                Ok(Err(e)) => debug!("ADB reverse teardown inactive: {e}"),
+                Err(_) => debug!("ADB reverse teardown task aborted"),
             }
         });
 
@@ -282,6 +334,7 @@ async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
         "frames_forwarded": state.stats.frames_forwarded(),
         "active_clients": state.stats.active_clients(),
         "auth_failures": state.stats.auth_failures(),
+        "usb_devices": state.stats.usb_devices(),
         "uptime_seconds": state.started.elapsed().as_secs(),
     }))
 }

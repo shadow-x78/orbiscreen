@@ -15,12 +15,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Mouse
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.orbiscreen.android.R
 
@@ -42,73 +47,92 @@ fun ControlToolbar(
     onBlank: () -> Unit,
     onCtrlAltDel: () -> Unit,
     onRetry: () -> Unit,
+    onHideControls: () -> Unit,
     modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Header(hostLabel, encoder, resolution)
-        Spacer(Modifier.size(8.dp))
-        Actions(
-            onToggleKeyboard = onToggleKeyboard,
-            onLock = onLock,
-            onBlank = onBlank,
-            onCtrlAltDel = onCtrlAltDel,
-            onRetry = onRetry,
-        )
-    }
-}
-
-@Composable
-private fun Header(hostLabel: String, encoder: String, resolution: String) {
-    Surface(
-        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-        tonalElevation = 6.dp,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(hostLabel, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = listOfNotNull(
-                        resolution.takeIf { it.isNotBlank() },
-                        encoder.takeIf { it.isNotBlank() },
-                    ).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun Actions(
-    onToggleKeyboard: () -> Unit,
-    onLock: () -> Unit,
-    onBlank: () -> Unit,
-    onCtrlAltDel: () -> Unit,
-    onRetry: () -> Unit,
 ) {
     Surface(
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
         tonalElevation = 6.dp,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
         ) {
-            item { ChipAction(Icons.Filled.Keyboard, stringResource(R.string.open_keyboard), onToggleKeyboard) }
-            item { ChipAction(Icons.Filled.Lock, stringResource(R.string.lock_screen), onLock) }
-            item { ChipAction(Icons.Filled.VisibilityOff, stringResource(R.string.blank_screen), onBlank) }
-            item { ChipAction(Icons.Filled.Mouse, stringResource(R.string.send_ctrl_alt_del), onCtrlAltDel) }
-            item { ChipAction(Icons.Filled.Refresh, stringResource(R.string.retry), onRetry) }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = hostLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = listOfNotNull(
+                            resolution.takeIf { it.isNotBlank() },
+                            encoder.takeIf { it.isNotBlank() },
+                        ).joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = onHideControls) {
+                    Icon(
+                        Icons.Filled.Fullscreen,
+                        contentDescription = stringResource(R.string.fullscreen_toggle),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Spacer(Modifier.size(8.dp))
+
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                item {
+                    ChipAction(
+                        icon = Icons.Filled.Keyboard,
+                        label = stringResource(R.string.open_keyboard),
+                        onClick = onToggleKeyboard,
+                    )
+                }
+                item {
+                    ChipAction(
+                        icon = Icons.Filled.Lock,
+                        label = stringResource(R.string.lock_screen),
+                        onClick = onLock,
+                    )
+                }
+                item {
+                    ChipAction(
+                        icon = Icons.Filled.VisibilityOff,
+                        label = stringResource(R.string.blank_screen),
+                        onClick = onBlank,
+                    )
+                }
+                item {
+                    ChipAction(
+                        icon = Icons.Filled.Terminal,
+                        label = stringResource(R.string.send_ctrl_alt_del),
+                        onClick = onCtrlAltDel,
+                    )
+                }
+                item {
+                    ChipAction(
+                        icon = Icons.Filled.Refresh,
+                        label = stringResource(R.string.retry),
+                        onClick = onRetry,
+                    )
+                }
+            }
         }
     }
 }
@@ -117,17 +141,27 @@ private fun Actions(
 private fun ChipAction(icon: ImageVector, label: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-        modifier = Modifier.width(width = 96.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
+        modifier = Modifier.width(92.dp),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(vertical = 10.dp),
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
         ) {
-            Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            Icon(
+                icon,
+                contentDescription = label,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(22.dp),
+            )
             Spacer(Modifier.size(4.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                maxLines = 1,
+            )
         }
     }
 }

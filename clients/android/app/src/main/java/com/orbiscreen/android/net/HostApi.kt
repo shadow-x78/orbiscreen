@@ -74,6 +74,26 @@ class HostApi {
         }
     }
 
+    enum class UsbProbeResult { Ready, TunnelDown }
+
+    suspend fun probeUsb(port: Int): UsbProbeResult = withContext(Dispatchers.IO) {
+        withTimeoutOrNull(1200) {
+            try {
+                val req = Request.Builder().url("http://127.0.0.1:$port/health").build()
+                client.newCall(req).execute().use { resp ->
+                    when {
+                        resp.isSuccessful -> UsbProbeResult.Ready
+                        resp.code == 404 -> UsbProbeResult.TunnelDown
+                        else -> UsbProbeResult.TunnelDown
+                    }
+                }
+            } catch (e: Exception) {
+                Log.v(TAG, "usb health probe failed: ${e.message}")
+                UsbProbeResult.TunnelDown
+            }
+        } ?: UsbProbeResult.TunnelDown
+    }
+
     companion object {
         private const val MAX_RESPONSE_BYTES = 64L * 1024L
     }

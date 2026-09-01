@@ -16,10 +16,10 @@
     android:viewportWidth="512"
     android:viewportHeight="512">
     <group
-        android:scaleX="0.129"
-        android:scaleY="0.129"
-        android:translateX="163"
-        android:translateY="163">
+        android:scaleX="0.65"
+        android:scaleY="0.65"
+        android:pivotX="256"
+        android:pivotY="256">
         <path
             android:fillColor="@android:color/transparent"
             android:strokeColor="#89B4FA"

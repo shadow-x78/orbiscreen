@@ -53,6 +53,10 @@ import com.orbiscreen.android.data.PrefsStore
 import com.orbiscreen.android.data.RecentHost
 import com.orbiscreen.android.ui.theme.ThemeMode
 
+import android.widget.Toast
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -76,35 +80,41 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            SectionCard(title = "Appearance") {
+            SectionCard(title = stringResource(R.string.settings_appearance)) {
                 ThemeRow(stringResource(R.string.theme_system), ThemeMode.System, prefs)
                 HorizontalDivider()
                 ThemeRow(stringResource(R.string.theme_light), ThemeMode.Light, prefs)
                 HorizontalDivider()
                 ThemeRow(stringResource(R.string.theme_dark), ThemeMode.Dark, prefs)
             }
-            SectionCard(title = "Streaming") {
+            SectionCard(title = stringResource(R.string.settings_streaming)) {
                 SwitchRow(
-                    title = "Force software decoder",
-                    subtitle = "Enable on devices that struggle with hardware H.264",
+                    title = stringResource(R.string.force_sw_decoder),
+                    subtitle = stringResource(R.string.force_sw_decoder_summary),
                     checked = prefs.forceSoftwareDecoder,
                     onChange = { prefs.forceSoftwareDecoder = it },
                 )
                 HorizontalDivider()
                 SwitchRow(
                     title = stringResource(R.string.enable_subnet_scanner),
-                    subtitle = "Active scan of nearby hosts (may trigger network alarms)",
+                    subtitle = stringResource(R.string.subnet_scanner_summary),
                     checked = prefs.enableSubnetScanner,
                     onChange = { prefs.enableSubnetScanner = it },
                 )
             }
-            SectionCard(title = "Recent host") {
+            SectionCard(title = stringResource(R.string.settings_recent_host)) {
                 var recent by remember { mutableStateOf<RecentHost?>(prefs.recentHost) }
                 if (recent == null) {
-                    Text("None yet", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp))
+                    Text(
+                        stringResource(R.string.no_recent_host),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp),
+                    )
                 } else {
                     Row(
                         Modifier
@@ -114,7 +124,11 @@ fun SettingsScreen(
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text("${recent?.host}:${recent?.port}", style = MaterialTheme.typography.titleMedium)
-                            Text("Recent connection", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                stringResource(R.string.recent_connection),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                         IconButton(onClick = {
                             prefs.clearRecent()
@@ -139,6 +153,7 @@ fun SettingsScreen(
                     IconButton(onClick = {
                         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         cm.setPrimaryClip(ClipData.newPlainText("Orbiscreen Version", "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"))
+                        Toast.makeText(context, context.getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
                     }) {
                         Icon(Icons.Filled.Code, contentDescription = null)
                     }

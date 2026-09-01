@@ -8,6 +8,7 @@ import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.util.Log
+import android.net.wifi.WifiManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -125,6 +126,17 @@ class DiscoveryService(private val context: Context) {
     }
 
     private fun listen(): Flow<ResolvedService> = callbackFlow {
+        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        val multicastLock = try {
+            wifiManager?.createMulticastLock("Orbi.MdnsLock")?.apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "multicastLock error: ${e.message}")
+            null
+        }
+
         val resolved = ConcurrentHashMap<String, Pair<String, Int>>()
         val pending = ArrayDeque<NsdServiceInfo>()
         var resolving = false
@@ -151,7 +163,8 @@ class DiscoveryService(private val context: Context) {
                 Log.d(TAG, "discovery started: $regType")
             }
             override fun onServiceFound(service: NsdServiceInfo) {
-                if (service.serviceType != SERVICE_TYPE) return
+                val serviceType = service.serviceType.trim('.')
+                if (!serviceType.equals("_orbiscreen._tcp", ignoreCase = true)) return
                 val serviceName = service.serviceName
                 Log.d(TAG, "service found: $serviceName")
                 pending.addLast(service)
@@ -179,6 +192,13 @@ class DiscoveryService(private val context: Context) {
             try { nsd.stopServiceDiscovery(listener) } catch (e: Exception) {
                 Log.w(TAG, "stopServiceDiscovery: ${e.message}")
                 stopped.complete(Unit)
+            }
+            try {
+                if (multicastLock?.isHeld == true) {
+                    multicastLock.release()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "release multicastLock error: ${e.message}")
             }
         }
     }

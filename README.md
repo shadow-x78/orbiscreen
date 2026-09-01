@@ -6,7 +6,7 @@
 
 Real virtual secondary displays for Linux, streamed to Android - one command, zero hassle
 
-[![Version](https://img.shields.io/badge/version-0.15.3-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.16.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -64,7 +64,7 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 - **Token protection** - `/stream`, `/input` and `/api/control` require a per-session token (mDNS TXT / `/client/config.json`), rotated on every daemon start
 - **Reverse touch** - absolute pointer / keyboard / stylus / wheel events flow Android → host
 - **Host control panel** - keyboard, lock, blank, Ctrl+Alt+Del, and retry actions
-- **USB transport** via `adb reverse`, no special drivers
+- **USB transport** via `adb reverse` with hot-plug (a device plugged in later is picked up within two seconds), clean teardown on stop, and a live "tunnel ready" card state in the Android app
 - **Hardware encoding** - VAAPI, NVENC, x264 software fallback
 - **Cryptographic signing** of every Linux and Android artifact
 

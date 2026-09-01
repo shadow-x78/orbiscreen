@@ -51,6 +51,30 @@ pub fn reverse_port(adb_path: &Path, device: &str, host_port: u16) -> Result<(),
     Ok(())
 }
 
+pub fn remove_reverse(adb_path: &Path, device: &str, host_port: u16) -> Result<(), AdbError> {
+    let out = Command::new(adb_path)
+        .args([
+            "-s",
+            device,
+            "reverse",
+            "--remove",
+            &format!("tcp:{host_port}"),
+        ])
+        .output()
+        .map_err(spawn_error)?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr).trim().to_owned();
+        if stderr.contains("listener") && stderr.contains("not found") {
+            return Ok(());
+        }
+        return Err(AdbError::Failed(format!(
+            "adb reverse --remove exited with {}: {stderr}",
+            out.status
+        )));
+    }
+    Ok(())
+}
+
 fn spawn_error(e: std::io::Error) -> AdbError {
     if e.kind() == std::io::ErrorKind::NotFound {
         AdbError::NotInstalled
@@ -83,6 +107,59 @@ pub fn setup_reverse_for_all(adb_path: &Path, host_port: u16) -> Result<Vec<Stri
     Ok(serials)
 }
 
+pub fn teardown_reverse_for_all(adb_path: &Path, host_port: u16) -> Result<Vec<String>, AdbError> {
+    let out = Command::new(adb_path)
+        .arg("devices")
+        .output()
+        .map_err(spawn_error)?;
+    if !out.status.success() {
+        return Err(AdbError::Failed(
+            String::from_utf8_lossy(&out.stderr).into_owned(),
+        ));
+    }
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let serials: Vec<String> = device_serials(&stdout)
+        .into_iter()
+        .map(str::to_owned)
+        .collect();
+    if serials.is_empty() {
+        return Err(AdbError::NoDevice);
+    }
+    for serial in &serials {
+        remove_reverse(adb_path, serial, host_port)?;
+    }
+    Ok(serials)
+}
+
+fn parse_reverse_list(out: &str, host_port: u16) -> usize {
+    let needle = format!("tcp:{host_port}");
+    out.lines()
+        .filter(|line| line.split_whitespace().next() == Some(needle.as_str()))
+        .count()
+}
+
+pub fn reverse_tunnel_count(
+    adb_path: &Path,
+    device: &str,
+    host_port: u16,
+) -> Result<usize, AdbError> {
+    let out = Command::new(adb_path)
+        .args(["-s", device, "reverse", "--list"])
+        .output()
+        .map_err(spawn_error)?;
+    if !out.status.success() {
+        return Err(AdbError::Failed(format!(
+            "adb reverse --list exited with {}: {}",
+            out.status,
+            String::from_utf8_lossy(&out.stderr).trim()
+        )));
+    }
+    Ok(parse_reverse_list(
+        &String::from_utf8_lossy(&out.stdout),
+        host_port,
+    ))
+}
+
 pub fn default_adb_path() -> &'static Path {
     Path::new("adb")
 }
@@ -100,5 +177,19 @@ mod tests {
     #[test]
     fn default_adb_path_is_relative() {
         assert_eq!(default_adb_path(), Path::new("adb"));
+    }
+
+    #[test]
+    fn counts_matching_reverse_tunnels() {
+        let output = "tcp:8788 tcp:8788\ntcp:8788 tcp:8788\ntcp:9999 tcp:9999\n";
+        assert_eq!(parse_reverse_list(output, 8788), 2);
+        assert_eq!(parse_reverse_list(output, 9999), 1);
+        assert_eq!(parse_reverse_list(output, 1234), 0);
+    }
+
+    #[test]
+    fn reverse_list_ignores_malformed_lines() {
+        let output = "tcp:8788 tcp:8788\n\nnot-a-tunnel\n";
+        assert_eq!(parse_reverse_list(output, 8788), 1);
     }
 }

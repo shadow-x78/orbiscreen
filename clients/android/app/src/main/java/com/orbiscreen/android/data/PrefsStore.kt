@@ -67,6 +67,10 @@ class PrefsStore(context: Context) {
         get() = prefs.getBoolean(KEY_SW_DECODER, false)
         set(value) { prefs.edit { putBoolean(KEY_SW_DECODER, value) } }
 
+    var usbPort: Int
+        get() = prefs.getInt(KEY_USB_PORT, DEFAULT_USB_PORT).coerceIn(1024, 65535)
+        set(value) { prefs.edit { putInt(KEY_USB_PORT, value.coerceIn(1024, 65535)) } }
+
     fun clearRecent() {
         prefs.edit {
             remove(KEY_RECENT_HOST); remove(KEY_RECENT_PORT); remove(KEY_RECENT_TS)
@@ -74,11 +78,13 @@ class PrefsStore(context: Context) {
     }
 
     companion object {
+        const val DEFAULT_USB_PORT = 8788
         private const val KEY_RECENT_HOST = "recent_host"
         private const val KEY_RECENT_PORT = "recent_port"
         private const val KEY_RECENT_TS = "recent_ts"
         private const val KEY_THEME = "theme_pref"
         private const val KEY_SUBNET = "enable_subnet"
         private const val KEY_SW_DECODER = "sw_decoder"
+        private const val KEY_USB_PORT = "usb_port"
     }
 }

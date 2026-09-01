@@ -2,7 +2,7 @@
 
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.15.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.16.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -316,15 +316,18 @@ sudo orbiscreen start
 ### Android: اتصال USB يعرض "Looking for host…"
 
 **الإصلاح:**
-يضبط Orbiscreen تلقائياً `adb reverse tcp:8788 tcp:8788` عند التشغيل. تأكد من:
+يدير Orbiscreen دورة حياة `adb reverse` كاملة من تلقاء نفسه: ينشئ النفق على كل جهاز متصل عند بدء الدامن، يلتقط جهازاً جديداً موصولاً خلال ثانيتين (hot-plug)، يعيد إنشاء نفق مات مع خروج غير نظيف من الدامن (الإنشاء idempotent)، ويزيل كل الأنفاق عند الإيقاف الرشيق. تأكد من:
 1. تفعيل **USB Debugging** في خيارات مطوّر Android.
 2. تخويل جهاز المضيف في رسالة التأكيد على هاتفك/جهازك اللوحي.
-3. التحقق يدوياً:
+3. تحقق مما يراه الدامن:
    ```bash
+   orbiscreen doctor          # يطبع سطر usb: وجود adb؟ الأجهزة؟ الأنفاق النشطة؟
    adb devices
-   adb reverse tcp:8788 tcp:8788
+   adb reverse --list
    ```
-4. انقر بطاقة **USB mode** في شاشة Discovery.
+4. انقر بطاقة **USB mode** في شاشة Discovery. تفحص البطاقة `http://127.0.0.1:8788/health` وتعرض الحالة الحية: **النفق جاهز** (علامة خضراء) أو **لا نفق** (شغّل الدامن على المضيف أو أعد توصيل الكابل).
+
+عدد الأنفاق لدى الدامن مرئي في أي لحظة عبر `GET /health`‏ (الحقل `usb_devices`) وفي حمولة `GetStatus` عبر D-Bus.
 
 ---
 

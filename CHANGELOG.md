@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.16.0] - 2026-09-01
+
+USB transport, completed. The audit rounds had pruned the half-finished adb lifecycle (v0.11.2 removed an unused `remove_reverse`, correctly dead at the time because nothing ever called it), which left USB as a best-effort one-shot: tunnels were created once at daemon start, never re-created for a device plugged in later, never cleaned up on stop, invisible to `doctor`, and unreported anywhere - while the Android app's USB card connected to a hardcoded `127.0.0.1:8788` with no feedback at all. This release closes the loop on both sides of the cable.
+
+### ✨ Added
+- **Full `adb reverse` lifecycle on the host:** the transport now runs a persistent USB supervisor instead of a one-shot setup - it (re)establishes the reverse tunnel for every connected device every two seconds (`adb reverse` is idempotent, so this also self-heals tunnels that died with an unclean daemon exit, e.g. SIGKILL), logs each device attach/detach at info level, and on graceful shutdown (Ctrl-C or D-Bus `Stop`) removes every tunnel it created via the restored `remove_reverse`/`teardown_reverse_for_all` (the v0.11.1 functions, restored with unified error handling and an idempotent "listener not found" pass-through, plus a `reverse --list` parser and `reverse_tunnel_count`). A phone plugged in after `orbiscreen start` is streaming within two seconds, and a stopped daemon no longer leaves a stale tunnel on the device causing black-screen confusion on the next USB connect.
+- **USB visibility everywhere:** `orbiscreen doctor` gains a `usb:` line (adb installed? which devices? how many tunnels active? plus a JSON `usb` object in `--json` output for the GTK panel); `GET /health` and the D-Bus `GetStatus` payload both expose a live `usb_devices` count (the same surface pattern `auth_failures` got in v0.13.3), documented in DBUS_SPEC.md/DBUS_SPEC_AR.md.
+- **A USB card that tells the truth (Android):** the Discovery-screen USB card now probes `http://127.0.0.1:<port>/health` when shown and renders the actual state - **tunnel ready** (green check icon) or **no tunnel - start the daemon / reconnect the cable** - instead of always offering a blind connect; the port is no longer hardcoded: it reads `usbPort` from `PrefsStore` (default 8788, clamped to 1024-65535); and the Stream screen shows a **USB badge chip** next to the title when connected via 127.0.0.1 so it is obvious which transport carries the stream. `probeUsb` reuses the existing 1s-timeout OkHttp client so the card never blocks the UI.
+
 ## [v0.15.3] - 2026-09-01
 
 Full-project audit round four, after three releases of heavy brand and documentation churn (v0.13.3 - v0.15.2). Every crate, client, script, workflow, document, and asset re-verified with live tooling: clippy zero warnings, fmt clean, 123 tests pass, cargo-deny clean, cargo-machete finds no unused dependencies, zero inline comments in any code file, zero secrets embedded, every README/docs link and anchor resolves in both languages.

@@ -529,6 +529,7 @@ async fn run_doctor(json: bool) -> ExitCode {
     let swaymsg = has_binary("swaymsg");
     let hyprctl = has_binary("hyprctl");
     let wlr_virtual_ipc = orbiscreen_capture::wlr_virtual_output::detect_ipc_kind();
+    let usb = usb_doctor_report();
     let portal_state = orbiscreen_core::portal_state::load_portal_state();
     let screencast_saved = portal_state.screencast_restore_token.is_some();
     let input_saved = portal_state.remote_desktop_restore_token.is_some();
@@ -552,6 +553,11 @@ async fn run_doctor(json: bool) -> ExitCode {
             "swaymsg": swaymsg,
             "hyprctl": hyprctl,
             "wlroots_virtual_output_ipc": wlr_virtual_ipc.map(|k| k.to_string()),
+            "usb": {
+                "adb_installed": usb.adb_installed,
+                "devices": usb.devices,
+                "reverse_tunnels": usb.reverse_tunnels,
+            },
         });
         println!("{report}");
         return ExitCode::SUCCESS;
@@ -624,7 +630,80 @@ async fn run_doctor(json: bool) -> ExitCode {
             }
         }
     }
+    match usb.adb_installed {
+        true => match usb.devices.as_slice() {
+            [] => println!(
+                "usb:          adb installed; no Android device connected (plug one in with USB \
+                 debugging on; the daemon picks it up within two seconds while running)"
+            ),
+            [only] => println!(
+                "usb:          adb installed; device {only} connected; reverse tunnels on port \
+                 {}: {}",
+                cfg_default_signaling_port(),
+                if usb.reverse_tunnels > 0 {
+                    format!("{} active", usb.reverse_tunnels)
+                } else {
+                    "none (the daemon creates them on start)".into()
+                },
+            ),
+            many => {
+                println!(
+                    "usb:          adb installed; {} devices connected ({}); reverse tunnels on \
+                     port {}: {}",
+                    many.len(),
+                    many.join(", "),
+                    cfg_default_signaling_port(),
+                    if usb.reverse_tunnels > 0 {
+                        format!("{} active", usb.reverse_tunnels)
+                    } else {
+                        "none (the daemon creates them on start)".into()
+                    },
+                )
+            }
+        },
+        false => println!(
+            "usb:          adb not installed; USB transport unavailable (install \
+             android-tools/platform-tools; Wi-Fi streaming is unaffected)"
+        ),
+    }
     ExitCode::SUCCESS
+}
+
+#[derive(Default)]
+struct UsbDoctorReport {
+    adb_installed: bool,
+    devices: Vec<String>,
+    reverse_tunnels: usize,
+}
+
+fn usb_doctor_report() -> UsbDoctorReport {
+    let adb_path = orbiscreen_transport::adb::default_adb_path();
+    let probe = tokio::task::block_in_place(|| {
+        orbiscreen_transport::adb::setup_reverse_for_all(adb_path, cfg_default_signaling_port())
+    });
+    let devices = match probe {
+        Ok(devices) => devices,
+        Err(_) => return UsbDoctorReport::default(),
+    };
+    let mut tunnels = 0usize;
+    for serial in &devices {
+        if let Ok(n) = orbiscreen_transport::adb::reverse_tunnel_count(
+            adb_path,
+            serial,
+            cfg_default_signaling_port(),
+        ) {
+            tunnels += n;
+        }
+    }
+    UsbDoctorReport {
+        adb_installed: true,
+        devices,
+        reverse_tunnels: tunnels,
+    }
+}
+
+fn cfg_default_signaling_port() -> u16 {
+    orbiscreen_core::TransportConfig::default().signaling_port
 }
 
 struct EvdiFixPlan {
@@ -1186,6 +1265,7 @@ async fn run_start(
         actual_dims.1,
         spec.refresh_rate_hz,
         encoder_name,
+        shutdown_rx.clone(),
     );
 
     let serve_res = tokio::select! {

@@ -37,6 +37,7 @@ impl OrbiscreenDbusServer {
             "active_clients": self.handles.stats.active_clients(),
             "total_clients": self.handles.stats.total_clients(),
             "auth_failures": self.handles.stats.auth_failures(),
+            "usb_devices": self.handles.stats.usb_devices(),
             "encoder": self.handles.encoder,
             "capture_backend": self.handles.capture_backend,
         })
@@ -119,6 +120,7 @@ mod tests {
         assert!(status.contains("\"running\":true"));
         assert!(status.contains("\"frames_forwarded\":0"));
         assert!(status.contains("\"auth_failures\":0"));
+        assert!(status.contains("\"usb_devices\":0"));
         let value: serde_json::Value = serde_json::from_str(&status).unwrap();
         assert_eq!(value["encoder"], "x264");
     }

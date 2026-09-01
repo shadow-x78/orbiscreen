@@ -18,10 +18,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
+import kotlinx.coroutines.delay
+
 data class DiscoveryState(
-    val hosts: List<DiscoveredHost> = emptyList(),
+    val discoveredHosts: List<DiscoveredHost> = emptyList(),
     val recent: RecentHost? = null,
-)
+    val isScanning: Boolean = true,
+    val usbPort: Int = PrefsStore.DEFAULT_USB_PORT,
+) {
+    val hosts: List<DiscoveredHost> get() = discoveredHosts
+}
 
 class DiscoveryViewModel(
     private val discovery: DiscoveryService,
@@ -32,7 +38,9 @@ class DiscoveryViewModel(
 
     private val hostApi = HostApi()
 
-    private val _state = MutableStateFlow(DiscoveryState(recent = prefs.recentHost))
+    private val _state = MutableStateFlow(
+        DiscoveryState(recent = prefs.recentHost, usbPort = prefs.usbPort)
+    )
     val state: StateFlow<DiscoveryState> = _state.asStateFlow()
 
     private val _scanTick = MutableStateFlow(0)
@@ -42,16 +50,20 @@ class DiscoveryViewModel(
         discovery.start()
         viewModelScope.launch {
             combine(discovery.hosts, scannedHosts, _scanTick) { live, scanned, _ ->
+                val recent = prefs.recentHost
                 (live + scanned).values
                     .sortedBy { it.name.lowercase() }
-                    .map { if (it.host == prefs.recentHost?.host) it.copy(isRecent = true) else it }
-            }.collect { merged ->
-                val recent = prefs.recentHost
+                    .map { if (it.host == recent?.host) it.copy(isRecent = true) else it }
+            }.collect { discovered ->
                 _state.value = _state.value.copy(
-                    hosts = mergeRecent(merged, recent),
-                    recent = recent,
+                    discoveredHosts = discovered,
+                    recent = prefs.recentHost,
                 )
             }
+        }
+        viewModelScope.launch {
+            delay(3500)
+            _state.value = _state.value.copy(isScanning = false)
         }
         if (prefs.enableSubnetScanner) {
             startSubnetSweep()
@@ -60,9 +72,20 @@ class DiscoveryViewModel(
 
     fun refresh() {
         viewModelScope.launch {
+            _state.value = _state.value.copy(isScanning = true)
             discovery.restart()
+            if (prefs.enableSubnetScanner) {
+                startSubnetSweep()
+            }
             _scanTick.value++
+            delay(3000)
+            _state.value = _state.value.copy(isScanning = false)
         }
+    }
+
+    fun clearRecent() {
+        prefs.clearRecent()
+        _state.value = _state.value.copy(recent = null)
     }
 
     private fun startSubnetSweep() {
@@ -79,19 +102,5 @@ class DiscoveryViewModel(
     override fun onCleared() {
         discovery.stop()
         super.onCleared()
-    }
-
-    private fun mergeRecent(live: List<DiscoveredHost>, recent: RecentHost?): List<DiscoveredHost> {
-        if (recent == null) return live
-        val has = live.any { it.host == recent.host }
-        return if (!has) {
-            val stub = DiscoveredHost(
-                name = recent.host,
-                host = recent.host,
-                port = recent.port,
-                isRecent = true,
-            )
-            (live + stub).sortedBy { it.name.lowercase() }
-        } else live
     }
 }

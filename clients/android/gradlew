@@ -27,7 +27,16 @@ if [ ! -f "$WRAPPER_JAR" ]; then
         }
 fi
 
-exec "${JAVA_HOME:-/usr}/bin/java" \
+JAVACMD="java"
+if [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    JAVACMD="$JAVA_HOME/bin/java"
+elif command -v java >/dev/null 2>&1; then
+    JAVACMD="java"
+elif [ -x "/usr/bin/java" ]; then
+    JAVACMD="/usr/bin/java"
+fi
+
+exec "$JAVACMD" \
     -Dorg.gradle.appname="$(basename "$0")" \
     -classpath "$WRAPPER_JAR" \
     org.gradle.wrapper.GradleWrapperMain "$@"

@@ -2,7 +2,7 @@
 
 # Troubleshooting - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.15.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.16.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -316,15 +316,18 @@ v0.10.3 uses Compose + `PlayerView` exclusively - there is no WebView. If the ne
 ### Android: USB connection shows "Looking for host…"
 
 **Fix:**
-Orbiscreen automatically configures `adb reverse tcp:8788 tcp:8788` when started. Ensure:
+Orbiscreen manages the whole `adb reverse` lifecycle on its own: it creates the tunnel on every connected device when the daemon starts, picks up a newly plugged device within two seconds (hot-plug), recreates a tunnel that died with an unclean daemon exit (the setup is idempotent), and removes all tunnels on graceful shutdown. Ensure:
 1. **USB Debugging** is enabled in Android Developer Options.
 2. The host device is authorized on your Android phone/tablet prompt.
-3. Verify manually:
+3. Verify what the daemon sees:
    ```bash
+   orbiscreen doctor          # prints the usb: line: adb present? devices? active tunnels?
    adb devices
-   adb reverse tcp:8788 tcp:8788
+   adb reverse --list
    ```
-4. Tap the **USB mode** card on the Discovery screen.
+4. Tap the **USB mode** card on the Discovery screen. The card probes `http://127.0.0.1:8788/health` and shows the live state: **tunnel ready** (green check) or **no tunnel** (start the daemon on the host, or reconnect the cable).
+
+The daemon's tunnel count is also visible at any time in `GET /health` (`usb_devices`) and the D-Bus `GetStatus` payload.
 
 ---
 
