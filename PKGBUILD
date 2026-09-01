@@ -31,7 +31,7 @@ optdepends=(
 provides=('orbiscreen')
 conflicts=('orbiscreen-bin')
 source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/v${pkgver}/${pkgname}-${pkgver}.tar.gz")
-sha256sums=('9fe05b54493696cd187d1e7dc47dfac948a7b4a68c369c5b2efd1dee000dd81f')
+sha256sums=('ba56fbedf203fb71ff8935233b47899b2e294864589f0c0eb52dba4079adbbbf')
 
 options=('!lto')
 
