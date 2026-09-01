@@ -2,7 +2,7 @@
 
 # Multi-Distro Packaging Guide - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.16.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.16.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -17,7 +17,7 @@
 
 ---
 
-The release matrix is: `0.16.0` (workspace), `versionCode = 34` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
+The release matrix is: `0.16.1` (workspace), `versionCode = 35` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
 
 Orbiscreen provides build configurations and package definitions for all major Linux distributions and Android:
 
@@ -62,6 +62,40 @@ cd clients/android
 Output APK location: `clients/android/app/build/outputs/apk/release/app-release.apk`
 
 The release APK is signed with the keystore supplied via `ORBISCREEN_KEYSTORE_PATH` (when configured) using V2/V3 schemes. ProGuard rules in `clients/android/app/proguard-rules.pro` keep `androidx.media3`, OkHttp, Compose, and NSD reflective classes.
+
+---
+
+## 🏪 Distribution Repositories
+
+### Fedora COPR (automated via Packit)
+
+The repo carries `.packit.yaml` and a source-build spec (`data/orbiscreen-copr.spec`, distinct from the local prebuilt-binary `data/orbiscreen.spec`): pull requests build the RPM on stable Fedora as a CI check, and every GitHub release tag publishes it to COPR automatically.
+
+One-time maintainer setup:
+1. Sign in at <https://copr.fedorainfracloud.org> with GitHub (creates the account).
+2. Enable Packit at <https://packit.dev> (Sign in with GitHub → approve the `orbiscreen` repository).
+3. Push the next release tag; Packit creates the `shadow-x78/orbiscreen` COPR project on the first build.
+
+User install once published:
+```bash
+dnf copr enable shadow-x78/orbiscreen
+dnf install orbiscreen
+```
+
+### Arch Linux AUR
+
+`PKGBUILD` at the repo root builds from the release tarball with cargo (the release checksum is pinned in it; maintainers rotate it with `updpkgsums` on every bump). Publish/update flow:
+```bash
+git clone ssh://aur@aur.archlinux.org/orbiscreen.git aur-orbiscreen
+cp PKGBUILD aur-orbiscreen/
+cd aur-orbiscreen && makepkg --printsrcinfo > .SRCINFO
+git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.16.1" && git push
+```
+User install: `yay -S orbiscreen` (or any AUR helper) / `makepkg -si`.
+
+### AppStream metainfo
+
+`data/com.orbiscreen.OrbiscreenGtk.metainfo.xml` (validated with `appstreamcli`) presents the app in GNOME Software/Discover with release notes and the OARS rating; it is packaged by the COPR spec, the AUR PKGBUILD, and the deb/RPM scripts' install trees.
 
 ---
 

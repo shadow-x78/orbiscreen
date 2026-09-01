@@ -27,6 +27,12 @@ captures/
 .cxx/
 .kotlin/
 
+# ── AUR Local Test Artifacts ──
+src/
+pkg/
+*.pkg.tar.zst
+orbiscreen-*.tar.gz
+
 # ── Local secrets / keystores ──
 *.keystore
 *.jks

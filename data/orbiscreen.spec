@@ -40,6 +40,8 @@ install -m 0755 %{_projectroot}/scripts/install-evdi-module.sh %{buildroot}/usr/
 
 install -m 0644 %{_projectroot}/data/com.orbiscreen.OrbiscreenGtk.desktop %{buildroot}/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop || true
 install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg || true
+mkdir -p %{buildroot}/usr/share/metainfo
+install -m 0644 %{_projectroot}/data/com.orbiscreen.OrbiscreenGtk.metainfo.xml %{buildroot}/usr/share/metainfo/com.orbiscreen.OrbiscreenGtk.metainfo.xml || true
 
 install -m 0644 %{_projectroot}/clients/web/index.html %{buildroot}/usr/share/orbiscreen/client/index.html
 install -m 0644 %{_projectroot}/clients/web/style.css %{buildroot}/usr/share/orbiscreen/client/style.css
@@ -85,6 +87,7 @@ fi
 /usr/bin/orbiscreen-gtk
 /usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop
 /usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
+/usr/share/metainfo/com.orbiscreen.OrbiscreenGtk.metainfo.xml
 /usr/lib/systemd/user/orbiscreen.service
 /usr/share/orbiscreen/client/index.html
 /usr/share/orbiscreen/client/style.css

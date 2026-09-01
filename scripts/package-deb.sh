@@ -30,6 +30,8 @@ cp -f target/release/orbiscreen-gtk "${BUILD_DIR}/usr/bin/"
 
 cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_DIR}/usr/share/applications/"
 cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"
+mkdir -p "${BUILD_DIR}/usr/share/metainfo"
+cp -f data/com.orbiscreen.OrbiscreenGtk.metainfo.xml "${BUILD_DIR}/usr/share/metainfo/"
 
 cp -f clients/web/index.html "${BUILD_DIR}/usr/share/orbiscreen/client/"
 cp -f clients/web/style.css "${BUILD_DIR}/usr/share/orbiscreen/client/"

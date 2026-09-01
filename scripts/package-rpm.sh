@@ -30,6 +30,8 @@ fi
 cp -f target/release/orbiscreen "${BUILD_ROOT}/usr/bin/"
 cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_ROOT}/usr/share/applications/"
 cp -f data/orbiscreen.svg "${BUILD_ROOT}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"
+mkdir -p "${BUILD_ROOT}/usr/share/metainfo"
+cp -f data/com.orbiscreen.OrbiscreenGtk.metainfo.xml "${BUILD_ROOT}/usr/share/metainfo/"
 
 if command -v rpmbuild >/dev/null 2>&1; then
     rpmbuild -bb \

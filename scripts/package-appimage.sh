@@ -85,6 +85,8 @@ rasterize_256() {
 }
 rasterize_256 "$REPO_ROOT/data/orbiscreen.svg" "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png"
 cp "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png" "$APP/orbiscreen.png"
+mkdir -p "$APP/usr/share/metainfo"
+cp "$REPO_ROOT/data/com.orbiscreen.OrbiscreenGtk.metainfo.xml" "$APP/usr/share/metainfo/"
 
 cat > "$APP/AppRun" <<'EOF'
 #!/usr/bin/env bash

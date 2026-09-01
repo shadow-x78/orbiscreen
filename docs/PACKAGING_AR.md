@@ -2,7 +2,7 @@
 
 # دليل التغليف متعدد التوزيعات - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.16.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.16.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -17,7 +17,7 @@
 
 ---
 
-مصفوفة الإصدار: `0.16.0` (مساحة العمل)، `versionCode = 34` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع - راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
+مصفوفة الإصدار: `0.16.1` (مساحة العمل)، `versionCode = 35` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع - راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
 
 يوفّر Orbiscreen تكوينات البناء وتعريفات الحزم لجميع توزيعات Linux الرئيسية وAndroid:
 
@@ -62,6 +62,40 @@ cd clients/android
 موقع ملف APK الناتج: `clients/android/app/build/outputs/apk/release/app-release.apk`
 
 يوقَّع ملف APK للإصدار بمفتاح keystore المزوَّد عبر `ORBISCREEN_KEYSTORE_PATH` (عند تكوينه) باستخدام مخططات V2/V3. قواعد ProGuard في `clients/android/app/proguard-rules.pro` تحافظ على صفوف `androidx.media3` وOkHttp وCompose وNSD الانعكاسية.
+
+---
+
+## 🏪 مستودعات التوزيعات
+
+### Fedora COPR (آلي عبر Packit)
+
+يحمل المستودع `.packit.yaml` مع spec بناء-من-المصدر ‏(`data/orbiscreen-copr.spec`، المستقل عن `data/orbiscreen.spec` المحلي الذي يغلّف الثنائيات الجاهزة): طلبات الدمج تبني الـRPM على Fedora المستقرة كفحص CI، وكل وسم ريليز على GitHub ينشره إلى COPR تلقائياً.
+
+إعداد المُصين (مرة واحدة):
+1. سجّل الدخول إلى <https://copr.fedorainfracloud.org> بـ GitHub (يُنشئ الحساب).
+2. فعّل Packit من <https://packit.dev> ‏(Sign in with GitHub → وافق على مستودع `orbiscreen`).
+3. ادفع وسم الإصدار التالي؛ ينشئ Packit مشروع COPR ‏`shadow-x78/orbiscreen` عند أول بناء.
+
+تثبيت المستخدم بعد النشر:
+```bash
+dnf copr enable shadow-x78/orbiscreen
+dnf install orbiscreen
+```
+
+### Arch Linux (AUR)
+
+`PKGBUILD` في جذر المستودع يبني من tarball الريليز عبر cargo (مع checksum مثبّت للريليز؛ يُحدّثه المصين بـ `updpkgsums` مع كل رفع إصدار). تدفق النشر/التحديث:
+```bash
+git clone ssh://aur@aur.archlinux.org/orbiscreen.git aur-orbiscreen
+cp PKGBUILD aur-orbiscreen/
+cd aur-orbiscreen && makepkg --printsrcinfo > .SRCINFO
+git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.16.1" && git push
+```
+تثبيت المستخدم: `yay -S orbiscreen` (أو أي مساعد AUR) / `makepkg -si`.
+
+### AppStream metainfo
+
+ملف `data/com.orbiscreen.OrbiscreenGtk.metainfo.xml` (مُتحقق منه بـ `appstreamcli`) يعرض التطبيق في GNOME Software/Discover مع ملاحظات الإصدارات وتصنيف OARS؛ وهو مُغلَّف في spec الخاص بـCOPR وPKGBUILD الخاص بـAUR وأشجار تثبيت سكربتات deb/RPM.
 
 ---
 

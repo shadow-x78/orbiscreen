@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.16.1] - 2026-09-01
+
+The Linux distribution-repository groundwork: everything needed for Fedora COPR (via Packit) and the AUR now lives in the repo, ready for the one-time account activations, plus the AppStream metainfo every store front expects.
+
+### ✨ Added
+- **AppStream metainfo** (`data/com.orbiscreen.OrbiscreenGtk.metainfo.xml`, validated clean with `appstreamcli`): presents the app in GNOME Software/Discover with bilingual EN/AR name/summary/description, homepage/bugtracker/donation URLs, launchable desktop-id, provides-binaries, OARS rating, and the release history for v0.16.0/v0.15.3/v0.15.2/v0.13.3 with their notes and the release URL. Packaged into every install tree: the COPR spec, the AUR PKGBUILD, and the deb/RPM/AppImage scripts all install it now (the local `data/orbiscreen.spec` gains it in both `%install` and `%files`).
+- **Fedora COPR automation** (`.packit.yaml` + `data/orbiscreen-copr.spec`): a new source-build spec (distinct from the local prebuilt-binary spec the `package-rpm.sh` script uses) that builds from the GitHub release tarball with cargo on rpmbuild itself - verified by producing a real warning-free SRPM locally - with `BuildRequires` for the GStreamer/GTK4/libadwaita/libevdev toolchains, the metainfo installed, `Recommends: android-tools` for USB transport, and `%check` running the test suite. Packit config: PR builds verify the spec on `fedora-stable` as a CI check, release-tag builds publish to the `shadow-x78/orbiscreen` COPR project. One-time maintainer steps documented in PACKAGING.
+- **Arch Linux AUR package** (`PKGBUILD` at the repo root, syntax-verified, tarball contents cross-checked): builds from the release tarball with `cargo build --release --locked`, runs the test suite in `check()`, installs the daemon, GTK panel, desktop entry, icon, metainfo, web client, systemd user unit, and the evdi installer helper; `optdepends` on `android-tools` (USB) and `evdi-dkms` (X11/GNOME), `options=('!lto')`, and the real v0.16.0 tarball checksum pinned. The publish/update flow (`makepkg --printsrcinfo > .SRCINFO`, then push over SSH to AUR) is documented in PACKAGING; `.gitignore` learns the local `makepkg` work dirs.
+- **Distribution-repositories section in PACKAGING (EN + AR):** COPR one-time setup (GitHub SSO on copr.fedorainfracloud.org, enable Packit on packit.dev, push the next tag), the `dnf copr enable` install line; the AUR clone/publish commands and `yay -S orbiscreen` install; and what the metainfo is for.
+
 ## [v0.16.0] - 2026-09-01
 
 USB transport, completed. The audit rounds had pruned the half-finished adb lifecycle (v0.11.2 removed an unused `remove_reverse`, correctly dead at the time because nothing ever called it), which left USB as a best-effort one-shot: tunnels were created once at daemon start, never re-created for a device plugged in later, never cleaned up on stop, invisible to `doctor`, and unreported anywhere - while the Android app's USB card connected to a hardcoded `127.0.0.1:8788` with no feedback at all. This release closes the loop on both sides of the cable.
