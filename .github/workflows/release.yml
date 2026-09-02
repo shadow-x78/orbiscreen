@@ -46,14 +46,14 @@ jobs:
       - name: Format check
         run: cargo fmt --all -- --check
 
-      - name: Clippy (deny warnings; GTK excluded, needs gtk4 system libs)
-        run: cargo clippy --workspace --exclude orbiscreen-gtk --all-targets --locked -- -D warnings
+      - name: Clippy (deny warnings)
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
-      - name: Build (non-GTK crates)
-        run: cargo build --workspace --exclude orbiscreen-gtk --locked
+      - name: Build
+        run: cargo build --workspace --locked
 
       - name: Test
-        run: cargo test --workspace --exclude orbiscreen-gtk --locked
+        run: cargo test --workspace --locked
 
       - name: Dependency & license audit
         run: |
@@ -82,8 +82,7 @@ jobs:
             libevdev-dev libxkbcommon-dev libwayland-dev \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
-            libgtk-4-dev libadwaita-1-dev libgraphene-1.0-dev rpm \
-            imagemagick librsvg2-bin
+            rpm imagemagick librsvg2-bin
 
       - name: Build release binaries
         run: |
@@ -93,7 +92,6 @@ jobs:
         run: |
           mkdir -p release-bundle/bin
           cp target/release/orbiscreen release-bundle/bin/
-          cp target/release/orbiscreen-gtk release-bundle/bin/
           cat > release-bundle/README.md <<'README'
           # Orbiscreen
 
