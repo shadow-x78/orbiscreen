@@ -1,0 +1,21 @@
+Package: orbiscreen
+Version: 0.16.2
+Architecture: amd64
+Maintainer: shadow-x78 <shadow-x78@users.noreply.github.com>
+Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, libxkbcommon0, libevdev2, libgtk-4-1, libadwaita-1-0
+Filename: pool/orbiscreen_0.16.2_amd64.deb
+Size: 3681476
+MD5sum: 5261814f98ac86c25eeec11efd7b607b
+SHA1: 748feeba8222278ab70e6b9676d1189ba0248b48
+SHA256: b0629b0c00f03fc4c3ed139cbdcd7ee0160533bbf935cd2fce9ae9bdc722387e
+Section: utils
+Priority: optional
+Homepage: https://github.com/shadow-x78/orbiscreen
+Description: Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB
+ Orbiscreen provides high-performance virtual secondary displays for Linux desktops,
+ streaming low-latency H.264 video to Android tablets/phones over HTTP (Wi-Fi/USB).
+ .
+ On KDE Wayland the daemon creates a true virtual display directly via KWin
+ (no root, no kernel module). The optional evdi kernel module is only needed
+ for explicit EVDI mode on other compositors.
+

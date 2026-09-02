@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbiscreen - APT Repository</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; background: #0f111a; color: #f0f2f8; }
+        pre { background: #1a1d2e; padding: 16px; border-radius: 8px; overflow-x: auto; color: #a6e3a1; font-family: monospace; }
+        code { color: #f38ba8; }
+        a { color: #89b4fa; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Orbiscreen APT Repository</h1>
+    <p>Official Debian/Ubuntu APT repository for <a href="https://github.com/shadow-x78/orbiscreen">Orbiscreen</a>.</p>
+    
+    <h2>Installation Instructions</h2>
+    <p>Run the following commands in your terminal:</p>
+    <pre>
+# 1. Add repository GPG key
+curl -fsSL https://shadow-x78.github.io/orbiscreen/KEY.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/orbiscreen.gpg
+
+# 2. Add repository source
+echo "deb [signed-by=/etc/apt/keyrings/orbiscreen.gpg] https://shadow-x78.github.io/orbiscreen /" | sudo tee /etc/apt/sources.list.d/orbiscreen.list
+
+# 3. Update and install
+sudo apt update
+sudo apt install orbiscreen
+    </pre>
+</body>
+</html>

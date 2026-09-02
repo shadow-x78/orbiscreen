@@ -1,0 +1,33 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Origin: Orbiscreen Repository
+Label: Orbiscreen
+Suite: stable
+Codename: stable
+Architectures: amd64
+Components: main
+Description: Orbiscreen - Virtual secondary displays for Linux
+Date: Wed, 02 Sep 2026 02:35:52 +0000
+MD5Sum:
+ fdea4752d953ef7b70cc05e539a18f03 1101 Packages
+ 5f4ed928ce492cfac6718f4f0cacb563 672 Packages.gz
+SHA256:
+ 00fb75b69f07dafbc74f68aa0f04741811827a8c2f951bf21122db36e8a30406 1101 Packages
+ e46f9c0938bf3c6d3dbbb6d1d5a28d1c0aa8bbbe935652887611bce07a5c9d97 672 Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEEb+LKChDLEIT6gmWgwbQPGQ0BDu8FAmqXi6IACgkQwbQPGQ0B
+Du+h4BAAkPsjjVJZ5QnX+ua9h6pkfQjR95KRe7Phl1Jkv9ITBQsao9sFTH/hidYL
+6Zev08oOWXRNilRkg/0t8ry4PyjPdziCu0K1Wf2AwSDGiaM4OckySGUyfK1YX6g0
+vFFr9vRVvyDf5ySHguu+4cmXGjRjVOi6AOjaxPBwYWDMutJk83W3o+gmgIpkkFXx
+eosABBxh1+CAVu9jv607o7cJYAdLpef6MeLZCbzRQmhF54nUqwQ3CsQYPB9cAU5K
+zGs3IZqt8kz+5pseW2pZmWLM7Oca0YmnGPwFtPUNLsNa8M5XThOV6zJmJmKfp9y1
+fIQH87sES0KeVs68DnN+xNv/51zgwHY4TW7zOhNuRnEtfaHldZQO938zkgs+isfg
+sD+aKPMO+mSwZcicEyBFAxnnlYqnhMt0q21hmIqCE4GKvB1N2wk2Z24XG3nopoP+
+y6CoUmnX1WjjMLIvTdwUSr1JLy73oeMxGUwgU5DKorD+TOGCa+P0c2E2z+nw5AXX
+UFo8iUembrC7XcL/LFjI63H452L6+p+rctWs5DCluINq9l/m505K5PyCGVJcUac2
+9z0O3v5YBz9Ph4tli4aq+G8GqwCbGAwW0wv7CHSajg/16e1Rs9LDRkqhAxt72+d/
+s4ZKjKl+LVvq/oT7pfymybp73bbQdl0u/TGp/66MVk1hVjgF7xo=
+=Oqnf
+-----END PGP SIGNATURE-----

@@ -1,0 +1,14 @@
+Origin: Orbiscreen Repository
+Label: Orbiscreen
+Suite: stable
+Codename: stable
+Architectures: amd64
+Components: main
+Description: Orbiscreen - Virtual secondary displays for Linux
+Date: Wed, 02 Sep 2026 02:35:52 +0000
+MD5Sum:
+ fdea4752d953ef7b70cc05e539a18f03 1101 Packages
+ 5f4ed928ce492cfac6718f4f0cacb563 672 Packages.gz
+SHA256:
+ 00fb75b69f07dafbc74f68aa0f04741811827a8c2f951bf21122db36e8a30406 1101 Packages
+ e46f9c0938bf3c6d3dbbb6d1d5a28d1c0aa8bbbe935652887611bce07a5c9d97 672 Packages.gz
