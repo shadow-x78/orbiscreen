@@ -51,7 +51,7 @@
 - [عميل الويب يُحمَّل لكن بلا صورة](#web-no-picture)
 - [لا يوجد مُرمَّز - البث يبدأ لكنه يفشل (غياب x264)](#no-encoder)
 - [رفض 401 من `/stream` أو `/input` أو `/api/control` التوكن](#token-401)
-- [الـ daemon غير موجود على D-Bus / واجهة GTK تعرض "not running"](#dbus-missing)
+- [الـ daemon غير موجود على D-Bus](#dbus-missing)
 
 ### الـ Daemon
 
@@ -420,10 +420,10 @@ gst-inspect-1.0 x264enc
 ---
 
 <a id="dbus-missing"></a>
-## 🚌 الـ daemon غير موجود على D-Bus / واجهة GTK تعرض "not running"
+## 🚌 الـ daemon غير موجود على D-Bus
 
 **العرض:**
-يطبع `orbiscreen stop` الرسالة `daemon is not running (no com.orbiscreen.Daemon on the session bus)`، أو تعرض لوحة GTK إشعار "not running" رغم أن `orbiscreen start` يبدو قيد التشغيل في مكان آخر.
+يطبع `orbiscreen stop` الرسالة `daemon is not running (no com.orbiscreen.Daemon on the session bus)`
 
 **السبب:**
 خدمة D-Bus (‏`com.orbiscreen.Daemon`) تُسجل على **ناقل جلسة المستخدم** من طرف عملية الدامن طالما هي قيد التشغيل. أسباب غيابها الشائعة:
@@ -492,7 +492,7 @@ gst-inspect-1.0 x264enc
 ./scripts/setup-dev-env.sh
 ```
 
-يثبّت سلسلة أدوات Rust واعتماديات البناء (GStreamer وWayland/X11 وGTK4/libadwaita وlibevdev) لتوزيعات Fedora وDebian وArch المكتشفة من `/etc/os-release`.
+يثبّت سلسلة أدوات Rust واعتماديات البناء (GStreamer وWayland/X11 وlibevdev) لتوزيعات Fedora وDebian وArch المكتشفة من `/etc/os-release`.
 
 ---
 

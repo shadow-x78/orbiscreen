@@ -51,7 +51,7 @@
 - [Web client loads but shows no picture](#web-no-picture)
 - [No encoder available - stream starts but errors out (x264 missing)](#no-encoder)
 - [401 Unauthorized from `/stream`, `/input` or `/api/control` (token)](#token-401)
-- [Daemon not found on D-Bus / GTK app says "not running"](#dbus-missing)
+- [Daemon not found on D-Bus](#dbus-missing)
 
 ### Daemon
 
@@ -420,10 +420,10 @@ Since v0.11.0 these three routes require the per-session access token. The token
 ---
 
 <a id="dbus-missing"></a>
-## 🚌 Daemon not found on D-Bus / GTK app says "not running"
+## 🚌 Daemon not found on D-Bus
 
 **Symptom:**
-`orbiscreen stop` prints `daemon is not running (no com.orbiscreen.Daemon on the session bus)`, or the GTK panel shows a "daemon is not running" banner even though `orbiscreen start` appears to be running elsewhere.
+`orbiscreen stop` prints `daemon is not running (no com.orbiscreen.Daemon on the session bus)`
 
 **Cause:**
 The D-Bus service (`com.orbiscreen.Daemon`) is registered on the **user session bus** by the daemon process only while it runs. Common reasons it is absent:
@@ -492,7 +492,7 @@ Records a few seconds of `/stream`, checks that the payload decodes as H.264, an
 ./scripts/setup-dev-env.sh
 ```
 
-Installs the Rust toolchain and the build dependencies (GStreamer, Wayland/X11, GTK4/libadwaita, libevdev) for Fedora-, Debian-, and Arch-based distros from the detected `/etc/os-release`.
+Installs the Rust toolchain and the build dependencies (GStreamer, Wayland/X11, libevdev) for Fedora-, Debian-, and Arch-based distros from the detected `/etc/os-release`.
 
 ---
 

@@ -170,7 +170,7 @@ orbiscreen start
 | `orbiscreen list-displays` | List configured virtual displays |
 | `orbiscreen probe` | Report capture / input / display backends |
 | `orbiscreen doctor` | Diagnose the environment: compositor, capture plan, missing permissions/tools |
-| `orbiscreen doctor --json` | Machine-readable doctor report (consumed by the GTK panel) |
+| `orbiscreen doctor --json` | Machine-readable doctor report |
 | `orbiscreen doctor --fix` | Detect the distro and offer to install/load the EVDI kernel module (`--yes` to skip the prompt) |
 | `orbiscreen print-config` | Print the resolved configuration |
 | `orbiscreen uninstall` | Remove the daemon, systemd service, and desktop entries |

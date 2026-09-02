@@ -25,7 +25,7 @@ Start with the doctor; it prints everything on this page for *your* machine:
 
 ```bash
 orbiscreen doctor          # human-readable
-orbiscreen doctor --json   # machine-readable (used by the GTK panel)
+orbiscreen doctor --json   # machine-readable output
 orbiscreen doctor --fix    # install/load the EVDI kernel module where possible
 ```
 

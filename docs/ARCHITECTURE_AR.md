@@ -66,7 +66,6 @@ graph TD
 | `orbiscreen-input` | حقن اللمس العكسي والقلم ولوحة المفاتيح | `evdevil`، `nix` |
 | `orbiscreen-transport` | Axum HTTP على `/stream`، وmDNS، وADB reverse، و`/api/info`، و`/api/control`، و`/health` | `axum`، `gstreamer`، `tokio` |
 | `orbiscreen-daemon` | ثنائي الـ daemon الرئيسي، تكامل systemd وخدمة D-Bus | `zbus`، `clap`، `tokio` |
-| `orbiscreen-gtk` | لوحة تحكم سطح مكتب GTK4 / Libadwaita أصلية | `gtk4`، `libadwaita`، `zbus` |
 
 ---
 

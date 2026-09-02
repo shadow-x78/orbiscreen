@@ -169,7 +169,7 @@ orbiscreen start
 | `orbiscreen list-displays` | سرد الشاشات الافتراضية المُهيّأة |
 | `orbiscreen probe` | فحص واجهات الالتقاط / الإدخال / الشاشة |
 | `orbiscreen doctor` | تشخيص البيئة: الـ compositor، خطة الالتقاط، الأذونات والأدوات الناقصة |
-| `orbiscreen doctor --json` | تقرير doctor بصيغة آلية (تستهلكه لوحة GTK) |
+| `orbiscreen doctor --json` | تقرير doctor بصيغة آلية قابلة للقراءة |
 | `orbiscreen doctor --fix` | كشف التوزيعة وعرض تثبيت/تحميل وحدة نواة EVDI مع التأكيد (`--yes` لتجاوز السؤال) |
 | `orbiscreen print-config` | طباعة الإعدادات الفعلية |
 | `orbiscreen uninstall` | إزالة الخدمة وخدمة systemd ومدخلات سطح المكتب |

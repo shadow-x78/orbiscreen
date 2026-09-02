@@ -66,7 +66,6 @@ graph TD
 | `orbiscreen-input` | Reverse touch, stylus, and keyboard injection (uinput) | `evdev`, `ashpd` |
 | `orbiscreen-transport` | Axum HTTP `/stream` + token auth, mDNS, ADB reverse, `/api/info`, `/api/control`, `/health` | `axum`, `gstreamer`, `tokio`, `rand`, `base64` |
 | `orbiscreen-daemon` | Main daemon binary, systemd integration & live D-Bus service | `zbus`, `clap`, `tokio` |
-| `orbiscreen-gtk` | Native GTK4 / Libadwaita desktop GUI control panel (reads state via D-Bus) | `gtk4`, `libadwaita`, `zbus` |
 
 ---
 
@@ -115,7 +114,7 @@ Each stage owns its data; frames are copied between stages (no zero-copy, this k
 6. **Host Control:**
    - `HostApi.sendControl` posts JSON to `POST /api/control` (token required): `{"action":"lock"}` (loginctl/xdg-screensaver), `{"action":"blank"}`/`{"action":"unblank"}` (DPMS via swaymsg/hyprctl/xset), `{"action":"ctrl_alt_del"}` (injected through the input pipeline). The legacy `open` action is rejected: opening arbitrary URLs from remote clients is not permitted.
 7. **CLI Control:**
-   - `orbiscreen stop` calls the D-Bus `Stop` method to shut the running daemon down gracefully; the GTK control panel polls `GetStatus` once per second and shows live encoder/frame/client counters from the same D-Bus service.
+   - `orbiscreen stop` calls the D-Bus `Stop` method to shut the running daemon down gracefully
 
 ---
 

@@ -116,7 +116,6 @@ git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.17.0" && git push
 
 ### AppStream metainfo
 
-ملف `data/com.orbiscreen.OrbiscreenGtk.metainfo.xml` (مُتحقق منه بـ `appstreamcli`) يعرض التطبيق في GNOME Software/Discover مع ملاحظات الإصدارات وتصنيف OARS؛ وهو مُغلَّف في spec الخاص بـCOPR وPKGBUILD الخاص بـAUR وأشجار تثبيت سكربتات deb/RPM.
 
 ---
 

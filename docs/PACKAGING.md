@@ -127,7 +127,6 @@ User install: `yay -S orbiscreen` (or any AUR helper) / `makepkg -si`.
 
 ### AppStream metainfo
 
-`data/com.orbiscreen.OrbiscreenGtk.metainfo.xml` (validated with `appstreamcli`) presents the app in GNOME Software/Discover with release notes and the OARS rating; it is packaged by the COPR spec, the AUR PKGBUILD, and the deb/RPM scripts' install trees.
 
 ---
 

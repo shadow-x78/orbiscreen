@@ -25,7 +25,7 @@
 
 ```bash
 orbiscreen doctor          # بصيغة مقروءة
-orbiscreen doctor --json   # بصيغة آلية (تستخدمه لوحة GTK)
+orbiscreen doctor --json   # صيغة آلية
 orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عندما يكون ذلك ممكنا
 ```
 

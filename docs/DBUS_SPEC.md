@@ -17,7 +17,7 @@
 
 ---
 
-Orbiscreen exposes a D-Bus Session Service interface allowing desktop control panels (the GTK4 GUI), CLI scripts, and system tray indicators to inspect live status and control the daemon process. The implementation lives in `crates/orbiscreen-daemon/src/dbus.rs` - this spec documents exactly what that code exposes.
+Orbiscreen exposes a D-Bus Session Service interface allowing desktop control panels CLI scripts, and system tray indicators to inspect live status and control the daemon process. The implementation lives in `crates/orbiscreen-daemon/src/dbus.rs` - this spec documents exactly what that code exposes.
 
 - **Bus Type:** Session Bus (the *user* bus, not the system bus)
 - **Service Name:** `com.orbiscreen.Daemon`
@@ -45,7 +45,7 @@ Android and web clients talk to the daemon over HTTP, not D-Bus. Current routing
 
 **Token model:** every daemon start generates a fresh random token (32 bytes, base64url). Protected routes require it via `Authorization: Bearer <token>` or `?token=<token>`. Clients obtain it from the mDNS TXT record or from `/client/config.json`. Because the token is readable by anyone who can reach the port, this is abuse protection, not strong authentication - see `SECURITY.md`.
 
-D-Bus remains the canonical interface for native Linux clients (GTK GUI, CLI scripts, `orbiscreen stop`). Both surfaces share the same source of truth in `orbiscreen-transport` (`Stats`).
+D-Bus remains the canonical interface for native Linux clients (CLI scripts, `orbiscreen stop`). Both surfaces share the same source of truth in `orbiscreen-transport` (`Stats`).
 
 ---
 

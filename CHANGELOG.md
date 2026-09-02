@@ -22,6 +22,12 @@ Zero-latency streaming overhaul with hardware NVENC optimization, framerate-matc
 - **Redesigned Exit Confirmation Modal**: Replaced the generic dialog with a frosted-glass Material 3 modal featuring localized Arabic typography, a soft glowing exit icon, and sleek action buttons.
 - **Revamped Display Settings Sheet**: Redesigned `ConnectionSettingsSheet` with an elegant drag handle, compact resolution chips, a dedicated phone screen matching card, sleek custom resolution inputs, and pure Arabic scale mode options.
 
+### 🔧 CI / Packaging
+- **Removed GTK4 from All Build Pipelines**: Eliminated `libgtk-4-dev`, `libadwaita-1-dev`, `libgraphene-1.0-dev` from `ci.yml` and `release.yml` system dependencies; dropped all `--exclude orbiscreen-gtk` flags from `clippy`, `build`, and `test` steps.
+- **Fixed Packaging Scripts**: Removed stale `orbiscreen-gtk` binary copy, GTK `.desktop` and `.metainfo` file references, and GTK runtime `Depends` from `package-deb.sh`, `package-rpm.sh`, and `package-appimage.sh`.
+- **Cleaned Per-Frame Log Noise**: Removed repetitive `frame_pump: chunk #N` and `source frame #N pushed` `info!` calls from the daemon; demoted the damage-pump startup log to `debug!` level.
+- **Cargo Fmt Compliance**: Formatted entire workspace to pass `cargo fmt --all -- --check`; zero Clippy warnings across all targets.
+
 ## [v0.17.3] - 2026-09-02
 
 Critical streaming fix for pitch black screen, sleek keyboard accessory bar, redesigned settings floating controls & sheet, eye button fix, back-button exit confirmation dialog, and project-wide documentation synchronization.
