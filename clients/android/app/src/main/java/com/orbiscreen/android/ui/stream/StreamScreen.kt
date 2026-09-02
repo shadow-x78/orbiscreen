@@ -1,5 +1,3 @@
-// Orbiscreen - Android client - stream screen (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.ui.stream
 
@@ -912,7 +910,6 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                // Row 1: Modifier keys & Quick actions
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -947,7 +944,6 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
                     }
                 }
 
-                // Row 2: Navigation & Space
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,

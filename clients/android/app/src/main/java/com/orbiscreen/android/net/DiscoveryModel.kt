@@ -1,5 +1,3 @@
-// Orbiscreen - Android client - discovery models (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.net
 

@@ -1,5 +1,3 @@
-// Orbiscreen - orbiscreen-input - wayland module (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 use ashpd::desktop::remote_desktop::{
     DeviceType, KeyState, RemoteDesktop, SelectDevicesOptions, SelectedDevices,
 };

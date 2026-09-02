@@ -1,5 +1,3 @@
-// Orbiscreen - orbiscreen-encode library (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 use gstreamer::prelude::*;
 use gstreamer::{ClockTime, ElementFactory, Pipeline};
 use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
@@ -10,14 +8,16 @@ use tracing::{info, instrument, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EncoderKind {
-    Vaapi,
+    Auto,
     Nvenc,
+    Vaapi,
     X264,
 }
 
 impl EncoderKind {
     pub fn parse(s: &str) -> Option<Self> {
         match s.to_ascii_lowercase().as_str() {
+            "auto" => Some(Self::Auto),
             "vaapi" => Some(Self::Vaapi),
             "nvenc" => Some(Self::Nvenc),
             "x264" => Some(Self::X264),
@@ -27,8 +27,8 @@ impl EncoderKind {
 
     pub fn gst_element(self) -> &'static str {
         match self {
+            Self::Auto | Self::Nvenc => "nvh264enc",
             Self::Vaapi => "vaapih264enc",
-            Self::Nvenc => "nvh264enc",
             Self::X264 => "x264enc",
         }
     }
@@ -46,7 +46,7 @@ pub struct EncodeParams {
 impl Default for EncodeParams {
     fn default() -> Self {
         Self {
-            kind: EncoderKind::X264,
+            kind: EncoderKind::Auto,
             bitrate_kbps: 8000,
             width: 1920,
             height: 1080,
@@ -76,12 +76,12 @@ pub fn init() -> Result<(), EncodeError> {
 
 fn detect_available(preferred: EncoderKind) -> EncoderKind {
     let registry = gstreamer::Registry::get();
-    for kind in [
-        preferred,
-        EncoderKind::X264,
-        EncoderKind::Vaapi,
-        EncoderKind::Nvenc,
-    ] {
+    let search_order = match preferred {
+        EncoderKind::Auto | EncoderKind::Nvenc => [EncoderKind::Nvenc, EncoderKind::Vaapi, EncoderKind::X264],
+        EncoderKind::Vaapi => [EncoderKind::Vaapi, EncoderKind::Nvenc, EncoderKind::X264],
+        EncoderKind::X264 => [EncoderKind::X264, EncoderKind::Nvenc, EncoderKind::Vaapi],
+    };
+    for kind in search_order {
         if registry
             .find_feature(kind.gst_element(), gstreamer::ElementFactory::static_type())
             .is_some()
@@ -182,20 +182,57 @@ impl Encoder {
         if encoder.find_property("byte-stream").is_some() {
             encoder.set_property_from_str("byte-stream", "true");
         }
+        if kind == EncoderKind::Nvenc {
+            if encoder.find_property("tune").is_some() {
+                encoder.set_property_from_str("tune", "ultra-low-latency");
+            }
+            if encoder.find_property("zerolatency").is_some() {
+                encoder.set_property_from_str("zerolatency", "true");
+            }
+            if encoder.find_property("preset").is_some() {
+                encoder.set_property_from_str("preset", "p1");
+            }
+            if encoder.find_property("rc-mode").is_some() {
+                encoder.set_property_from_str("rc-mode", "cbr");
+            }
+            if encoder.find_property("repeat-sequence-header").is_some() {
+                encoder.set_property_from_str("repeat-sequence-header", "true");
+            }
+            if encoder.find_property("gop-size").is_some() {
+                encoder.set_property_from_str("gop-size", "15");
+            }
+            if encoder.find_property("b-frames").is_some() {
+                encoder.set_property_from_str("b-frames", "0");
+            }
+        }
+        if kind == EncoderKind::Vaapi {
+            if encoder.find_property("rate-control").is_some() {
+                encoder.set_property_from_str("rate-control", "cbr");
+            }
+            if encoder.find_property("keyframe-period").is_some() {
+                encoder.set_property_from_str("keyframe-period", "15");
+            }
+        }
         if kind == EncoderKind::X264 {
             encoder.set_property_from_str("tune", "zerolatency");
             encoder.set_property_from_str("speed-preset", "ultrafast");
             if encoder.find_property("sliced-threads").is_some() {
-                encoder.set_property_from_str("sliced-threads", "false");
+                encoder.set_property_from_str("sliced-threads", "true");
             }
             if encoder.find_property("threads").is_some() {
-                encoder.set_property_from_str("threads", "2");
+                encoder.set_property_from_str("threads", "4");
             }
             if encoder.find_property("repeat-headers").is_some() {
                 encoder.set_property_from_str("repeat-headers", "true");
             }
             if encoder.find_property("key-int-max").is_some() {
-                encoder.set_property_from_str("key-int-max", "10");
+                encoder.set_property_from_str("key-int-max", "15");
+            }
+            if encoder.find_property("b-adapt").is_some() {
+                encoder.set_property_from_str("b-adapt", "0");
+            }
+            if encoder.find_property("bframes").is_some() {
+                encoder.set_property_from_str("bframes", "0");
             }
         }
 
@@ -372,6 +409,7 @@ mod tests {
 
     #[test]
     fn parses_known_encoders() {
+        assert_eq!(EncoderKind::parse("auto"), Some(EncoderKind::Auto));
         assert_eq!(EncoderKind::parse("x264"), Some(EncoderKind::X264));
         assert_eq!(EncoderKind::parse("NVENC"), Some(EncoderKind::Nvenc));
         assert_eq!(EncoderKind::parse("Vaapi"), Some(EncoderKind::Vaapi));
@@ -396,7 +434,7 @@ mod tests {
         assert_eq!(params.width, 1920);
         assert_eq!(params.height, 1080);
         assert_eq!(params.framerate, 60);
-        assert_eq!(params.kind, EncoderKind::X264);
+        assert_eq!(params.kind, EncoderKind::Auto);
     }
 
     #[test]

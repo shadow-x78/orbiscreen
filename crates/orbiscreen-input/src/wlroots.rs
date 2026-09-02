@@ -1,5 +1,3 @@
-// Orbiscreen - orbiscreen-input - wlroots module (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 use std::os::fd::{AsFd, AsRawFd};
 use std::sync::mpsc::{RecvTimeoutError, Sender};
 use std::time::{Duration, Instant};

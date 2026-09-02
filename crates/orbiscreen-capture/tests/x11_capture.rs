@@ -1,5 +1,3 @@
-// Orbiscreen - orbiscreen-capture X11 integration tests (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 use std::time::Duration;
 
 use orbiscreen_capture::x11::X11Capture;

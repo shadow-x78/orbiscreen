@@ -1,5 +1,3 @@
-// Orbiscreen - Android client - stream view model (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.ui.stream
 
@@ -32,7 +30,7 @@ data class StreamState(
     val version: String = "",
     val keyboardVisible: Boolean = false,
     val blanked: Boolean = false,
-    val scaleMode: Int = 0, // 0 = RESIZE_MODE_FIT, 3 = RESIZE_MODE_FILL, 4 = RESIZE_MODE_ZOOM
+    val scaleMode: Int = 0,
     val resolutionLabel: String = "1920×1080",
 )
 

@@ -16,9 +16,7 @@ Depends: ${misc:Depends},
          gstreamer1.0-plugins-ugly,
          gstreamer1.0-libav,
          libxkbcommon0,
-         libevdev2,
-         libgtk-4-1,
-         libadwaita-1-0
+         libevdev2
 Recommends: android-tools-adb
 Suggests: evdi-dkms
 Description: High-performance virtual secondary displays for Linux

@@ -1,5 +1,3 @@
-// Orbiscreen - web client (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 const statusEl = document.getElementById("status");
 const resolutionEl = document.getElementById("resolution");
 const overlayEl = document.getElementById("overlay");

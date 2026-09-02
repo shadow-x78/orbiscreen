@@ -20,15 +20,13 @@ BuildRequires:  rust >= 1.75
 BuildRequires:  pkgconfig(gstreamer-1.0)
 BuildRequires:  pkgconfig(gstreamer-app-1.0)
 BuildRequires:  pkgconfig(gstreamer-video-1.0)
-BuildRequires:  pkgconfig(gtk4)
-BuildRequires:  pkgconfig(libadwaita-1)
 BuildRequires:  pkgconfig(libevdev)
 BuildRequires:  pkgconfig(xkbcommon)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  git-core
 
 Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free
-Requires:       libevdev libxkbcommon gtk4 libadwaita
+Requires:       libevdev libxkbcommon
 Recommends:     gstreamer1-plugins-ugly-free
 Recommends:     android-tools
 
@@ -53,10 +51,7 @@ cargo build --release --workspace --locked
 
 %install
 install -Dm0755 target/release/orbiscreen %{buildroot}%{_bindir}/orbiscreen
-install -Dm0755 target/release/orbiscreen-gtk %{buildroot}%{_bindir}/orbiscreen-gtk
-install -Dm0644 data/com.orbiscreen.OrbiscreenGtk.desktop %{buildroot}%{_datadir}/applications/com.orbiscreen.OrbiscreenGtk.desktop
-install -Dm0644 data/orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
-install -Dm0644 data/com.orbiscreen.OrbiscreenGtk.metainfo.xml %{buildroot}%{_datadir}/metainfo/com.orbiscreen.OrbiscreenGtk.metainfo.xml
+install -Dm0644 data/orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen.svg
 install -Dm0755 scripts/install-evdi-module.sh %{buildroot}%{_datadir}/orbiscreen/install-evdi-module.sh
 
 for f in index.html style.css app.js; do
@@ -94,10 +89,7 @@ fi
 
 %files
 %{_bindir}/orbiscreen
-%{_bindir}/orbiscreen-gtk
-%{_datadir}/applications/com.orbiscreen.OrbiscreenGtk.desktop
-%{_datadir}/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
-%{_datadir}/metainfo/com.orbiscreen.OrbiscreenGtk.metainfo.xml
+%{_datadir}/icons/hicolor/scalable/apps/orbiscreen.svg
 %{_userunitdir}/orbiscreen.service
 %{_datadir}/orbiscreen/client/index.html
 %{_datadir}/orbiscreen/client/style.css

@@ -1,5 +1,3 @@
-// Orbiscreen - orbiscreen-input library (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 pub mod wayland;
 pub mod wlroots;
 pub mod x11;
@@ -112,9 +110,6 @@ impl InputInjector {
                 }
             }
             InputBackend::Wayland => {
-                // If /dev/uinput is directly accessible (e.g. user ACL or input group),
-                // use it immediately: zero latency, direct kernel device, no desktop permission modals,
-                // and avoids the 3-second wlroots protocol discovery timeout on KDE/GNOME!
                 let spec_for_uinput = spec.clone();
                 if let Ok(injector) = x11::UinputInjector::open(spec_for_uinput) {
                     info!(
@@ -138,7 +133,6 @@ impl InputInjector {
                     });
                 }
 
-                // Fallback to RemoteDesktop portal with a 5-second timeout so it never hangs indefinitely
                 info!("falling back to RemoteDesktop portal");
                 match tokio::time::timeout(
                     std::time::Duration::from_secs(5),

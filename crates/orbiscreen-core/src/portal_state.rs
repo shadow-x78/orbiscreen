@@ -1,5 +1,3 @@
-// Orbiscreen - orbiscreen-core library (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 

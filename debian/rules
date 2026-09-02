@@ -9,11 +9,8 @@ override_dh_auto_build:
 
 override_dh_auto_install:
 	@mkdir -p debian/orbiscreen/usr/bin
-	install -Dm0755 bin/orbiscreen debian/orbiscreen/usr/bin/orbiscreen
-	install -Dm0755 bin/orbiscreen-gtk debian/orbiscreen/usr/bin/orbiscreen-gtk
-	install -Dm0644 data/com.orbiscreen.OrbiscreenGtk.desktop debian/orbiscreen/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop
-	install -Dm0644 data/orbiscreen.svg debian/orbiscreen/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
-	install -Dm0644 data/com.orbiscreen.OrbiscreenGtk.metainfo.xml debian/orbiscreen/usr/share/metainfo/com.orbiscreen.OrbiscreenGtk.metainfo.xml
+	install -Dm0755 target/release/orbiscreen debian/orbiscreen/usr/bin/orbiscreen || install -Dm0755 bin/orbiscreen debian/orbiscreen/usr/bin/orbiscreen
+	install -Dm0644 data/orbiscreen.svg debian/orbiscreen/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
 	install -Dm0755 scripts/install-evdi-module.sh debian/orbiscreen/usr/share/orbiscreen/install-evdi-module.sh
 	install -Dm0644 clients/web/index.html debian/orbiscreen/usr/share/orbiscreen/client/index.html
 	install -Dm0644 clients/web/style.css debian/orbiscreen/usr/share/orbiscreen/client/style.css

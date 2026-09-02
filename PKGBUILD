@@ -17,8 +17,6 @@ depends=(
     'gst-plugins-base'
     'gst-plugins-good'
     'gst-plugins-bad'
-    'gtk4'
-    'libadwaita'
     'libevdev'
     'libxkbcommon'
     'hicolor-icon-theme'
@@ -31,12 +29,6 @@ optdepends=(
 provides=('orbiscreen')
 conflicts=('orbiscreen-bin')
 source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/v${pkgver}/${pkgname}-${pkgver}.tar.gz")
-# Checksum strategy: a release tag's archive checksum only exists after the
-# release workflow finishes, so a hard-pinned sum here would always lag the
-# tag. The integrity anchor is instead the tag itself: makepkg verifies the
-# archive against this SKIP entry, and the AUR publish flow regenerates
-# .SRCINFO right after `updpkgsums` on the maintainer's machine, where the
-# pinned sum lands in the published PKGBUILD copy - not in this repo.
 sha256sums=('SKIP')
 
 options=('!lto')
@@ -55,10 +47,7 @@ package() {
     cd "${pkgname}-${pkgver}"
 
     install -Dm0755 target/release/orbiscreen "${pkgdir}/usr/bin/orbiscreen"
-    install -Dm0755 target/release/orbiscreen-gtk "${pkgdir}/usr/bin/orbiscreen-gtk"
-    install -Dm0644 data/com.orbiscreen.OrbiscreenGtk.desktop "${pkgdir}/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop"
-    install -Dm0644 data/orbiscreen.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"
-    install -Dm0644 data/com.orbiscreen.OrbiscreenGtk.metainfo.xml "${pkgdir}/usr/share/metainfo/com.orbiscreen.OrbiscreenGtk.metainfo.xml"
+    install -Dm0644 data/orbiscreen.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg"
     install -Dm0755 scripts/install-evdi-module.sh "${pkgdir}/usr/share/orbiscreen/install-evdi-module.sh"
 
     for f in index.html style.css app.js; do

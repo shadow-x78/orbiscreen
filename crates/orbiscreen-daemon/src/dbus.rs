@@ -1,5 +1,3 @@
-// Orbiscreen - D-Bus Session Service Interface (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 

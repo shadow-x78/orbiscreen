@@ -1,5 +1,3 @@
-// Orbiscreen - orbiscreen-capture library (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

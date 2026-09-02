@@ -1,5 +1,3 @@
-// Orbiscreen - orbiscreen-capture - wlroots virtual output module (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 use std::collections::HashSet;
 use std::io::{Read as _, Write as _};
 use std::os::unix::net::UnixStream;

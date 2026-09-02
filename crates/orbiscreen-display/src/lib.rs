@@ -1,5 +1,3 @@
-// Orbiscreen - orbiscreen-display library (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;

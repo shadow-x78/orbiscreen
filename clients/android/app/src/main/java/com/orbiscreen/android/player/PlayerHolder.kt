@@ -1,5 +1,3 @@
-// Orbiscreen - Android client - stream player holder (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.player
 
@@ -123,9 +121,9 @@ class PlayerHolder(
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
                     100,
-                    500,
-                    50,
-                    100,
+                    400,
+                    30,
+                    60,
                 )
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()

@@ -1,5 +1,3 @@
-// Orbiscreen - orbiscreen-core library (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 pub mod frame_pool;
 pub mod portal_state;
 
@@ -104,7 +102,7 @@ impl Default for EncodeConfig {
     fn default() -> Self {
         Self {
             bitrate_kbps: 8000,
-            preferred_encoder: "x264".to_string(),
+            preferred_encoder: "auto".to_string(),
         }
     }
 }
@@ -119,9 +117,9 @@ impl EncodeConfig {
             .clamp(Self::MIN_BITRATE_KBPS, Self::MAX_BITRATE_KBPS);
         if !matches!(
             self.preferred_encoder.to_ascii_lowercase().as_str(),
-            "vaapi" | "nvenc" | "x264"
+            "auto" | "nvenc" | "vaapi" | "x264"
         ) {
-            self.preferred_encoder = "x264".to_string();
+            self.preferred_encoder = "auto".to_string();
         }
     }
 }
@@ -222,7 +220,7 @@ mdns_advertise = true
         assert_eq!(cfg.display.height, DisplayConfig::MIN_HEIGHT);
         assert_eq!(cfg.display.refresh_rate_hz, 1);
         assert_eq!(cfg.encode.bitrate_kbps, EncodeConfig::MAX_BITRATE_KBPS);
-        assert_eq!(cfg.encode.preferred_encoder, "x264");
+        assert_eq!(cfg.encode.preferred_encoder, "auto");
         assert_eq!(cfg.transport.signaling_port, 8788);
     }
 

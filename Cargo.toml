@@ -13,7 +13,6 @@ members = [
     "crates/orbiscreen-input",
     "crates/orbiscreen-transport",
     "crates/orbiscreen-daemon",
-    "crates/orbiscreen-gtk",
 ]
 
 # ── Package Metadata ──
@@ -68,8 +67,6 @@ hostname = "0.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 zbus = { version = "5", features = ["tokio"] }
-gtk4 = "0.9"
-libadwaita = "0.7"
 
 # ── Rust Lints ──
 [workspace.lints.rust]

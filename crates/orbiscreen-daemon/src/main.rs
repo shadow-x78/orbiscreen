@@ -1,5 +1,3 @@
-// Orbiscreen - orbiscreen-daemon daemon binary (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 pub mod dbus;
 
 use std::path::{Path, PathBuf};
@@ -968,13 +966,7 @@ async fn run_start(
 
     let encoder_kind = match EncoderKind::parse(&cfg.encode.preferred_encoder) {
         Some(kind) => kind,
-        None => {
-            warn!(
-                requested = %cfg.encode.preferred_encoder,
-                "Unknown encoder; falling back to software x264"
-            );
-            EncoderKind::X264
-        }
+        None => EncoderKind::Auto,
     };
     let mut encoder = Encoder::new(EncodeParams {
         kind: encoder_kind,
@@ -984,6 +976,7 @@ async fn run_start(
         framerate: spec.refresh_rate_hz,
     })?;
     let encoder_name = match encoder.kind() {
+        EncoderKind::Auto => "auto",
         EncoderKind::Vaapi => "vaapi",
         EncoderKind::Nvenc => "nvenc",
         EncoderKind::X264 => "x264",
@@ -1065,7 +1058,7 @@ async fn run_start(
     let cap_pump = tokio::spawn(async move {
         let encoder = encoder_for_pump;
         let frame_dur = Encoder::frame_duration_ns(spec.refresh_rate_hz);
-        const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(500);
+        const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(100);
         let started = std::time::Instant::now();
         let mut last_pts_ns: u64 = frame_dur;
         let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = None;
