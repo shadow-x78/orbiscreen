@@ -22,7 +22,6 @@ rm -rf "$APP"
 mkdir -p "$APP/usr/bin" "$APP/usr/share/orbiscreen/client/vendor" "$APP/usr/share/icons/hicolor/256x256/apps"
 
 install -m755 target/release/orbiscreen "$APP/usr/bin/orbiscreen"
-install -m755 target/release/orbiscreen-gtk "$APP/usr/bin/orbiscreen-gtk"
 install -m644 clients/web/index.html "$APP/usr/share/orbiscreen/client/index.html"
 install -m644 clients/web/style.css  "$APP/usr/share/orbiscreen/client/style.css"
 install -m644 clients/web/app.js     "$APP/usr/share/orbiscreen/client/app.js"
@@ -85,8 +84,6 @@ rasterize_256() {
 }
 rasterize_256 "$REPO_ROOT/data/orbiscreen.svg" "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png"
 cp "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png" "$APP/orbiscreen.png"
-mkdir -p "$APP/usr/share/metainfo"
-cp "$REPO_ROOT/data/com.orbiscreen.OrbiscreenGtk.metainfo.xml" "$APP/usr/share/metainfo/"
 
 cat > "$APP/AppRun" <<'EOF'
 #!/usr/bin/env bash

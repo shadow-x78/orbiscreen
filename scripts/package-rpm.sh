@@ -14,24 +14,18 @@ echo "[Orbiscreen] Building RPM package for Orbiscreen v${VERSION} (${ARCH})..."
 
 rm -rf "${BUILD_ROOT}"
 mkdir -p "${BUILD_ROOT}/usr/bin"
-mkdir -p "${BUILD_ROOT}/usr/share/applications"
-mkdir -p "${BUILD_ROOT}/usr/share/icons/hicolor/scalable/apps"
 mkdir -p target/rpmbuild/BUILD
 mkdir -p target/rpmbuild/RPMS
 mkdir -p target/rpmbuild/SOURCES
 mkdir -p target/rpmbuild/SPECS
 mkdir -p target/rpmbuild/SRPMS
 
-if [ ! -f target/release/orbiscreen ] || [ ! -f target/release/orbiscreen-gtk ]; then
+if [ ! -f target/release/orbiscreen ]; then
     echo "[Orbiscreen] Building release binaries for RPM..."
     cargo build --release --workspace
 fi
 
 cp -f target/release/orbiscreen "${BUILD_ROOT}/usr/bin/"
-cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_ROOT}/usr/share/applications/"
-cp -f data/orbiscreen.svg "${BUILD_ROOT}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"
-mkdir -p "${BUILD_ROOT}/usr/share/metainfo"
-cp -f data/com.orbiscreen.OrbiscreenGtk.metainfo.xml "${BUILD_ROOT}/usr/share/metainfo/"
 
 if command -v rpmbuild >/dev/null 2>&1; then
     rpmbuild -bb \

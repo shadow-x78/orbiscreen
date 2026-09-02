@@ -12,7 +12,7 @@ DEB_NAME="orbiscreen_${VERSION}_${ARCH}.deb"
 
 echo "[Orbiscreen] Building Debian package for Orbiscreen v${VERSION} (${ARCH})..."
 
-if [ ! -f target/release/orbiscreen ] || [ ! -f target/release/orbiscreen-gtk ]; then
+if [ ! -f target/release/orbiscreen ]; then
     echo "[Orbiscreen] Building release binaries for deb..."
     cargo build --release --workspace
 fi
@@ -20,18 +20,10 @@ fi
 rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}/DEBIAN"
 mkdir -p "${BUILD_DIR}/usr/bin"
-mkdir -p "${BUILD_DIR}/usr/share/applications"
-mkdir -p "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps"
 mkdir -p "${BUILD_DIR}/usr/lib/systemd/user"
 mkdir -p "${BUILD_DIR}/usr/share/orbiscreen/client/vendor"
 
 cp -f target/release/orbiscreen "${BUILD_DIR}/usr/bin/"
-cp -f target/release/orbiscreen-gtk "${BUILD_DIR}/usr/bin/"
-
-cp -f data/com.orbiscreen.OrbiscreenGtk.desktop "${BUILD_DIR}/usr/share/applications/"
-cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"
-mkdir -p "${BUILD_DIR}/usr/share/metainfo"
-cp -f data/com.orbiscreen.OrbiscreenGtk.metainfo.xml "${BUILD_DIR}/usr/share/metainfo/"
 
 cp -f clients/web/index.html "${BUILD_DIR}/usr/share/orbiscreen/client/"
 cp -f clients/web/style.css "${BUILD_DIR}/usr/share/orbiscreen/client/"
@@ -61,7 +53,7 @@ Package: orbiscreen
 Version: ${VERSION}
 Architecture: ${ARCH}
 Maintainer: shadow-x78 <shadow-x78@users.noreply.github.com>
-Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, libxkbcommon0, libevdev2, libgtk-4-1, libadwaita-1-0
+Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, libxkbcommon0, libevdev2
 Section: utils
 Priority: optional
 Homepage: https://github.com/shadow-x78/orbiscreen
