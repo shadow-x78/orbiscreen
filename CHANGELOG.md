@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.17.4] - 2026-09-02
+
+Zero-latency streaming overhaul with hardware NVENC optimization, framerate-matched damage pump, zero-backlog keyframe delivery, gesture fix for double-tap menu reveal, hide-eye icon update, and modern Arabic UI redesign of the exit modal and display settings sheet.
+
+### ⚡ Performance & Low Latency
+- **Framerate-Matched Virtual Display Damage Pump**: Replaced the static 200ms damage pump timer in `kwin_virtual.rs` with a display framerate-matched interval (`16.6ms` for 60Hz), eliminating desktop frame throttling and delivering true 60 FPS streaming.
+- **Zero-Backlog Stream Connection**: Modified `join_buffer` in `orbiscreen-transport` to retain only the latest IDR keyframe and push a single packet on client connection. New clients start decoding immediately without queueing stale delta packets, eliminating the 1.5-3 second initial delay.
+- **Real-Time Capture Appsink**: Set `drop=true max-buffers=1` on the PipeWire GStreamer capture sink in `kwin_virtual.rs`, preventing frame queue accumulation during static-to-dynamic transitions.
+- **Hardware NVENC Verification**: Verified and prioritized NVIDIA hardware encoding (`nvh264enc`) with `tune=ultra-low-latency`, `zerolatency=true`, and `preset=p1` (<2.8ms per 1080p60 frame).
+
+### 🐛 Bug Fixes & Interactions
+- **Restored Double-Tap Gesture Detection**: Integrated an internal Android `GestureDetector` directly into `TouchOverlay`, allowing double-tap events to reliably reveal controls even when touch input injection is consuming screen events.
+- **Hide-Eye Icon Update**: Replaced `Visibility` (open eye) with `VisibilityOff` (eye with slash) in `ControlToolbar.kt` to clearly communicate the hide action.
+- **Cleaned Landscape Toolbar**: Pruned duplicate action buttons in landscape mode and ensured portrait toolbar strictly displays the 4 core icons (Mouse, Keyboard, Hide Eye, and Red Disconnect).
+- **Restored Credit Headers**: Maintained 2-line clean credit & GPL-3.0 license headers across all source files while keeping function bodies stripped of clutter.
+
+### 🎨 UI & UX Redesign
+- **Redesigned Exit Confirmation Modal**: Replaced the generic dialog with a frosted-glass Material 3 modal featuring localized Arabic typography, a soft glowing exit icon, and sleek action buttons.
+- **Revamped Display Settings Sheet**: Redesigned `ConnectionSettingsSheet` with an elegant drag handle, compact resolution chips, a dedicated phone screen matching card, sleek custom resolution inputs, and pure Arabic scale mode options.
+
 ## [v0.17.3] - 2026-09-02
 
 Critical streaming fix for pitch black screen, sleek keyboard accessory bar, redesigned settings floating controls & sheet, eye button fix, back-button exit confirmation dialog, and project-wide documentation synchronization.

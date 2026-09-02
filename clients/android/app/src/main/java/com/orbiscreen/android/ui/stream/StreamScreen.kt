@@ -1,3 +1,5 @@
+// Orbiscreen - StreamScreen.kt (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.ui.stream
 
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -234,6 +237,10 @@ fun StreamScreen(
                 onRightClick = { input.rightClick() },
                 onScroll = { dy -> input.wheel(dy) },
                 scaleMode = state.scaleMode,
+                onDoubleTap = {
+                    isControlsPermanentlyHidden = false
+                    showControls = true
+                },
             )
         }
 
@@ -274,7 +281,7 @@ fun StreamScreen(
 
         // Draggable Snap-to-Corner FAB (reveals controls)
         AnimatedVisibility(
-            visible = !showControls && !isControlsPermanentlyHidden,
+            visible = !showControls,
             enter = fadeIn(),
             exit = fadeOut(),
         ) {
@@ -368,64 +375,92 @@ fun StreamScreen(
 
         // Exit confirmation dialog
         if (showExitConfirmDialog) {
-            AlertDialog(
+            androidx.compose.ui.window.Dialog(
                 onDismissRequest = { showExitConfirmDialog = false },
-                shape = RoundedCornerShape(24.dp),
-                containerColor = MaterialTheme.colorScheme.surface,
-                icon = {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        modifier = Modifier.size(48.dp),
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = Color(0xF51E1E2E),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                    shadowElevation = 16.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(22.dp),
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.AutoMirrored.Rounded.ExitToApp,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(24.dp),
-                            )
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.15f),
+                            modifier = Modifier.size(52.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.ExitToApp,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(26.dp),
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            text = "إنهاء الجلسة؟",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+
+                        Spacer(Modifier.height(6.dp))
+
+                        Text(
+                            text = "هل أنت متأكد من رغبتك في قطع الاتصال والعودة إلى شاشة الأجهزة؟",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.7f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            lineHeight = 18.sp,
+                        )
+
+                        Spacer(Modifier.height(20.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            FilledTonalButton(
+                                onClick = { showExitConfirmDialog = false },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = Color.White.copy(alpha = 0.1f),
+                                    contentColor = Color.White,
+                                ),
+                                modifier = Modifier.weight(1f).height(42.dp),
+                            ) {
+                                Text("إلغاء", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            }
+
+                            Button(
+                                onClick = {
+                                    showExitConfirmDialog = false
+                                    onBack()
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                    contentColor = Color.White,
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.weight(1f).height(42.dp),
+                            ) {
+                                Text("إنهاء الجلسة", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
                         }
                     }
-                },
-                title = {
-                    Text(
-                        text = stringResource(R.string.disconnect_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                },
-                text = {
-                    Text(
-                        text = stringResource(R.string.disconnect_confirm_message),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            showExitConfirmDialog = false
-                            onBack()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = Color.White,
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text(stringResource(R.string.disconnect_confirm_action), fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    FilledTonalButton(
-                        onClick = { showExitConfirmDialog = false },
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text(stringResource(R.string.cancel))
-                    }
-                },
-            )
+                }
+            }
         }
     }
 }
@@ -442,8 +477,6 @@ private fun ConnectionSettingsSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
-    val density = LocalDensity.current
-    val config = LocalConfiguration.current
 
     val screenPixelW = remember {
         val dm = context.resources.displayMetrics
@@ -460,17 +493,25 @@ private fun ConnectionSettingsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF181825),
+        containerColor = Color(0xF8161622),
         contentColor = Color.White,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        dragHandle = null,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 10.dp, bottom = 4.dp)
+                    .size(width = 38.dp, height = 4.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.2f))
+            )
+        },
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 18.dp)
+                .padding(horizontal = 18.dp, vertical = 12.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header
             Row(
@@ -478,35 +519,44 @@ private fun ConnectionSettingsSheet(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                    modifier = Modifier.size(40.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    modifier = Modifier.size(36.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Rounded.Settings,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier.size(18.dp),
                         )
                     }
                 }
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
                         text = "إعدادات البث والعرض",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                     )
                     Text(
                         text = "التحكم في دقة الشاشة ونمط الملاءمة",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.55f),
+                        fontSize = 11.sp,
                     )
                 }
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White.copy(alpha = 0.8f))
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        Icons.Rounded.Close,
+                        contentDescription = "Close",
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
 
@@ -514,109 +564,125 @@ private fun ConnectionSettingsSheet(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "دقة العرض الأساسية",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                 )
 
                 val presets = listOf(
-                    Triple(1920, 1080, "1080p · FHD"),
-                    Triple(1280, 720, "720p · HD"),
-                    Triple(2560, 1440, "1440p · 2K"),
-                    Triple(1920, 1200, "1200p · 16:10"),
-                    Triple(3840, 2160, "4K · UHD"),
+                    Triple(1920, 1080, "1080p FHD"),
+                    Triple(1280, 720, "720p HD"),
+                    Triple(2560, 1440, "2K QHD"),
+                    Triple(1920, 1200, "16:10"),
+                    Triple(3840, 2160, "4K UHD"),
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     presets.take(3).forEach { (w, h, label) ->
                         val isSelected = currentWidth == w && currentHeight == h
-                        FilterChip(
-                            selected = isSelected,
+                        Surface(
                             onClick = { onApplyDimensions(w, h, label) },
-                            label = { Text(label, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = Color.Black,
-                                containerColor = Color(0xFF262637),
-                                labelColor = Color.White,
-                            ),
                             shape = RoundedCornerShape(10.dp),
-                        )
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF222233),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.08f)
+                            ),
+                            modifier = Modifier.weight(1f).height(34.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color.Black else Color.White,
+                                )
+                            }
+                        }
                     }
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     presets.drop(3).forEach { (w, h, label) ->
                         val isSelected = currentWidth == w && currentHeight == h
-                        FilterChip(
-                            selected = isSelected,
+                        Surface(
                             onClick = { onApplyDimensions(w, h, label) },
-                            label = { Text(label, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = Color.Black,
-                                containerColor = Color(0xFF262637),
-                                labelColor = Color.White,
-                            ),
                             shape = RoundedCornerShape(10.dp),
-                        )
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF222233),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.08f)
+                            ),
+                            modifier = Modifier.weight(1f).height(34.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color.Black else Color.White,
+                                )
+                            }
+                        }
                     }
                 }
             }
 
             // 2. Adaptive Phone Screen
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "مطابقة شاشة هاتفك",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                 )
 
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFF252538),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFF202030),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            modifier = Modifier.size(38.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            modifier = Modifier.size(32.dp),
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     Icons.Rounded.PhoneAndroid,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(16.dp),
                                 )
                             }
                         }
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                "الأبعاد الفعلية للهاتف",
-                                style = MaterialTheme.typography.bodyMedium,
+                                "شاشة الهاتف الحالية",
+                                style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
+                                fontSize = 12.sp,
                             )
                             Text(
                                 "${screenPixelW} × ${screenPixelH}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.6f),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontSize = 10.sp,
                             )
                         }
                         Button(
@@ -624,56 +690,68 @@ private fun ConnectionSettingsSheet(
                                 onApplyDimensions(screenPixelW, screenPixelH, "${screenPixelW}×${screenPixelH}")
                             },
                             shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.height(32.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
                         ) {
-                            Text("تطبيق", fontWeight = FontWeight.Bold)
+                            Text("مطابقة", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         }
                     }
                 }
             }
 
             // 3. Custom Resolution
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "أبعاد مخصصة",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     OutlinedTextField(
                         value = customW,
                         onValueChange = { customW = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("العرض", color = Color.White.copy(alpha = 0.7f)) },
+                        label = { Text("العرض", fontSize = 10.sp, color = Color.White.copy(alpha = 0.6f)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontSize = 13.sp,
+                            color = Color.White,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
                         ),
                     )
-                    Text("×", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("×", color = Color.White.copy(alpha = 0.6f), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     OutlinedTextField(
                         value = customH,
                         onValueChange = { customH = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("الارتفاع", color = Color.White.copy(alpha = 0.7f)) },
+                        label = { Text("الارتفاع", fontSize = 10.sp, color = Color.White.copy(alpha = 0.6f)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontSize = 13.sp,
+                            color = Color.White,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
                         ),
                     )
                     Button(
@@ -682,51 +760,59 @@ private fun ConnectionSettingsSheet(
                             val h = customH.toIntOrNull() ?: 1080
                             onApplyDimensions(w, h, "${w}×${h}")
                         },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.height(52.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.size(46.dp),
+                        contentPadding = PaddingValues(0.dp),
                     ) {
-                        Icon(Icons.Rounded.Check, contentDescription = "Apply")
+                        Icon(Icons.Rounded.Check, contentDescription = "Apply", modifier = Modifier.size(18.dp))
                     }
                 }
             }
 
             // 4. Scale Mode
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "نمط ملاءمة الشاشة",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     val scaleModes = listOf(
-                        0 to "احتواء (Fit)",
-                        3 to "ملء كامل (Fill)",
-                        4 to "تكبير وقص (Zoom)",
+                        0 to "احتواء متناسق",
+                        3 to "ملء الشاشة",
+                        4 to "تكبير وقص",
                     )
                     scaleModes.forEach { (mode, label) ->
                         val isSelected = currentScaleMode == mode
-                        FilterChip(
-                            selected = isSelected,
+                        Surface(
                             onClick = { onApplyScaleMode(mode) },
-                            label = { Text(label, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = Color.Black,
-                                containerColor = Color(0xFF262637),
-                                labelColor = Color.White,
-                            ),
                             shape = RoundedCornerShape(10.dp),
-                        )
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF222233),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.08f)
+                            ),
+                            modifier = Modifier.weight(1f).height(34.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color.Black else Color.White,
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(10.dp))
         }
     }
 }

@@ -1,3 +1,5 @@
+// Orbiscreen - lib.rs (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 pub mod adb;
 pub mod mdns;
 
@@ -250,13 +252,6 @@ impl Transport {
                 if sp.pkt.is_keyframe {
                     jb.clear();
                     jb.push_back(sp.clone());
-                } else if !jb.is_empty() {
-                    while jb.len() >= JOIN_BUFFER_MAX_PACKETS {
-                        jb.remove(1);
-                    }
-                    jb.push_back(sp.clone());
-                } else {
-                    jb.push_back(sp.clone());
                 }
                 let _ = video_tx.send(sp);
             }
@@ -305,7 +300,6 @@ struct SeqPacket {
     pkt: H264Packet,
 }
 
-const JOIN_BUFFER_MAX_PACKETS: usize = 8;
 
 #[derive(Clone)]
 struct AppState {
@@ -760,27 +754,24 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     }
     let pipeline_for_task = pipeline.clone();
 
-    let (join_packets, last_buffered_seq, mut video_rx) = {
+    let (keyframe_packet, mut video_rx) = {
         let jb = state.join_buffer.lock().unwrap_or_else(|e| e.into_inner());
-        let last = jb.back().map(|sp| sp.seq);
+        let kf = jb.front().cloned();
         let rx = state.video_tx.subscribe();
-        (jb.clone(), last, rx)
+        (kf, rx)
     };
-    let has_keyframe = join_packets.front().is_some_and(|sp| sp.pkt.is_keyframe);
+    let has_keyframe = keyframe_packet.as_ref().is_some_and(|sp| sp.pkt.is_keyframe);
+    let keyframe_seq = keyframe_packet.as_ref().map(|sp| sp.seq);
     let mut pts_base: Option<u64> = if has_keyframe {
-        join_packets.front().map(|sp| sp.pkt.pts_ns)
+        keyframe_packet.as_ref().map(|sp| sp.pkt.pts_ns)
     } else {
         None
     };
 
-    if let Some(base) = pts_base {
-        for sp in &join_packets {
-            let mut normalized = sp.pkt.clone();
-            normalized.pts_ns = sp.pkt.pts_ns.saturating_sub(base);
-            if push_h264_packet(&appsrc_clone, &normalized).is_err() {
-                break;
-            }
-        }
+    if let (Some(base), Some(sp)) = (pts_base, &keyframe_packet) {
+        let mut normalized = sp.pkt.clone();
+        normalized.pts_ns = sp.pkt.pts_ns.saturating_sub(base);
+        let _ = push_h264_packet(&appsrc_clone, &normalized);
     }
 
     tokio::spawn(async move {
@@ -803,7 +794,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
             };
             if has_keyframe {
-                if let Some(last) = last_buffered_seq {
+                if let Some(last) = keyframe_seq {
                     if sp.seq <= last {
                         continue;
                     }

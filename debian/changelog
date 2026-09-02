@@ -1,3 +1,10 @@
+orbiscreen (0.17.4-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.17.4 for Ubuntu noble.
+  * Ultra-low latency KWin virtual capture (framerate-matched damage pump, drop=true max-buffers=1), zero-backlog keyframe delivery, hardware NVENC prioritization, double-tap gesture fix, redesigned Arabic exit modal and settings bottom sheet.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 02 Sep 2026 17:15:00 +0300
+
 orbiscreen (0.17.3-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.3 for Ubuntu noble.

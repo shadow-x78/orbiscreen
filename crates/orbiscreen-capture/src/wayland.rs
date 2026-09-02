@@ -1,3 +1,5 @@
+// Orbiscreen - wayland.rs (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 use std::os::fd::{AsRawFd, OwnedFd};
 
 use ashpd::desktop::screencast::{

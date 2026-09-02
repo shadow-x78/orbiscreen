@@ -1,3 +1,5 @@
+// Orbiscreen - lib.rs (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 use gstreamer::prelude::*;
 use gstreamer::{ClockTime, ElementFactory, Pipeline};
 use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};

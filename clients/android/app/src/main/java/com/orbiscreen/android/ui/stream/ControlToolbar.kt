@@ -1,3 +1,5 @@
+// Orbiscreen - ControlToolbar.kt (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.ui.stream
 
@@ -123,30 +125,28 @@ fun ControlToolbar(
                 onClick = onToggleKeyboard,
             )
 
-            // Landscape-only buttons
+            // Landscape-only extra tools: Lock & Settings
             if (!isPortrait) {
                 ToolbarActionButton(
                     icon = Icons.Rounded.Lock,
                     contentDescription = stringResource(R.string.lock_screen),
                     onClick = onLock,
                 )
+                ToolbarActionButton(
+                    icon = Icons.Rounded.Settings,
+                    contentDescription = stringResource(R.string.settings),
+                    onClick = onOpenSettings,
+                )
             }
 
-            // 3. Connection Settings
+            // 3. Eye Hide Button: Hide Toolbar
             ToolbarActionButton(
-                icon = Icons.Rounded.Settings,
-                contentDescription = stringResource(R.string.settings),
-                onClick = onOpenSettings,
-            )
-
-            // 4. Eye Button: Hide Toolbar
-            ToolbarActionButton(
-                icon = Icons.Rounded.Visibility,
+                icon = Icons.Rounded.VisibilityOff,
                 contentDescription = "Hide controls",
                 onClick = onHideControls,
             )
 
-            // 5. Red Disconnect Button
+            // 4. Red Disconnect Button
             FilledIconButton(
                 onClick = onDisconnect,
                 shape = CircleShape,

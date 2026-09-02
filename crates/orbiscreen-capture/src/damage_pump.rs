@@ -1,3 +1,5 @@
+// Orbiscreen - damage_pump.rs (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;

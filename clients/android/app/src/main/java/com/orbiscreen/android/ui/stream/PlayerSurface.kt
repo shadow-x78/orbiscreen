@@ -1,3 +1,5 @@
+// Orbiscreen - PlayerSurface.kt (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.ui.stream
 
@@ -25,6 +27,7 @@ fun PlayerSurface(
     onScroll: (Double) -> Unit,
     modifier: Modifier = Modifier,
     scaleMode: Int = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
+    onDoubleTap: (() -> Unit)? = null,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
@@ -54,6 +57,7 @@ fun PlayerSurface(
             onLeftClick = onLeftClick,
             onRightClick = onRightClick,
             onScroll = onScroll,
+            onDoubleTap = onDoubleTap,
         )
     }
 }
@@ -67,6 +71,7 @@ private fun TouchOverlay(
     onLeftClick: () -> Unit,
     onRightClick: () -> Unit,
     onScroll: (Double) -> Unit,
+    onDoubleTap: (() -> Unit)? = null,
 ) {
     AndroidView(
         modifier = Modifier.fillMaxSize(),
@@ -77,11 +82,22 @@ private fun TouchOverlay(
             var moved = false
             var maxPointers = 1
 
+            val gestureDetector = android.view.GestureDetector(
+                c,
+                object : android.view.GestureDetector.SimpleOnGestureListener() {
+                    override fun onDoubleTap(e: android.view.MotionEvent): Boolean {
+                        onDoubleTap?.invoke()
+                        return true
+                    }
+                },
+            )
+
             android.view.View(c).apply {
                 setBackgroundColor(0x00000000)
                 isClickable = true
                 isFocusable = true
                 setOnTouchListener { _, ev ->
+                    gestureDetector.onTouchEvent(ev)
                     val w = width
                     val h = height
                     if (isTouchMode) {

@@ -1,3 +1,5 @@
+// Orbiscreen - lib.rs (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 pub mod wayland;
 pub mod wlroots;
 pub mod x11;

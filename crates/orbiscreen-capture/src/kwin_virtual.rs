@@ -1,3 +1,5 @@
+// Orbiscreen - kwin_virtual.rs (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 use std::io::Write as _;
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::OpenOptionsExt;
@@ -411,7 +413,7 @@ impl KwinVirtualCapture {
              ! videoconvert \
              ! videoscale \
              ! video/x-raw,format=BGRA,width={},height={} \
-             ! appsink name=sink drop=false sync=false max-buffers=2 emit-signals=false",
+             ! appsink name=sink drop=true sync=false max-buffers=1 emit-signals=false",
             spec.width, spec.height
         );
         let pipeline = gstreamer::parse::launch(&pipeline_str)
@@ -472,7 +474,8 @@ impl KwinVirtualCapture {
             .set_state(gstreamer::State::Playing)
             .map_err(|e| KwinVirtualError::Wayland(format!("State error: {e}")))?;
 
-        let damage_pump = super::damage_pump::spawn(Duration::from_millis(200));
+        let pump_interval = Duration::from_millis(16);
+        let damage_pump = super::damage_pump::spawn(pump_interval);
 
         let ended = Arc::new(AtomicBool::new(false));
         let ended_notify = Arc::new(Notify::new());

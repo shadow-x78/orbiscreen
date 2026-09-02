@@ -1,3 +1,5 @@
+// Orbiscreen - xtest.rs (GPL-3.0-or-later)
+// https://github.com/shadow-x78/orbiscreen
 use x11rb::connection::{Connection as _, RequestConnection as _};
 use x11rb::protocol::xproto::{
     BUTTON_PRESS_EVENT, BUTTON_RELEASE_EVENT, KEY_PRESS_EVENT, KEY_RELEASE_EVENT,
