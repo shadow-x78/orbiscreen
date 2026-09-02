@@ -4,6 +4,8 @@
 package com.orbiscreen.android.ui.stream
 
 import android.app.Activity
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateIntOffsetAsState
@@ -16,6 +18,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -37,6 +40,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
@@ -48,6 +52,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material.icons.rounded.ZoomOutMap
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -122,10 +127,17 @@ fun StreamScreen(
     val player = viewModel.player.collectAsState().value
     var showControls by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
+    var showExitConfirmDialog by remember { mutableStateOf(false) }
+    var isControlsPermanentlyHidden by remember { mutableStateOf(false) }
     var isTouchMode by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Intercept phone back button gesture/press
+    BackHandler {
+        showExitConfirmDialog = true
+    }
 
     // Lifecycle tracking: Pause / Resume without showing stream errors
     DisposableEffect(lifecycleOwner) {
@@ -171,13 +183,21 @@ fun StreamScreen(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color.Black)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        isControlsPermanentlyHidden = false
+                        showControls = true
+                    },
+                )
+            },
     ) {
         val density = LocalDensity.current
         val widthPx = with(density) { maxWidth.toPx() }
         val heightPx = with(density) { maxHeight.toPx() }
         val marginPx = with(density) { 16.dp.toPx() }
-        val fabSizePx = with(density) { 42.dp.toPx() }
+        val fabSizePx = with(density) { 46.dp.toPx() }
 
         var corner by remember { mutableStateOf(ScreenCorner.TopRight) }
         var dragOffset by remember { mutableStateOf(Offset.Zero) }
@@ -245,14 +265,18 @@ fun StreamScreen(
                 onOpenSettings = { showSettingsSheet = true },
                 onLock = viewModel::lock,
                 onBlank = viewModel::blank,
-                onHideControls = { showControls = false },
-                onDisconnect = onBack,
+                onHideControls = {
+                    showControls = false
+                    isControlsPermanentlyHidden = true
+                    Toast.makeText(context, context.getString(R.string.controls_hidden_hint), Toast.LENGTH_SHORT).show()
+                },
+                onDisconnect = { showExitConfirmDialog = true },
             )
         }
 
         // Draggable Snap-to-Corner FAB (reveals controls)
         AnimatedVisibility(
-            visible = !showControls,
+            visible = !showControls && !isControlsPermanentlyHidden,
             enter = fadeIn(),
             exit = fadeOut(),
         ) {
@@ -290,26 +314,26 @@ fun StreamScreen(
                         )
                     },
             ) {
-                FilledIconButton(
+                Surface(
                     onClick = {
                         if (!isDragging && dragOffset.getDistance() < 8f) {
                             showControls = true
                         }
                     },
                     shape = CircleShape,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .border(1.dp, GlassBorderDark, CircleShape),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = GlassDark,
-                        contentColor = Color.White.copy(alpha = 0.9f),
-                    ),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)),
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.size(46.dp),
                 ) {
-                    Icon(
-                        Icons.Rounded.Tune,
-                        contentDescription = "Show controls",
-                        modifier = Modifier.size(20.dp),
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.Tune,
+                            contentDescription = stringResource(R.string.settings),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
                 }
             }
         }
@@ -341,6 +365,68 @@ fun StreamScreen(
                     viewModel.setScaleMode(mode)
                 },
                 onDismiss = { showSettingsSheet = false },
+            )
+        }
+
+        // Exit confirmation dialog
+        if (showExitConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showExitConfirmDialog = false },
+                shape = RoundedCornerShape(24.dp),
+                containerColor = MaterialTheme.colorScheme.surface,
+                icon = {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier.size(48.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.AutoMirrored.Rounded.ExitToApp,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                    }
+                },
+                title = {
+                    Text(
+                        text = stringResource(R.string.disconnect_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                text = {
+                    Text(
+                        text = stringResource(R.string.disconnect_confirm_message),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showExitConfirmDialog = false
+                            onBack()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = Color.White,
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(stringResource(R.string.disconnect_confirm_action), fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    FilledTonalButton(
+                        onClick = { showExitConfirmDialog = false },
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                },
             )
         }
     }
@@ -384,209 +470,265 @@ private fun ConnectionSettingsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(horizontal = 20.dp, vertical = 18.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Icon(
-                    Icons.Rounded.Settings,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp),
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    text = "إعدادات البث والأبعاد (Display)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-                Spacer(Modifier.weight(1f))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.Settings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = "إعدادات البث والعرض",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                    Text(
+                        text = "التحكم في دقة الشاشة ونمط الملاءمة",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.6f),
+                    )
+                }
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White)
+                    Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White.copy(alpha = 0.8f))
                 }
             }
 
             // 1. Standard Presets
-            Text(
-                text = "الأبعاد الأساسية الثابتة (Presets)",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "دقة العرض الأساسية",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                )
 
-            val presets = listOf(
-                Triple(1920, 1080, "1080p (16:9)"),
-                Triple(1280, 720, "720p (HD)"),
-                Triple(2560, 1440, "1440p (2K)"),
-                Triple(1920, 1200, "1200p (16:10)"),
-                Triple(3840, 2160, "4K (UHD)"),
-            )
+                val presets = listOf(
+                    Triple(1920, 1080, "1080p · FHD"),
+                    Triple(1280, 720, "720p · HD"),
+                    Triple(2560, 1440, "1440p · 2K"),
+                    Triple(1920, 1200, "1200p · 16:10"),
+                    Triple(3840, 2160, "4K · UHD"),
+                )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                presets.take(3).forEach { (w, h, label) ->
-                    val isSelected = currentWidth == w && currentHeight == h
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onApplyDimensions(w, h, label) },
-                        label = { Text(label, fontSize = 11.sp) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = Color.Black,
-                            containerColor = Color(0xFF262637),
-                            labelColor = Color.White,
-                        ),
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    presets.take(3).forEach { (w, h, label) ->
+                        val isSelected = currentWidth == w && currentHeight == h
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onApplyDimensions(w, h, label) },
+                            label = { Text(label, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = Color.Black,
+                                containerColor = Color(0xFF262637),
+                                labelColor = Color.White,
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                        )
+                    }
                 }
-            }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                presets.drop(3).forEach { (w, h, label) ->
-                    val isSelected = currentWidth == w && currentHeight == h
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onApplyDimensions(w, h, label) },
-                        label = { Text(label, fontSize = 11.sp) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = Color.Black,
-                            containerColor = Color(0xFF262637),
-                            labelColor = Color.White,
-                        ),
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    presets.drop(3).forEach { (w, h, label) ->
+                        val isSelected = currentWidth == w && currentHeight == h
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onApplyDimensions(w, h, label) },
+                            label = { Text(label, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = Color.Black,
+                                containerColor = Color(0xFF262637),
+                                labelColor = Color.White,
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                        )
+                    }
                 }
             }
 
             // 2. Adaptive Phone Screen
-            Text(
-                text = "التكيف التلقائي مع شاشة الهاتف (Adaptive)",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
-            )
-
-            Button(
-                onClick = {
-                    onApplyDimensions(screenPixelW, screenPixelH, "${screenPixelW}×${screenPixelH}")
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2E44)),
-            ) {
-                Icon(
-                    Icons.Rounded.PhoneAndroid,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.width(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "مطابقة أبعاد شاشتك (${screenPixelW} × ${screenPixelH})",
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    text = "مطابقة شاشة هاتفك",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
                 )
+
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF252538),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            modifier = Modifier.size(38.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Rounded.PhoneAndroid,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                "الأبعاد الفعلية للهاتف",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                            )
+                            Text(
+                                "${screenPixelW} × ${screenPixelH}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.6f),
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                onApplyDimensions(screenPixelW, screenPixelH, "${screenPixelW}×${screenPixelH}")
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                        ) {
+                            Text("تطبيق", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
 
             // 3. Custom Resolution
-            Text(
-                text = "أبعاد مخصصة (Custom)",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "أبعاد مخصصة",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = customW,
-                    onValueChange = { customW = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Width", color = Color.White.copy(alpha = 0.7f)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
-                    ),
-                )
-                Text("×", color = Color.White, fontWeight = FontWeight.Bold)
-                OutlinedTextField(
-                    value = customH,
-                    onValueChange = { customH = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Height", color = Color.White.copy(alpha = 0.7f)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
-                    ),
-                )
-                Button(
-                    onClick = {
-                        val w = customW.toIntOrNull() ?: 1920
-                        val h = customH.toIntOrNull() ?: 1080
-                        onApplyDimensions(w, h, "${w}×${h}")
-                    },
-                    shape = RoundedCornerShape(12.dp),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Rounded.Check, contentDescription = "Apply")
+                    OutlinedTextField(
+                        value = customW,
+                        onValueChange = { customW = it.filter { ch -> ch.isDigit() } },
+                        label = { Text("العرض", color = Color.White.copy(alpha = 0.7f)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                        ),
+                    )
+                    Text("×", color = Color.White, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = customH,
+                        onValueChange = { customH = it.filter { ch -> ch.isDigit() } },
+                        label = { Text("الارتفاع", color = Color.White.copy(alpha = 0.7f)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                        ),
+                    )
+                    Button(
+                        onClick = {
+                            val w = customW.toIntOrNull() ?: 1920
+                            val h = customH.toIntOrNull() ?: 1080
+                            onApplyDimensions(w, h, "${w}×${h}")
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.height(52.dp),
+                    ) {
+                        Icon(Icons.Rounded.Check, contentDescription = "Apply")
+                    }
                 }
             }
 
             // 4. Scale Mode
-            Text(
-                text = "نمط ملء الشاشة (Scale Mode)",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                // 0 = RESIZE_MODE_FIT, 3 = RESIZE_MODE_FILL, 4 = RESIZE_MODE_ZOOM
-                val scaleModes = listOf(
-                    0 to "Fit (أبعاد أصلية)",
-                    3 to "Fill (ملء كامل)",
-                    4 to "Zoom (تكبير وقص)",
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "نمط ملاءمة الشاشة",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
                 )
-                scaleModes.forEach { (mode, label) ->
-                    val isSelected = currentScaleMode == mode
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onApplyScaleMode(mode) },
-                        label = { Text(label, fontSize = 11.sp) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = Color.Black,
-                            containerColor = Color(0xFF262637),
-                            labelColor = Color.White,
-                        ),
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    val scaleModes = listOf(
+                        0 to "احتواء (Fit)",
+                        3 to "ملء كامل (Fill)",
+                        4 to "تكبير وقص (Zoom)",
                     )
+                    scaleModes.forEach { (mode, label) ->
+                        val isSelected = currentScaleMode == mode
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onApplyScaleMode(mode) },
+                            label = { Text(label, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = Color.Black,
+                                containerColor = Color(0xFF262637),
+                                labelColor = Color.White,
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
         }
     }
 }
@@ -716,14 +858,17 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
     var dummyText by remember { mutableStateOf(TextFieldValue("")) }
     val focusRequester = remember { FocusRequester() }
 
+    var isCtrlLatched by remember { mutableStateOf(false) }
+    var isAltLatched by remember { mutableStateOf(false) }
+    var isSuperLatched by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.45f)),
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.BottomCenter,
     ) {
         BasicTextField(
             value = dummyText,
@@ -732,6 +877,9 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
                     for (ch in newVal.text) {
                         sendChar(ch, onKey)
                     }
+                    if (isCtrlLatched) { onKey(29, false); isCtrlLatched = false }
+                    if (isAltLatched) { onKey(56, false); isAltLatched = false }
+                    if (isSuperLatched) { onKey(125, false); isSuperLatched = false }
                     dummyText = TextFieldValue("")
                 } else if (newVal.text.length < dummyText.text.length) {
                     onKey(14, true)
@@ -749,67 +897,63 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
             ),
         )
 
-        Card(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.BottomCenter)
                 .imePadding(),
-            shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF181825)),
+            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+            color = Color(0xEE1E1E2E),
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+            shadowElevation = 10.dp,
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp),
             ) {
+                // Row 1: Modifier keys & Quick actions
                 Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(
-                        Icons.Rounded.Keyboard,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Text(
-                        stringResource(R.string.type_on_host),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                    Spacer(Modifier.weight(1f))
-                    IconButton(onClick = onClose, modifier = Modifier.size(30.dp)) {
+                    KeyActionPill("Esc", Modifier.weight(1f)) { onKey(1, true); onKey(1, false) }
+                    KeyActionPill("Tab", Modifier.weight(1f)) { onKey(15, true); onKey(15, false) }
+                    KeyTogglePill("Ctrl", isCtrlLatched, Modifier.weight(1f)) {
+                        isCtrlLatched = !isCtrlLatched
+                        onKey(29, isCtrlLatched)
+                    }
+                    KeyTogglePill("Alt", isAltLatched, Modifier.weight(1f)) {
+                        isAltLatched = !isAltLatched
+                        onKey(56, isAltLatched)
+                    }
+                    KeyTogglePill("Super", isSuperLatched, Modifier.weight(1.1f)) {
+                        isSuperLatched = !isSuperLatched
+                        onKey(125, isSuperLatched)
+                    }
+                    KeyActionPill("Del", Modifier.weight(1f)) { onKey(111, true); onKey(111, false) }
+                    KeyActionPill("Enter", Modifier.weight(1.3f), isPrimary = true) { onKey(28, true); onKey(28, false) }
+                    IconButton(
+                        onClick = onClose,
+                        modifier = Modifier.size(32.dp),
+                    ) {
                         Icon(
                             Icons.Rounded.Close,
                             contentDescription = stringResource(R.string.close_keyboard),
-                            tint = Color.White,
+                            tint = Color.White.copy(alpha = 0.8f),
                             modifier = Modifier.size(18.dp),
                         )
                     }
                 }
 
+                // Row 2: Navigation & Space
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    KeyActionPill("Esc", Modifier.weight(1f)) { onKey(1, true); onKey(1, false) }
-                    KeyActionPill("Tab", Modifier.weight(1f)) { onKey(15, true); onKey(15, false) }
-                    KeyActionPill("Ctrl", Modifier.weight(1f)) { onKey(29, true); onKey(29, false) }
-                    KeyActionPill("Alt", Modifier.weight(1f)) { onKey(56, true); onKey(56, false) }
-                    KeyActionPill("Super", Modifier.weight(1f)) { onKey(125, true); onKey(125, false) }
-                    KeyActionPill("Del", Modifier.weight(1f)) { onKey(111, true); onKey(111, false) }
-                    KeyActionPill("Enter", Modifier.weight(1.2f)) { onKey(28, true); onKey(28, false) }
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    KeyActionPill("Space", Modifier.weight(2f)) { onKey(57, true); onKey(57, false) }
+                    KeyActionPill("Space", Modifier.weight(2.2f)) { onKey(57, true); onKey(57, false) }
                     KeyActionPill("←", Modifier.weight(1f)) { onKey(105, true); onKey(105, false) }
                     KeyActionPill("↑", Modifier.weight(1f)) { onKey(103, true); onKey(103, false) }
                     KeyActionPill("↓", Modifier.weight(1f)) { onKey(108, true); onKey(108, false) }
@@ -821,21 +965,52 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
 }
 
 @Composable
-private fun KeyActionPill(label: String, modifier: Modifier, onClick: () -> Unit) {
+private fun KeyActionPill(
+    label: String,
+    modifier: Modifier,
+    isPrimary: Boolean = false,
+    onClick: () -> Unit,
+) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0xFF262637),
-        modifier = modifier.border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+        shape = RoundedCornerShape(8.dp),
+        color = if (isPrimary) MaterialTheme.colorScheme.primary else Color(0xFF2B2B3D),
+        border = if (isPrimary) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+        modifier = modifier.height(36.dp),
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 10.dp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            color = Color.White,
-        )
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isPrimary) Color.Black else Color.White,
+            )
+        }
+    }
+}
+
+@Composable
+private fun KeyTogglePill(
+    label: String,
+    isActive: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        color = if (isActive) MaterialTheme.colorScheme.primary else Color(0xFF2B2B3D),
+        border = if (isActive) BorderStroke(1.5.dp, Color.White) else BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+        modifier = modifier.height(36.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isActive) Color.Black else Color.White,
+            )
+        }
     }
 }
 

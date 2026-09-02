@@ -69,4 +69,9 @@
     <string name="view_github_profile">الملف الشخصي</string>
     <string name="view_repository">الكود المصدري</string>
     <string name="license_chip">ترخيص GPL-3.0</string>
+    <string name="disconnect_title">إنهاء الجلسة؟</string>
+    <string name="disconnect_confirm_message">هل أنت متأكد من رغبتك في قطع الاتصال والعودة إلى شاشة الأجهزة؟</string>
+    <string name="disconnect_confirm_action">إنهاء الجلسة</string>
+    <string name="cancel">إلغاء</string>
+    <string name="controls_hidden_hint">تم إخفاء أزرار التحكم. انقر نقراً مزدوجاً على الشاشة لإظهارها.</string>
 </resources>

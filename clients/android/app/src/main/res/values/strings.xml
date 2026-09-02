@@ -68,4 +68,9 @@
     <string name="view_github_profile">GitHub Profile</string>
     <string name="view_repository">Source Code</string>
     <string name="license_chip">GPL-3.0 License</string>
+    <string name="disconnect_title">End Session?</string>
+    <string name="disconnect_confirm_message">Are you sure you want to disconnect and return to the discovery screen?</string>
+    <string name="disconnect_confirm_action">Disconnect</string>
+    <string name="cancel">Cancel</string>
+    <string name="controls_hidden_hint">Controls hidden. Double-tap the screen to reveal them.</string>
 </resources>

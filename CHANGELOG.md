@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.17.3] - 2026-09-02
+
+Critical streaming fix for pitch black screen, sleek keyboard accessory bar, redesigned settings floating controls & sheet, eye button fix, back-button exit confirmation dialog, and project-wide documentation synchronization.
+
+### 🐛 Bug Fixes & Streaming Stability
+- **Fixed Pitch Black Screen on Connection**: Guaranteed immediate keyframe delivery upon stream connection by preserving the IDR keyframe at index 0 of `join_buffer` while keeping the latest delta frames, restoring non-live `appsrc` and non-dropping `appsink` in GStreamer, and setting safe low-latency buffer durations in ExoPlayer.
+- **Fixed Duplicate Eye Icon in Landscape**: Removed the redundant host-blanking eye icon from the stream toolbar, keeping a single, dedicated eye icon for hiding controls.
+- **Fixed Controls Hiding & Stealth Mode**: Tapping the eye icon now completely hides both the control toolbar and the floating corner button until the next session, with an intuitive double-tap gesture to restore them if desired.
+
+### ✨ Added
+- **Back-Button Exit Confirmation Dialog**: Intercepted the Android system back gesture and added a confirmation modal with clear Cancel and Disconnect actions, preventing accidental session terminations.
+
+### 🎨 UI & UX Redesign
+- **Slim Floating Keyboard Accessory Bar**: Completely replaced the bulky full-screen card overlay with an ultra-slim frosted glass bar resting directly atop Gboard, featuring latched `Ctrl`, `Alt`, and `Super` modifier states and no background scrim covering the desktop.
+- **Redesigned Floating Controls FAB**: Replaced the plain dark circle with a polished frosted-glass floating button featuring glowing borders and smooth corner snapping.
+- **Redesigned Display Settings Sheet**: Cleaned up the connection settings bottom sheet with pure localized typography, removing awkward English tags in parentheses and providing modern resolution chips, phone dimension matching, and scale mode controls.
+
 ## [v0.17.2] - 2026-09-02
 
 Comprehensive UI/UX overhaul, ultra-low latency streaming (<100ms), robust mouse input injection, background idle & auto-resume, floating IME keyboard accessory bar, corner-snapping controls FAB, and dedicated stream display settings.

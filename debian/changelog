@@ -1,3 +1,10 @@
+orbiscreen (0.17.3-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.17.3 for Ubuntu noble.
+  * Streaming pitch-black fix, sleek keyboard accessory bar, settings FAB & sheet redesign, exit confirmation modal.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 02 Sep 2026 16:35:00 +0300
+
 orbiscreen (0.17.2-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.2 for Ubuntu noble.

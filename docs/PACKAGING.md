@@ -2,7 +2,7 @@
 
 # Multi-Distro Packaging Guide - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.17.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.17.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -11,13 +11,24 @@
 
 ---
 
-## 🌐 Language
+## 📋 Table of Contents
 
-<a href="PACKAGING.md">🇬🇧 English</a> · <a href="PACKAGING_AR.md">🇸🇦 العربية</a>
+- [Supported Distros & Targets](#supported-distros--targets)
+- [Source Tarballs](#source-tarballs)
+- [Packaging Matrix](#packaging-matrix)
+- [Arch Linux (AUR)](#arch-linux-aur)
+- [Fedora / RHEL / CentOS (COPR)](#fedora--rhel--centos-copr)
+- [Debian / Ubuntu / Linux Mint (.deb)](#debian--ubuntu--linux-mint-deb)
+- [Android Release Packaging](#android-release-packaging)
+- [Signing & Distribution](#signing--distribution)
+- [License](#license)
 
 ---
 
-The release matrix is: `0.17.2` (workspace), `versionCode = 40` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
+<a id="packaging-matrix"></a>
+## 📦 Packaging Matrix
+
+The release matrix is: `0.17.3` (workspace), `versionCode = 41` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
 
 Orbiscreen provides build configurations and package definitions for all major Linux distributions and Android:
 

@@ -132,12 +132,6 @@ fun ControlToolbar(
                     contentDescription = stringResource(R.string.lock_screen),
                     onClick = onLock,
                 )
-
-                ToolbarActionButton(
-                    icon = Icons.Rounded.VisibilityOff,
-                    contentDescription = stringResource(R.string.blank_screen),
-                    onClick = onBlank,
-                )
             }
 
             // 3. Connection Settings

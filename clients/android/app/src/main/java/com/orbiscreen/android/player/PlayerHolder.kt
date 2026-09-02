@@ -122,10 +122,10 @@ class PlayerHolder(
 
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
+                    100,
+                    500,
                     50,
-                    200,
-                    0,
-                    0,
+                    100,
                 )
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
@@ -138,12 +138,6 @@ class PlayerHolder(
                     val media = MediaItem.Builder()
                         .setUri(uri)
                         .setMimeType(MimeTypes.VIDEO_MP2T)
-                        .setLiveConfiguration(
-                            MediaItem.LiveConfiguration.Builder()
-                                .setMaxPlaybackSpeed(1.05f)
-                                .setMinPlaybackSpeed(0.95f)
-                                .build()
-                        )
                         .build()
                     setMediaItem(media)
                     repeatMode = Player.REPEAT_MODE_OFF
