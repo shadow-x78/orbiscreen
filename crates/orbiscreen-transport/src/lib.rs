@@ -303,7 +303,7 @@ struct SeqPacket {
     pkt: H264Packet,
 }
 
-const JOIN_BUFFER_MAX_PACKETS: usize = 32;
+const JOIN_BUFFER_MAX_PACKETS: usize = 2;
 
 #[derive(Clone)]
 struct AppState {
@@ -650,11 +650,11 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     gstreamer::init().ok();
 
-    let pipeline_str = "appsrc name=src format=time is-live=false \
+    let pipeline_str = "appsrc name=src format=time is-live=true \
                         ! video/x-h264,stream-format=byte-stream,alignment=au,framerate=0/1 \
                         ! h264parse config-interval=1 \
                         ! mpegtsmux alignment=7 \
-                        ! appsink name=sink drop=false sync=false max-buffers=1024";
+                        ! appsink name=sink drop=true sync=false max-buffers=8";
     let pipeline = match gstreamer::parse::launch(pipeline_str) {
         Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
             Ok(pipeline) => pipeline,
@@ -699,7 +699,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     };
 
-    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(1024);
+    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(32);
     let tx_alive = tx.clone();
     appsink.set_callbacks(
         AppSinkCallbacks::builder()

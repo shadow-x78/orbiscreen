@@ -112,34 +112,52 @@ impl InputInjector {
                 }
             }
             InputBackend::Wayland => {
-                let spec_for_portal = spec.clone();
+                // If /dev/uinput is directly accessible (e.g. user ACL or input group),
+                // use it immediately: zero latency, direct kernel device, no desktop permission modals,
+                // and avoids the 3-second wlroots protocol discovery timeout on KDE/GNOME!
+                let spec_for_uinput = spec.clone();
+                if let Ok(injector) = x11::UinputInjector::open(spec_for_uinput) {
+                    info!(
+                        "input injection via kernel uinput device (accessible via user ACL/group)"
+                    );
+                    return Ok(Self {
+                        inner: InjectorInner::Uinput(Box::new(injector)),
+                    });
+                }
+
+                let spec_for_wlr = spec.clone();
                 let wlr_result = tokio::task::spawn_blocking(move || {
-                    wlroots::WlrootsInjector::open(spec_for_portal)
+                    wlroots::WlrootsInjector::open(spec_for_wlr)
                 })
                 .await
                 .map_err(|e| InputError::Uinput(format!("wlroots input task: {e}")))?;
-                match wlr_result {
-                    Ok(injector) => Ok(Self {
+                if let Ok(injector) = wlr_result {
+                    info!("input injection via wlroots virtual protocols");
+                    return Ok(Self {
                         inner: InjectorInner::Wlroots(Box::new(injector)),
+                    });
+                }
+
+                // Fallback to RemoteDesktop portal with a 5-second timeout so it never hangs indefinitely
+                info!("falling back to RemoteDesktop portal");
+                match tokio::time::timeout(
+                    std::time::Duration::from_secs(5),
+                    wayland::WaylandInjector::open(),
+                )
+                .await
+                {
+                    Ok(Ok(injector)) => Ok(Self {
+                        inner: InjectorInner::Portal(Box::new(injector)),
                     }),
-                    Err(e) => {
-                        warn!("wlroots native input unavailable ({e}); falling back to the RemoteDesktop portal");
-                        match wayland::WaylandInjector::open().await {
-                            Ok(injector) => Ok(Self {
-                                inner: InjectorInner::Portal(Box::new(injector)),
-                            }),
-                            Err(portal_error) => {
-                                warn!(
-                                    "portal RemoteDesktop unavailable ({portal_error}); \
-                                     falling back to uinput (needs /dev/uinput)"
-                                );
-                                Ok(Self {
-                                    inner: InjectorInner::Uinput(Box::new(
-                                        x11::UinputInjector::open(spec)?,
-                                    )),
-                                })
-                            }
-                        }
+                    Ok(Err(portal_error)) => {
+                        warn!("portal RemoteDesktop failed: {portal_error}");
+                        Err(InputError::Uinput(
+                            "no usable input injector found (uinput and portal both failed)".into(),
+                        ))
+                    }
+                    Err(_) => {
+                        warn!("portal RemoteDesktop timed out after 5s");
+                        Err(InputError::Uinput("portal RemoteDesktop timed out".into()))
                     }
                 }
             }

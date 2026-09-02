@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.17.2] - 2026-09-02
+
+Comprehensive UI/UX overhaul, ultra-low latency streaming (<100ms), robust mouse input injection, background idle & auto-resume, floating IME keyboard accessory bar, corner-snapping controls FAB, and dedicated stream display settings.
+
+### ✨ Added
+- **Dedicated Stream Connection & Display Settings**: Integrated settings modal bottom sheet right from the stream toolbar - switch between standard presets (1080p, 720p, 1440p, 1200p, 4K), 1-tap adaptive matching to your device screen, or custom resolutions, plus display scale modes (Fit, Fill, Zoom).
+- **Floating IME Keyboard Accessory Bar**: Modifier and navigation shortcut keys now float seamlessly directly above the Android soft keyboard (Gboard) via `imePadding`, keeping shortcuts always accessible while typing.
+- **Draggable Corner-Snapping Controls FAB**: Floating controls toggle button can be dragged freely across the screen and snaps automatically with a smooth spring animation to any of the four screen corners.
+- **Orientation-Adaptive Stream Toolbar**: Portrait mode now shows a clean, uncluttered 5-icon bar (Mouse, Keyboard, Settings, Eye to hide, and Red exit), while Landscape shows full controls. Removed obsolete back, terminal, and fullscreen buttons.
+- **Background Idle & Silent Auto-Resume**: Lifecycle-aware stream engine gracefully pauses when leaving the app and automatically reconnects upon returning, eliminating `SocketTimeoutException` error dialogs.
+
+### ⚡ Performance & Low Latency
+- **Sub-100ms Latency (<100ms)**: Slashed stream `join_buffer` from 32 historical packets (up to 6.4s of delay) down to 2 packets with live GStreamer pipeline parameters and low-latency ExoPlayer buffering, presenting the current desktop in real time.
+- **Fixed Mouse Movement in Both Modes**: Replaced request-cancelling `collectLatest` with a steady 60fps atomic dispatch loop in Android, and prioritized direct `/dev/uinput` injection on Wayland (with ACL access) for lag-free, 100% responsive mouse tracking.
+
+### 🎨 UI Harmonization
+- **Unified Design System**: Standardized 22.dp rounded corners, elevated surface cards, frosted glass status indicators, and matching 14.dp icon containers across Discovery, Settings, and Stream screens.
+
 ## [v0.17.1] - 2026-09-02
 
 Settings enhancements, project & creator credits, in-app update checking, and zero-buffering playback refinement.

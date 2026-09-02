@@ -32,6 +32,8 @@ data class StreamState(
     val version: String = "",
     val keyboardVisible: Boolean = false,
     val blanked: Boolean = false,
+    val scaleMode: Int = 0, // 0 = RESIZE_MODE_FIT, 3 = RESIZE_MODE_FILL, 4 = RESIZE_MODE_ZOOM
+    val resolutionLabel: String = "1920×1080",
 )
 
 class StreamViewModel(
@@ -136,6 +138,29 @@ class StreamViewModel(
 
     fun lock() {
         ensureInput().control("lock")
+    }
+
+    fun setScaleMode(mode: Int) {
+        _state.value = _state.value.copy(scaleMode = mode)
+    }
+
+    fun updateDimensions(w: Int, h: Int, label: String = "${w}×${h}") {
+        if (w > 0 && h > 0) {
+            _state.value = _state.value.copy(
+                displayWidth = w,
+                displayHeight = h,
+                resolutionLabel = label,
+            )
+            inputDispatcher?.resize(w, h)
+        }
+    }
+
+    fun onPause() {
+        playerHolder.onAppBackgrounded()
+    }
+
+    fun onResume() {
+        playerHolder.onAppForegrounded()
     }
 
     fun ctrlAltDel() {

@@ -122,8 +122,8 @@ class PlayerHolder(
 
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
-                    100,
-                    500,
+                    50,
+                    200,
                     0,
                     0,
                 )
@@ -138,6 +138,12 @@ class PlayerHolder(
                     val media = MediaItem.Builder()
                         .setUri(uri)
                         .setMimeType(MimeTypes.VIDEO_MP2T)
+                        .setLiveConfiguration(
+                            MediaItem.LiveConfiguration.Builder()
+                                .setMaxPlaybackSpeed(1.05f)
+                                .setMinPlaybackSpeed(0.95f)
+                                .build()
+                        )
                         .build()
                     setMediaItem(media)
                     repeatMode = Player.REPEAT_MODE_OFF
@@ -156,13 +162,19 @@ class PlayerHolder(
                                     _event.value = StreamEvent.Playing
                                 }
                                 Player.STATE_ENDED -> {
-                                    _event.value = StreamEvent.Error(-1, "Stream ended, reconnecting")
-                                    scheduleReconnect()
+                                    if (!isBackgrounded) {
+                                        _event.value = StreamEvent.Error(-1, "Stream ended, reconnecting")
+                                        scheduleReconnect()
+                                    }
                                 }
                                 Player.STATE_IDLE -> Unit
                             }
                         }
                         override fun onPlayerError(error: PlaybackException) {
+                            if (isBackgrounded) {
+                                Log.i("OrbiPlayer", "suppressing player error while backgrounded: ${error.message}")
+                                return
+                            }
                             val cause = error.cause
                             val causeInfo = if (cause != null) " [${cause.javaClass.simpleName}: ${cause.message}]" else ""
                             Log.w("OrbiPlayer", "player error: ${error.errorCodeName} ${error.message}$causeInfo", error)
@@ -227,6 +239,29 @@ class PlayerHolder(
         _player.value?.release()
         _player.value = null
         _event.value = StreamEvent.Idle
+    }
+
+    @Volatile
+    private var isBackgrounded: Boolean = false
+
+    fun onAppBackgrounded() {
+        isBackgrounded = true
+        _player.value?.playWhenReady = false
+    }
+
+    fun onAppForegrounded() {
+        val wasBackgrounded = isBackgrounded
+        isBackgrounded = false
+        if (wasBackgrounded) {
+            val p = _player.value
+            if (p != null && p.playbackState != Player.STATE_IDLE && p.playerError == null) {
+                p.playWhenReady = true
+            } else {
+                lastTarget?.let { target ->
+                    retry(target.host, target.port, target.tokenProvider)
+                }
+            }
+        }
     }
 
     fun retry(host: String, port: Int, tokenProvider: suspend () -> String = { "" }) {

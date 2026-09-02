@@ -26,6 +26,7 @@ fun PlayerSurface(
     onRightClick: () -> Unit,
     onScroll: (Double) -> Unit,
     modifier: Modifier = Modifier,
+    scaleMode: Int = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
@@ -39,10 +40,12 @@ fun PlayerSurface(
                     )
                     setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
                     keepScreenOn = true
+                    resizeMode = scaleMode
                 }
             },
             update = { view ->
                 view.player = player
+                view.resizeMode = scaleMode
             },
         )
         TouchOverlay(

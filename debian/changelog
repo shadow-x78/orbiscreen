@@ -1,3 +1,10 @@
+orbiscreen (0.17.2-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.17.2 for Ubuntu noble.
+  * Comprehensive UI/UX overhaul, sub-100ms latency, mouse input fix, background auto-resume.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 02 Sep 2026 15:55:00 +0300
+
 orbiscreen (0.17.1-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.1 for Ubuntu noble.

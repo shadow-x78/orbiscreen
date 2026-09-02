@@ -7,6 +7,7 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -43,11 +44,7 @@ class InputDispatcher(
     @Volatile
     private var streamHeight: Int = displayHeight
 
-    private val moves = MutableSharedFlow<JSONObject>(
-        replay = 0,
-        extraBufferCapacity = 64,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
+    private val latestMove = java.util.concurrent.atomic.AtomicReference<JSONObject?>(null)
 
     private val discrete = MutableSharedFlow<JSONObject>(
         replay = 0,
@@ -57,7 +54,13 @@ class InputDispatcher(
 
     init {
         scope.launch {
-            moves.collectLatest { send(it) }
+            while (isActive) {
+                val move = latestMove.getAndSet(null)
+                if (move != null) {
+                    send(move)
+                }
+                kotlinx.coroutines.delay(16)
+            }
         }
         scope.launch {
             discrete.collect { send(it) }
@@ -84,7 +87,7 @@ class InputDispatcher(
         val (x, y) = map(localX, localY, containerW, containerH)
         cursorX = x.toFloat()
         cursorY = y.toFloat()
-        moves.tryEmit(JSONObject().apply {
+        latestMove.set(JSONObject().apply {
             put("Pointer", JSONObject().apply {
                 put("Move", JSONObject().apply { put("x", x); put("y", y) })
             })
@@ -96,7 +99,7 @@ class InputDispatcher(
         val newY = (cursorY + dy * sensitivity).coerceIn(0f, streamHeight.toFloat())
         cursorX = newX
         cursorY = newY
-        moves.tryEmit(JSONObject().apply {
+        latestMove.set(JSONObject().apply {
             put("Pointer", JSONObject().apply {
                 put("Move", JSONObject().apply {
                     put("x", newX.roundToInt())

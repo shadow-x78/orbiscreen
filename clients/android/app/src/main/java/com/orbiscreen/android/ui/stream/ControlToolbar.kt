@@ -3,9 +3,7 @@
 
 package com.orbiscreen.android.ui.stream
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -13,27 +11,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Fullscreen
-import androidx.compose.material.icons.rounded.FullscreenExit
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Mouse
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Terminal
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -44,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,14 +55,16 @@ fun ControlToolbar(
     isTouchMode: Boolean = false,
     onToggleInputMode: () -> Unit = {},
     onToggleKeyboard: () -> Unit,
+    onOpenSettings: () -> Unit,
     onLock: () -> Unit,
     onBlank: () -> Unit,
-    onCtrlAltDel: () -> Unit,
-    onRetry: () -> Unit,
     onHideControls: () -> Unit,
-    onDisconnect: () -> Unit = onHideControls,
+    onDisconnect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val configuration = LocalConfiguration.current
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = GlassDark,
@@ -83,90 +79,88 @@ fun ControlToolbar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            IconButton(
-                onClick = onDisconnect,
-                modifier = Modifier.size(32.dp),
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.back),
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp),
+            if (!isPortrait) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(ActiveGreen),
                 )
-            }
 
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(ActiveGreen),
-            )
-
-            Column(modifier = Modifier.padding(end = 4.dp)) {
-                Text(
-                    text = hostLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                )
-                val info = listOfNotNull(
-                    resolution.takeIf { it.isNotBlank() },
-                    encoder.takeIf { it.isNotBlank() },
-                ).joinToString(" · ")
-                if (info.isNotBlank()) {
+                Column(modifier = Modifier.padding(end = 6.dp)) {
                     Text(
-                        text = info,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 10.sp,
+                        text = hostLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
                     )
+                    val info = listOfNotNull(
+                        resolution.takeIf { it.isNotBlank() },
+                        encoder.takeIf { it.isNotBlank() },
+                    ).joinToString(" · ")
+                    if (info.isNotBlank()) {
+                        Text(
+                            text = info,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 10.sp,
+                        )
+                    }
                 }
+
+                Spacer(Modifier.width(2.dp))
             }
 
-            Spacer(Modifier.width(4.dp))
-
+            // 1. Mouse mode toggle
             ToolbarActionButton(
                 icon = if (isTouchMode) Icons.Rounded.TouchApp else Icons.Rounded.Mouse,
                 contentDescription = if (isTouchMode) "Touch mode" else "Trackpad mode",
                 onClick = onToggleInputMode,
             )
 
+            // 2. Keyboard toggle
             ToolbarActionButton(
                 icon = Icons.Rounded.Keyboard,
                 contentDescription = stringResource(R.string.open_keyboard),
                 onClick = onToggleKeyboard,
             )
 
+            // Landscape-only buttons
+            if (!isPortrait) {
+                ToolbarActionButton(
+                    icon = Icons.Rounded.Lock,
+                    contentDescription = stringResource(R.string.lock_screen),
+                    onClick = onLock,
+                )
+
+                ToolbarActionButton(
+                    icon = Icons.Rounded.VisibilityOff,
+                    contentDescription = stringResource(R.string.blank_screen),
+                    onClick = onBlank,
+                )
+            }
+
+            // 3. Connection Settings
             ToolbarActionButton(
-                icon = Icons.Rounded.Lock,
-                contentDescription = stringResource(R.string.lock_screen),
-                onClick = onLock,
+                icon = Icons.Rounded.Settings,
+                contentDescription = stringResource(R.string.settings),
+                onClick = onOpenSettings,
             )
 
+            // 4. Eye Button: Hide Toolbar
             ToolbarActionButton(
-                icon = Icons.Rounded.VisibilityOff,
-                contentDescription = stringResource(R.string.blank_screen),
-                onClick = onBlank,
-            )
-
-            ToolbarActionButton(
-                icon = Icons.Rounded.Terminal,
-                contentDescription = stringResource(R.string.send_ctrl_alt_del),
-                onClick = onCtrlAltDel,
-            )
-
-            ToolbarActionButton(
-                icon = Icons.Rounded.FullscreenExit,
-                contentDescription = stringResource(R.string.fullscreen_toggle),
+                icon = Icons.Rounded.Visibility,
+                contentDescription = "Hide controls",
                 onClick = onHideControls,
             )
 
+            // 5. Red Disconnect Button
             FilledIconButton(
                 onClick = onDisconnect,
                 shape = CircleShape,
                 modifier = Modifier.size(34.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                    containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
                     contentColor = Color.White,
                 ),
             ) {
@@ -191,7 +185,7 @@ private fun ToolbarActionButton(
         shape = CircleShape,
         modifier = Modifier.size(34.dp),
         colors = IconButtonDefaults.filledIconButtonColors(
-            containerColor = Color.White.copy(alpha = 0.12f),
+            containerColor = Color.White.copy(alpha = 0.14f),
             contentColor = Color.White,
         ),
     ) {
