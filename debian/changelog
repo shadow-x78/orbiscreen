@@ -1,3 +1,10 @@
+orbiscreen (0.17.1-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.17.1 for Ubuntu noble.
+  * In-app developer credits, GitHub links, update check, zero-buffering playback.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 02 Sep 2026 15:10:00 +0300
+
 orbiscreen (0.16.2-1~ubuntu24.04.3) noble; urgency=medium
 
   * Release 0.16.2 for Ubuntu noble.

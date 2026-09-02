@@ -65,4 +65,8 @@
     <string name="update_available">يوجد إصدار أحدث متوفر: %s</string>
     <string name="update_check_failed">تعذر التحقق من التحديثات، انقر لفتح صفحة الإصدارات</string>
     <string name="download_update">تحميل التحديث</string>
+    <string name="developer_tagline">المطور والمصمم الرئيسي</string>
+    <string name="view_github_profile">الملف الشخصي</string>
+    <string name="view_repository">الكود المصدري</string>
+    <string name="license_chip">ترخيص GPL-3.0</string>
 </resources>

@@ -64,4 +64,8 @@
     <string name="update_available">New update available: %s</string>
     <string name="update_check_failed">Unable to check updates. Tap to open releases</string>
     <string name="download_update">Download</string>
+    <string name="developer_tagline">Creator &amp; Lead Developer</string>
+    <string name="view_github_profile">GitHub Profile</string>
+    <string name="view_repository">Source Code</string>
+    <string name="license_chip">GPL-3.0 License</string>
 </resources>

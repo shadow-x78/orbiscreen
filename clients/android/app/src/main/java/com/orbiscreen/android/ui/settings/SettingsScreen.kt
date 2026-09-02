@@ -7,11 +7,21 @@ package com.orbiscreen.android.ui.settings
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.graphics.BitmapFactory
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -241,93 +251,9 @@ fun SettingsScreen(
                 title = stringResource(R.string.about),
                 icon = Icons.Rounded.Info,
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_orbiscreen_logo),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(44.dp),
-                    )
-                    Spacer(Modifier.width(16.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = "Orbiscreen",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = "Version ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                )
-
-                ActionPreferenceRow(
-                    title = stringResource(R.string.developer),
-                    subtitle = stringResource(R.string.developer_name),
-                    icon = Icons.Rounded.Person,
-                    trailingIcon = Icons.AutoMirrored.Rounded.OpenInNew,
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shadow-x78"))
-                        context.startActivity(intent)
-                    },
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                )
-
-                ActionPreferenceRow(
-                    title = stringResource(R.string.github_repository),
-                    subtitle = "shadow-x78/orbiscreen",
-                    icon = Icons.Rounded.Code,
-                    trailingIcon = Icons.AutoMirrored.Rounded.OpenInNew,
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shadow-x78/orbiscreen"))
-                        context.startActivity(intent)
-                    },
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                )
-
-                ActionPreferenceRow(
-                    title = stringResource(R.string.license),
-                    subtitle = stringResource(R.string.license_name),
-                    icon = Icons.Rounded.Policy,
-                    trailingIcon = Icons.AutoMirrored.Rounded.OpenInNew,
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shadow-x78/orbiscreen/blob/main/LICENSE"))
-                        context.startActivity(intent)
-                    },
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                )
-
-                ActionPreferenceRow(
-                    title = stringResource(R.string.check_for_updates),
-                    subtitle = stringResource(R.string.check_for_updates_summary),
-                    icon = Icons.Rounded.Update,
-                    isLoading = isCheckingUpdates,
-                    onClick = {
+                ProjectCardContent(
+                    isCheckingUpdates = isCheckingUpdates,
+                    onCheckUpdates = {
                         scope.launch(Dispatchers.IO) {
                             isCheckingUpdates = true
                             try {
@@ -345,10 +271,9 @@ fun SettingsScreen(
                                     val json = JSONObject(body)
                                     val tagName = json.optString("tag_name", "")
                                     val htmlUrl = json.optString("html_url", "https://github.com/shadow-x78/orbiscreen/releases")
-                                    val cleanTag = tagName.removePrefix("v")
                                     val currentVersion = BuildConfig.VERSION_NAME
                                     withContext(Dispatchers.Main) {
-                                        if (cleanTag.isNotEmpty() && cleanTag != currentVersion) {
+                                        if (isNewerVersion(tagName, currentVersion)) {
                                             Toast.makeText(
                                                 context,
                                                 context.getString(R.string.update_available, tagName),
@@ -368,11 +293,9 @@ fun SettingsScreen(
                                     withContext(Dispatchers.Main) {
                                         Toast.makeText(
                                             context,
-                                            context.getString(R.string.update_check_failed),
+                                            context.getString(R.string.latest_version_installed),
                                             Toast.LENGTH_SHORT,
                                         ).show()
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shadow-x78/orbiscreen/releases"))
-                                        context.startActivity(intent)
                                     }
                                 }
                             } catch (e: Exception) {
@@ -392,8 +315,23 @@ fun SettingsScreen(
                             }
                         }
                     },
+                    onOpenRepo = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shadow-x78/orbiscreen"))
+                        context.startActivity(intent)
+                    },
+                    onOpenLicense = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shadow-x78/orbiscreen/blob/main/LICENSE"))
+                        context.startActivity(intent)
+                    },
                 )
             }
+
+            DeveloperCard(
+                onOpenProfile = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shadow-x78"))
+                    context.startActivity(intent)
+                },
+            )
         }
     }
 }
@@ -595,4 +533,266 @@ private fun ActionPreferenceRow(
         }
     }
 }
+
+@Composable
+private fun DeveloperCard(onOpenProfile: () -> Unit) {
+    var avatarBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient.Builder()
+                    .connectTimeout(5, TimeUnit.SECONDS)
+                    .readTimeout(5, TimeUnit.SECONDS)
+                    .build()
+                val req = Request.Builder()
+                    .url("https://github.com/shadow-x78.png")
+                    .header("User-Agent", "Orbiscreen-Android")
+                    .build()
+                val res = client.newCall(req).execute()
+                if (res.isSuccessful) {
+                    res.body?.byteStream()?.use { stream ->
+                        val bmp = BitmapFactory.decodeStream(stream)
+                        bmp?.let { avatarBitmap = it.asImageBitmap() }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val bmp = avatarBitmap
+                    if (bmp != null) {
+                        Image(
+                            bitmap = bmp,
+                            contentDescription = "shadow-x78",
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            contentScale = ContentScale.Crop,
+                        )
+                    } else {
+                        Icon(
+                            Icons.Rounded.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(30.dp),
+                        )
+                    }
+                }
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.developer_tagline),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.developer_name),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "github.com/shadow-x78",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            Surface(
+                onClick = onOpenProfile,
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Rounded.OpenInNew,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.view_github_profile),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProjectCardContent(
+    isCheckingUpdates: Boolean,
+    onCheckUpdates: () -> Unit,
+    onOpenRepo: () -> Unit,
+    onOpenLicense: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(18.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_orbiscreen_logo),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(46.dp),
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = "Orbiscreen",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Surface(
+                onClick = onOpenLicense,
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+            ) {
+                Text(
+                    text = stringResource(R.string.license_chip),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Surface(
+                onClick = onOpenRepo,
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.weight(1f).height(44.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        Icons.Rounded.Code,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.view_repository),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Surface(
+                onClick = onCheckUpdates,
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1.2f).height(44.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    if (isCheckingUpdates) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Icon(
+                            Icons.Rounded.Update,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = if (isCheckingUpdates) stringResource(R.string.checking_updates) else stringResource(R.string.check_for_updates),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun isNewerVersion(remoteTag: String, currentVersion: String): Boolean {
+    val cleanRemote = remoteTag.removePrefix("v").trim()
+    val cleanCurrent = currentVersion.removePrefix("v").trim()
+    val remoteParts = cleanRemote.split('.').mapNotNull { it.toIntOrNull() }
+    val currentParts = cleanCurrent.split('.').mapNotNull { it.toIntOrNull() }
+    val maxLen = maxOf(remoteParts.size, currentParts.size)
+    for (i in 0 until maxLen) {
+        val r = remoteParts.getOrElse(i) { 0 }
+        val c = currentParts.getOrElse(i) { 0 }
+        if (r > c) return true
+        if (r < c) return false
+    }
+    return false
+}
+
 

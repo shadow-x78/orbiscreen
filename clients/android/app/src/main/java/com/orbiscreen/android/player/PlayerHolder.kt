@@ -101,6 +101,7 @@ class PlayerHolder(
             ""
         }
         val uri = StreamUrl.build(host, port, token)
+        android.util.Log.i("OrbiPlayer", "connecting to stream: $uri")
         _event.value = StreamEvent.Connecting(uri)
 
         val player = try {
