@@ -98,7 +98,9 @@ fi
 %{_datadir}/orbiscreen/install-evdi-module.sh
 
 %changelog
+* Wed Sep 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.17.4-1
+- Release 0.17.4: Zero-latency NVENC, 60 FPS damage pump, Android UI overhaul, and clean packaging.
+
 * Tue Sep 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.16.0-1
 - Source-build spec for COPR/Fedora: builds from the release tarball with cargo,
-  packages the GTK panel, daemon, web client, systemd user unit, and AppStream
-  metainfo. USB transport completed in this release.
+  packages the daemon, web client, and systemd user unit. USB transport completed in this release.

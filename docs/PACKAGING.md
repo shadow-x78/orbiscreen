@@ -121,12 +121,9 @@ cp PKGBUILD aur-orbiscreen/
 cd aur-orbiscreen
 updpkgsums                     # fetches the tag archive, pins the real sha256
 makepkg --printsrcinfo > .SRCINFO
-git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.17.0" && git push
+git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.17.4" && git push
 ```
 User install: `yay -S orbiscreen` (or any AUR helper) / `makepkg -si`.
-
-### AppStream metainfo
-
 
 ---
 
@@ -158,9 +155,9 @@ rpm -K orbiscreen_x86_64.rpm
 
 ## 🚀 GitHub Actions Release Matrix
 
-When a version tag is pushed (e.g. `git tag v0.10.3 && git push origin v0.10.3`), the `.github/workflows/release.yml` workflow automatically builds and attaches all release packages to the GitHub Releases page.
+When a version tag is pushed (e.g. `git tag v0.17.4 && git push origin v0.17.4`), the `.github/workflows/release.yml` workflow automatically builds and attaches all release packages to the GitHub Releases page.
 
-The release `body` is generated from the `## orbiscreen | v0.10.3 | …` block in `CHANGELOG.md`.
+The release `body` is generated from the `## [v0.17.4]` block in `CHANGELOG.md`.
 
 ---
 

@@ -110,12 +110,9 @@ cp PKGBUILD aur-orbiscreen/
 cd aur-orbiscreen
 updpkgsums                     # يجلب أرشيف الوسم ويثبّت sha256 الحقيقية
 makepkg --printsrcinfo > .SRCINFO
-git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.17.0" && git push
+git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.17.4" && git push
 ```
 تثبيت المستخدم: `yay -S orbiscreen` (أو أي مساعد AUR) / `makepkg -si`.
-
-### AppStream metainfo
-
 
 ---
 
@@ -147,9 +144,9 @@ rpm -K orbiscreen_x86_64.rpm
 
 ## 🚀 مصفوفة إصدارات GitHub Actions
 
-عند دفع وسم إصدار (مثلاً `git tag v0.10.3 && git push origin v0.10.3`)، يبني سير العمل `.github/workflows/release.yml` تلقائياً جميع حزم الإصدار ويرفقها بصفحة GitHub Releases.
+عند دفع وسم إصدار (مثلاً `git tag v0.17.4 && git push origin v0.17.4`)، يبني سير العمل `.github/workflows/release.yml` تلقائياً جميع حزم الإصدار ويرفقها بصفحة GitHub Releases.
 
-يُولَّد محتوى `body` للإصدار من كتلة `## orbiscreen | v0.10.3 | …` في `CHANGELOG.md`.
+يُولَّد محتوى `body` للإصدار من كتلة `## [v0.17.4]` في `CHANGELOG.md`.
 
 ---
 

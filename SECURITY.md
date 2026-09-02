@@ -27,10 +27,10 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.13.x | ✅ Active development |
-| 0.12.x | ⚠️ Maintenance |
-| 0.11.x | ⚠️ Maintenance |
-| < 0.10 | ❌ Not supported |
+| 0.17.x | ✅ Active development |
+| 0.16.x | ⚠️ Maintenance |
+| 0.15.x | ⚠️ Maintenance |
+| < 0.15  | ❌ Not supported |
 
 Only the latest minor release receives security updates. Ensure you build from `main` before reporting.
 
