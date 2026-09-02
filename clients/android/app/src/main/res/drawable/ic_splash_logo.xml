@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ─────────────────────────────────────────────
+     Orbiscreen - Android Splash Screen Vector Logo
+     https://github.com/shadow-x78/orbiscreen
+     ───────────────────────────────────────────── -->
+<!--
+     Geometry (matches the real logo exactly):
+       Viewport  : 108 × 108 dp  (Android splash icon standard)
+       Ring      : center (54,54), radius 25, stroke 8
+                   (ratio 8/25 = 0.32  vs real logo 54/170 = 0.318  ✓)
+       Dot       : sits ON the ring at 45° (bottom-right), radius 9
+                   dot_center = (54 + 25·cos45°, 54 + 25·sin45°)
+                              = (54 + 17.68, 54 + 17.68)
+                              ≈ (71.7, 71.7)
+                   (ratio 9/25 = 0.36  vs real logo 62/170 = 0.365  ✓)
+       Safe zone : all elements within radius 34 of center  (<36 limit ✓)
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Ring: full circle drawn as two 180° arcs (same technique as ic_orbiscreen_logo) -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#89B4FA"
+        android:strokeWidth="8"
+        android:pathData="M54,54 m-25,0 a25,25 0 1,1 50,0 a25,25 0 1,1 -50,0" />
+
+    <!-- Dot: on the ring at 45° (bottom-right) -->
+    <path
+        android:fillColor="#89B4FA"
+        android:pathData="M71.7,71.7 m-9,0 a9,9 0 1,1 18,0 a9,9 0 1,1 -18,0" />
+
+</vector>

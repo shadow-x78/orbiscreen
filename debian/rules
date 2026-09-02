@@ -1,0 +1,29 @@
+#!/usr/bin/make -f
+export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	@echo "Using bundled pre-built release binaries for Launchpad..."
+
+override_dh_auto_install:
+	@mkdir -p debian/orbiscreen/usr/bin
+	install -Dm0755 bin/orbiscreen debian/orbiscreen/usr/bin/orbiscreen
+	install -Dm0755 bin/orbiscreen-gtk debian/orbiscreen/usr/bin/orbiscreen-gtk
+	install -Dm0644 data/com.orbiscreen.OrbiscreenGtk.desktop debian/orbiscreen/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop
+	install -Dm0644 data/orbiscreen.svg debian/orbiscreen/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
+	install -Dm0644 data/com.orbiscreen.OrbiscreenGtk.metainfo.xml debian/orbiscreen/usr/share/metainfo/com.orbiscreen.OrbiscreenGtk.metainfo.xml
+	install -Dm0755 scripts/install-evdi-module.sh debian/orbiscreen/usr/share/orbiscreen/install-evdi-module.sh
+	install -Dm0644 clients/web/index.html debian/orbiscreen/usr/share/orbiscreen/client/index.html
+	install -Dm0644 clients/web/style.css debian/orbiscreen/usr/share/orbiscreen/client/style.css
+	install -Dm0644 clients/web/app.js debian/orbiscreen/usr/share/orbiscreen/client/app.js
+	mkdir -p debian/orbiscreen/usr/share/orbiscreen/client/vendor
+	cp -rf clients/web/vendor/. debian/orbiscreen/usr/share/orbiscreen/client/vendor/
+	install -Dm0644 data/orbiscreen.service debian/orbiscreen/usr/lib/systemd/user/orbiscreen.service
+
+override_dh_shlibdeps:
+	# Dependencies are explicitly declared in debian/control
+
+override_dh_auto_test:
+	# Pre-validated in upstream CI

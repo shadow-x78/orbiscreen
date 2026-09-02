@@ -8,9 +8,12 @@
 **/*.rs.bk
 Cargo.lock.bak
 .cargo/
+vendor/
 
 # ── Build artifacts ──
 /dist/
+/bin/
+debian/files
 *.deb
 *.rpm
 *.AppImage
@@ -26,10 +29,12 @@ Cargo.lock.bak
 captures/
 .cxx/
 .kotlin/
+local.properties
+**/local.properties
 
 # ── AUR Local Test Artifacts ──
-src/
-pkg/
+/src/
+/pkg/
 *.pkg.tar.zst
 orbiscreen-*.tar.gz
 

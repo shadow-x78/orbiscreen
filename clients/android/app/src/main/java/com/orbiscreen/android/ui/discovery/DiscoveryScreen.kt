@@ -4,10 +4,18 @@
 package com.orbiscreen.android.ui.discovery
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,21 +35,23 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Usb
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Router
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Computer
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Devices
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Podcasts
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Usb
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,12 +61,13 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,19 +79,26 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.orbiscreen.android.R
 import com.orbiscreen.android.data.RecentHost
 import com.orbiscreen.android.net.DiscoveredHost
 import com.orbiscreen.android.net.HostApi
 import com.orbiscreen.android.net.HostApi.UsbProbeResult
 import com.orbiscreen.android.net.HostSpec
+import com.orbiscreen.android.ui.theme.ActiveGreen
+import com.orbiscreen.android.ui.theme.UsbAmber
+
+import androidx.compose.ui.res.painterResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,35 +111,53 @@ fun DiscoveryScreen(
     var manualExpanded by rememberSaveable { mutableStateOf(false) }
     var manualText by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
     val valid = remember(manualText.text) { HostSpec.isValid(manualText.text) }
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            stringResource(R.string.discovery_title),
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.SemiBold,
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_orbiscreen_logo),
+                            contentDescription = stringResource(R.string.app_name),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp),
                         )
-                        Text(
-                            stringResource(R.string.discovery_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                stringResource(R.string.discovery_title),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                stringResource(R.string.discovery_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.refresh))
+                        Icon(
+                            Icons.Rounded.Refresh,
+                            contentDescription = stringResource(R.string.refresh),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     IconButton(onClick = onSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+                        Icon(
+                            Icons.Rounded.Settings,
+                            contentDescription = stringResource(R.string.settings),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 },
-                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                ),
             )
         },
     ) { padding ->
@@ -130,21 +166,20 @@ fun DiscoveryScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp)
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            StatusBanner(
+            NetworkStatusPill(
                 isScanning = state.isScanning,
                 foundCount = state.discoveredHosts.size,
+                onRefresh = { viewModel.refresh() },
             )
 
-            if (state.discoveredHosts.isNotEmpty()) {
-                DiscoveredHostsCard(
-                    hosts = state.discoveredHosts,
-                    onTap = { h -> onConnect(h.host, h.port) },
-                )
-            }
+            UsbHeroCard(
+                usbPort = state.usbPort,
+                onConnect = { onConnect("127.0.0.1", state.usbPort) },
+            )
 
             val recent = state.recent
             if (recent != null && state.discoveredHosts.none { it.host == recent.host }) {
@@ -155,7 +190,14 @@ fun DiscoveryScreen(
                 )
             }
 
-            ManualSection(
+            if (state.discoveredHosts.isNotEmpty()) {
+                DiscoveredHostsSection(
+                    hosts = state.discoveredHosts,
+                    onTap = { h -> onConnect(h.host, h.port) },
+                )
+            }
+
+            ManualConnectCard(
                 expanded = manualExpanded,
                 onToggle = { manualExpanded = !manualExpanded },
                 value = manualText,
@@ -166,139 +208,158 @@ fun DiscoveryScreen(
                 },
             )
 
-            UsbCard(
-                usbPort = state.usbPort,
-                onTap = { onConnect("127.0.0.1", state.usbPort) },
-            )
-
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-private fun StatusBanner(isScanning: Boolean, foundCount: Int) {
+private fun NetworkStatusPill(
+    isScanning: Boolean,
+    foundCount: Int,
+    onRefresh: () -> Unit,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val alphaAnim by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "alpha",
+    )
+
     Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
+        onClick = onRefresh,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (isScanning) {
-                CircularProgressIndicator(
-                    strokeWidth = 2.5.dp,
-                    modifier = Modifier.size(18.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            } else {
-                Icon(
-                    imageVector = if (foundCount > 0) Icons.Outlined.CheckCircle else Icons.Outlined.Router,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            val text = when {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isScanning) MaterialTheme.colorScheme.primary.copy(alpha = alphaAnim)
+                        else if (foundCount > 0) ActiveGreen
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    ),
+            )
+            Spacer(Modifier.width(10.dp))
+            val statusMessage = when {
                 isScanning && foundCount == 0 -> stringResource(R.string.scanning_network)
                 foundCount == 1 -> stringResource(R.string.hosts_found_one)
                 foundCount > 1 -> stringResource(R.string.hosts_found_multiple, foundCount)
                 else -> stringResource(R.string.no_nearby_hosts)
             }
             Text(
-                text = text,
+                text = statusMessage,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
             )
-        }
-    }
-}
-
-@Composable
-private fun DiscoveredHostsCard(
-    hosts: List<DiscoveredHost>,
-    onTap: (DiscoveredHost) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.nearby_hosts),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 4.dp),
-        )
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
-        ) {
-            Column {
-                hosts.forEachIndexed { i, host ->
-                    HostRow(host = host, onTap = { onTap(host) })
-                    if (i < hosts.lastIndex) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                        )
-                    }
-                }
+            if (isScanning) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(14.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun HostRow(host: DiscoveredHost, onTap: () -> Unit) {
-    Surface(
-        onClick = onTap,
-        color = MaterialTheme.colorScheme.surface,
+private fun UsbHeroCard(usbPort: Int, onConnect: () -> Unit) {
+    var probe by remember(usbPort) { mutableStateOf<UsbProbeResult?>(null) }
+    LaunchedEffect(usbPort) {
+        probe = HostApi().probeUsb(usbPort)
+    }
+    val isReady = probe == UsbProbeResult.Ready
+
+    Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isReady) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+            },
+        ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
+                .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
-                modifier = Modifier.size(44.dp),
+                shape = RoundedCornerShape(14.dp),
+                color = if (isReady) UsbAmber.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
+                modifier = Modifier.size(48.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = if (host.isRecent) Icons.Filled.Bolt else Icons.Outlined.Router,
+                        imageVector = Icons.Rounded.Usb,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
+                        tint = if (isReady) UsbAmber else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp),
                     )
                 }
             }
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(host.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        stringResource(R.string.usb_connect),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    if (isReady) {
+                        Spacer(Modifier.width(8.dp))
+                        Surface(
+                            shape = CircleShape,
+                            color = ActiveGreen.copy(alpha = 0.18f),
+                        ) {
+                            Text(
+                                "ONLINE",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ActiveGreen,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                letterSpacing = 0.5.sp,
+                            )
+                        }
+                    }
+                }
                 Text(
-                    text = "${host.host}:${host.port}",
+                    text = if (isReady) stringResource(R.string.usb_status_ready) else stringResource(R.string.usb_mode_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
                 )
             }
-            if (host.isRecent) {
-                AssistChip(
-                    onClick = onTap,
-                    label = { Text(stringResource(R.string.recent)) },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f),
-                        labelColor = MaterialTheme.colorScheme.tertiary,
-                    ),
-                )
-            } else {
-                AssistChip(
-                    onClick = onTap,
-                    label = { Text(stringResource(R.string.connect)) },
-                )
+            Spacer(Modifier.width(10.dp))
+            Button(
+                onClick = onConnect,
+                enabled = isReady,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                ),
+            ) {
+                Text(stringResource(R.string.connect), fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -310,27 +371,31 @@ private fun RecentHostCard(
     onConnect: () -> Unit,
     onClear: () -> Unit,
 ) {
-    Card(
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
                     modifier = Modifier.size(40.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            Icons.Filled.Bolt,
+                            Icons.Rounded.History,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
                         stringResource(R.string.recent_connection),
@@ -345,9 +410,10 @@ private fun RecentHostCard(
                 }
                 IconButton(onClick = onClear) {
                     Icon(
-                        Icons.Filled.Delete,
+                        Icons.Rounded.Delete,
                         contentDescription = stringResource(R.string.clear_recent),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
@@ -355,17 +421,119 @@ private fun RecentHostCard(
             Button(
                 onClick = onConnect,
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
             ) {
-                Text(stringResource(R.string.connect))
-                Spacer(Modifier.width(8.dp))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(stringResource(R.string.connect), fontWeight = FontWeight.Medium)
+                Spacer(Modifier.width(6.dp))
+                Icon(
+                    Icons.AutoMirrored.Rounded.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ManualSection(
+private fun DiscoveredHostsSection(
+    hosts: List<DiscoveredHost>,
+    onTap: (DiscoveredHost) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.nearby_hosts),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = "${hosts.size}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        ) {
+            Column {
+                hosts.forEachIndexed { index, host ->
+                    HostRowItem(host = host, onTap = { onTap(host) })
+                    if (index < hosts.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HostRowItem(host: DiscoveredHost, onTap: () -> Unit) {
+    Surface(
+        onClick = onTap,
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                modifier = Modifier.size(42.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = if (host.isRecent) Icons.Rounded.Bolt else Icons.Rounded.Computer,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = host.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "${host.host}:${host.port}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            FilledTonalButton(
+                onClick = onTap,
+                shape = RoundedCornerShape(10.dp),
+            ) {
+                Text(stringResource(R.string.connect), style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManualConnectCard(
     expanded: Boolean,
     onToggle: () -> Unit,
     value: TextFieldValue,
@@ -373,16 +541,35 @@ private fun ManualSection(
     valid: Boolean,
     onConnect: () -> Unit,
 ) {
-    Card(
+    OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(18.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggle() },
             ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.Tune,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
                         stringResource(R.string.manual_connect_title),
@@ -397,11 +584,13 @@ private fun ManualSection(
                 }
                 IconButton(onClick = onToggle) {
                     Icon(
-                        if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                         contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
+
             AnimatedVisibility(
                 visible = expanded,
                 enter = fadeIn() + expandVertically(),
@@ -423,10 +612,11 @@ private fun ManualSection(
                             onGo = { if (valid) onConnect() },
                         ),
                         singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
                         trailingIcon = {
                             if (value.text.isNotEmpty()) {
                                 IconButton(onClick = { onValueChange(TextFieldValue("")) }) {
-                                    Icon(Icons.Filled.Clear, contentDescription = null)
+                                    Icon(Icons.Rounded.Clear, contentDescription = null)
                                 }
                             }
                         },
@@ -441,74 +631,18 @@ private fun ManualSection(
                     Button(
                         onClick = onConnect,
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
                         enabled = valid,
                     ) {
-                        Text(stringResource(R.string.connect))
-                        Spacer(Modifier.width(8.dp))
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(stringResource(R.string.connect), fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun UsbCard(usbPort: Int, onTap: () -> Unit) {
-    var probe by remember(usbPort) { mutableStateOf<UsbProbeResult?>(null) }
-    LaunchedEffect(usbPort) { probe = HostApi().probeUsb(usbPort) }
-    val statusText = when (probe) {
-        UsbProbeResult.Ready -> stringResource(R.string.usb_status_ready)
-        UsbProbeResult.TunnelDown, null -> stringResource(R.string.usb_status_tunnel_down)
-    }
-    val statusColor = when (probe) {
-        UsbProbeResult.Ready -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Card(
-        onClick = onTap,
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Filled.Usb,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.size(28.dp),
-            )
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.usb_connect),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    stringResource(R.string.usb_mode_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    statusText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = statusColor,
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            when (probe) {
-                UsbProbeResult.Ready -> Icon(
-                    Icons.Outlined.CheckCircle,
-                    contentDescription = null,
-                    tint = statusColor,
-                )
-                else -> Icon(Icons.Filled.Computer, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

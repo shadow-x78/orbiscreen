@@ -1,0 +1,27 @@
+Source: orbiscreen
+Section: utils
+Priority: optional
+Maintainer: shadow-x78 <shadow.xox78@gmail.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Homepage: https://github.com/shadow-x78/orbiscreen
+
+Package: orbiscreen
+Architecture: any
+Depends: ${misc:Depends},
+         libgstreamer1.0-0,
+         libgstreamer-plugins-base1.0-0,
+         gstreamer1.0-plugins-good,
+         gstreamer1.0-plugins-bad,
+         gstreamer1.0-plugins-ugly,
+         gstreamer1.0-libav,
+         libxkbcommon0,
+         libevdev2,
+         libgtk-4-1,
+         libadwaita-1-0
+Recommends: android-tools-adb
+Suggests: evdi-dkms
+Description: High-performance virtual secondary displays for Linux
+ Orbiscreen creates virtual displays on Linux (Wayland/X11) and
+ streams them with sub-frame latency to mobile devices or browsers.
+ Supports hardware-accelerated H.264 encoding and low-latency input.

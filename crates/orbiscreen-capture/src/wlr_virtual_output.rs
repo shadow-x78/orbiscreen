@@ -181,9 +181,6 @@ impl Ipc {
                 {
                     return Ok(());
                 }
-                // No released sway exposes a way to destroy a dynamically
-                // created headless output over IPC, so disabling it is the
-                // closest cleanup until upstream grows one.
                 tracing::debug!(
                     output = name,
                     "sway cannot remove dynamic outputs yet; disabling it instead"

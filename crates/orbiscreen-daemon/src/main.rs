@@ -942,38 +942,29 @@ async fn run_start(
         "stream dimensions established from source"
     );
 
-    const INPUT_OPEN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
     let captured_output_name = match &source {
         FrameSource::WlrVirtual { output, .. } => Some(output.name().to_string()),
         _ => None,
     };
-    let injector = match tokio::time::timeout(
-        INPUT_OPEN_TIMEOUT,
-        InputInjector::open_async(VirtualTouchscreenSpec {
-            width: spec.width,
-            height: spec.height,
-            output_name: captured_output_name,
-        }),
-    )
-    .await
-    {
-        Ok(Ok(inj)) => {
-            info!(backend = ?inj.backend(), "Input injector open");
-            Some(inj)
-        }
-        Ok(Err(e)) => {
-            warn!("input injection unavailable ({e}); streaming continues without remote control");
-            None
-        }
-        Err(_) => {
-            warn!(
-                "input injection portal did not respond within {}s; streaming continues \
-                 without remote control (approve the portal dialog or restart to retry)",
-                INPUT_OPEN_TIMEOUT.as_secs()
-            );
-            None
-        }
+    let (injector_tx, injector_rx) = tokio::sync::oneshot::channel::<InputInjector>();
+    let input_spec = VirtualTouchscreenSpec {
+        width: spec.width,
+        height: spec.height,
+        output_name: captured_output_name,
     };
+    tokio::spawn(async move {
+        match InputInjector::open_async(input_spec).await {
+            Ok(inj) => {
+                info!(backend = ?inj.backend(), "Input injector open");
+                let _ = injector_tx.send(inj);
+            }
+            Err(e) => {
+                warn!(
+                    "input injection unavailable ({e}); streaming continues without remote control"
+                );
+            }
+        }
+    });
 
     let encoder_kind = match EncoderKind::parse(&cfg.encode.preferred_encoder) {
         Some(kind) => kind,
@@ -1159,7 +1150,6 @@ async fn run_start(
     });
 
     let (input_tx, mut input_rx) = mpsc::channel::<orbiscreen_transport::IncomingInput>(1024);
-    let mut injector = injector;
     let input_pump = tokio::spawn(async move {
         use orbiscreen_input::PointerEvent;
         use orbiscreen_transport::IncomingInput;
@@ -1169,11 +1159,29 @@ async fn run_start(
             let y = y * f64::from(spec.height) / f64::from(cap_h.max(1));
             (x, y)
         };
+        let mut injector: Option<InputInjector> = None;
+        let mut pending_rx = Some(injector_rx);
         let mut warned_no_injector = false;
         while let Some(event) = input_rx.recv().await {
-            let Some(injector) = injector.as_mut() else {
+            if injector.is_none() {
+                if let Some(rx) = pending_rx.as_mut() {
+                    match rx.try_recv() {
+                        Ok(inj) => {
+                            info!("input injector is now active");
+                            injector = Some(inj);
+                            pending_rx = None;
+                            warned_no_injector = false;
+                        }
+                        Err(tokio::sync::oneshot::error::TryRecvError::Closed) => {
+                            pending_rx = None;
+                        }
+                        Err(tokio::sync::oneshot::error::TryRecvError::Empty) => {}
+                    }
+                }
+            }
+            let Some(inj) = injector.as_mut() else {
                 if !warned_no_injector {
-                    warn!("input event received but no injector is available; dropping events");
+                    warn!("input event received but no injector is available yet; dropping events until the portal responds");
                     warned_no_injector = true;
                 }
                 continue;
@@ -1187,17 +1195,17 @@ async fn run_start(
                         }
                         other => other,
                     };
-                    let _ = injector.inject_pointer(p).await;
+                    let _ = inj.inject_pointer(p).await;
                 }
                 IncomingInput::Key(k) => {
-                    let _ = injector.inject_key(k).await;
+                    let _ = inj.inject_key(k).await;
                 }
                 IncomingInput::Stylus(s) => {
-                    let _ = injector.inject_stylus(s).await;
+                    let _ = inj.inject_stylus(s).await;
                 }
                 IncomingInput::RawPointer { x, y } => {
                     let (x, y) = scale(x, y);
-                    let _ = injector.inject_pointer(PointerEvent::Move { x, y }).await;
+                    let _ = inj.inject_pointer(PointerEvent::Move { x, y }).await;
                 }
             }
         }

@@ -1,0 +1,22 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - Systemd User Service
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+
+# ── Unit Definition ──
+[Unit]
+Description=Orbiscreen Virtual Secondary Display Service
+Documentation=https://github.com/shadow-x78/orbiscreen
+After=graphical-session.target
+
+# ── Service Execution ──
+[Service]
+Type=exec
+ExecStart=/usr/bin/orbiscreen start
+NoNewPrivileges=true
+Restart=on-failure
+RestartSec=3s
+
+# ── Installation Target ──
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,5 @@
+tar-ignore = "target"
+tar-ignore = ".git"
+tar-ignore = "clients/android"
+tar-ignore = ".kilo"
+tar-ignore = ".playwright-mcp"

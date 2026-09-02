@@ -74,11 +74,34 @@ class InputDispatcher(
         if (value.isNotBlank()) token = value
     }
 
+    @Volatile
+    private var cursorX: Float = (displayWidth / 2).toFloat()
+
+    @Volatile
+    private var cursorY: Float = (displayHeight / 2).toFloat()
+
     fun move(localX: Float, localY: Float, containerW: Int, containerH: Int) {
         val (x, y) = map(localX, localY, containerW, containerH)
+        cursorX = x.toFloat()
+        cursorY = y.toFloat()
         moves.tryEmit(JSONObject().apply {
             put("Pointer", JSONObject().apply {
                 put("Move", JSONObject().apply { put("x", x); put("y", y) })
+            })
+        })
+    }
+
+    fun moveDelta(dx: Float, dy: Float, sensitivity: Float = 1.6f) {
+        val newX = (cursorX + dx * sensitivity).coerceIn(0f, streamWidth.toFloat())
+        val newY = (cursorY + dy * sensitivity).coerceIn(0f, streamHeight.toFloat())
+        cursorX = newX
+        cursorY = newY
+        moves.tryEmit(JSONObject().apply {
+            put("Pointer", JSONObject().apply {
+                put("Move", JSONObject().apply {
+                    put("x", newX.roundToInt())
+                    put("y", newY.roundToInt())
+                })
             })
         })
     }
@@ -89,6 +112,25 @@ class InputDispatcher(
         btn.put("pressed", pressed)
         val payload = JSONObject()
         payload.put("Pointer", JSONObject().apply { put("Button", btn) })
+        discrete.tryEmit(payload)
+    }
+
+    fun leftClick() {
+        button(1, true)
+        button(1, false)
+    }
+
+    fun rightClick() {
+        button(3, true)
+        button(3, false)
+    }
+
+    fun wheel(deltaY: Double) {
+        val payload = JSONObject().apply {
+            put("Pointer", JSONObject().apply {
+                put("Wheel", JSONObject().apply { put("delta_y", deltaY) })
+            })
+        }
         discrete.tryEmit(payload)
     }
 

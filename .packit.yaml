@@ -15,7 +15,22 @@ upstream_package_name: orbiscreen
 downstream_package_name: orbiscreen
 
 # ── RPM Environment ──
-srpm_build_deps: []
+# COPR builders are offline during %build, so the SRPM must carry the crate
+# tree as Source1. This action regenerates the vendored tarball and copies
+# it next to the spec right before Packit assembles the SRPM.
+srpm_build_deps:
+  - cargo
+  - git-core
+  - zstd
+
+actions:
+  create-archive: |
+    VERSION="$(grep -m1 '^version' Cargo.toml | sed 's/.*\"\(.*\)\".*/\1/')"
+    cargo vendor vendor >/dev/null 2>&1
+    tar --use-compress-program="zstd -19 -T0" -cf "orbiscreen-vendor-${VERSION}.tar.zst" vendor
+    cp "orbiscreen-vendor-${VERSION}.tar.zst" "$(git rev-parse --show-toplevel)/data/"
+    echo "orbiscreen-vendor-${VERSION}.tar.zst"
+  get-current-version: grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/'
 
 # ── Jobs ──
 # PR builds verify the spec compiles on current stable Fedora.

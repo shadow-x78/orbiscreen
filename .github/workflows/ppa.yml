@@ -1,0 +1,88 @@
+name: Publish to Launchpad PPA
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      series:
+        description: 'Ubuntu series (e.g. noble for 24.04, jammy for 22.04)'
+        required: true
+        default: 'noble'
+        type: choice
+        options:
+          - noble
+          - jammy
+          - oracular
+
+jobs:
+  build-and-upload-ppa:
+    name: Build & Upload Source Package to PPA
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Debian packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential debhelper devscripts dput dpkg-dev
+
+      - name: Vendor Cargo dependencies
+        run: |
+          cargo vendor vendor/
+          mkdir -p .cargo
+          cat << 'CFG' > .cargo/config.toml
+          [source.crates-io]
+          replace-with = "vendored-sources"
+
+          [source.vendored-sources]
+          directory = "vendor"
+          CFG
+
+      - name: Configure GPG key for signing
+        env:
+          GPG_KEY: ${{ secrets.PPA_GPG_KEY || secrets.RPM_GPG_KEY }}
+        run: |
+          if [ -z "$GPG_KEY" ]; then
+            echo "::error::Please add PPA_GPG_KEY (or RPM_GPG_KEY) to repository secrets"
+            exit 1
+          fi
+          echo "$GPG_KEY" | base64 -d 2>/dev/null | gpg --batch --import || echo "$GPG_KEY" | gpg --batch --import
+          GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '$1=="sec"{print $5; exit}')
+          if [ -z "$GPG_KEY_ID" ]; then
+            echo "::error::No secret key found after importing GPG_KEY"
+            exit 1
+          fi
+          echo "GPG_KEY_ID=$GPG_KEY_ID" >> "$GITHUB_ENV"
+
+      - name: Prepare debian/changelog for target series
+        run: |
+          SERIES="${{ github.event.inputs.series || 'noble' }}"
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$VERSION" = "main" ] || [ -z "$VERSION" ]; then
+            VERSION="$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')"
+          fi
+          cat << CHLOG > debian/changelog
+          orbiscreen (${VERSION}~ubuntu${SERIES}1) ${SERIES}; urgency=medium
+
+            * Release ${VERSION} for Ubuntu ${SERIES}.
+
+           -- shadow-x78 <shadow.xox78@gmail.com>  $(date -R)
+          CHLOG
+
+      - name: Build Debian Source Package
+        run: |
+          debuild --no-lintian -S -sa -d -k"${GPG_KEY_ID}" -p"gpg --batch --pinentry-mode loopback"
+
+      - name: Upload to Launchpad PPA via dput
+        run: |
+          CHANGES_FILE=$(ls ../orbiscreen_*_source.changes | tail -n 1)
+          echo "Uploading $CHANGES_FILE to Launchpad PPA..."
+          dput ppa:shadow-x78/ppa "$CHANGES_FILE" || dput ppa:shadow-x78/orbiscreen "$CHANGES_FILE"

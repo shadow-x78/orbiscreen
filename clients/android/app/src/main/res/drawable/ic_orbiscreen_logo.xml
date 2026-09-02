@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ─────────────────────────────────────────────
+     Orbiscreen - Android App Vector Logo
+     https://github.com/shadow-x78/orbiscreen
+     ───────────────────────────────────────────── -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#89B4FA"
+        android:strokeWidth="54"
+        android:pathData="M256,256 m-170,0 a170,170 0 1 1 340,0 a170,170 0 1 1 -340,0" />
+    <path
+        android:fillColor="#89B4FA"
+        android:pathData="M376,376 m-62,0 a62,62 0 1 1 124,0 a62,62 0 1 1 -124,0" />
+</vector>

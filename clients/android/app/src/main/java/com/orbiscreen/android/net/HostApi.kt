@@ -24,7 +24,8 @@ class HostApi {
     private fun readBoundedBody(resp: okhttp3.Response): String? {
         val source = resp.body?.source() ?: return null
         source.request(MAX_RESPONSE_BYTES)
-        return source.buffer.snapshot(MAX_RESPONSE_BYTES.toInt()).utf8()
+        val toRead = minOf(source.buffer.size, MAX_RESPONSE_BYTES).toInt()
+        return source.buffer.snapshot(toRead).utf8()
     }
 
     data class HostInfo(

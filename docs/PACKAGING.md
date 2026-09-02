@@ -2,7 +2,7 @@
 
 # Multi-Distro Packaging Guide - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.16.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.17.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -17,7 +17,7 @@
 
 ---
 
-The release matrix is: `0.16.2` (workspace), `versionCode = 36` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
+The release matrix is: `0.17.0` (workspace), `versionCode = 38` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
 
 Orbiscreen provides build configurations and package definitions for all major Linux distributions and Android:
 
@@ -71,6 +71,8 @@ The release APK is signed with the keystore supplied via `ORBISCREEN_KEYSTORE_PA
 
 The repo carries `.packit.yaml` and a source-build spec (`data/orbiscreen-copr.spec`, distinct from the local prebuilt-binary `data/orbiscreen.spec`): pull requests build the RPM on stable Fedora as a CI check, and every GitHub release tag publishes it to COPR automatically.
 
+The build runs fully offline inside COPR's mock sandbox: the SRPM carries the crate dependency tree as a vendored `Source1` tarball (`cargo vendor`, ~19 MB compressed), because COPR builders have no network access during `%build` and a plain `cargo build --locked` would fail to fetch from crates.io. To regenerate after a dependency change: extract the release tarball, run `cargo vendor vendor`, pack it with `zstd -19`, and rebuild the SRPM.
+
 One-time maintainer setup:
 1. Sign in at <https://copr.fedorainfracloud.org> with GitHub (creates the account).
 2. Enable Packit at <https://packit.dev> (Sign in with GitHub → approve the `orbiscreen` repository).
@@ -82,6 +84,23 @@ dnf copr enable shadow-x78/orbiscreen
 dnf install orbiscreen
 ```
 
+### Ubuntu / Pop!_OS / Linux Mint (Launchpad PPA)
+
+Official Launchpad PPA:
+```bash
+sudo add-apt-repository ppa:shadow-x78/ppa -y
+sudo apt update
+sudo apt install orbiscreen -y
+```
+
+Or configure the direct APT repository:
+```bash
+curl -fsSL https://shadow-x78.github.io/orbiscreen/KEY.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/orbiscreen.gpg
+echo "deb [signed-by=/etc/apt/keyrings/orbiscreen.gpg] https://shadow-x78.github.io/orbiscreen /" | sudo tee /etc/apt/sources.list.d/orbiscreen.list
+sudo apt update
+sudo apt install orbiscreen -y
+```
+
 ### Arch Linux AUR
 
 `PKGBUILD` at the repo root builds from the release tarball with cargo. The repo copy carries `sha256sums=('SKIP')` on purpose: a tag's archive checksum only exists after the release workflow completes, so a repo-pinned sum would always lag the tag. The pinning happens at publish time - `updpkgsums` on the maintainer's machine writes the real checksum into the AUR copy of the PKGBUILD (never back into this repo). Publish/update flow:
@@ -91,7 +110,7 @@ cp PKGBUILD aur-orbiscreen/
 cd aur-orbiscreen
 updpkgsums                     # fetches the tag archive, pins the real sha256
 makepkg --printsrcinfo > .SRCINFO
-git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.16.2" && git push
+git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.17.0" && git push
 ```
 User install: `yay -S orbiscreen` (or any AUR helper) / `makepkg -si`.
 

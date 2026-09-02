@@ -2,7 +2,7 @@
 
 # دليل التغليف متعدد التوزيعات - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.16.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.17.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -17,7 +17,7 @@
 
 ---
 
-مصفوفة الإصدار: `0.16.2` (مساحة العمل)، `versionCode = 36` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع - راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
+مصفوفة الإصدار: `0.17.0` (مساحة العمل)، `versionCode = 38` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع - راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
 
 يوفّر Orbiscreen تكوينات البناء وتعريفات الحزم لجميع توزيعات Linux الرئيسية وAndroid:
 
@@ -71,6 +71,8 @@ cd clients/android
 
 يحمل المستودع `.packit.yaml` مع spec بناء-من-المصدر ‏(`data/orbiscreen-copr.spec`، المستقل عن `data/orbiscreen.spec` المحلي الذي يغلّف الثنائيات الجاهزة): طلبات الدمج تبني الـRPM على Fedora المستقرة كفحص CI، وكل وسم ريليز على GitHub ينشره إلى COPR تلقائياً.
 
+يعمل البناء دون اتصال بالإنترنت بالكامل داخل sandbox الـmock في COPR: يحمل SRPM شجرة اعتماديات كرايتس Rust في حزمة `Source1` مجهّلة ‏(`cargo vendor`، نحو 19MB مضغوطة)، لأن بناة COPR بلا وصول شبكي أثناء `%build` وسيفشل `cargo build --locked` العادي في الجلب من crates.io. لإعادة توليدها بعد تغيير اعتمادية: فُك أرشيف الريليز، شغّل `cargo vendor vendor`، اضغطها بـ `zstd -19`، وأعد بناء SRPM.
+
 إعداد المُصين (مرة واحدة):
 1. سجّل الدخول إلى <https://copr.fedorainfracloud.org> بـ GitHub (يُنشئ الحساب).
 2. فعّل Packit من <https://packit.dev> ‏(Sign in with GitHub → وافق على مستودع `orbiscreen`).
@@ -82,6 +84,23 @@ dnf copr enable shadow-x78/orbiscreen
 dnf install orbiscreen
 ```
 
+### Ubuntu / Pop!_OS / Linux Mint (Launchpad PPA)
+
+مستودع Launchpad PPA الرسمي:
+```bash
+sudo add-apt-repository ppa:shadow-x78/ppa -y
+sudo apt update
+sudo apt install orbiscreen -y
+```
+
+أو عبر مستودع APT المباشر:
+```bash
+curl -fsSL https://shadow-x78.github.io/orbiscreen/KEY.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/orbiscreen.gpg
+echo "deb [signed-by=/etc/apt/keyrings/orbiscreen.gpg] https://shadow-x78.github.io/orbiscreen /" | sudo tee /etc/apt/sources.list.d/orbiscreen.list
+sudo apt update
+sudo apt install orbiscreen -y
+```
+
 ### Arch Linux (AUR)
 
 `PKGBUILD` في جذر المستودع يبني من tarball الريليز عبر cargo. تحمل نسخة المستودع `sha256sums=('SKIP')` عمداً: بصمة أرشيف الوسم لا توجد إلا بعد اكتمال سير الريليز، فتثبيتها بالمستودع سيجعلها تتخلف عن الوسم دائماً. التثبيت يحدث وقت النشر - أمر `updpkgsums` على جهاز المصين يكتب البصمة الحقيقية في نسخة PKGBUILD الخاصة بـAUR (وليس في هذا المستودع أبداً). تدفق النشر/التحديث:
@@ -91,7 +110,7 @@ cp PKGBUILD aur-orbiscreen/
 cd aur-orbiscreen
 updpkgsums                     # يجلب أرشيف الوسم ويثبّت sha256 الحقيقية
 makepkg --printsrcinfo > .SRCINFO
-git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.16.2" && git push
+git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.17.0" && git push
 ```
 تثبيت المستخدم: `yay -S orbiscreen` (أو أي مساعد AUR) / `makepkg -si`.
 

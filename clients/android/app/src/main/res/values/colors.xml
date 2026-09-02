@@ -5,5 +5,5 @@
      ───────────────────────────────────────────── -->
 <resources>
     <color name="orbi_background">#11111B</color>
-    <color name="orbi_splash_background">#1E1E2E</color>
+    <color name="orbi_splash_background">#11111B</color>
 </resources>

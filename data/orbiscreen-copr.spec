@@ -12,6 +12,8 @@ Summary:        Real virtual secondary displays for Linux, streamed to Android o
 License:        GPL-3.0-or-later
 URL:            https://github.com/shadow-x78/orbiscreen
 Source0:        %{url}/archive/v%{version}/orbiscreen-%{version}.tar.gz
+# Vendored crate sources so %build runs fully offline inside mock (no network).
+Source1:        orbiscreen-vendor-%{version}.tar.zst
 
 BuildRequires:  cargo
 BuildRequires:  rust >= 1.75
@@ -36,7 +38,15 @@ streaming low-latency MPEG-TS/H.264 video over HTTP (Wi-Fi or USB/adb reverse)
 to Android tablets/phones and web browsers.
 
 %prep
-%autosetup -n orbiscreen-%{version} -p1
+%autosetup -n orbiscreen-%{version} -p1 -a1
+mkdir -p .cargo
+cat > .cargo/config.toml << 'EOF'
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"
+EOF
 
 %build
 cargo build --release --workspace --locked

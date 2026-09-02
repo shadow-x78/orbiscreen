@@ -6,7 +6,7 @@
 
 Real virtual secondary displays for Linux, streamed to Android - one command, zero hassle
 
-[![Version](https://img.shields.io/badge/version-0.16.2-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.17.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -88,23 +88,28 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 <a id="quick-start"></a>
 ## 🚀 Quick Start
 
-### 1. Official Packages (GitHub Releases)
+### 1. Installation
 
-Download pre-built packages from [GitHub Releases](https://github.com/shadow-x78/orbiscreen/releases):
-
-- **Debian / Ubuntu (`.deb`):**
+- **Ubuntu / Pop!_OS / Linux Mint (Launchpad PPA):**
   ```bash
-  sudo dpkg -i orbiscreen_amd64.deb || sudo apt-get install -f
+  sudo add-apt-repository ppa:shadow-x78/ppa -y
+  sudo apt update
+  sudo apt install orbiscreen -y
   ```
 
-- **Fedora / RHEL (`.rpm`):**
-  > **Note:** Our RPM packages are cryptographically signed. You must import the public key first.
+- **Fedora (COPR):**
   ```bash
-  sudo rpm --import https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/orbiscreen.asc
-  sudo dnf install ./orbiscreen_x86_64.rpm
+  sudo dnf copr enable shadow-x78/orbiscreen -y
+  sudo dnf install orbiscreen -y
+  ```
+
+- **Arch Linux (AUR):**
+  ```bash
+  paru -S orbiscreen
   ```
 
 - **Universal AppImage (`.AppImage`):**
+  Download `orbiscreen-x86_64.AppImage` from [GitHub Releases](https://github.com/shadow-x78/orbiscreen/releases):
   ```bash
   chmod +x orbiscreen-x86_64.AppImage
   ./orbiscreen-x86_64.AppImage
@@ -265,9 +270,6 @@ orbiscreen/
 | [PACKAGING.md](docs/PACKAGING.md) | Multi-distro packaging specs (.deb, .rpm, AppImage) |
 | [DBUS_SPEC.md](docs/DBUS_SPEC.md) | D-Bus Session Bus IPC interface specifications |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues, diagnostics & hardware acceleration fixes |
-| [SECURITY.md](SECURITY.md) | Security model, transport safety & network policies |
-| [CHANGELOG.md](CHANGELOG.md) | Full release history |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Guidelines for contributing and building from source |
 
 ---
 

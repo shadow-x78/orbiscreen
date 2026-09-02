@@ -3,165 +3,202 @@
 
 package com.orbiscreen.android.ui.stream
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
-import androidx.compose.material.icons.filled.Keyboard
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.FullscreenExit
+import androidx.compose.material.icons.rounded.Keyboard
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Mouse
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Terminal
+import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.orbiscreen.android.R
+import com.orbiscreen.android.ui.theme.ActiveGreen
+import com.orbiscreen.android.ui.theme.GlassBorderDark
+import com.orbiscreen.android.ui.theme.GlassDark
 
 @Composable
 fun ControlToolbar(
     hostLabel: String,
     encoder: String,
     resolution: String,
+    isTouchMode: Boolean = false,
+    onToggleInputMode: () -> Unit = {},
     onToggleKeyboard: () -> Unit,
     onLock: () -> Unit,
     onBlank: () -> Unit,
     onCtrlAltDel: () -> Unit,
     onRetry: () -> Unit,
     onHideControls: () -> Unit,
+    onDisconnect: () -> Unit = onHideControls,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-        tonalElevation = 6.dp,
-        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = GlassDark,
+        tonalElevation = 8.dp,
+        modifier = modifier
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .border(1.dp, GlassBorderDark, RoundedCornerShape(24.dp)),
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            IconButton(
+                onClick = onDisconnect,
+                modifier = Modifier.size(32.dp),
             ) {
-                Column(Modifier.weight(1f)) {
+                Icon(
+                    Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = stringResource(R.string.back),
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(ActiveGreen),
+            )
+
+            Column(modifier = Modifier.padding(end = 4.dp)) {
+                Text(
+                    text = hostLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                )
+                val info = listOfNotNull(
+                    resolution.takeIf { it.isNotBlank() },
+                    encoder.takeIf { it.isNotBlank() },
+                ).joinToString(" · ")
+                if (info.isNotBlank()) {
                     Text(
-                        text = hostLabel,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = listOfNotNull(
-                            resolution.takeIf { it.isNotBlank() },
-                            encoder.takeIf { it.isNotBlank() },
-                        ).joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                IconButton(onClick = onHideControls) {
-                    Icon(
-                        Icons.Filled.Fullscreen,
-                        contentDescription = stringResource(R.string.fullscreen_toggle),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = info,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 10.sp,
                     )
                 }
             }
 
-            Spacer(Modifier.size(8.dp))
+            Spacer(Modifier.width(4.dp))
 
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ToolbarActionButton(
+                icon = if (isTouchMode) Icons.Rounded.TouchApp else Icons.Rounded.Mouse,
+                contentDescription = if (isTouchMode) "Touch mode" else "Trackpad mode",
+                onClick = onToggleInputMode,
+            )
+
+            ToolbarActionButton(
+                icon = Icons.Rounded.Keyboard,
+                contentDescription = stringResource(R.string.open_keyboard),
+                onClick = onToggleKeyboard,
+            )
+
+            ToolbarActionButton(
+                icon = Icons.Rounded.Lock,
+                contentDescription = stringResource(R.string.lock_screen),
+                onClick = onLock,
+            )
+
+            ToolbarActionButton(
+                icon = Icons.Rounded.VisibilityOff,
+                contentDescription = stringResource(R.string.blank_screen),
+                onClick = onBlank,
+            )
+
+            ToolbarActionButton(
+                icon = Icons.Rounded.Terminal,
+                contentDescription = stringResource(R.string.send_ctrl_alt_del),
+                onClick = onCtrlAltDel,
+            )
+
+            ToolbarActionButton(
+                icon = Icons.Rounded.FullscreenExit,
+                contentDescription = stringResource(R.string.fullscreen_toggle),
+                onClick = onHideControls,
+            )
+
+            FilledIconButton(
+                onClick = onDisconnect,
+                shape = CircleShape,
+                modifier = Modifier.size(34.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                    contentColor = Color.White,
+                ),
             ) {
-                item {
-                    ChipAction(
-                        icon = Icons.Filled.Keyboard,
-                        label = stringResource(R.string.open_keyboard),
-                        onClick = onToggleKeyboard,
-                    )
-                }
-                item {
-                    ChipAction(
-                        icon = Icons.Filled.Lock,
-                        label = stringResource(R.string.lock_screen),
-                        onClick = onLock,
-                    )
-                }
-                item {
-                    ChipAction(
-                        icon = Icons.Filled.VisibilityOff,
-                        label = stringResource(R.string.blank_screen),
-                        onClick = onBlank,
-                    )
-                }
-                item {
-                    ChipAction(
-                        icon = Icons.Filled.Terminal,
-                        label = stringResource(R.string.send_ctrl_alt_del),
-                        onClick = onCtrlAltDel,
-                    )
-                }
-                item {
-                    ChipAction(
-                        icon = Icons.Filled.Refresh,
-                        label = stringResource(R.string.retry),
-                        onClick = onRetry,
-                    )
-                }
+                Icon(
+                    Icons.Rounded.Close,
+                    contentDescription = stringResource(R.string.back),
+                    modifier = Modifier.size(18.dp),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ChipAction(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Surface(
+private fun ToolbarActionButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    FilledIconButton(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
-        modifier = Modifier.width(92.dp),
+        shape = CircleShape,
+        modifier = Modifier.size(34.dp),
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = Color.White.copy(alpha = 0.12f),
+            contentColor = Color.White,
+        ),
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
-        ) {
-            Icon(
-                icon,
-                contentDescription = label,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(22.dp),
-            )
-            Spacer(Modifier.size(4.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                maxLines = 1,
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }

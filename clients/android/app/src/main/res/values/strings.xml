@@ -1,14 +1,14 @@
 <resources>
     <string name="app_name">Orbiscreen</string>
     <string name="discovery_title">Orbiscreen</string>
-    <string name="discovery_subtitle">Choose a host or add one manually</string>
+    <string name="discovery_subtitle">Choose a host or connect manually</string>
     <string name="add_manually">Add manually</string>
     <string name="host_label">Host address</string>
     <string name="connect">Connect</string>
     <string name="usb_connect">USB mode</string>
-    <string name="usb_mode_desc">"Stream over the USB cable instead of Wi-Fi (adb reverse)"</string>
-    <string name="usb_status_ready">Tunnel ready — daemon reachable</string>
-    <string name="usb_status_tunnel_down">No tunnel — start the daemon on the host, or reconnect the cable</string>
+    <string name="usb_mode_desc">Stream over USB cable with low latency (adb reverse)</string>
+    <string name="usb_status_ready">Tunnel ready: daemon reachable</string>
+    <string name="usb_status_tunnel_down">No tunnel: start daemon on host or reconnect cable</string>
     <string name="usb_badge">USB</string>
     <string name="refresh">Refresh</string>
     <string name="no_hosts_found">No hosts discovered</string>
@@ -37,10 +37,10 @@
     <string name="theme_dark">Dark</string>
     <string name="settings_appearance">Appearance</string>
     <string name="settings_streaming">Streaming</string>
-    <string name="force_sw_decoder">Force software decoder</string>
-    <string name="force_sw_decoder_summary">Enable on devices that struggle with hardware H.264</string>
-    <string name="enable_subnet_scanner">Scan subnet for hosts (advanced)</string>
-    <string name="subnet_scanner_summary">Active scan of nearby subnet (may trigger network alarms)</string>
+    <string name="force_sw_decoder">Force software decoding</string>
+    <string name="force_sw_decoder_summary">Use CPU decoder if hardware H.264 fails</string>
+    <string name="enable_subnet_scanner">Scan subnet for hosts</string>
+    <string name="subnet_scanner_summary">Actively probe nearby IPs on local network</string>
     <string name="settings_recent_host">Recent host</string>
     <string name="no_recent_host">None yet</string>
     <string name="clear_recent">Forget recent host</string>

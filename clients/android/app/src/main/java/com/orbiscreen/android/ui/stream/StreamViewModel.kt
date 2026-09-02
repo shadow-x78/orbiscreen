@@ -58,7 +58,9 @@ class StreamViewModel(
     val player get() = playerHolder.player
 
     private suspend fun freshToken(): String =
-        withContext(Dispatchers.IO) { hostApi.token(host, port).orEmpty() }
+        withContext(Dispatchers.IO) {
+            hostApi.token(host, port)?.also { sessionToken = it } ?: sessionToken.orEmpty()
+        }
 
     init {
         viewModelScope.launch {
@@ -86,7 +88,7 @@ class StreamViewModel(
                 _state.value.displayWidth,
                 _state.value.displayHeight,
             )
-            playerHolder.build(host, port) { freshToken() }
+            playerHolder.build(host, port) { sessionToken?.takeIf { it.isNotBlank() } ?: freshToken() }
         }
         viewModelScope.launch {
             _state.collect { s ->

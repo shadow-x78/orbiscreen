@@ -88,23 +88,28 @@
 <a id="quick-start"></a>
 ## 🚀 البدء السريع
 
-### 1. الحزم الرسمية (GitHub Releases)
+### 1. التثبيت
 
-حمّل الحزم المبنية مسبقاً من [GitHub Releases](https://github.com/shadow-x78/orbiscreen/releases):
-
-- **Debian / Ubuntu (`.deb`):**
+- **أوبونتو / Pop!_OS / لينكس مينت (Launchpad PPA):**
   ```bash
-  sudo dpkg -i orbiscreen_amd64.deb || sudo apt-get install -f
+  sudo add-apt-repository ppa:shadow-x78/ppa -y
+  sudo apt update
+  sudo apt install orbiscreen -y
   ```
 
-- **Fedora / RHEL (`.rpm`):**
-  > **ملاحظة:** حزم RPM موقّعة تشفيرياً. عليك استيراد المفتاح العام أولاً.
+- **فيدورا (COPR):**
   ```bash
-  sudo rpm --import https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/orbiscreen.asc
-  sudo dnf install ./orbiscreen_x86_64.rpm
+  sudo dnf copr enable shadow-x78/orbiscreen -y
+  sudo dnf install orbiscreen -y
+  ```
+
+- **آرش لينكس (AUR):**
+  ```bash
+  paru -S orbiscreen
   ```
 
 - **AppImage عالمي (`.AppImage`):**
+  حمّل `orbiscreen-x86_64.AppImage` من [GitHub Releases](https://github.com/shadow-x78/orbiscreen/releases):
   ```bash
   chmod +x orbiscreen-x86_64.AppImage
   ./orbiscreen-x86_64.AppImage
@@ -264,9 +269,6 @@ orbiscreen/
 | [PACKAGING_AR.md](docs/PACKAGING_AR.md) | مواصفات التغليف متعدد التوزيعات ‏(.deb، .rpm، AppImage)‏ |
 | [DBUS_SPEC_AR.md](docs/DBUS_SPEC_AR.md) | مواصفات واجهة D-Bus Session Bus |
 | [TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) | المشاكل الشائعة والتشخيص وإصلاحات التسريع العتادي |
-| [SECURITY.md](SECURITY.md) | نموذج الأمان وسلامة النقل وسياسات الشبكة |
-| [CHANGELOG.md](CHANGELOG.md) | سجل الإصدارات الكامل |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | إرشادات المساهمة والبناء من المصدر |
 
 ---
 

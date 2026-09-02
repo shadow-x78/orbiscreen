@@ -1,0 +1,7 @@
+orbiscreen (0.16.2-1~ubuntu24.04.3) noble; urgency=medium
+
+  * Release 0.16.2 for Ubuntu noble.
+  * Fast offline Launchpad PPA packaging with explicit dependencies.
+  * Include machine-readable debian/copyright file.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 02 Sep 2026 06:02:26 +0300

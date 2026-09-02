@@ -15,12 +15,13 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
-import androidx.media3.exoplayer.DefaultLivePlaybackSpeedControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import com.orbiscreen.android.data.PrefsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -99,7 +100,7 @@ class PlayerHolder(
         } catch (_: Exception) {
             ""
         }
-        val uri = StreamUrl.build(host, port)
+        val uri = StreamUrl.build(host, port, token)
         _event.value = StreamEvent.Connecting(uri)
 
         val player = try {
@@ -110,34 +111,32 @@ class PlayerHolder(
                 )
             val dataSourceFactory = DefaultDataSource.Factory(context, httpFactory)
 
-            val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+            val extractorsFactory = DefaultExtractorsFactory()
+                .setTsExtractorFlags(
+                    DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES or
+                        DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS
+                )
+
+            val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
 
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
-                    1_500,
-                    5_000,
+                    100,
                     500,
-                    1_000,
+                    0,
+                    0,
                 )
+                .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
 
             ExoPlayer.Builder(context)
                 .setMediaSourceFactory(mediaSourceFactory)
                 .setRenderersFactory(buildRenderersFactory())
                 .setLoadControl(loadControl)
-                .setLivePlaybackSpeedControl(
-                    DefaultLivePlaybackSpeedControl.Builder()
-                        .build()
-                )
                 .build().apply {
                     val media = MediaItem.Builder()
                         .setUri(uri)
                         .setMimeType(MimeTypes.VIDEO_MP2T)
-                        .setLiveConfiguration(
-                            MediaItem.LiveConfiguration.Builder()
-                                .setTargetOffsetMs(1_000)
-                                .build()
-                        )
                         .build()
                     setMediaItem(media)
                     repeatMode = Player.REPEAT_MODE_OFF
@@ -146,7 +145,11 @@ class PlayerHolder(
                     addListener(object : Player.Listener {
                         override fun onPlaybackStateChanged(state: Int) {
                             when (state) {
-                                Player.STATE_BUFFERING -> _event.value = StreamEvent.Buffering
+                                Player.STATE_BUFFERING -> {
+                                    if (_event.value !is StreamEvent.Playing) {
+                                        _event.value = StreamEvent.Buffering
+                                    }
+                                }
                                 Player.STATE_READY -> {
                                     reconnectDelayMs = 1_000L
                                     _event.value = StreamEvent.Playing
@@ -159,8 +162,11 @@ class PlayerHolder(
                             }
                         }
                         override fun onPlayerError(error: PlaybackException) {
-                            Log.w("OrbiPlayer", "player error: ${error.errorCodeName} ${error.message}")
-                            _event.value = StreamEvent.Error(error.errorCode, error.message ?: error.errorCodeName)
+                            val cause = error.cause
+                            val causeInfo = if (cause != null) " [${cause.javaClass.simpleName}: ${cause.message}]" else ""
+                            Log.w("OrbiPlayer", "player error: ${error.errorCodeName} ${error.message}$causeInfo", error)
+                            val display = "${error.errorCodeName}: ${error.message ?: error.errorCodeName}$causeInfo"
+                            _event.value = StreamEvent.Error(error.errorCode, display)
                             scheduleReconnect()
                         }
                     })

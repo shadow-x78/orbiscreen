@@ -3,11 +3,12 @@
 
 package com.orbiscreen.android.ui.stream
 
+import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,33 +17,36 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Keyboard
-import androidx.compose.material.icons.filled.Usb
-import androidx.compose.material.icons.filled.WifiTethering
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Keyboard
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.foundation.border
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,15 +54,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.orbiscreen.android.R
 import com.orbiscreen.android.player.StreamEvent
+import com.orbiscreen.android.ui.theme.GlassDark
+import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StreamScreen(
     viewModel: StreamViewModel,
@@ -66,160 +80,241 @@ fun StreamScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val player = viewModel.player.collectAsState().value
-    var showControls by remember { mutableStateOf(true) }
+    var showControls by remember { mutableStateOf(false) }
+    var isTouchMode by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            AnimatedVisibility(
-                visible = showControls,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-            ) {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(state.host, style = MaterialTheme.typography.titleMedium)
-                                if (state.host == "127.0.0.1") {
-                                    Spacer(Modifier.width(6.dp))
-                                    AssistChip(
-                                        onClick = {},
-                                        label = { Text(stringResource(R.string.usb_badge)) },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Filled.Usb,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(14.dp),
-                                            )
-                                        },
-                                        colors = AssistChipDefaults.assistChipColors(
-                                            containerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
-                                        ),
-                                    )
-                                }
-                            }
-                            Text(
-                                "${state.host}:${state.port}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.92f),
-                    ),
-                )
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val window = (context as? Activity)?.window
+        if (window != null) {
+            val controller = WindowCompat.getInsetsController(window, window.decorView)
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+        }
+        onDispose {
+            val w = (context as? Activity)?.window
+            if (w != null) {
+                WindowCompat.getInsetsController(w, w.decorView)
+                    .show(WindowInsetsCompat.Type.systemBars())
             }
-        },
-        bottomBar = {
-            AnimatedVisibility(
-                visible = showControls,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-            ) {
-                ControlToolbar(
-                    hostLabel = state.host,
-                    encoder = state.encoder,
-                    resolution = "${state.displayWidth}×${state.displayHeight}",
-                    onToggleKeyboard = viewModel::toggleKeyboard,
-                    onLock = viewModel::lock,
-                    onBlank = viewModel::blank,
-                    onCtrlAltDel = viewModel::ctrlAltDel,
-                    onRetry = viewModel::retry,
-                    onHideControls = { showControls = false },
-                )
-            }
-        },
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(Color.Black),
+        }
+    }
+
+    LaunchedEffect(showControls) {
+        if (showControls) {
+            delay(4000)
+            showControls = false
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+    ) {
+        if (player != null) {
+            val input = remember { viewModel.ensureInput() }
+            PlayerSurface(
+                player = player,
+                isTouchMode = isTouchMode,
+                onMove = { x, y, w, h -> input.move(x, y, w, h) },
+                onPointer = { _, _, _, _, btn, pressed ->
+                    input.button(btn, pressed)
+                },
+                onDeltaMove = { dx, dy -> input.moveDelta(dx, dy) },
+                onLeftClick = { input.leftClick() },
+                onRightClick = { input.rightClick() },
+                onScroll = { dy -> input.wheel(dy) },
+            )
+        }
+        if (state.event !is StreamEvent.Playing && state.event !is StreamEvent.Buffering) {
+            StatusOverlay(
+                event = state.event,
+                onRetry = { viewModel.retry() },
+                onBack = onBack,
+            )
+        }
+
+
+
+        AnimatedVisibility(
+            visible = showControls,
+            enter = fadeIn() + slideInVertically { -it },
+            exit = fadeOut() + slideOutVertically { -it },
+            modifier = Modifier.align(Alignment.TopCenter),
         ) {
-            if (player != null) {
-                val input = remember { viewModel.ensureInput() }
-                PlayerSurface(
-                    player = player,
-                    onMove = { x, y, w, h -> input.move(x, y, w, h) },
-                    onPointer = { _, _, _, _, _, pressed ->
-                        input.button(1, pressed)
-                    },
-                )
-            } else {
-                StatusOverlay(event = state.event)
-            }
+            ControlToolbar(
+                hostLabel = if (state.host == "127.0.0.1") "USB · Orbiscreen" else state.host,
+                encoder = state.encoder,
+                resolution = "${state.displayWidth}×${state.displayHeight}",
+                isTouchMode = isTouchMode,
+                onToggleInputMode = { isTouchMode = !isTouchMode },
+                onToggleKeyboard = viewModel::toggleKeyboard,
+                onLock = viewModel::lock,
+                onBlank = viewModel::blank,
+                onCtrlAltDel = viewModel::ctrlAltDel,
+                onRetry = viewModel::retry,
+                onHideControls = { showControls = false },
+                onDisconnect = onBack,
+            )
+        }
 
-            // Floating restore button when controls are hidden
-            if (!showControls) {
-                Surface(
-                    onClick = { showControls = true },
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .size(44.dp)
-                        .align(Alignment.TopEnd),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Filled.Close,
-                            contentDescription = stringResource(R.string.fullscreen_toggle),
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-            }
-
-            AnimatedVisibility(visible = state.keyboardVisible, enter = fadeIn(), exit = fadeOut()) {
-                KeyboardOverlay(
-                    onKey = { code, pressed ->
-                        viewModel.ensureInput().key(code, pressed)
-                    },
-                    onClose = { viewModel.toggleKeyboard() },
+        AnimatedVisibility(
+            visible = !showControls,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp),
+        ) {
+            FilledIconButton(
+                onClick = { showControls = true },
+                shape = CircleShape,
+                modifier = Modifier.size(40.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = GlassDark,
+                    contentColor = Color.White.copy(alpha = 0.85f),
+                ),
+            ) {
+                Icon(
+                    Icons.Rounded.Tune,
+                    contentDescription = stringResource(R.string.fullscreen_toggle),
+                    modifier = Modifier.size(20.dp),
                 )
             }
+        }
+
+        AnimatedVisibility(
+            visible = state.keyboardVisible,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            KeyboardOverlay(
+                onKey = { code, pressed ->
+                    viewModel.ensureInput().key(code, pressed)
+                },
+                onClose = { viewModel.toggleKeyboard() },
+            )
         }
     }
 }
 
 @Composable
-private fun StatusOverlay(event: StreamEvent) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-            modifier = Modifier.padding(24.dp),
+private fun StatusOverlay(
+    event: StreamEvent,
+    onRetry: () -> Unit,
+    onBack: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(androidx.compose.ui.graphics.Color(0xFF11111B)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 32.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                when (event) {
-                    is StreamEvent.Idle, is StreamEvent.Connecting, is StreamEvent.Playing -> {
-                        CircularProgressIndicator(modifier = Modifier.size(40.dp))
-                        Text(stringResource(R.string.connecting), style = MaterialTheme.typography.titleMedium)
-                        if (event is StreamEvent.Connecting) {
-                            Text(event.uri.toString(), style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    is StreamEvent.Buffering -> {
-                        CircularProgressIndicator(modifier = Modifier.size(40.dp))
-                        Text(stringResource(R.string.buffering), style = MaterialTheme.typography.titleMedium)
-                    }
-                    is StreamEvent.Error -> {
-                        Icon(Icons.Filled.WifiTethering, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                        Text(stringResource(R.string.error_stream), style = MaterialTheme.typography.titleMedium)
-                        Text(event.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            when (event) {
+                is StreamEvent.Idle, is StreamEvent.Connecting -> {
+                    CircularProgressIndicator(
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(48.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        stringResource(R.string.connecting),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    if (event is StreamEvent.Connecting) {
+                        Text(
+                            event.uri.toString(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        )
                     }
                 }
+                is StreamEvent.Buffering -> {
+                    CircularProgressIndicator(
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(48.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        stringResource(R.string.buffering),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                is StreamEvent.Error -> {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.22f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Rounded.WifiOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.error_stream),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                    Text(
+                        event.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    androidx.compose.material3.Button(
+                        onClick = onRetry,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    ) {
+                        Icon(
+                            Icons.Rounded.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            stringResource(R.string.retry),
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    androidx.compose.material3.FilledTonalButton(
+                        onClick = onBack,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Text(stringResource(R.string.back))
+                    }
+                }
+                is StreamEvent.Playing -> Unit
             }
         }
     }
@@ -227,19 +322,48 @@ private fun StatusOverlay(event: StreamEvent) {
 
 @Composable
 private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) {
-    var textInput by remember { mutableStateOf("") }
+    var dummyText by remember { mutableStateOf(TextFieldValue("")) }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.65f)),
     ) {
+        BasicTextField(
+            value = dummyText,
+            onValueChange = { newVal ->
+                if (newVal.text.isNotEmpty()) {
+                    for (ch in newVal.text) {
+                        sendChar(ch, onKey)
+                    }
+                    dummyText = TextFieldValue("")
+                } else if (newVal.text.length < dummyText.text.length) {
+                    onKey(14, true)
+                    onKey(14, false)
+                    dummyText = TextFieldValue("")
+                }
+            },
+            modifier = Modifier
+                .size(1.dp)
+                .alpha(0.01f)
+                .focusRequester(focusRequester),
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.None,
+                autoCorrectEnabled = false,
+            ),
+        )
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter),
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF181825)),
         ) {
             Column(
                 modifier = Modifier
@@ -252,56 +376,33 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(
-                        Icons.Filled.Keyboard,
+                        Icons.Rounded.Keyboard,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = Color.White,
                     )
-                    Text(
-                        stringResource(R.string.type_on_host),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
+                    Column(modifier = Modifier.padding(start = 10.dp)) {
+                        Text(
+                            stringResource(R.string.type_on_host),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                        Text(
+                            "Direct typing active",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.65f),
+                        )
+                    }
                     Spacer(Modifier.weight(1f))
                     IconButton(onClick = onClose) {
-                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.close_keyboard))
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.close_keyboard),
+                            tint = Color.White,
+                        )
                     }
                 }
 
-                // Native Keyboard Input Field
-                androidx.compose.material3.OutlinedTextField(
-                    value = textInput,
-                    onValueChange = { newVal ->
-                        if (newVal.length > textInput.length) {
-                            // User typed new characters
-                            val added = newVal.substring(textInput.length)
-                            for (ch in added) {
-                                sendChar(ch, onKey)
-                            }
-                        } else if (newVal.length < textInput.length) {
-                            // Backspace pressed
-                            val diff = textInput.length - newVal.length
-                            repeat(diff) {
-                                onKey(14, true); onKey(14, false)
-                            }
-                        }
-                        textInput = newVal
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text(stringResource(R.string.type_on_host)) },
-                    singleLine = true,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        imeAction = androidx.compose.ui.text.input.ImeAction.Send,
-                    ),
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                        onSend = {
-                            onKey(28, true); onKey(28, false)
-                            textInput = ""
-                        },
-                    ),
-                )
-
-                // Desktop Key Shortcuts Row
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -315,7 +416,6 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
                     KeyActionPill("Enter", Modifier.weight(1.2f)) { onKey(28, true); onKey(28, false) }
                 }
 
-                // Arrow Navigation Row
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -336,16 +436,16 @@ private fun KeyActionPill(label: String, modifier: Modifier, onClick: () -> Unit
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
-        modifier = modifier,
+        color = Color(0xFF262637),
+        modifier = modifier.border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(vertical = 10.dp),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = Color.White,
         )
     }
 }

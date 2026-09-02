@@ -474,7 +474,7 @@ impl KwinVirtualCapture {
             .set_state(gstreamer::State::Playing)
             .map_err(|e| KwinVirtualError::Wayland(format!("State error: {e}")))?;
 
-        let damage_pump = super::damage_pump::spawn(Duration::from_millis(500));
+        let damage_pump = super::damage_pump::spawn(Duration::from_millis(200));
 
         let ended = Arc::new(AtomicBool::new(false));
         let ended_notify = Arc::new(Notify::new());

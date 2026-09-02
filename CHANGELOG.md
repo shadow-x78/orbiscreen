@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.17.0] - 2026-09-02
+
+Major user experience, input control, and low-latency streaming release for the Android client and backend packaging pipeline.
+
+### ✨ Added
+- **Trackpad Mouse Control Mode**: Relative cursor movement directly from the phone screen with intuitive gestures - single-finger smooth motion pans the host cursor, single-finger tap triggers left click, two-finger tap triggers right click, and two-finger vertical drag activates the mouse scroll wheel.
+- **Mouse & Touch Mode Toggle**: A dedicated toolbar button allows seamless switching between Trackpad Mode and Direct Touchscreen Mode at any time during streaming.
+- **Direct Keyboard Typing**: Bypasses cumbersome intermediate text boxes; activating the keyboard immediately connects the mobile system IME, forwarding typed characters and backspace events directly to the host PC in real time.
+- **Dedicated Toolbar Back Button**: Added a prominent back navigation button (`ArrowBack`) before the host IP address in the stream control toolbar for immediate 1-tap navigation back to discovery.
+- **High-contrast Keyboard Overlay**: Keyboard pill buttons restyled with dark surface background (`#262637`), subtle translucent borders, and bold white text (`Color.White`) for effortless legibility.
+- **Debian / Ubuntu Launchpad PPA Automation**: Adapted source changelog generation to native package format (`${VERSION}~ubuntu${SERIES}1`), automated secret GPG key identification from imported keyrings, and added `--no-lintian` to debuild for uninterrupted automated PPA distribution.
+
+### ⚡ Performance & Low Latency
+- **Ultra-Low Latency Video Pipeline**: Tuned ExoPlayer LoadControl buffer durations down to 50ms - 150ms with `prioritizeTimeOverSizeThresholds`, eliminating the 1.5s - 5s accumulated delay and preventing stuttering.
+- **Non-intrusive Buffering State**: Kept the last rendered frame visible during static screen pauses instead of covering the screen with an opaque black spinner overlay.
+- **Robust Stream URL Builder**: Bulletproof URL construction preventing duplicate ports (`:8788:8788`) and malformed path parsing in OkHttp/Media3.
+
 ## [v0.16.2] - 2026-09-01
 
 Full-project audit round five, after the USB feature (v0.16.0) and the distribution-repo groundwork (v0.16.1). All tooling gates green (clippy zero, fmt clean, 125 tests, cargo-deny clean, cargo-machete clean), zero inline comments in any code file, zero embedded secrets, all docs links and anchors resolve in both languages - and two real defects found and fixed, one of them proven by a live end-to-end test against a physical Android device.

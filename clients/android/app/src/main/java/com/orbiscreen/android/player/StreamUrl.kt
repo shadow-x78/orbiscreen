@@ -6,11 +6,14 @@ package com.orbiscreen.android.player
 import android.net.Uri
 
 object StreamUrl {
-    fun build(host: String, port: Int): Uri {
-        return Uri.Builder()
+    fun build(host: String, port: Int, token: String = ""): Uri {
+        val builder = Uri.Builder()
             .scheme("http")
             .authority("$host:$port")
             .path("/stream")
-            .build()
+        if (token.isNotBlank()) {
+            builder.appendQueryParameter("token", token)
+        }
+        return builder.build()
     }
 }

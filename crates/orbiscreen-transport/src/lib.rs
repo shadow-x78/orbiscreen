@@ -764,9 +764,20 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         let rx = state.video_tx.subscribe();
         (jb.clone(), last, rx)
     };
-    for sp in &join_packets {
-        if push_h264_packet(&appsrc_clone, &sp.pkt).is_err() {
-            break;
+    let has_keyframe = join_packets.front().is_some_and(|sp| sp.pkt.is_keyframe);
+    let mut pts_base: Option<u64> = if has_keyframe {
+        join_packets.front().map(|sp| sp.pkt.pts_ns)
+    } else {
+        None
+    };
+
+    if let Some(base) = pts_base {
+        for sp in &join_packets {
+            let mut normalized = sp.pkt.clone();
+            normalized.pts_ns = sp.pkt.pts_ns.saturating_sub(base);
+            if push_h264_packet(&appsrc_clone, &normalized).is_err() {
+                break;
+            }
         }
     }
 
@@ -774,7 +785,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         let _pipeline_guard = PipelineGuard(pipeline_for_task);
         let _guard = ClientGuard(stats);
 
-        let mut wait_keyframe = false;
+        let mut wait_keyframe = pts_base.is_none();
         loop {
             if tx_alive.is_closed() {
                 debug!("stream client disconnected");
@@ -789,9 +800,11 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                 }
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
             };
-            if let Some(last) = last_buffered_seq {
-                if sp.seq <= last {
-                    continue;
+            if has_keyframe {
+                if let Some(last) = last_buffered_seq {
+                    if sp.seq <= last {
+                        continue;
+                    }
                 }
             }
             if wait_keyframe {
@@ -799,9 +812,16 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                     continue;
                 }
                 wait_keyframe = false;
+                if pts_base.is_none() {
+                    pts_base = Some(sp.pkt.pts_ns);
+                }
             }
 
-            if push_h264_packet(&appsrc_clone, &sp.pkt).is_err() {
+            let base = pts_base.unwrap_or(0);
+            let mut normalized = sp.pkt.clone();
+            normalized.pts_ns = sp.pkt.pts_ns.saturating_sub(base);
+
+            if push_h264_packet(&appsrc_clone, &normalized).is_err() {
                 break;
             }
         }
