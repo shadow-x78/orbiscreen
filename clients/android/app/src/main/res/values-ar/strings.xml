@@ -52,4 +52,17 @@
     <string name="type_on_host">الكتابة على المضيف</string>
     <string name="system_ime">لوحة مفاتيح النظام</string>
     <string name="copied_to_clipboard">تم النسخ إلى الحافظة</string>
+    <string name="developer">المطور</string>
+    <string name="developer_name">shadow-x78</string>
+    <string name="github_repository">مستودع المشروع على GitHub</string>
+    <string name="github_repo_subtitle">الكود المصدري والإصدارات والتبليغ عن الأخطاء</string>
+    <string name="license">الترخيص</string>
+    <string name="license_name">GNU GPL v3.0 (برمجيات حرة ومفتوحة)</string>
+    <string name="check_for_updates">البحث عن تحديثات</string>
+    <string name="check_for_updates_summary">التحقق من توفر إصدار أحدث عبر GitHub</string>
+    <string name="checking_updates">جارٍ التحقق من التحديثات…</string>
+    <string name="latest_version_installed">أنت تستخدم أحدث إصدار بالفعل</string>
+    <string name="update_available">يوجد إصدار أحدث متوفر: %s</string>
+    <string name="update_check_failed">تعذر التحقق من التحديثات، انقر لفتح صفحة الإصدارات</string>
+    <string name="download_update">تحميل التحديث</string>
 </resources>

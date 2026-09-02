@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.17.1] - 2026-09-02
+
+Settings enhancements, project & creator credits, in-app update checking, and zero-buffering playback refinement.
+
+### ✨ Added
+- **In-App Project & Creator Credits**: Added complete maintainer recognition for **shadow-x78**, direct links to the creator's GitHub profile and the Orbiscreen project repository, and GNU GPL-3.0 license details in the Android Settings screen.
+- **One-Tap Check for Updates**: Integrated real-time GitHub release discovery directly within the Android Settings screen - automatically queries the GitHub Releases API to detect new versions, notifying users with immediate download options or confirming up-to-date status.
+
+### ⚡ Performance & Polish
+- **Zero-Buffering Playback Mode**: Set buffer durations for playback and rebuffering to 0ms in ExoPlayer, enabling instant frame presentation upon packet arrival and preventing video stalling on static screens.
+- **Transparent Video Shutter**: Eliminated black screen obscuration during stream pauses and buffering transitions by making the PlayerView shutter transparent.
+- **5Hz Damage Keepalive Pump**: Accelerated daemon keepalive pulses from 500ms to 200ms to continuously feed demuxers during static desktop sessions.
+
 ## [v0.17.0] - 2026-09-02
 
 Major user experience, input control, and low-latency streaming release for the Android client and backend packaging pipeline.
