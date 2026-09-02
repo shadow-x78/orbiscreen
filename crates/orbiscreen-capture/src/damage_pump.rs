@@ -135,7 +135,7 @@ fn run(period: Duration, stop: Arc<AtomicBool>) -> Result<(), String> {
         (),
     );
 
-    tracing::info!(
+    tracing::debug!(
         "damage pump active on virtual display ({width}x{height}, every {}ms)",
         period.as_millis()
     );

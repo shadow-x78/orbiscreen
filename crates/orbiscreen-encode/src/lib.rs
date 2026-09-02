@@ -79,7 +79,9 @@ pub fn init() -> Result<(), EncodeError> {
 fn detect_available(preferred: EncoderKind) -> EncoderKind {
     let registry = gstreamer::Registry::get();
     let search_order = match preferred {
-        EncoderKind::Auto | EncoderKind::Nvenc => [EncoderKind::Nvenc, EncoderKind::Vaapi, EncoderKind::X264],
+        EncoderKind::Auto | EncoderKind::Nvenc => {
+            [EncoderKind::Nvenc, EncoderKind::Vaapi, EncoderKind::X264]
+        }
         EncoderKind::Vaapi => [EncoderKind::Vaapi, EncoderKind::Nvenc, EncoderKind::X264],
         EncoderKind::X264 => [EncoderKind::X264, EncoderKind::Nvenc, EncoderKind::Vaapi],
     };

@@ -300,7 +300,6 @@ struct SeqPacket {
     pkt: H264Packet,
 }
 
-
 #[derive(Clone)]
 struct AppState {
     config: ServerConfig,
@@ -760,7 +759,9 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         let rx = state.video_tx.subscribe();
         (kf, rx)
     };
-    let has_keyframe = keyframe_packet.as_ref().is_some_and(|sp| sp.pkt.is_keyframe);
+    let has_keyframe = keyframe_packet
+        .as_ref()
+        .is_some_and(|sp| sp.pkt.is_keyframe);
     let keyframe_seq = keyframe_packet.as_ref().map(|sp| sp.seq);
     let mut pts_base: Option<u64> = if has_keyframe {
         keyframe_packet.as_ref().map(|sp| sp.pkt.pts_ns)

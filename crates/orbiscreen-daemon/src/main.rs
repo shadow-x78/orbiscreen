@@ -1022,21 +1022,11 @@ async fn run_start(
         Err(_) => None,
     };
     let frame_pump = tokio::spawn(async move {
-        let mut n = 0u64;
         let mut ts_base: Option<u64> = None;
         let mut dump_file = encoder_dump;
         while let Some(chunk) = encoded_rx.recv().await {
-            n += 1;
             let base = *ts_base.get_or_insert(chunk.pts_ns);
             let pts_ns = chunk.pts_ns.saturating_sub(base);
-            if n <= 5 || n % 300 == 0 {
-                info!(
-                    "frame_pump: chunk #{n} ({} B, kf={}, pts={})",
-                    chunk.bytes.len(),
-                    chunk.is_keyframe,
-                    pts_ns
-                );
-            }
             let pkt = H264Packet {
                 bytes: chunk.bytes,
                 is_keyframe: chunk.is_keyframe,
@@ -1050,7 +1040,6 @@ async fn run_start(
                 break;
             }
         }
-        info!("frame_pump exited");
     });
 
     let cap_dims = actual_dims;
@@ -1088,8 +1077,8 @@ async fn run_start(
             };
             match outcome {
                 SourceOutcome::Frame(frame) => {
-                    let n = fc.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-                    let (width, height, data_len) = (frame.width, frame.height, frame.data.len());
+                    let _ = fc.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let (width, height) = (frame.width, frame.height);
                     if last_snapshot.map_or(true, |t| t.elapsed() >= KEEPALIVE) {
                         keepalive_frame = Some((width, height, frame.data.to_vec()));
                         last_snapshot = Some(std::time::Instant::now());
@@ -1097,15 +1086,10 @@ async fn run_start(
                     let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
                     last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
                     let pts_ns = last_pts_ns;
+                    let data_len = frame.data.len();
                     if let Err(e) = encoder.push_frame_owned(frame.data, width, height, pts_ns) {
                         warn!(
                             "frame push rejected ({}x{}, {} B): {e}",
-                            width, height, data_len
-                        );
-                    }
-                    if n % 300 == 0 || n == 1 {
-                        info!(
-                            "source frame #{n} pushed ({}x{}, {} B)",
                             width, height, data_len
                         );
                     }
