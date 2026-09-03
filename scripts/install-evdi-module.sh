@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Orbiscreen - install-evdi-module (GPL-3.0-or-later)
 # https://github.com/shadow-x78/orbiscreen
+
 set -euo pipefail
 
 SRC_DIR="${1:-$HOME/src/evdi-main}"

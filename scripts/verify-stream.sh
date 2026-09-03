@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Orbiscreen - verify-stream (GPL-3.0-or-later)
 # https://github.com/shadow-x78/orbiscreen
+
 set -euo pipefail
 
 PORT="${1:-8788}"

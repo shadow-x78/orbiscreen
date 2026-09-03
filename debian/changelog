@@ -1,3 +1,11 @@
+orbiscreen (0.18.2-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.18.2 for Ubuntu noble.
+  * Modernized CLI interface with brand theme, ASCII logo, and status command.
+  * Cleaned codebase and standardized credit headers across all source files.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 03 Sep 2026 21:30:00 +0300
+
 orbiscreen (0.18.1-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.18.1 for Ubuntu noble.

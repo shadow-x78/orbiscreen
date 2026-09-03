@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Orbiscreen - Run Android Debug App
 # https://github.com/shadow-x78/orbiscreen
+
 set -euo pipefail
 
 cd "$(dirname "$0")/../clients/android"

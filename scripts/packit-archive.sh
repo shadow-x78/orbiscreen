@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Orbiscreen - Packit SRPM Archive Generator (Source0 + Source1 vendor crates)
 # https://github.com/shadow-x78/orbiscreen
+
 set -euo pipefail
 
 VERSION=$(grep -m1 -oP '(?<=^version = ")[^"]+' Cargo.toml)

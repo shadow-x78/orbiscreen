@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.18.1
+Version:        0.18.2
 Release:        1%{?dist}
 Summary:        Turn any Android tablet or phone into a low-latency second monitor for Linux
 
@@ -101,6 +101,9 @@ fi
 %{_datadir}/orbiscreen/install-evdi-module.sh
 
 %changelog
+* Wed Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.2-1
+- Release 0.18.2: Redesigned CLI interface with brand theme, ASCII logo, status command, and clean code headers.
+
 * Wed Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.1-1
 - Release 0.18.1: Pure CLI daemon refactoring, removal of desktop launcher, and package description synchronization.
 

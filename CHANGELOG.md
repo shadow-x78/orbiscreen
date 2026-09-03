@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.18.2] - 2026-09-03
+
+Modernized CLI interface with Catppuccin Mocha theme, official ASCII/ANSI vector logo, new interactive `status` command, clean code standards, and standardized credit headers.
+
+### ✨ Added
+- **Modernized CLI Interface (`ui.rs`)**: Integrated Catppuccin Mocha 24-bit TrueColor palette (`#89b4fa`, `#74c7ec`, `#a6e3a1`, `#f9e2af`, `#f38ba8`), custom Clap v4 styling, rounded Unicode cards, and intelligent `NO_COLOR` and terminal auto-detection.
+- **Official ASCII/ANSI Banner**: Terminal rendering of the Orbiscreen ring and orbiting display dot with project highlights.
+- **New `orbiscreen status` Command**: Direct D-Bus client querying `com.orbiscreen.Daemon` for active display resolution, encoder, capture pipeline, client counts, USB status, and forwarded frame counts, with `--json` support.
+- **Enhanced Command Cards**: Modernized output formatting for `orbiscreen doctor`, `orbiscreen probe`, `orbiscreen list-displays`, and `orbiscreen start`.
+
+### 🧹 Cleaned & Standardized
+- **Credit Header Standardization**: Enforced standard 2-line credit header followed by an empty line across all `.rs` and `.sh` files.
+- **Codebase Comment Cleanup**: Cleaned implementation comments across all modules and replaced doc comments on CLI flags with explicit Clap attributes.
+
+### 🔧 CI / Packaging
+- **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.18.2.
+- **debian/changelog**: Added 0.18.2-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.18.2.
+- **Android `versionCode`**: Incremented to 45; `versionName` updated to "0.18.2".
+
 ## [v0.18.1] - 2026-09-03
 
 Pure CLI daemon architecture, removal of desktop application launcher, and synchronized package metadata across all distribution channels.

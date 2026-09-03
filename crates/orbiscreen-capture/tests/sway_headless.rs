@@ -1,5 +1,6 @@
 // Orbiscreen - sway_headless.rs (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
+
 use std::io::{Read as _, Write as _};
 use std::os::unix::fs::FileTypeExt as _;
 use std::os::unix::io::IntoRawFd;

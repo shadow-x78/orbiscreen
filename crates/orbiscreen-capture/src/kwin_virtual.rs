@@ -1,5 +1,6 @@
 // Orbiscreen - kwin_virtual.rs (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
+
 use std::io::Write as _;
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::OpenOptionsExt;
