@@ -23,6 +23,7 @@ mkdir -p "${BUILD_DIR}/usr/bin"
 mkdir -p "${BUILD_DIR}/usr/lib/systemd/user"
 mkdir -p "${BUILD_DIR}/usr/share/applications"
 mkdir -p "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps"
+mkdir -p "${BUILD_DIR}/usr/share/orbiscreen/client/vendor"
 
 cp -f target/release/orbiscreen "${BUILD_DIR}/usr/bin/"
 cp -f data/orbiscreen.desktop "${BUILD_DIR}/usr/share/applications/"
