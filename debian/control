@@ -19,7 +19,8 @@ Depends: ${misc:Depends},
          libevdev2
 Recommends: android-tools-adb
 Suggests: evdi-dkms
-Description: High-performance virtual secondary displays for Linux
- Orbiscreen creates virtual displays on Linux (Wayland/X11) and
- streams them with sub-frame latency to mobile devices or browsers.
- Supports hardware-accelerated H.264 encoding and low-latency input.
+Description: Turn any Android tablet or phone into a second monitor for Linux
+ Orbiscreen turns Android tablets and phones into low-latency (~25ms)
+ extended displays for Linux desktops on Wayland and X11. Features native
+ graphic tablet digitizer with stylus pressure and tilt for Krita/GIMP,
+ hardware encoding (NVENC/VAAPI), and desktop launcher integration.

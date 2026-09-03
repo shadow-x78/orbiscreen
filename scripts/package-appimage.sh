@@ -56,18 +56,7 @@ else
     echo "warning: GStreamer pkg-config prefix not found; AppImage will rely on the host GStreamer install" >&2
 fi
 
-cat > "$APP/orbiscreen.desktop" <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=Orbiscreen
-GenericName=Virtual Secondary Display
-Comment=Stream a virtual display to an Android device
-Exec=orbiscreen start
-Icon=orbiscreen
-Terminal=true
-Categories=Network;System;
-StartupNotify=true
-EOF
+cp -f "$REPO_ROOT/data/orbiscreen.desktop" "$APP/orbiscreen.desktop"
 
 rasterize_256() {
     local svg="$1" out="$2"

@@ -10,7 +10,7 @@
 Name:           orbiscreen
 Version:        %{_version}
 Release:        1%{?dist}
-Summary:        Real virtual secondary displays for Linux, streamed to Android over Wi-Fi or USB
+Summary:        Turn any Android tablet or phone into a low-latency second monitor for Linux
 
 License:        GPL-3.0-or-later
 URL:            https://github.com/shadow-x78/orbiscreen
@@ -19,9 +19,12 @@ Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstre
 Recommends:     gstreamer1-plugins-ugly-free
 
 %description
-Orbiscreen provides high-performance virtual secondary displays for Linux desktops,
-streaming low-latency MPEG-TS/H.264 video over HTTP (Wi-Fi or USB/adb reverse)
-to Android tablets/phones and web browsers.
+Orbiscreen turns Android tablets and phones into high-performance (~25ms)
+extended monitors for Linux desktops on Wayland and X11. Features native
+graphic tablet digitizer with 4095 levels of stylus pressure and tilt for
+Krita/GIMP, auto-rotating display orientation, rootless KWin/wlroots virtual
+displays, hardware encoding (NVENC/VAAPI), reverse multi-touch and mouse
+control, USB ADB tunneling, and zero-CLI desktop application integration.
 
 %prep
 

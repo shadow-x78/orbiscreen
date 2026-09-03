@@ -8,7 +8,7 @@
 pkgname=orbiscreen
 pkgver=0.18.0
 pkgrel=1
-pkgdesc="Real virtual secondary displays for Linux, streamed to Android over Wi-Fi or USB"
+pkgdesc="Turn any Android tablet or phone into a low-latency second monitor for Linux (Wayland & X11)"
 arch=('x86_64')
 url="https://github.com/shadow-x78/orbiscreen"
 license=('GPL-3.0-or-later')

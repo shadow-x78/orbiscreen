@@ -61,13 +61,11 @@ Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins
 Section: utils
 Priority: optional
 Homepage: https://github.com/shadow-x78/orbiscreen
-Description: Real virtual secondary displays for Linux, streamed to Android - over Wi-Fi or USB
- Orbiscreen provides high-performance virtual secondary displays for Linux desktops,
- streaming low-latency H.264 video to Android tablets/phones over HTTP (Wi-Fi/USB).
- .
- On KDE Wayland the daemon creates a true virtual display directly via KWin
- (no root, no kernel module). The optional evdi kernel module is only needed
- for explicit EVDI mode on other compositors.
+Description: Turn any Android tablet or phone into a second monitor for Linux
+ Orbiscreen turns Android tablets and phones into low-latency (~25ms)
+ extended displays for Linux desktops on Wayland and X11. Features native
+ graphic tablet digitizer with stylus pressure and tilt for Krita/GIMP,
+ auto-orientation, hardware encoding (NVENC/VAAPI), and desktop launcher integration.
 EOF
 
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/prerm"
