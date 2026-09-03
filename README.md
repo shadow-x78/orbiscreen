@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://github.com/shadow-x78/orbiscreen">
-  <img src="assets/logo/orbiscreen-banner.svg" alt="Orbiscreen - Turn any Android tablet or phone into a low-latency second monitor for Linux" width="100%" />
+  <img src="https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/assets/logo/orbiscreen-banner.png" alt="Orbiscreen - Turn any Android tablet or phone into a low-latency second monitor for Linux" width="100%" />
 </a>
 
 <br><br>
@@ -19,9 +19,9 @@
 <br>
 
 <!-- 1-Click Viral Sharing Badges -->
-[![Share on Reddit](https://img.shields.io/badge/Share-Reddit-FF4500?style=flat-square&logo=reddit&logoColor=white)](https://reddit.com/submit?url=https://github.com/shadow-x78/orbiscreen&title=Orbiscreen%20-%20Turn%20any%20Android%20device%20into%20a%20low-latency%20second%20monitor%20for%20Linux%20(Wayland%20%26%20X11))
-[![Share on X](https://img.shields.io/badge/Share-X%2FTwitter-000000?style=flat-square&logo=x&logoColor=white)](https://twitter.com/intent/tweet?text=Turn%20any%20Android%20tablet%20or%20phone%20into%20a%20low-latency%20second%20monitor%20for%20Linux%20with%20Orbiscreen!%20%23Linux%20%23Rust%20%23OpenSource&url=https://github.com/shadow-x78/orbiscreen)
-[![Share on Hacker News](https://img.shields.io/badge/Share-Hacker%20News-FF6600?style=flat-square&logo=ycombinator&logoColor=white)](https://news.ycombinator.com/submitlink?u=https://github.com/shadow-x78/orbiscreen&t=Orbiscreen%20-%20Turn%20Android%20into%20a%20low-latency%20second%20monitor%20for%20Linux)
+[![Share on Reddit](https://img.shields.io/badge/Share-Reddit-FF4500?style=flat-square&logo=reddit&logoColor=white)](https://www.reddit.com/submit?url=https%3A%2F%2Fgithub.com%2Fshadow-x78%2Forbiscreen&title=Orbiscreen%20-%20Turn%20any%20Android%20device%20into%20a%20low-latency%20second%20monitor%20for%20Linux)
+[![Share on X](https://img.shields.io/badge/Share-X%2FTwitter-000000?style=flat-square&logo=x&logoColor=white)](https://twitter.com/intent/tweet?url=https%3A%2F%2Fgithub.com%2Fshadow-x78%2Forbiscreen&text=Turn%20any%20Android%20tablet%20or%20phone%20into%20a%20low-latency%20second%20monitor%20for%20Linux%20with%20Orbiscreen!%20%23Linux%20%23Rust%20%23OpenSource)
+[![Share on Hacker News](https://img.shields.io/badge/Share-Hacker%20News-FF6600?style=flat-square&logo=ycombinator&logoColor=white)](https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fgithub.com%2Fshadow-x78%2Forbiscreen&t=Orbiscreen%20-%20Turn%20Android%20into%20a%20low-latency%20second%20monitor%20for%20Linux)
 
 </div>
 
