@@ -33,7 +33,7 @@ if command -v rpmbuild >/dev/null 2>&1; then
         --define "_topdir $(pwd)/target/rpmbuild" \
         --define "_projectroot $(pwd)" \
         --define "_version ${VERSION}" \
-        data/orbiscreen.spec
+        scripts/orbiscreen-local.spec
     cp -f target/rpmbuild/RPMS/"${ARCH}"/orbiscreen-"${VERSION}"-1.*."${ARCH}".rpm "${RPM_NAME}" 2>/dev/null || cp -f target/rpmbuild/RPMS/"${ARCH}"/orbiscreen*.rpm "${RPM_NAME}"
     echo "[Orbiscreen] RPM package built successfully: ${RPM_NAME}"
 else

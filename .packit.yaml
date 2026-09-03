@@ -5,7 +5,7 @@
 
 # ── Source ──
 # The COPR spec builds from the release tarball with cargo (source-build);
-# the local scripts keep using data/orbiscreen.spec against prebuilt binaries.
+# the local scripts keep using scripts/orbiscreen-local.spec against prebuilt binaries.
 specfile_path: data/orbiscreen-copr.spec
 files_to_sync:
   - data/orbiscreen-copr.spec
@@ -24,13 +24,10 @@ srpm_build_deps:
   - zstd
 
 actions:
-  create-archive: |
-    VERSION="$(grep -m1 '^version' Cargo.toml | sed 's/.*\"\(.*\)\".*/\1/')"
-    cargo vendor vendor >/dev/null 2>&1
-    tar --use-compress-program="zstd -19 -T0" -cf "orbiscreen-vendor-${VERSION}.tar.zst" vendor
-    cp "orbiscreen-vendor-${VERSION}.tar.zst" "$(git rev-parse --show-toplevel)/data/"
-    echo "orbiscreen-vendor-${VERSION}.tar.zst"
-  get-current-version: grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/'
+  get-current-version:
+    - bash scripts/packit-get-version.sh
+  create-archive:
+    - bash scripts/packit-archive.sh
 
 # ── Jobs ──
 # PR builds verify the spec compiles on current stable Fedora.
