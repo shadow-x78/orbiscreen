@@ -40,6 +40,10 @@ impl OrbiscreenDbusServer {
             "usb_devices": self.handles.stats.usb_devices(),
             "encoder": self.handles.encoder,
             "capture_backend": self.handles.capture_backend,
+            "display_width": self.handles.config.display.width,
+            "display_height": self.handles.config.display.height,
+            "display_fps": self.handles.config.display.refresh_rate_hz,
+            "signaling_port": self.handles.config.transport.signaling_port,
         })
         .to_string()
     }
@@ -83,6 +87,22 @@ pub async fn call_stop(conn: &zbus::Connection) -> zbus::Result<String> {
 pub async fn request_stop() -> zbus::Result<String> {
     let conn = zbus::connection::Builder::session()?.build().await?;
     call_stop(&conn).await
+}
+
+pub async fn call_status(conn: &zbus::Connection) -> zbus::Result<String> {
+    let proxy = zbus::Proxy::new(
+        conn,
+        "com.orbiscreen.Daemon",
+        "/com/orbiscreen/Daemon",
+        "com.orbiscreen.Daemon",
+    )
+    .await?;
+    proxy.call("GetStatus", &()).await
+}
+
+pub async fn request_status() -> zbus::Result<String> {
+    let conn = zbus::connection::Builder::session()?.build().await?;
+    call_status(&conn).await
 }
 
 pub async fn run_dbus_server(handles: Arc<DaemonHandles>) -> zbus::Result<()> {
