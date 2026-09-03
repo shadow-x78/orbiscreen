@@ -21,30 +21,13 @@
 <!-- أزرار النشر السريع للمشروع بنقرة واحدة -->
 [![مشاركة على Reddit](https://img.shields.io/badge/مشاركة-Reddit-FF4500?style=flat-square&logo=reddit&logoColor=white)](https://reddit.com/submit?url=https://github.com/shadow-x78/orbiscreen&title=Orbiscreen%20-%20Turn%20any%20Android%20device%20into%20a%20low-latency%20second%20monitor%20for%20Linux%20(Wayland%20%26%20X11))
 [![مشاركة على X](https://img.shields.io/badge/مشاركة-X%2FTwitter-000000?style=flat-square&logo=x&logoColor=white)](https://twitter.com/intent/tweet?text=Turn%20any%20Android%20tablet%20or%20phone%20into%20a%20low-latency%20second%20monitor%20for%20Linux%20with%20Orbiscreen!%20%23Linux%20%23Rust%20%23OpenSource&url=https://github.com/shadow-x78/orbiscreen)
-[![مشاركة على Hacker News](https://img.shields.io/badge/مشاركة-Hacker%20News-FF6600?style=flat-square&logo=ycombinator&logoColor=white)](https://news.ycombinator.com/submitlink?u=https://github.com/shadow-x78/orbiscreen&t=Orbiscreen%20%E2%80%93%20Turn%20Android%20into%20a%20low-latency%20second%20monitor%20for%20Linux)
+[![مشاركة على Hacker News](https://img.shields.io/badge/مشاركة-Hacker%20News-FF6600?style=flat-square&logo=ycombinator&logoColor=white)](https://news.ycombinator.com/submitlink?u=https://github.com/shadow-x78/orbiscreen&t=Orbiscreen%20-%20Turn%20Android%20into%20a%20low-latency%20second%20monitor%20for%20Linux)
 
 </div>
 
-<!-- بيانات Schema.org الوصفية لمحركات بحث Google -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Orbiscreen",
-  "operatingSystem": "Linux, Android",
-  "applicationCategory": "UtilitiesApplication",
-  "description": "تحويل أي تابلت أو هاتف أندرويد إلى شاشة عرض ثانية فائقة السرعة لنظام لينكس (Wayland و X11). بديل مفتوح المصدر لبرنامج Spacedesk وميزة Apple Sidecar.",
-  "url": "https://github.com/shadow-x78/orbiscreen",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
-  },
-  "license": "https://opensource.org/licenses/GPL-3.0"
-}
-</script>
 
 ---
+
 
 ## 🌐 اللغة
 
@@ -75,7 +58,7 @@
 <a id="what-is-orbiscreen"></a>
 ## 🤔 ما هو Orbiscreen؟
 
-يحوّل **Orbiscreen** أي جهاز لوحي (تابلت) أو هاتف Android إضافي إلى شاشة عرض ثانية مستقلة وحقيقية لسطح مكتب Linux. يُنشئ التطبيق **شاشة افتراضية على مستوى النواة** عبر مشغّل `evdi`، أو **شاشة افتراضية أصيلة لمدير النوافذ** على KDE Plasma و wlroots—دون الحاجة لصلاحيات root وبدون أي نوافذ تأكيد لمشاركة الشاشة—ثم يقوم ببثها بصيغة **MPEG-TS/H.264** مع تحكم لمس عكسي متعدد، وفأرة، ولوحة مفاتيح، وقلم رسم بحساسية ضغط كاملة.
+يحوّل **Orbiscreen** أي جهاز لوحي (تابلت) أو هاتف Android إضافي إلى شاشة عرض ثانية مستقلة وحقيقية لسطح مكتب Linux. يُنشئ التطبيق **شاشة افتراضية على مستوى النواة** عبر مشغّل `evdi`، أو **شاشة افتراضية أصيلة لمدير النوافذ** على KDE Plasma و wlrootsدون الحاجة لصلاحيات root وبدون أي نوافذ تأكيد، ويقوم ببثها بصيغة **MPEG-TS/H.264** مع تحكم لمس عكسي متعدد، وفأرة، ولوحة مفاتيح، وقلم رسم بحساسية ضغط كاملة.
 
 <a id="comparison"></a>
 ### 🆚 مقارنة Orbiscreen بالبدائل الأخرى
@@ -87,7 +70,7 @@
 | **شاشة ثانية ممتدة حقيقية** | ✅ (ويندوز فقط) | ❌ (يحتاج وصلة وهمية) | ❌ (تكرار الشاشة فقط) | ✅ (أجهزة آبل فقط) | **✅ شاشة افتراضية حقيقية ومستقلة** |
 | **تطبيق أندرويد أصلي** | ✅ | ❌ (متصفح ويب فقط) | ❌ (متصفح ويب فقط) | ❌ (iPad فقط) | **✅ تطبيق أصلي Jetpack Compose** |
 | **ترميز عتادي سريع** | ✅ | ❌ | ⚠️ | ✅ | **✅ NVENC و VA-API عتادي** |
-| **زمن استجابة فائق السرعة** | ~50–80ms | ~150–300ms | ~80–120ms | ~30ms | **⚡ ~25–40ms فقط** |
+| **زمن استجابة فائق السرعة** | ~50-80ms | ~150-300ms | ~80-120ms | ~30ms | **⚡ ~25-40ms فقط** |
 | **حساسية ضغط وميلان القلم** | ❌ | ❌ | ⚠️ (للقلم فقط) | ✅ | **✅ 4095 مستوى (Krita و GIMP)** |
 | **لمس وفأرة وكيبورد عكسي** | ✅ | ❌ | ⚠️ (قلم فقط) | ✅ | **✅ تحكم كامل متعدد النقاط** |
 | **بدون روت (KDE و wlroots)** | غير متاح | ✅ | ❌ | غير متاح | **✅ بلا روت إطلاقاً** |
@@ -98,7 +81,7 @@
 <a id="use-cases"></a>
 ## 🎯 حالات الاستخدام الشائعة
 
-- 📱 **إعادة إحياء الهواتف والأجهزة اللوحية القديمة**: لا تدع جهازك اللوحي القديم (Samsung Galaxy Tab أو Xiaomi Pad أو Lenovo Tab) مهملاً—حوّله إلى شاشة ثانية مستقلة لزيادة إنتاجيتك.
+- 📱 **إعادة إحياء الهواتف والأجهزة اللوحية القديمة**: لا تدع جهازك اللوحي القديم (Samsung Galaxy Tab أو Xiaomi Pad أو Lenovo Tab) مهملاً؛ حوّله إلى شاشة ثانية مستقلة لزيادة إنتاجيتك.
 - 🎨 **لوح رسم وتصميم رقمي (Graphic Tablet)**: حوّل جهازك وقلمك الذكي (S-Pen أو الأقلام السعوية) إلى لوح رسم رقمي يدعم **حساسية الضغط الحقيقية والميلان** في برامج لينكس الاحترافية مثل **Krita و GIMP و Blender و Inkscape**.
 - 💻 **شاشة ثانية أثناء التنقل والسفر**: تنقّل بحرية دون الحاجة لحمل شاشات إضافية ثقيلة وهشة. وسّع شاشة لابتوبك في المقاهي ومساحات العمل المشتركة والفنادق بضغطة زر.
 - 🖥️ **شاشة رأسية للقراءة والبرمجة**: أدِر الجهاز للوضع الرأسي (Portrait) لقراءة التوثيق والكتب البرمجية، وتصفح الأكواد، ومراقبة سجلات الطرفية (Logs)، ومتابعة محادثات Discord و Slack.
@@ -339,7 +322,7 @@ orbiscreen/
 
 إذا ساعدك Orbiscreen في تحسين إنتاجيتك أو وفّر عليك شراء شاشة خارجية مكلفة:
 
-- ⭐ **ضع نجمة (Star) للمستودع** على GitHub — كل نجمة ترفع من ترتيب المشروع في محركات بحث Google وتساعد مستخدمي لينكس الآخرين في الوصول إليه!
+- ⭐ **ضع نجمة (Star) للمستودع** على GitHub - كل نجمة ترفع من ترتيب المشروع في محركات بحث Google وتساعد مستخدمي لينكس الآخرين في الوصول إليه!
 - 📢 **شارك المشروع مع مجتمع المصادر المفتوحة** على Reddit ([r/linux](https://reddit.com/r/linux)، [r/android](https://reddit.com/r/android)، [r/kde](https://reddit.com/r/kde)) أو منصات التواصل.
 - 🐛 **أبلغ عن المشاكل واقترح الميزات** عبر [GitHub Issues](https://github.com/shadow-x78/orbiscreen/issues).
 - 💡 **ساهم في التطوير والترجمة** عبر [Pull Requests](https://github.com/shadow-x78/orbiscreen/pulls).

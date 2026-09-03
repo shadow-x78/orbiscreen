@@ -21,30 +21,13 @@
 <!-- 1-Click Viral Sharing Badges -->
 [![Share on Reddit](https://img.shields.io/badge/Share-Reddit-FF4500?style=flat-square&logo=reddit&logoColor=white)](https://reddit.com/submit?url=https://github.com/shadow-x78/orbiscreen&title=Orbiscreen%20-%20Turn%20any%20Android%20device%20into%20a%20low-latency%20second%20monitor%20for%20Linux%20(Wayland%20%26%20X11))
 [![Share on X](https://img.shields.io/badge/Share-X%2FTwitter-000000?style=flat-square&logo=x&logoColor=white)](https://twitter.com/intent/tweet?text=Turn%20any%20Android%20tablet%20or%20phone%20into%20a%20low-latency%20second%20monitor%20for%20Linux%20with%20Orbiscreen!%20%23Linux%20%23Rust%20%23OpenSource&url=https://github.com/shadow-x78/orbiscreen)
-[![Share on Hacker News](https://img.shields.io/badge/Share-Hacker%20News-FF6600?style=flat-square&logo=ycombinator&logoColor=white)](https://news.ycombinator.com/submitlink?u=https://github.com/shadow-x78/orbiscreen&t=Orbiscreen%20%E2%80%93%20Turn%20Android%20into%20a%20low-latency%20second%20monitor%20for%20Linux)
+[![Share on Hacker News](https://img.shields.io/badge/Share-Hacker%20News-FF6600?style=flat-square&logo=ycombinator&logoColor=white)](https://news.ycombinator.com/submitlink?u=https://github.com/shadow-x78/orbiscreen&t=Orbiscreen%20-%20Turn%20Android%20into%20a%20low-latency%20second%20monitor%20for%20Linux)
 
 </div>
 
-<!-- Schema.org SoftwareApplication Metadata for Googlebot -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Orbiscreen",
-  "operatingSystem": "Linux, Android",
-  "applicationCategory": "UtilitiesApplication",
-  "description": "Turn any Android tablet or phone into a high-performance second monitor for Linux (Wayland & X11). Open-source Spacedesk and Apple Sidecar alternative.",
-  "url": "https://github.com/shadow-x78/orbiscreen",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
-  },
-  "license": "https://opensource.org/licenses/GPL-3.0"
-}
-</script>
 
 ---
+
 
 ## 🌐 Language
 
@@ -75,7 +58,7 @@
 <a id="what-is-orbiscreen"></a>
 ## 🤔 What is Orbiscreen?
 
-**Orbiscreen** turns a spare Android tablet or phone into a genuine secondary monitor for your Linux desktop. It creates an independent **kernel-level virtual display** via DisplayLink's `evdi`, or a **compositor-native virtual monitor** on KDE Plasma and wlroots—with zero root required and zero screen-share confirmation dialogs—then streams it as **MPEG-TS/H.264** with reverse multi-touch, mouse, keyboard, and pressure-sensitive stylus control natively on Android.
+**Orbiscreen** turns a spare Android tablet or phone into a genuine secondary monitor for your Linux desktop. It creates an independent **kernel-level virtual display** via DisplayLink's `evdi`, or a **compositor-native virtual monitor** on KDE Plasma and wlrootswith zero root required and no screen-share dialogs, streamed as **MPEG-TS/H.264** with reverse multi-touch, mouse, keyboard, and pressure-sensitive stylus control natively on Android.
 
 <a id="comparison"></a>
 ### 🆚 How Does Orbiscreen Compare to Alternatives?
@@ -87,7 +70,7 @@
 | **True Extended Display** | ✅ (Windows only) | ❌ (Needs HDMI dummy) | ❌ (Screen mirror only) | ✅ (Apple only) | **✅ Real Virtual Monitor** |
 | **Native Android Client** | ✅ | ❌ (Browser only) | ❌ (Browser only) | ❌ (iPad only) | **✅ Native Jetpack Compose** |
 | **Hardware Encoding** | ✅ | ❌ | ⚠️ | ✅ | **✅ NVENC &amp; VA-API** |
-| **Ultra-Low Latency** | ~50–80ms | ~150–300ms | ~80–120ms | ~30ms | **⚡ ~25–40ms** |
+| **Ultra-Low Latency** | ~50-80ms | ~150-300ms | ~80-120ms | ~30ms | **⚡ ~25-40ms** |
 | **Stylus Pressure &amp; Tilt** | ❌ | ❌ | ⚠️ (Stylus only) | ✅ | **✅ 4095 Levels (Krita/GIMP)** |
 | **Reverse Touch &amp; Mouse** | ✅ | ❌ | ⚠️ (Stylus only) | ✅ | **✅ Multi-touch, Mouse &amp; Keys** |
 | **Zero Root (KDE &amp; wlroots)**| N/A | ✅ | ❌ | N/A | **✅ Rootless (KWin / wlroots)** |
@@ -98,11 +81,11 @@
 <a id="use-cases"></a>
 ## 🎯 Popular Use Cases
 
-- 📱 **Repurpose Spare Tablets &amp; Phones**: Don't let your older Android tablet (Samsung Galaxy Tab, Xiaomi Pad, Lenovo Tab) gather dust—turn it into a high-utility second screen.
+- 📱 **Repurpose Spare Tablets &amp; Phones**: Don't let your older Android tablet (Samsung Galaxy Tab, Xiaomi Pad, Lenovo Tab) gather dust. Turn it into a high-utility second screen.
 - 🎨 **Digital Drawing Tablet (Graphic Digitizer)**: Connect your tablet and stylus (S-Pen, capacitive, active stylus) to paint with native **pressure sensitivity and tilt** in Linux creative software like **Krita, GIMP, Blender, and Inkscape**.
 - 💻 **Dual Monitor On the Go**: Travel light without carrying fragile external monitors. Extend your Linux laptop screen at coffee shops, flights, coworking spaces, or hotel desks.
 - 🖥️ **Auto-Rotating Portrait Monitor**: Rotate your device to vertical orientation for reading code, API documentation, terminal logs, or keeping Discord/Slack visible.
-- ⚡ **Zero Wi-Fi Latency via USB**: Plug in a USB cable; Orbiscreen's automatic ADB reverse tunnel delivers rock-solid, interference-free ~25ms performance.
+- ⚡ **Zero Wi-Fi Latency via USB**: Plug in a USB cable; Orbiscreen's automatic ADB reverse tunnel delivers interference-free ~25ms performance.
 
 ---
 
@@ -341,7 +324,7 @@ With hardware encoding enabled (NVIDIA NVENC or Intel/AMD VA-API on Linux, and M
 
 If Orbiscreen has made your workflow smoother or saved you from buying a costly portable monitor:
 
-- ⭐ **Star this repository** on GitHub — every star boosts discoverability in GitHub Search and Google!
+- ⭐ **Star this repository** on GitHub - every star boosts discoverability in GitHub Search and Google!
 - 📢 **Share with the community** on Reddit ([r/linux](https://reddit.com/r/linux), [r/android](https://reddit.com/r/android), [r/kde](https://reddit.com/r/kde)), Mastodon, or X/Twitter.
 - 🐛 **Report issues or suggest features** via [GitHub Issues](https://github.com/shadow-x78/orbiscreen/issues).
 - 💡 **Contribute code or translations** via [Pull Requests](https://github.com/shadow-x78/orbiscreen/pulls).
