@@ -32,7 +32,13 @@ use tracing_subscriber::EnvFilter;
     styles = ui::clap_styles(),
 )]
 struct Cli {
-    #[arg(short, long, global = true, value_name = "FILE", help = "Path to a custom configuration TOML file")]
+    #[arg(
+        short,
+        long,
+        global = true,
+        value_name = "FILE",
+        help = "Path to a custom configuration TOML file"
+    )]
     config: Option<PathBuf>,
 
     #[arg(short, long, action = clap::ArgAction::Count, global = true, help = "Increase logging verbosity (-v for debug, -vv for trace)")]
@@ -60,7 +66,10 @@ enum Command {
     Doctor {
         #[arg(long, help = "Output diagnostic report in JSON format")]
         json: bool,
-        #[arg(long, help = "Attempt automatic installation of missing drivers and tools")]
+        #[arg(
+            long,
+            help = "Attempt automatic installation of missing drivers and tools"
+        )]
         fix: bool,
         #[arg(long, help = "Answer yes to all interactive prompts during fix")]
         yes: bool,
@@ -103,9 +112,18 @@ fn probe() {
 
     let display_str = match display_s {
         DisplayStatus::Compatible => format!("{} Compatible (Kernel + libevdi OK)", ui::badge_ok()),
-        DisplayStatus::Outdated => format!("{} Outdated (Kernel evdi older than libevdi requires)", ui::badge_warn()),
-        DisplayStatus::KernelModuleMissing => format!("{} Kernel module not loaded (EVDI missing)", ui::badge_warn()),
-        DisplayStatus::NoDeviceNode => format!("{} Kernel OK, but no evdi device node yet", ui::badge_info()),
+        DisplayStatus::Outdated => format!(
+            "{} Outdated (Kernel evdi older than libevdi requires)",
+            ui::badge_warn()
+        ),
+        DisplayStatus::KernelModuleMissing => format!(
+            "{} Kernel module not loaded (EVDI missing)",
+            ui::badge_warn()
+        ),
+        DisplayStatus::NoDeviceNode => format!(
+            "{} Kernel OK, but no evdi device node yet",
+            ui::badge_info()
+        ),
     };
 
     let rows = vec![
@@ -123,11 +141,23 @@ fn list_displays(path: &Path) {
     match load_or_default_config(path) {
         Ok(cfg) => {
             let rows = vec![
-                ("Resolution", format!("{}x{}", cfg.display.width, cfg.display.height)),
-                ("Refresh Rate", format!("{} Hz", cfg.display.refresh_rate_hz)),
-                ("Auto-Orientation", "Supported (Swaps W/H dynamically)".to_string()),
+                (
+                    "Resolution",
+                    format!("{}x{}", cfg.display.width, cfg.display.height),
+                ),
+                (
+                    "Refresh Rate",
+                    format!("{} Hz", cfg.display.refresh_rate_hz),
+                ),
+                (
+                    "Auto-Orientation",
+                    "Supported (Swaps W/H dynamically)".to_string(),
+                ),
                 ("Capture Preferred", cfg.capture.preferred.clone()),
-                ("Display Backend", format!("{:?}", orbiscreen_display::probe())),
+                (
+                    "Display Backend",
+                    format!("{:?}", orbiscreen_display::probe()),
+                ),
             ];
             ui::print_card("VIRTUAL DISPLAY SPECIFICATION", &rows);
         }
@@ -253,12 +283,18 @@ async fn main() -> ExitCode {
             Err(zbus::Error::MethodError(name, _, _))
                 if name.to_string().contains("ServiceUnknown") =>
             {
-                println!("{} Daemon is not running (no com.orbiscreen.Daemon on the session bus)", ui::badge_info());
+                println!(
+                    "{} Daemon is not running (no com.orbiscreen.Daemon on the session bus)",
+                    ui::badge_info()
+                );
                 ExitCode::from(1)
             }
             Err(e) => {
                 eprintln!("{} Stop failed: {e}", ui::badge_err());
-                eprintln!("{} Hint: use 'systemctl --user stop orbiscreen' if it runs as a service", ui::badge_info());
+                eprintln!(
+                    "{} Hint: use 'systemctl --user stop orbiscreen' if it runs as a service",
+                    ui::badge_info()
+                );
                 ExitCode::from(1)
             }
         },
@@ -309,17 +345,47 @@ async fn run_status(json: bool) -> ExitCode {
                 return ExitCode::SUCCESS;
             }
             if let Ok(val) = serde_json::from_str::<serde_json::Value>(&reply) {
-                let is_running = val.get("running").and_then(|v| v.as_bool()).unwrap_or(false);
-                let encoder = val.get("encoder").and_then(|v| v.as_str()).unwrap_or("auto");
-                let capture = val.get("capture_backend").and_then(|v| v.as_str()).unwrap_or("Unknown");
-                let frames = val.get("frames_forwarded").and_then(|v| v.as_u64()).unwrap_or(0);
-                let active = val.get("active_clients").and_then(|v| v.as_u64()).unwrap_or(0);
-                let total = val.get("total_clients").and_then(|v| v.as_u64()).unwrap_or(0);
+                let is_running = val
+                    .get("running")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+                let encoder = val
+                    .get("encoder")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("auto");
+                let capture = val
+                    .get("capture_backend")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Unknown");
+                let frames = val
+                    .get("frames_forwarded")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                let active = val
+                    .get("active_clients")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                let total = val
+                    .get("total_clients")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
                 let usb = val.get("usb_devices").and_then(|v| v.as_u64()).unwrap_or(0);
-                let w = val.get("display_width").and_then(|v| v.as_u64()).unwrap_or(1920);
-                let h = val.get("display_height").and_then(|v| v.as_u64()).unwrap_or(1080);
-                let fps = val.get("display_fps").and_then(|v| v.as_u64()).unwrap_or(60);
-                let port = val.get("signaling_port").and_then(|v| v.as_u64()).unwrap_or(8788);
+                let w = val
+                    .get("display_width")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1920);
+                let h = val
+                    .get("display_height")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1080);
+                let fps = val
+                    .get("display_fps")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(60);
+                let port = val
+                    .get("signaling_port")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(8788);
 
                 ui::print_banner();
                 println!();
@@ -327,27 +393,45 @@ async fn run_status(json: bool) -> ExitCode {
                     println!(
                         "{} {}Orbiscreen Daemon is ACTIVE (Running){}",
                         ui::badge_ok(),
-                        if ui::colors_enabled() { ui::colors::BOLD } else { "" },
-                        if ui::colors_enabled() { ui::colors::RESET } else { "" }
+                        if ui::colors_enabled() {
+                            ui::colors::BOLD
+                        } else {
+                            ""
+                        },
+                        if ui::colors_enabled() {
+                            ui::colors::RESET
+                        } else {
+                            ""
+                        }
                     );
                 } else {
-                    println!(
-                        "{} Orbiscreen Daemon is stopping",
-                        ui::badge_warn()
-                    );
+                    println!("{} Orbiscreen Daemon is stopping", ui::badge_warn());
                 }
                 println!();
 
                 let rows = vec![
-                    ("Daemon State", if is_running { "Active & Serving".to_string() } else { "Inactive".to_string() }),
+                    (
+                        "Daemon State",
+                        if is_running {
+                            "Active & Serving".to_string()
+                        } else {
+                            "Inactive".to_string()
+                        },
+                    ),
                     ("Virtual Display", format!("{w}x{h} @ {fps} Hz")),
                     ("Hardware Encoder", encoder.to_uppercase()),
                     ("Capture Backend", capture.to_string()),
                     ("Signaling Port", port.to_string()),
-                    ("Active Clients", format!("{active} streaming ({total} total connections)")),
+                    (
+                        "Active Clients",
+                        format!("{active} streaming ({total} total connections)"),
+                    ),
                     ("USB ADB Devices", format!("{usb} device(s) connected")),
                     ("Streamed Frames", format!("{frames} frames forwarded")),
-                    ("D-Bus Service", "com.orbiscreen.Daemon (Active)".to_string()),
+                    (
+                        "D-Bus Service",
+                        "com.orbiscreen.Daemon (Active)".to_string(),
+                    ),
                 ];
                 ui::print_card("ORBISCREEN DAEMON STATUS", &rows);
                 println!();
@@ -382,15 +466,32 @@ async fn run_status(json: bool) -> ExitCode {
             println!(
                 "{} {}Orbiscreen Daemon is STOPPED{}",
                 ui::badge_err(),
-                if ui::colors_enabled() { ui::colors::BOLD } else { "" },
-                if ui::colors_enabled() { ui::colors::RESET } else { "" }
+                if ui::colors_enabled() {
+                    ui::colors::BOLD
+                } else {
+                    ""
+                },
+                if ui::colors_enabled() {
+                    ui::colors::RESET
+                } else {
+                    ""
+                }
             );
             println!();
             let rows = vec![
-                ("Daemon Process", "Not running (No com.orbiscreen.Daemon on D-Bus)".to_string()),
-                ("Systemd Service", format!("orbiscreen.service ({systemd_status})")),
+                (
+                    "Daemon Process",
+                    "Not running (No com.orbiscreen.Daemon on D-Bus)".to_string(),
+                ),
+                (
+                    "Systemd Service",
+                    format!("orbiscreen.service ({systemd_status})"),
+                ),
                 ("Start Foreground", "orbiscreen start".to_string()),
-                ("Start Background", "systemctl --user start orbiscreen".to_string()),
+                (
+                    "Start Background",
+                    "systemctl --user start orbiscreen".to_string(),
+                ),
             ];
             ui::print_card("ORBISCREEN DAEMON STATUS", &rows);
             println!();
@@ -745,9 +846,14 @@ async fn run_doctor(json: bool) -> ExitCode {
 
     let display_str = match display_status {
         DisplayStatus::Compatible => format!("{} Compatible (Kernel + libevdi)", ui::badge_ok()),
-        DisplayStatus::Outdated => format!("{} Outdated (Kernel evdi older than libevdi)", ui::badge_warn()),
+        DisplayStatus::Outdated => format!(
+            "{} Outdated (Kernel evdi older than libevdi)",
+            ui::badge_warn()
+        ),
         DisplayStatus::KernelModuleMissing => format!("{} Kernel module missing", ui::badge_warn()),
-        DisplayStatus::NoDeviceNode => format!("{} Kernel OK, no evdi device node yet", ui::badge_info()),
+        DisplayStatus::NoDeviceNode => {
+            format!("{} Kernel OK, no evdi device node yet", ui::badge_info())
+        }
     };
 
     let uinput_str = if uinput_writable {
@@ -759,17 +865,27 @@ async fn run_doctor(json: bool) -> ExitCode {
     let portal_str = match portal {
         Some(true) => format!("{} Active (org.freedesktop.portal.Desktop)", ui::badge_ok()),
         Some(false) => format!("{} Missing (Install xdg-desktop-portal)", ui::badge_warn()),
-        None => if caps.session == orbiscreen_capture::capabilities::SessionType::Wayland {
-            format!("{} Unchecked (Session bus not connected)", ui::badge_info())
-        } else {
-            format!("{} Not applicable (X11)", ui::badge_info())
-        },
+        None => {
+            if caps.session == orbiscreen_capture::capabilities::SessionType::Wayland {
+                format!("{} Unchecked (Session bus not connected)", ui::badge_info())
+            } else {
+                format!("{} Not applicable (X11)", ui::badge_info())
+            }
+        }
     };
 
     let grants_str = format!(
         "Screencast: {} · Remote Input: {}",
-        if screencast_saved { "Saved (Reused)" } else { "Prompt on start" },
-        if input_saved { "Saved (Reused)" } else { "Prompt on start" },
+        if screencast_saved {
+            "Saved (Reused)"
+        } else {
+            "Prompt on start"
+        },
+        if input_saved {
+            "Saved (Reused)"
+        } else {
+            "Prompt on start"
+        },
     );
 
     let tools_str = format!(
@@ -784,7 +900,10 @@ async fn run_doctor(json: bool) -> ExitCode {
             [only] => format!("{} Device connected ({only})", ui::badge_ok()),
             many => format!("{} Devices connected ({})", ui::badge_ok(), many.join(", ")),
         },
-        false => format!("{} ADB not installed (Wi-Fi streaming unaffected)", ui::badge_warn()),
+        false => format!(
+            "{} ADB not installed (Wi-Fi streaming unaffected)",
+            ui::badge_warn()
+        ),
     };
 
     let rows = vec![
@@ -1449,7 +1568,10 @@ async fn run_start(
     };
 
     ui::print_banner();
-    let display_info = format!("{}x{} @ {}Hz", actual_dims.0, actual_dims.1, spec.refresh_rate_hz);
+    let display_info = format!(
+        "{}x{} @ {}Hz",
+        actual_dims.0, actual_dims.1, spec.refresh_rate_hz
+    );
     ui::print_startup_card(
         &display_info,
         encoder_name,

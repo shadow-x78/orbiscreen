@@ -44,12 +44,28 @@ pub fn clap_styles() -> clap::builder::styling::Styles {
     use clap::builder::styling::{AnsiColor, Color, Style, Styles};
 
     Styles::styled()
-        .header(Style::new().bold().fg_color(Some(Color::Ansi(AnsiColor::Blue))))
-        .usage(Style::new().bold().fg_color(Some(Color::Ansi(AnsiColor::Cyan))))
-        .literal(Style::new().bold().fg_color(Some(Color::Ansi(AnsiColor::Green))))
+        .header(
+            Style::new()
+                .bold()
+                .fg_color(Some(Color::Ansi(AnsiColor::Blue))),
+        )
+        .usage(
+            Style::new()
+                .bold()
+                .fg_color(Some(Color::Ansi(AnsiColor::Cyan))),
+        )
+        .literal(
+            Style::new()
+                .bold()
+                .fg_color(Some(Color::Ansi(AnsiColor::Green))),
+        )
         .placeholder(Style::new().fg_color(Some(Color::Ansi(AnsiColor::Yellow))))
         .valid(Style::new().fg_color(Some(Color::Ansi(AnsiColor::Magenta))))
-        .invalid(Style::new().bold().fg_color(Some(Color::Ansi(AnsiColor::Red))))
+        .invalid(
+            Style::new()
+                .bold()
+                .fg_color(Some(Color::Ansi(AnsiColor::Red))),
+        )
 }
 
 pub fn print_banner() {
@@ -130,7 +146,10 @@ pub fn print_card(title: &str, rows: &[(&str, String)]) {
         }
         println!("{SAPPHIRE}╰{line}╯{RESET}", line = "─".repeat(56));
     } else {
-        println!("+-- {title} {}", "-".repeat(54usize.saturating_sub(title.len())));
+        println!(
+            "+-- {title} {}",
+            "-".repeat(54usize.saturating_sub(title.len()))
+        );
         for (k, v) in rows {
             println!("|  {k:<18} {v}");
         }
@@ -154,9 +173,7 @@ pub fn print_startup_card(
     if colors_enabled() {
         use colors::*;
         println!();
-        println!(
-            "{GREEN}●{RESET} {BOLD}{GREEN}Orbiscreen Daemon is ACTIVE and streaming{RESET}"
-        );
+        println!("{GREEN}●{RESET} {BOLD}{GREEN}Orbiscreen Daemon is ACTIVE and streaming{RESET}");
         println!();
         println!("{SAPPHIRE}╭── Stream Access & Clients ──────────────────────────────────────────╮{RESET}");
         println!(
@@ -170,11 +187,19 @@ pub fn print_startup_card(
         );
         println!(
             "{SAPPHIRE}│{RESET}  {BOLD}{BLUE}🔌 USB ADB Tunnel{RESET}       {TEXT}{}{RESET}",
-            if usb_active { "Reverse tunnel active on port 8788" } else { "Waiting for device (hot-plug ready)" }
+            if usb_active {
+                "Reverse tunnel active on port 8788"
+            } else {
+                "Waiting for device (hot-plug ready)"
+            }
         );
         println!(
             "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}📡 Discovery (mDNS){RESET}     {TEXT}{}{RESET}",
-            if mdns_active { "Broadcasting Orbiscreen service" } else { "Disabled" }
+            if mdns_active {
+                "Broadcasting Orbiscreen service"
+            } else {
+                "Disabled"
+            }
         );
         println!("{SAPPHIRE}├─────────────────────────────────────────────────────────────────────┤{RESET}");
         println!(
@@ -193,10 +218,26 @@ pub fn print_startup_card(
         println!("|  Web Client (Local)   {local_url}");
         println!("|  Web Client (LAN)     {lan_url}");
         println!("|  Android App          Ready (Auto-discovery via mDNS or USB ADB)");
-        println!("|  USB ADB Tunnel       {}", if usb_active { "Active on port 8788" } else { "Hot-plug ready" });
-        println!("|  Discovery (mDNS)     {}", if mdns_active { "Broadcasting" } else { "Disabled" });
+        println!(
+            "|  USB ADB Tunnel       {}",
+            if usb_active {
+                "Active on port 8788"
+            } else {
+                "Hot-plug ready"
+            }
+        );
+        println!(
+            "|  Discovery (mDNS)     {}",
+            if mdns_active {
+                "Broadcasting"
+            } else {
+                "Disabled"
+            }
+        );
         println!("+---------------------------------------------------------------------+");
-        println!("|  Display: {display_info:<22} Encoder: {encoder_name:<10} Capture: {backend_name}");
+        println!(
+            "|  Display: {display_info:<22} Encoder: {encoder_name:<10} Capture: {backend_name}"
+        );
         println!("|  Token:   {token:<30} D-Bus:   com.orbiscreen.Daemon");
         println!("+---------------------------------------------------------------------+");
         println!("Press Ctrl+C to stop, or run 'orbiscreen stop' from another terminal.\n");
