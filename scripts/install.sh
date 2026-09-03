@@ -17,16 +17,16 @@ if command -v cargo >/dev/null 2>&1; then
     install -m755 target/release/orbiscreen "${INSTALL_DIR}/orbiscreen.new"
     mv -f "${INSTALL_DIR}/orbiscreen.new" "${INSTALL_DIR}/orbiscreen"
 
-    if cargo build --release -p orbiscreen-gtk; then
-        install -m755 target/release/orbiscreen-gtk "${INSTALL_DIR}/orbiscreen-gtk"
-
-        echo "[Orbiscreen] Installing desktop entry and icon..."
-        mkdir -p ~/.local/share/applications
-        mkdir -p ~/.local/share/icons/hicolor/scalable/apps
-        cp data/com.orbiscreen.OrbiscreenGtk.desktop ~/.local/share/applications/
-        cp data/orbiscreen.svg ~/.local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
-    else
-        echo "[Orbiscreen] Warning: orbiscreen-gtk build failed (GTK 4 development libraries missing?); skipping the desktop entry"
+    echo "[Orbiscreen] Installing desktop entry and icon..."
+    mkdir -p ~/.local/share/applications
+    mkdir -p ~/.local/share/icons/hicolor/scalable/apps
+    install -m644 data/orbiscreen.desktop ~/.local/share/applications/orbiscreen.desktop
+    install -m644 data/orbiscreen.svg ~/.local/share/icons/hicolor/scalable/apps/orbiscreen.svg
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database ~/.local/share/applications 2>/dev/null || true
+    fi
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor 2>/dev/null || true
     fi
 
     echo "[Orbiscreen] Installing web client files..."

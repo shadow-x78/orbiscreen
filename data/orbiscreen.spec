@@ -36,6 +36,7 @@ mkdir -p %{buildroot}/usr/share/orbiscreen/client
 
 install -m 0755 %{_projectroot}/target/release/orbiscreen %{buildroot}/usr/bin/orbiscreen
 install -m 0755 %{_projectroot}/scripts/install-evdi-module.sh %{buildroot}/usr/share/orbiscreen/install-evdi-module.sh
+install -m 0644 %{_projectroot}/data/orbiscreen.desktop %{buildroot}/usr/share/applications/orbiscreen.desktop || true
 install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg || true
 
 install -m 0644 %{_projectroot}/clients/web/index.html %{buildroot}/usr/share/orbiscreen/client/index.html
@@ -79,6 +80,7 @@ fi
 # ── Packaged Files ──
 %files
 /usr/bin/orbiscreen
+/usr/share/applications/orbiscreen.desktop
 /usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
 /usr/lib/systemd/user/orbiscreen.service
 /usr/share/orbiscreen/client/index.html

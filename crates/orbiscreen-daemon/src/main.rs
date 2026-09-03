@@ -9,14 +9,14 @@ use std::sync::Arc;
 use clap::{Parser, Subcommand};
 use orbiscreen_capture::capabilities::{Capabilities, CaptureStep};
 use orbiscreen_capture::wlr_virtual_output::{VirtualOutputSpec, WlrootsVirtualOutput};
-use orbiscreen_capture::{CapturePreference, CaptureSession};
+use orbiscreen_capture::{CaptureBackend, CapturePreference, CaptureSession};
 use orbiscreen_core::{dump_config, load_config, Config};
 use orbiscreen_display::{DisplayStatus, EvdiFramePump, VirtualDisplaySpec};
 use orbiscreen_encode::{EncodeParams, Encoder, EncoderKind};
 use orbiscreen_input::{InputInjector, VirtualTouchscreenSpec};
 use orbiscreen_transport::{H264Packet, ServerConfig, Stats, Transport};
 use tokio::sync::mpsc;
-use tracing::{error, info, warn, Level};
+use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug)]
@@ -467,8 +467,16 @@ async fn resolve_frame_source(
         }
     }
     match last_err {
-        Some(e) => Err(e),
-        None => Err("no capture step is available for this environment".into()),
+        Some(e) => {
+            eprintln!("\n[Orbiscreen] Capture pipeline failed to initialize automatically: {e}");
+            eprintln!("[Orbiscreen] Run 'orbiscreen doctor --fix' to auto-install missing kernel drivers or dependencies.\n");
+            Err(e)
+        }
+        None => {
+            eprintln!("\n[Orbiscreen] No capture step is available for this environment.");
+            eprintln!("[Orbiscreen] Run 'orbiscreen doctor --fix' to auto-install missing kernel drivers or dependencies.\n");
+            Err("no capture step is available for this environment".into())
+        }
     }
 }
 
@@ -515,6 +523,32 @@ async fn portal_available() -> Option<bool> {
     .ok()?
     .ok()?;
     Some(owned)
+}
+
+async fn bind_kwin_virtual_inputs(target_output: &str) {
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    if let Ok(conn) = zbus::Connection::session().await {
+        for idx in 0..64 {
+            let path = format!("/org/kde/KWin/InputDevice/event{idx}");
+            if let Ok(proxy) = zbus::Proxy::new(
+                &conn,
+                "org.kde.KWin",
+                path.as_str(),
+                "org.kde.KWin.InputDevice",
+            )
+            .await
+            {
+                if let Ok(name) = proxy.get_property::<String>("name").await {
+                    if name.starts_with("Orbiscreen") {
+                        let _ = proxy
+                            .set_property::<&str>("outputName", target_output)
+                            .await;
+                        info!("bound KWin input device {path} ({name}) to output {target_output}");
+                    }
+                }
+            }
+        }
+    }
 }
 
 async fn run_doctor(json: bool) -> ExitCode {
@@ -944,8 +978,13 @@ async fn run_start(
 
     let captured_output_name = match &source {
         FrameSource::WlrVirtual { output, .. } => Some(output.name().to_string()),
+        FrameSource::Capture(c) => match c.backend() {
+            CaptureBackend::KwinVirtual => Some("Virtual-ORBISCREEN".to_string()),
+            _ => None,
+        },
         _ => None,
     };
+    let target_kwin_output = captured_output_name.clone();
     let (injector_tx, injector_rx) = tokio::sync::oneshot::channel::<InputInjector>();
     let input_spec = VirtualTouchscreenSpec {
         width: spec.width,
@@ -957,6 +996,9 @@ async fn run_start(
             Ok(inj) => {
                 info!(backend = ?inj.backend(), "Input injector open");
                 let _ = injector_tx.send(inj);
+                if let Some(out_name) = target_kwin_output {
+                    bind_kwin_virtual_inputs(&out_name).await;
+                }
             }
             Err(e) => {
                 warn!(
@@ -1065,12 +1107,23 @@ async fn run_start(
                     last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
                     let pts_ns = last_pts_ns;
                     if let Err(e) = encoder.push_frame(data, *width, *height, pts_ns) {
-                        warn!(
-                            "keepalive frame push rejected ({}x{}, {} B): {e}",
-                            width,
-                            height,
-                            data.len()
-                        );
+                        match e {
+                            orbiscreen_encode::EncodeError::Flushing
+                            | orbiscreen_encode::EncodeError::Eos => {
+                                debug!(
+                                    "keepalive frame push ignored during pipeline shutdown ({e})"
+                                );
+                                break;
+                            }
+                            _ => {
+                                warn!(
+                                    "keepalive frame push rejected ({}x{}, {} B): {e}",
+                                    width,
+                                    height,
+                                    data.len()
+                                );
+                            }
+                        }
                     }
                     continue;
                 }
@@ -1088,10 +1141,19 @@ async fn run_start(
                     let pts_ns = last_pts_ns;
                     let data_len = frame.data.len();
                     if let Err(e) = encoder.push_frame_owned(frame.data, width, height, pts_ns) {
-                        warn!(
-                            "frame push rejected ({}x{}, {} B): {e}",
-                            width, height, data_len
-                        );
+                        match e {
+                            orbiscreen_encode::EncodeError::Flushing
+                            | orbiscreen_encode::EncodeError::Eos => {
+                                debug!("frame push ignored during pipeline shutdown ({e})");
+                                break;
+                            }
+                            _ => {
+                                warn!(
+                                    "frame push rejected ({}x{}, {} B): {e}",
+                                    width, height, data_len
+                                );
+                            }
+                        }
                     }
                 }
                 SourceOutcome::Retryable(e) => {
@@ -1180,6 +1242,29 @@ async fn run_start(
                     let _ = inj.inject_key(k).await;
                 }
                 IncomingInput::Stylus(s) => {
+                    let s = match s {
+                        orbiscreen_input::StylusEvent::Pressure { x, y, pressure } => {
+                            let (x, y) = scale(x, y);
+                            orbiscreen_input::StylusEvent::Pressure { x, y, pressure }
+                        }
+                        orbiscreen_input::StylusEvent::Tilt {
+                            x,
+                            y,
+                            pressure,
+                            tilt_x_deg,
+                            tilt_y_deg,
+                        } => {
+                            let (x, y) = scale(x, y);
+                            orbiscreen_input::StylusEvent::Tilt {
+                                x,
+                                y,
+                                pressure,
+                                tilt_x_deg,
+                                tilt_y_deg,
+                            }
+                        }
+                        other => other,
+                    };
                     let _ = inj.inject_stylus(s).await;
                 }
                 IncomingInput::RawPointer { x, y } => {
@@ -1214,15 +1299,30 @@ async fn run_start(
             paths.into_iter().find(|p| p.exists())
         })
         .unwrap_or_else(|| PathBuf::from("clients/web"));
-    let transport = Transport::new(
+    let token_path = orbiscreen_core::default_token_path();
+    let saved_token = std::fs::read_to_string(&token_path)
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| s.len() >= 32);
+    let token_to_use = saved_token.unwrap_or_else(|| {
+        let t = orbiscreen_transport::generate_token();
+        if let Some(parent) = token_path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let _ = std::fs::write(&token_path, &t);
+        t
+    });
+
+    let transport = Transport::with_token(
         ServerConfig {
             signaling_port: cfg.transport.signaling_port,
             client_web_dir: client_dir,
         },
         input_tx,
+        Some(token_to_use),
     );
     let token = transport.token().to_owned();
-    info!("stream access token generated ({len} chars, prefix={prefix}); clients fetch it via mDNS TXT or /client/config.json",
+    info!("stream access token active ({len} chars, prefix={prefix}); clients fetch it via mDNS TXT or /client/config.json",
         len = token.len(), prefix = token.get(..4).unwrap_or(""));
 
     let _mdns = if !no_mdns && cfg.transport.mdns_advertise {

@@ -47,11 +47,16 @@ class DiscoveryViewModel(
     private val scannedHosts = MutableStateFlow<Map<String, DiscoveredHost>>(emptyMap())
 
     init {
+        if (prefs.recentHost?.host == "127.0.0.1" || prefs.recentHost?.host == "localhost") {
+            prefs.clearRecent()
+        }
         discovery.start()
         viewModelScope.launch {
             combine(discovery.hosts, scannedHosts, _scanTick) { live, scanned, _ ->
                 val recent = prefs.recentHost
                 (live + scanned).values
+                    .filter { !it.host.contains(":") }
+                    .distinctBy { it.host }
                     .sortedBy { it.name.lowercase() }
                     .map { if (it.host == recent?.host) it.copy(isRecent = true) else it }
             }.collect { discovered ->

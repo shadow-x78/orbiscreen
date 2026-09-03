@@ -28,6 +28,7 @@ class InputDispatcher(
     displayWidth: Int,
     displayHeight: Int,
     token: String = "",
+    private val tokenProvider: (() -> String)? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val http = OkHttpClient.Builder()
@@ -55,6 +56,28 @@ class InputDispatcher(
     init {
         scope.launch {
             while (isActive) {
+                val (sendX, sendY) = synchronized(this@InputDispatcher) {
+                    val x = pendingDx
+                    val y = pendingDy
+                    pendingDx = 0f
+                    pendingDy = 0f
+                    x to y
+                }
+                if (kotlin.math.abs(sendX) >= 0.15f || kotlin.math.abs(sendY) >= 0.15f) {
+                    val nx = (cursorX + sendX).coerceIn(0f, streamWidth.toFloat())
+                    val ny = (cursorY + sendY).coerceIn(0f, streamHeight.toFloat())
+                    cursorX = nx
+                    cursorY = ny
+                    val payload = JSONObject().apply {
+                        put("Pointer", JSONObject().apply {
+                            put("Move", JSONObject().apply {
+                                put("x", nx.toDouble())
+                                put("y", ny.toDouble())
+                            })
+                        })
+                    }
+                    send(payload)
+                }
                 val move = latestMove.getAndSet(null)
                 if (move != null) {
                     send(move)
@@ -65,6 +88,7 @@ class InputDispatcher(
         scope.launch {
             discrete.collect { send(it) }
         }
+        Log.i(TAG, "InputDispatcher created → target=$host:$port")
     }
 
     fun resize(newWidth: Int, newHeight: Int) {
@@ -78,10 +102,12 @@ class InputDispatcher(
     }
 
     @Volatile
-    private var cursorX: Float = (displayWidth / 2).toFloat()
+    private var cursorX: Float = (streamWidth / 2).toFloat()
 
     @Volatile
-    private var cursorY: Float = (displayHeight / 2).toFloat()
+    private var cursorY: Float = (streamHeight / 2).toFloat()
+
+    var pointerSpeed: Float = 1.0f
 
     fun move(localX: Float, localY: Float, containerW: Int, containerH: Int) {
         val (x, y) = map(localX, localY, containerW, containerH)
@@ -94,19 +120,22 @@ class InputDispatcher(
         })
     }
 
-    fun moveDelta(dx: Float, dy: Float, sensitivity: Float = 1.6f) {
-        val newX = (cursorX + dx * sensitivity).coerceIn(0f, streamWidth.toFloat())
-        val newY = (cursorY + dy * sensitivity).coerceIn(0f, streamHeight.toFloat())
-        cursorX = newX
-        cursorY = newY
-        latestMove.set(JSONObject().apply {
-            put("Pointer", JSONObject().apply {
-                put("Move", JSONObject().apply {
-                    put("x", newX.roundToInt())
-                    put("y", newY.roundToInt())
-                })
-            })
-        })
+    private var pendingDx = 0f
+    private var pendingDy = 0f
+
+    fun moveDelta(dx: Float, dy: Float) {
+        val dist = kotlin.math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
+        val speedFactor = when {
+            dist < 3.0f -> 0.90f
+            dist < 8.0f -> 1.30f
+            dist < 16.0f -> 1.70f
+            else -> 2.20f
+        }
+        val effSensitivity = 1.35f * pointerSpeed * speedFactor
+        synchronized(this) {
+            pendingDx += dx * effSensitivity
+            pendingDy += dy * effSensitivity
+        }
     }
 
     fun button(button: Int, pressed: Boolean) {
@@ -119,11 +148,29 @@ class InputDispatcher(
     }
 
     fun leftClick() {
+        val payload = JSONObject().apply {
+            put("Pointer", JSONObject().apply {
+                put("Move", JSONObject().apply {
+                    put("x", cursorX.toDouble())
+                    put("y", cursorY.toDouble())
+                })
+            })
+        }
+        send(payload)
         button(1, true)
         button(1, false)
     }
 
     fun rightClick() {
+        val payload = JSONObject().apply {
+            put("Pointer", JSONObject().apply {
+                put("Move", JSONObject().apply {
+                    put("x", cursorX.toDouble())
+                    put("y", cursorY.toDouble())
+                })
+            })
+        }
+        send(payload)
         button(3, true)
         button(3, false)
     }
@@ -135,6 +182,43 @@ class InputDispatcher(
             })
         }
         discrete.tryEmit(payload)
+    }
+
+    fun stylus(
+        xPx: Float,
+        yPx: Float,
+        wView: Int,
+        hView: Int,
+        pressure: Float,
+        tiltXDeg: Float = 0f,
+        tiltYDeg: Float = 0f,
+    ) {
+        if (wView <= 0 || hView <= 0) return
+        val normX = (xPx.coerceIn(0f, wView.toFloat()) / wView.toFloat()) * streamWidth.toFloat()
+        val normY = (yPx.coerceIn(0f, hView.toFloat()) / hView.toFloat()) * streamHeight.toFloat()
+        val pressNorm = pressure.coerceIn(0f, 1f).toDouble()
+
+        val stylusObj = JSONObject().apply {
+            if (tiltXDeg != 0f || tiltYDeg != 0f) {
+                put("Tilt", JSONObject().apply {
+                    put("x", normX.toDouble())
+                    put("y", normY.toDouble())
+                    put("pressure", pressNorm)
+                    put("tilt_x_deg", tiltXDeg.toDouble())
+                    put("tilt_y_deg", tiltYDeg.toDouble())
+                })
+            } else {
+                put("Pressure", JSONObject().apply {
+                    put("x", normX.toDouble())
+                    put("y", normY.toDouble())
+                    put("pressure", pressNorm)
+                })
+            }
+        }
+        val payload = JSONObject().apply {
+            put("Stylus", stylusObj)
+        }
+        send(payload)
     }
 
     fun key(code: Int, pressed: Boolean) {
@@ -162,8 +246,9 @@ class InputDispatcher(
                 val builder = Request.Builder()
                     .url("http://$host:$port/api/control")
                     .post(body.toString().toRequestBody("application/json".toMediaType()))
-                if (token.isNotBlank()) {
-                    builder.header("Authorization", "Bearer $token")
+                val t = tokenProvider?.invoke()?.takeIf { it.isNotBlank() } ?: token
+                if (t.isNotBlank()) {
+                    builder.header("Authorization", "Bearer $t")
                 }
                 http.newCall(builder.build()).execute().use { resp ->
                     ok = resp.isSuccessful
@@ -193,15 +278,26 @@ class InputDispatcher(
 
     private fun send(payload: JSONObject) {
         try {
+            val t = tokenProvider?.invoke()?.takeIf { it.isNotBlank() } ?: token
             val builder = Request.Builder()
                 .url("http://$host:$port/input")
                 .post(payload.toString().toRequestBody("application/json".toMediaType()))
-            if (token.isNotBlank()) {
-                builder.header("Authorization", "Bearer $token")
+            if (t.isNotBlank()) {
+                builder.header("Authorization", "Bearer $t")
             }
-            http.newCall(builder.build()).execute().close()
+            http.newCall(builder.build()).execute().use { resp ->
+                if (resp.code == 401) {
+                    Log.w(TAG, "send rejected with HTTP 401, triggering re-auth")
+                    token = ""
+                    onUnauthorized?.invoke()
+                } else if (!resp.isSuccessful) {
+                    Log.w(TAG, "send rejected with HTTP ${resp.code}")
+                }
+            }
         } catch (e: Exception) {
             Log.v(TAG, "send failed: ${e.message}")
         }
     }
+
+    var onUnauthorized: (() -> Unit)? = null
 }

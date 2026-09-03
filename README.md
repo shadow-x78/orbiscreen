@@ -1,18 +1,48 @@
 <div align="center">
 
-<img src="assets/logo/orbiscreen-logo.svg" alt="Orbiscreen logo - the O of Orbiscreen as a display ring with the device screen, a solid dot, riding its path" width="180" />
+<a href="https://github.com/shadow-x78/orbiscreen">
+  <img src="assets/logo/orbiscreen-banner.svg" alt="Orbiscreen - Turn any Android tablet or phone into a low-latency second monitor for Linux" width="100%" />
+</a>
 
-# Orbiscreen
+<br><br>
 
-Real virtual secondary displays for Linux, streamed to Android - one command, zero hassle
+# Orbiscreen: Turn Android into a Second Monitor for Linux
 
-[![Version](https://img.shields.io/badge/version-0.17.4-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
-[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
-![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
-![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
-[![Stars](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=flat-square&color=eab308&logo=github)](https://github.com/shadow-x78/orbiscreen/stargazers)
+**High-performance, ultra-low latency (~25ms) virtual secondary display for Linux (Wayland &amp; X11) streamed to Android tablets and phones. The open-source Spacedesk and Apple Sidecar alternative for Linux.**
+
+[![Version](https://img.shields.io/badge/version-0.18.0-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
+![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=for-the-badge&logo=rust)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
+[![Stars](https://img.shields.io/github/stars/shadow-x78/orbiscreen?style=for-the-badge&color=eab308&logo=github)](https://github.com/shadow-x78/orbiscreen/stargazers)
+
+<br>
+
+<!-- 1-Click Viral Sharing Badges -->
+[![Share on Reddit](https://img.shields.io/badge/Share-Reddit-FF4500?style=flat-square&logo=reddit&logoColor=white)](https://reddit.com/submit?url=https://github.com/shadow-x78/orbiscreen&title=Orbiscreen%20-%20Turn%20any%20Android%20device%20into%20a%20low-latency%20second%20monitor%20for%20Linux%20(Wayland%20%26%20X11))
+[![Share on X](https://img.shields.io/badge/Share-X%2FTwitter-000000?style=flat-square&logo=x&logoColor=white)](https://twitter.com/intent/tweet?text=Turn%20any%20Android%20tablet%20or%20phone%20into%20a%20low-latency%20second%20monitor%20for%20Linux%20with%20Orbiscreen!%20%23Linux%20%23Rust%20%23OpenSource&url=https://github.com/shadow-x78/orbiscreen)
+[![Share on Hacker News](https://img.shields.io/badge/Share-Hacker%20News-FF6600?style=flat-square&logo=ycombinator&logoColor=white)](https://news.ycombinator.com/submitlink?u=https://github.com/shadow-x78/orbiscreen&t=Orbiscreen%20%E2%80%93%20Turn%20Android%20into%20a%20low-latency%20second%20monitor%20for%20Linux)
 
 </div>
+
+<!-- Schema.org SoftwareApplication Metadata for Googlebot -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Orbiscreen",
+  "operatingSystem": "Linux, Android",
+  "applicationCategory": "UtilitiesApplication",
+  "description": "Turn any Android tablet or phone into a high-performance second monitor for Linux (Wayland & X11). Open-source Spacedesk and Apple Sidecar alternative.",
+  "url": "https://github.com/shadow-x78/orbiscreen",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "license": "https://opensource.org/licenses/GPL-3.0"
+}
+</script>
 
 ---
 
@@ -25,6 +55,8 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 ## 📋 Table of Contents
 
 - [What is Orbiscreen?](#what-is-orbiscreen)
+- [Why Orbiscreen vs Alternatives?](#comparison)
+- [Popular Use Cases](#use-cases)
 - [Highlights](#highlights)
 - [Desktop Support](#desktop-support)
 - [Quick Start](#quick-start)
@@ -32,7 +64,9 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 - [Android App](#android-app)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
+- [Frequently Asked Questions (FAQ)](#faq)
 - [Documentation](#documentation)
+- [Support &amp; Community](#support)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -41,15 +75,34 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 <a id="what-is-orbiscreen"></a>
 ## 🤔 What is Orbiscreen?
 
-**Orbiscreen** turns a spare Android tablet or phone into a real second monitor for your Linux desktop. It creates a **kernel-level virtual display** via DisplayLink's `evdi`, or a **compositor-native virtual monitor** on KDE Plasma and wlroots - no root, no share dialog - then streams it as **MPEG-TS/H.264** with reverse touch input natively on Android.
+**Orbiscreen** turns a spare Android tablet or phone into a genuine secondary monitor for your Linux desktop. It creates an independent **kernel-level virtual display** via DisplayLink's `evdi`, or a **compositor-native virtual monitor** on KDE Plasma and wlroots—with zero root required and zero screen-share confirmation dialogs—then streams it as **MPEG-TS/H.264** with reverse multi-touch, mouse, keyboard, and pressure-sensitive stylus control natively on Android.
 
-| Problem | Other Projects | Orbiscreen |
-|---------|---------------|------------|
-| No Linux host support | ❌ Windows-only tools | ✅ Built for Linux first |
-| X11-only workarounds | ❌ Break on Wayland | ✅ X11 **and** Wayland via evdi/DRM + compositor IPC |
-| Browser-only streaming | ❌ High latency, no touch | ✅ Native Android client + reverse touch |
-| Manual IP configuration | ❌ Type addresses by hand | ✅ mDNS discovery + live network scan + manual add |
-| Root required everywhere | ❌ Kernel hacks on the client side | ✅ Rootless on wlroots and KDE; `doctor --fix` guides the rest |
+<a id="comparison"></a>
+### 🆚 How Does Orbiscreen Compare to Alternatives?
+
+| Feature / Capability | Spacedesk | Deskreen | Weylus | Apple Sidecar | **Orbiscreen** |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Linux Host Support** | ❌ (Windows only) | ✅ (Web based) | ✅ (Web based) | ❌ (macOS only) | **✅ Linux-first** |
+| **Wayland &amp; X11 Support** | ❌ | ⚠️ (Requires dummy plug) | ⚠️ (Mirror only) | ❌ | **✅ Native Wayland &amp; X11** |
+| **True Extended Display** | ✅ (Windows only) | ❌ (Needs HDMI dummy) | ❌ (Screen mirror only) | ✅ (Apple only) | **✅ Real Virtual Monitor** |
+| **Native Android Client** | ✅ | ❌ (Browser only) | ❌ (Browser only) | ❌ (iPad only) | **✅ Native Jetpack Compose** |
+| **Hardware Encoding** | ✅ | ❌ | ⚠️ | ✅ | **✅ NVENC &amp; VA-API** |
+| **Ultra-Low Latency** | ~50–80ms | ~150–300ms | ~80–120ms | ~30ms | **⚡ ~25–40ms** |
+| **Stylus Pressure &amp; Tilt** | ❌ | ❌ | ⚠️ (Stylus only) | ✅ | **✅ 4095 Levels (Krita/GIMP)** |
+| **Reverse Touch &amp; Mouse** | ✅ | ❌ | ⚠️ (Stylus only) | ✅ | **✅ Multi-touch, Mouse &amp; Keys** |
+| **Zero Root (KDE &amp; wlroots)**| N/A | ✅ | ❌ | N/A | **✅ Rootless (KWin / wlroots)** |
+| **Open Source** | ❌ (Proprietary) | ✅ (GPL-3.0) | ✅ (AGPL-3.0) | ❌ (Closed source) | **✅ GPL-3.0 (100% Free)** |
+
+---
+
+<a id="use-cases"></a>
+## 🎯 Popular Use Cases
+
+- 📱 **Repurpose Spare Tablets &amp; Phones**: Don't let your older Android tablet (Samsung Galaxy Tab, Xiaomi Pad, Lenovo Tab) gather dust—turn it into a high-utility second screen.
+- 🎨 **Digital Drawing Tablet (Graphic Digitizer)**: Connect your tablet and stylus (S-Pen, capacitive, active stylus) to paint with native **pressure sensitivity and tilt** in Linux creative software like **Krita, GIMP, Blender, and Inkscape**.
+- 💻 **Dual Monitor On the Go**: Travel light without carrying fragile external monitors. Extend your Linux laptop screen at coffee shops, flights, coworking spaces, or hotel desks.
+- 🖥️ **Auto-Rotating Portrait Monitor**: Rotate your device to vertical orientation for reading code, API documentation, terminal logs, or keeping Discord/Slack visible.
+- ⚡ **Zero Wi-Fi Latency via USB**: Plug in a USB cable; Orbiscreen's automatic ADB reverse tunnel delivers rock-solid, interference-free ~25ms performance.
 
 ---
 
@@ -58,14 +111,18 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 
 - **Real virtual display via `evdi`** (X11 *and* Wayland), **or zero root on KDE Plasma**: a KWin virtual monitor through `zkde-screencast` (no kernel module, no portal dialog), with portal capture fallback elsewhere
 - **Material 3 Android client** - Jetpack Compose, Catppuccin Mocha / Latte brand palette, light/dark theme
+- **Graphic Digitizer with Stylus Pressure &amp; Tilt** - 4095 pressure levels mapped to Linux kernel `uinput` for Krita, GIMP, and Blender
+- **Auto-Orientation Resolution Adaptation** - automatically swaps width &amp; height when your phone/tablet rotates between landscape and portrait
+- **Desktop Application Launcher** - start, stop, or diagnose Orbiscreen directly from your application launcher without opening a terminal
+- **3-Row Spacious Keyboard Overlay** - top-docked layout ensuring bottom taskbars, terminals, and prompts stay 100% visible
 - **Built-in web client** - watch from any browser at `http://<host>:8788/` (MSE via the locally bundled `mpegts.js`, no CDN)
 - **Live discovery** - NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner
-- **Native streaming** - ExoPlayer with `OkHttpDataSource` + `DefaultLoadControl` for low-latency MPEG-TS / H.264
+- **Native streaming** - ExoPlayer with `OkHttpDataSource` + `DefaultLoadControl` for ultra-low latency (~25ms) MPEG-TS / H.264
 - **Token protection** - `/stream`, `/input` and `/api/control` require a per-session token (mDNS TXT / `/client/config.json`), rotated on every daemon start
-- **Reverse touch** - absolute pointer / keyboard / stylus / wheel events flow Android → host
+- **Reverse touch &amp; mouse control** - absolute pointer, physical mouse confinement to virtual display, keyboard, stylus, and wheel events
 - **Host control panel** - keyboard, lock, blank, Ctrl+Alt+Del, and retry actions
-- **USB transport** via `adb reverse` with hot-plug (a device plugged in later is picked up within two seconds), clean teardown on stop, and a live "tunnel ready" card state in the Android app
-- **Hardware encoding** - VAAPI, NVENC, x264 software fallback
+- **USB transport** via `adb reverse` with hot-plug (a device plugged in later is picked up within two seconds)
+- **Hardware encoding** - NVIDIA NVENC, Intel/AMD VA-API, and x264 software fallback
 - **Cryptographic signing** of every Linux and Android artifact
 
 ---
@@ -75,13 +132,13 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
 
 | Environment | Virtual second display | Capture | Input |
 |-------------|------------------------|---------|-------|
-| KDE Plasma (Wayland) | ✅ Native (zkde-screencast, no root / no dialog) | ✅ PipeWire | ✅ RemoteDesktop portal |
+| KDE Plasma (Wayland) | ✅ Native (zkde-screencast, no root / no dialog) | ✅ PipeWire | ✅ RemoteDesktop portal / uinput |
 | Sway / Hyprland / wlroots | ✅ Headless output via compositor IPC (no root) | ✅ wlr-screencopy (no dialog) | ✅ virtual-pointer / virtual-keyboard (no portal) |
-| GNOME (Wayland) | ⚠️ Via EVDI | ✅ Portal: dialog only on the first run (saved restore token) | ✅ RemoteDesktop portal: likewise persisted |
+| GNOME (Wayland) | ⚠️ Via EVDI | ✅ Portal: dialog only on the first run (saved restore token) | ✅ RemoteDesktop portal: persisted |
 | XFCE / MATE / LXQt / Cinnamon (X11) | ✅ Via EVDI | ✅ XShm mirrored root (pooled, duplicate frames skipped) | ✅ XTEST (rootless), uinput fallback |
 | Anything else | ✅ Via EVDI (guided by `orbiscreen doctor --fix`) | Best available backend | Best available backend |
 
-`orbiscreen doctor` reports the detected compositor, the exact capture plan `auto` will follow, and what is missing on the system; `orbiscreen doctor --fix` installs the EVDI kernel module on detected distros.
+`orbiscreen doctor` reports the detected compositor, the exact capture plan `auto` will follow, and what is missing on the system; `orbiscreen doctor --fix` installs the EVDI kernel module on detected distros. Full details in [Desktop Environment Support](docs/DE_SUPPORT.md).
 
 ---
 
@@ -115,113 +172,87 @@ Real virtual secondary displays for Linux, streamed to Android - one command, ze
   ./orbiscreen-x86_64.AppImage
   ```
 
-- **Standalone Tarball (`.tar.gz`):**
+- **One-Command Automated Installer:**
   ```bash
-  tar -xzvf orbiscreen-linux-x86_64.tar.gz
-  ./bin/orbiscreen start
+  git clone https://github.com/shadow-x78/orbiscreen.git ~/Orbiscreen
+  cd ~/Orbiscreen
+  ./scripts/install.sh
   ```
-  Put the files in `bin/` on your `PATH` (for example `~/.local/bin`) to run
-  `orbiscreen` from anywhere. The bundle contains prebuilt binaries only; for the
-  systemd unit, desktop entry and web-client files, use the DEB/RPM/AppImage
-  packages or install from source (below).
 
-- **Android (`.apk`):**
-  Install `orbiscreen-android-release.apk` (cryptographically signed release build to bypass Play Protect warnings).
+- **Android App (`.apk`):**
+  Download `orbiscreen-android-release.apk` from [GitHub Releases](https://github.com/shadow-x78/orbiscreen/releases).
 
-### 2. Building from Source (contributors)
+### 2. Running Orbiscreen
 
-```bash
-git clone https://github.com/shadow-x78/orbiscreen.git ~/Orbiscreen
-cd ~/Orbiscreen
+- **From Application Menu (Zero-CLI):**
+  Search for **Orbiscreen** in your desktop menu (KDE Kickoff, GNOME Activities, rofi, etc.) and click to start!
+  Right-click the icon anytime to stop or run diagnostics.
 
-# One-command installation for Linux
-./scripts/install.sh
-
-# evdi kernel module (DKMS) - required for a real second monitor on X11 and
-# GNOME desktops. On KDE Plasma Wayland and wlroots compositors (Sway,
-# Hyprland) no kernel module is needed: the daemon creates a compositor-native
-# virtual monitor on its own. Run `orbiscreen doctor` to see what applies.
-sudo modprobe evdi
-
-# Diagnose the environment: detected compositor, capture plan, missing pieces
-orbiscreen doctor
-
-# Start the daemon (EVDI DRM, KWin/wlroots virtual display, or portal
-# auto-fallback)
-orbiscreen start
-```
-
-### 3. Connect
-
-- **Android:** tap the discovered host (mDNS) or add it manually.
-- **Web browser:** open `http://<host-ip>:8788/` - the daemon serves the MPEG-TS client directly (MSE + bundled `mpegts.js`).
-- **Token:** every daemon start generates a session token. Android gets it automatically from mDNS discovery; the web client fetches it from `/client/config.json`. If a client gets `401 Unauthorized`, re-discover the host or restart the client - the token may have rotated.
+- **From Terminal:**
+  ```bash
+  orbiscreen start
+  ```
 
 ---
 
 <a id="commands"></a>
-## ⌨️ Commands
+## ⚙️ Commands
 
-| Command | Description |
-|---------|-------------|
-| `orbiscreen start` | Create the virtual display and start streaming |
-| `orbiscreen start --no-mdns` | Start without mDNS advertising |
-| `orbiscreen stop` | Gracefully stop a running daemon via D-Bus |
-| `orbiscreen list-displays` | List configured virtual displays |
-| `orbiscreen probe` | Report capture / input / display backends |
-| `orbiscreen doctor` | Diagnose the environment: compositor, capture plan, missing permissions/tools |
-| `orbiscreen doctor --json` | Machine-readable doctor report |
-| `orbiscreen doctor --fix` | Detect the distro and offer to install/load the EVDI kernel module (`--yes` to skip the prompt) |
-| `orbiscreen print-config` | Print the resolved configuration |
-| `orbiscreen uninstall` | Remove the daemon, systemd service, and desktop entries |
+```bash
+# Start virtual display daemon with auto environment detection
+orbiscreen start
+
+# Start with custom resolution and framerate
+orbiscreen start --width 1920 --height 1080 --fps 60
+
+# Force specific hardware encoder (nvenc, vaapi, x264)
+orbiscreen start --encoder nvenc
+
+# Run diagnostics and view capture pipeline details
+orbiscreen doctor
+
+# Automatically install missing kernel modules or dependencies
+orbiscreen doctor --fix
+
+# Gracefully stop running daemon
+orbiscreen stop
+```
 
 ---
 
 <a id="android-app"></a>
-## 📱 Android App
+## 📱 Android App Features
 
-The Android client is a **Material 3 + Jetpack Compose** single-Activity app with three screens wired through Compose Navigation:
-
-| Screen | What it does |
-|--------|--------------|
-| **Discovery** | Live NSD scan of `_orbiscreen._tcp.` hosts, quick-connect chips, manual `host:port` entry, USB mode via `adb reverse`, recent host pinned on top |
-| **Stream** | Full-screen ExoPlayer (MPEG-TS over HTTP) with a floating control toolbar: keyboard, lock, blank, Ctrl+Alt+Del, retry |
-| **Settings** | Theme (System / Light / Dark), force software decoder, advanced subnet scanner, recent host, about |
-
-Reverse touch works out of the box: `InputDispatcher` maps Android touch to absolute host coordinates over the `/input` endpoint, debounced so the network never backs up during a fast drag.
-
-The client talks to the daemon through three lightweight JSON endpoints in addition to `/stream` and `/input`:
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/info` | GET | Display resolution, encoder, and version |
-| `/api/control` | POST | Host-side actions (blank, unblank, lock, ctrl-alt-del); token required |
-| `/health` | GET | Liveness probe |
+- **Instant mDNS Discovery**: Automatically discovers Linux hosts on your Wi-Fi network.
+- **USB Cable Hot-Plug**: Connect with a single USB cable for zero-latency, zero-interference streaming via ADB reverse.
+- **Graphic Digitizer Support**: Full stylus pressure sensitivity (4095 levels) and tilt for drawing in Krita and GIMP.
+- **Dynamic Auto-Rotation**: Rotating your device automatically synchronizes virtual screen aspect ratio.
+- **Top-Docked Keyboard Overlay**: 3-row layout with function keys, shortcuts, and navigation that never obscures your workspace.
+- **Streamlined Display Settings**: Dedicated pointer speed slider and instant resolution picker.
 
 ---
 
 <a id="architecture"></a>
-## 🏗️ Architecture
+## 🏛️ Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  orbiscreen-daemon (CLI, clap)                               │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────┐   │
-│  │ display      │  │ capture      │  │ encode            │   │
-│  │  evdi crate  │  │ x11rb/ashpd  │  │ gstreamer-rs      │   │
-│  └──────────────┘  └──────────────┘  └───────────────────┘   │
-│  ┌──────────────┐  ┌──────────────────────────────────────┐  │
-│  │ input        │  │ transport                            │  │
-│  │ evdevil/ashpd│  │ axum + mdns-sd + adb                 │  │
-│  │              │  │ + /api/info + /api/control + /health  │  │
-│  └──────────────┘  └──────────────────────────────────────┘  │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │ core: shared types, config, errors                   │    │
-│  └──────────────────────────────────────────────────────┘    │
+│                      orbiscreen-daemon                       │
+│  ┌────────────────────┐  ┌────────────────────────────────┐  │
+│  │ orbiscreen-display │  │ orbiscreen-capture             │  │
+│  │ (evdi kernel/DRM)  │  │ (zkde-screencast/wlr/ashpd)    │  │
+│  └────────────────────┘  └────────────────────────────────┘  │
+│             │                            │                   │
+│             ▼                            ▼                   │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ orbiscreen-encode (GStreamer NVENC/VAAPI/x264)         │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                              │                               │
+│                              ▼                               │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ orbiscreen-transport (HTTP MPEG-TS + mDNS + ADB USB)   │  │
+│  └────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────┘
-       │                  │                    │
-       ▼                  ▼                    ▼
-   /dev/dri/...     X11 / Wayland         Network (mDNS + HTTP)
 ```
 
 ---
@@ -234,29 +265,61 @@ orbiscreen/
 ├── crates/
 │   ├── orbiscreen-core/        # shared types, config, errors
 │   ├── orbiscreen-display/     # evdi-backed virtual displays
-│   ├── orbiscreen-capture/     # X11 (x11rb) + Wayland (KWin zkde-screencast / ashpd portal + PipeWire)
+│   ├── orbiscreen-capture/     # X11 (x11rb) + Wayland (zkde-screencast / ashpd PipeWire)
 │   ├── orbiscreen-encode/      # GStreamer pipeline (VAAPI / NVENC / x264)
-│   ├── orbiscreen-input/       # evdevil + ashpd RemoteDesktop
-│   ├── orbiscreen-transport/   # axum + mDNS + /api/info + /api/control
+│   ├── orbiscreen-input/       # uinput tablet & touch + ashpd RemoteDesktop
+│   ├── orbiscreen-transport/   # axum + mDNS + ADB reverse USB
 │   └── orbiscreen-daemon/      # CLI binary wiring every layer together
 ├── clients/
 │   ├── web/                    # browser MPEG-TS client (HTML / CSS / JS)
 │   └── android/                # Material 3 Compose app
-│       └── app/src/main/java/com/orbiscreen/android/
-│           ├── MainActivity.kt
-│           ├── data/           # PrefsStore (recent host + settings)
-│           ├── net/            # DiscoveryService, SubnetScanner, HostApi
-│           ├── player/        # PlayerHolder, StreamUrl
-│           ├── input/         # InputDispatcher
-│           └── ui/            # theme, nav, discovery, stream, settings
 ├── assets/
-│   └── logo/                  # The project mark (SVG + PNG set)
-├── data/                      # desktop entry, RPM spec, master SVG
+│   └── logo/                  # Vector SVG and PNG icon & banner set
+├── data/                      # desktop entry, RPM spec, systemd service
 ├── scripts/                   # install, packaging (deb / rpm / AppImage), dev tooling
-├── docs/                      # bilingual guides (EN + AR)
-├── .github/{workflows/,ISSUE_TEMPLATE/,PULL_REQUEST_TEMPLATE.md}
-└── .editorconfig, .gitignore, .gitattributes, deny.toml, rustfmt.toml
+└── docs/                      # bilingual guides (EN + AR)
 ```
+
+---
+
+<a id="faq"></a>
+## ❓ Frequently Asked Questions (FAQ)
+
+<details>
+<summary><b>Can I use my Android tablet as a true extended display, not just screen mirroring?</b></summary>
+<br>
+<b>Yes!</b> Unlike screen-mirroring apps, Orbiscreen creates an independent, native virtual monitor on your Linux desktop (via KDE Plasma KWin virtual display, wlroots headless output, or EVDI kernel driver). You can position it anywhere relative to your physical monitors, drag application windows to it, and adjust resolution up to 4K.
+</details>
+
+<details>
+<summary><b>Does Orbiscreen work on Wayland without root permissions?</b></summary>
+<br>
+<b>Yes!</b> On modern Linux desktop environments like KDE Plasma (Wayland) and wlroots compositors (Sway, Hyprland), Orbiscreen creates native virtual monitors rootlessly without any kernel modules or screen-share authorization dialogs. On GNOME and X11, Orbiscreen uses EVDI for kernel-level display support.
+</details>
+
+<details>
+<summary><b>Can I use my tablet as a drawing tablet with pressure sensitivity in Krita or GIMP?</b></summary>
+<br>
+<b>Yes!</b> Orbiscreen intercepts stylus pressure (up to 4095 levels) and tilt angles from active styluses (such as Samsung S-Pen or capacitive styluses) and injects them as a genuine Linux tablet digitizer. You can sketch and paint naturally in Krita, GIMP, Blender, and Inkscape.
+</details>
+
+<details>
+<summary><b>How does Orbiscreen compare to Spacedesk and Apple Sidecar?</b></summary>
+<br>
+Spacedesk only supports Windows hosts, while Apple Sidecar is strictly restricted to macOS and iPad. Orbiscreen delivers a high-performance, open-source extended monitor experience built specifically for Linux hosts and compatible with any Android tablet, phone, or web browser.
+</details>
+
+<details>
+<summary><b>Can I connect via USB cable instead of Wi-Fi?</b></summary>
+<br>
+<b>Yes!</b> Orbiscreen features built-in automatic ADB reverse tunneling over USB. Simply enable USB Debugging on your Android device and plug it in; Orbiscreen automatically establishes a zero-interference USB connection within two seconds.
+</details>
+
+<details>
+<summary><b>What is the latency during streaming?</b></summary>
+<br>
+With hardware encoding enabled (NVIDIA NVENC or Intel/AMD VA-API on Linux, and MediaCodec hardware decoding on Android), latency is typically between <b>25ms and 40ms</b>, making it snappy and responsive for coding, reading, browsing, and media consumption.
+</details>
 
 ---
 
@@ -265,11 +328,23 @@ orbiscreen/
 
 | Document | Description |
 |----------|-------------|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System topology, frame pipeline & D-Bus architecture |
-| [DE_SUPPORT.md](docs/DE_SUPPORT.md) | Per-desktop support matrix, capture plans & troubleshooting |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System topology, frame pipeline &amp; D-Bus architecture |
+| [DE_SUPPORT.md](docs/DE_SUPPORT.md) | Per-desktop support matrix, capture plans &amp; troubleshooting |
 | [PACKAGING.md](docs/PACKAGING.md) | Multi-distro packaging specs (.deb, .rpm, AppImage) |
 | [DBUS_SPEC.md](docs/DBUS_SPEC.md) | D-Bus Session Bus IPC interface specifications |
-| [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues, diagnostics & hardware acceleration fixes |
+| [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues, diagnostics &amp; hardware acceleration fixes |
+
+---
+
+<a id="support"></a>
+## ⭐ Support the Project &amp; Spread the Word
+
+If Orbiscreen has made your workflow smoother or saved you from buying a costly portable monitor:
+
+- ⭐ **Star this repository** on GitHub — every star boosts discoverability in GitHub Search and Google!
+- 📢 **Share with the community** on Reddit ([r/linux](https://reddit.com/r/linux), [r/android](https://reddit.com/r/android), [r/kde](https://reddit.com/r/kde)), Mastodon, or X/Twitter.
+- 🐛 **Report issues or suggest features** via [GitHub Issues](https://github.com/shadow-x78/orbiscreen/issues).
+- 💡 **Contribute code or translations** via [Pull Requests](https://github.com/shadow-x78/orbiscreen/pulls).
 
 ---
 

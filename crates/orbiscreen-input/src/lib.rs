@@ -12,6 +12,7 @@ use tracing::{info, warn};
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum PointerEvent {
     Move { x: f64, y: f64 },
+    RelativeMove { dx: f64, dy: f64 },
     Button { button: u32, pressed: bool },
     Wheel { delta_y: f64 },
 }

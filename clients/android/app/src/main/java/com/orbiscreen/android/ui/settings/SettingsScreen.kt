@@ -199,7 +199,8 @@ fun SettingsScreen(
                         prefs.enableSubnetScanner = it
                     },
                 )
-                if (prefs.recentHost != null) {
+                var recentHost by remember { mutableStateOf(prefs.recentHost) }
+                if (recentHost != null) {
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
@@ -209,6 +210,7 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .clickable {
                                 prefs.recentHost = null
+                                recentHost = null
                                 Toast.makeText(context, "Recent host cleared", Toast.LENGTH_SHORT).show()
                             }
                             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -238,7 +240,7 @@ fun SettingsScreen(
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                text = "${prefs.recentHost?.host}:${prefs.recentHost?.port}",
+                                text = "${recentHost?.host}:${recentHost?.port}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

@@ -61,7 +61,14 @@ class StreamViewModel(
 
     private suspend fun freshToken(): String =
         withContext(Dispatchers.IO) {
-            hostApi.token(host, port)?.also { sessionToken = it } ?: sessionToken.orEmpty()
+            val t = hostApi.token(host, port)
+            if (!t.isNullOrBlank()) {
+                sessionToken = t
+                inputDispatcher?.updateToken(t)
+                t
+            } else {
+                sessionToken.orEmpty()
+            }
         }
 
     init {
@@ -77,6 +84,7 @@ class StreamViewModel(
                 t to i
             }
             sessionToken = info.first
+            info.first?.let { inputDispatcher?.updateToken(it) }
             val hostInfo = info.second
             if (hostInfo != null) {
                 _state.value = _state.value.copy(
@@ -90,7 +98,7 @@ class StreamViewModel(
                 _state.value.displayWidth,
                 _state.value.displayHeight,
             )
-            playerHolder.build(host, port) { sessionToken?.takeIf { it.isNotBlank() } ?: freshToken() }
+            playerHolder.build(host, port) { freshToken() }
         }
         viewModelScope.launch {
             _state.collect { s ->
@@ -107,7 +115,14 @@ class StreamViewModel(
                 }
             }
         }
-        prefs.recentHost = com.orbiscreen.android.data.RecentHost(host = host, port = port)
+        // Save recentHost only once streaming succeeds (so we save the working IP)
+        viewModelScope.launch {
+            playerHolder.event.collect { ev ->
+                if (ev is StreamEvent.Playing && host != "127.0.0.1" && host != "localhost") {
+                    prefs.recentHost = com.orbiscreen.android.data.RecentHost(host = host, port = port)
+                }
+            }
+        }
     }
 
     fun ensureInput(): InputDispatcher {
@@ -117,7 +132,22 @@ class StreamViewModel(
             displayWidth = state.value.displayWidth,
             displayHeight = state.value.displayHeight,
             token = sessionToken ?: "",
-        ).also { inputDispatcher = it }
+            tokenProvider = { sessionToken ?: "" },
+        ).also {
+            it.pointerSpeed = prefs.pointerSpeed
+            it.onUnauthorized = {
+                viewModelScope.launch { freshToken() }
+            }
+            inputDispatcher = it
+        }
+    }
+
+    val pointerSpeed: Float
+        get() = prefs.pointerSpeed
+
+    fun setPointerSpeed(speed: Float) {
+        prefs.pointerSpeed = speed
+        inputDispatcher?.pointerSpeed = speed
     }
 
     fun retry() = playerHolder.retry(state.value.host, state.value.port) { freshToken() }
@@ -152,6 +182,10 @@ class StreamViewModel(
                 resolutionLabel = label,
             )
             inputDispatcher?.resize(w, h)
+            ensureInput().control("set_resolution", org.json.JSONObject().apply {
+                put("width", w)
+                put("height", h)
+            })
         }
     }
 

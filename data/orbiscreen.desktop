@@ -1,0 +1,21 @@
+[Desktop Entry]
+Name=Orbiscreen
+GenericName=Virtual Secondary Display
+Comment=Turn any Android tablet or phone into a low-latency second monitor for Linux
+Exec=orbiscreen start
+Icon=orbiscreen
+Terminal=false
+Type=Application
+Categories=Utility;HardwareSettings;AudioVideo;
+Keywords=Display;Monitor;Screen;Virtual;Android;Tablet;Second;
+StartupNotify=true
+Actions=Stop;Doctor;
+
+[Desktop Action Stop]
+Name=Stop Orbiscreen
+Exec=orbiscreen stop
+
+[Desktop Action Doctor]
+Name=Run Diagnostics (Doctor)
+Exec=sh -c "orbiscreen doctor; echo ''; read -p 'Press Enter to close...' dummy"
+Terminal=true

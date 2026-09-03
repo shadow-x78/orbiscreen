@@ -17,15 +17,17 @@ members = [
 
 # ── Package Metadata ──
 [workspace.package]
-version = "0.17.4"
+version = "0.18.0"
 edition = "2021"
 rust-version = "1.75"
 license = "GPL-3.0-or-later"
 authors = ["shadow-x78"]
 repository = "https://github.com/shadow-x78/orbiscreen"
 homepage = "https://github.com/shadow-x78/orbiscreen"
-description = "Open-source virtual secondary displays for Linux, streamed to Android over Wi-Fi or USB"
+description = "Turn any Android tablet or phone into a low-latency second monitor for Linux (Wayland & X11). The ultimate Spacedesk and Apple Sidecar alternative for Linux."
 readme = "README.md"
+keywords = ["second-monitor", "virtual-display", "wayland", "android", "spacedesk-alternative"]
+categories = ["command-line-utilities", "multimedia::video", "hardware-support"]
 
 # ── Shared Dependencies ──
 [workspace.dependencies]

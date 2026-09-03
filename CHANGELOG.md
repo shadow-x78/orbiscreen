@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.18.0] - 2026-09-03
+
+Native Graphic Digitizer (stylus pressure & tilt), auto-orientation virtual display, production desktop launcher, SEO-optimized README and banners, and comprehensive packaging improvements.
+
+### ✨ Added
+- **Graphic Tablet Digitizer & Stylus Pressure/Tilt**: Full Linux `uinput` tablet digitizer support — `BTN_TOOL_PEN`, `BTN_TOUCH`, `ABS_PRESSURE` (4095 levels), `ABS_TILT_X/Y`. Android intercepts active stylus events (`TOOL_TYPE_STYLUS`/`TOOL_TYPE_ERASER`), reads normalized pressure (`ev.pressure`) and tilt (`AXIS_TILT`, `AXIS_ORIENTATION`), and forwards to `InputDispatcher.stylus()` → `POST /input`. Krita, GIMP, Blender, and Inkscape respond with full brush pressure sensitivity.
+- **Auto-Orientation Resolution Adaptation**: `StreamScreen.kt` now observes `LocalConfiguration.current.orientation`; on Landscape↔Portrait flip, it calls `viewModel.updateDimensions(curH, curW, ...)` to invoke `kscreen-doctor` on the host and swap the virtual display aspect ratio automatically — no black bars, no manual settings.
+- **Production Desktop Application Launcher** (`data/orbiscreen.desktop`): Full XDG desktop entry integrated into KDE Kickoff, GNOME Activities, rofi, and all standard app launchers. Supports right-click Quick Actions: **Stop** (graceful shutdown) and **Doctor** (diagnostics in terminal). Zero-CLI workflow: users can start, stop, and diagnose without ever opening a terminal.
+- **Production-Grade SEO & Social Discovery**: Fully rewritten `README.md` and `README_AR.md` with `style=for-the-badge` shields, `Schema.org SoftwareApplication` JSON-LD metadata for Google Rich Snippets, 1-click viral sharing buttons (Reddit, X/Twitter, Hacker News), comprehensive Spacedesk/Deskreen/Weylus/Sidecar comparison matrix, rich FAQ section targeting Google "People Also Ask" boxes, and popular use-case sections for search-intent optimization.
+- **Professional SVG Repository Banner** (`assets/logo/orbiscreen-banner.svg`): 1280×400 dark-themed banner with crisp vector icons (no blurry filter halos), featuring precise SVG paths for Lightning, Monitor, Shield, Stylus Pen, and Gear icons replacing all emoji placeholders in feature pills.
+- **Friendly Capture Pipeline Error Guidance**: `resolve_frame_source` in daemon now emits human-readable `eprintln!` messages directing users to `orbiscreen doctor --fix` when the capture pipeline fails to initialize automatically.
+
+### 🎨 Changed
+- **`install.sh` Production Upgrade**: Now installs `data/orbiscreen.desktop` to `~/.local/share/applications/` and `data/orbiscreen.svg` to `~/.local/share/icons/hicolor/scalable/apps/`, and runs `update-desktop-database` / `gtk-update-icon-cache` automatically.
+- **`uninstall.sh` Cleanup**: Removes all installed desktop entry and icon files (`orbiscreen.desktop`, `orbiscreen.svg`) for both user-local and system-wide installs.
+- **`package-deb.sh` Packaging**: Installs `orbiscreen.desktop` and `orbiscreen.svg` into the `.deb` package under `/usr/share/applications/` and `/usr/share/icons/hicolor/scalable/apps/`.
+- **`data/orbiscreen.spec` (RPM)**: Adds `orbiscreen.desktop` to `%install` and `%files`, making the RPM package include the application launcher.
+- **README badges** upgraded from `style=flat-square` to `style=for-the-badge` throughout for higher visual impact.
+- **CONTRIBUTING.md**: Removed stale `--exclude orbiscreen-gtk` flags from verification commands.
+- **ARCHITECTURE.md** (EN & AR): Documented the full Graphic Tablet Digitizer pipeline with `uinput` event codes and Android stylus axis mapping.
+- **`InputDispatcher.kt` `stylus()` method**: Fixed field names from `displayWidth`/`displayHeight` (constructor params, no longer in scope) to `streamWidth`/`streamHeight` (class-level volatile properties).
+
+### 🔧 CI / Packaging
+- **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Added new 0.18.0 changelog entry.
+- **debian/changelog**: Updated to 0.18.0-1 for Ubuntu noble.
+- **PKGBUILD**: Updated `pkgver` to 0.18.0.
+- **Cargo.lock**: Updated via `cargo update -w` to reflect workspace version bump from 0.17.4 → 0.18.0.
+- **Android `versionCode`**: Incremented from 42 → 43; `versionName` updated to "0.18.0".
+
 ## [v0.17.4] - 2026-09-02
 
 Zero-latency streaming overhaul with hardware NVENC optimization, framerate-matched damage pump, zero-backlog keyframe delivery, gesture fix for double-tap menu reveal, hide-eye icon update, and modern Arabic UI redesign of the exit modal and display settings sheet.

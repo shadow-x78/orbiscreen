@@ -97,7 +97,7 @@ fun ControlToolbar(
                     val info = listOfNotNull(
                         resolution.takeIf { it.isNotBlank() },
                         encoder.takeIf { it.isNotBlank() },
-                    ).joinToString(" · ")
+                    ).joinToString("  ")
                     if (info.isNotBlank()) {
                         Text(
                             text = info,
@@ -114,7 +114,7 @@ fun ControlToolbar(
             // 1. Mouse mode toggle
             ToolbarActionButton(
                 icon = if (isTouchMode) Icons.Rounded.TouchApp else Icons.Rounded.Mouse,
-                contentDescription = if (isTouchMode) "Touch mode" else "Trackpad mode",
+                contentDescription = if (isTouchMode) stringResource(R.string.mode_touch) else stringResource(R.string.mode_trackpad),
                 onClick = onToggleInputMode,
             )
 
@@ -125,24 +125,24 @@ fun ControlToolbar(
                 onClick = onToggleKeyboard,
             )
 
-            // Landscape-only extra tools: Lock & Settings
-            if (!isPortrait) {
-                ToolbarActionButton(
-                    icon = Icons.Rounded.Lock,
-                    contentDescription = stringResource(R.string.lock_screen),
-                    onClick = onLock,
-                )
-                ToolbarActionButton(
-                    icon = Icons.Rounded.Settings,
-                    contentDescription = stringResource(R.string.settings),
-                    onClick = onOpenSettings,
-                )
-            }
+            // 3. Lock
+            ToolbarActionButton(
+                icon = Icons.Rounded.Lock,
+                contentDescription = stringResource(R.string.lock_screen),
+                onClick = onLock,
+            )
 
-            // 3. Eye Hide Button: Hide Toolbar
+            // 4. Settings
+            ToolbarActionButton(
+                icon = Icons.Rounded.Settings,
+                contentDescription = stringResource(R.string.settings),
+                onClick = onOpenSettings,
+            )
+
+            // 5. Hide controls
             ToolbarActionButton(
                 icon = Icons.Rounded.VisibilityOff,
-                contentDescription = "Hide controls",
+                contentDescription = stringResource(R.string.hide_controls),
                 onClick = onHideControls,
             )
 

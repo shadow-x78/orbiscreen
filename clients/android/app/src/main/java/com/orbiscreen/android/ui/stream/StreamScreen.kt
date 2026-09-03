@@ -18,7 +18,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -47,10 +46,13 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.Keyboard
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material.icons.rounded.ZoomOutMap
 import androidx.compose.material3.AlertDialog
@@ -71,15 +73,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -96,6 +102,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -181,18 +188,26 @@ fun StreamScreen(
         }
     }
 
+    // Auto-orientation: automatically adjust resolution when phone rotates
+    val configuration = LocalConfiguration.current
+    var lastOrientation by remember { mutableIntStateOf(configuration.orientation) }
+    LaunchedEffect(configuration.orientation) {
+        if (lastOrientation != configuration.orientation) {
+            lastOrientation = configuration.orientation
+            val curW = state.displayWidth
+            val curH = state.displayHeight
+            val isScreenPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+            val isStreamPortrait = curW < curH
+            if (isScreenPortrait != isStreamPortrait && curW > 0 && curH > 0) {
+                viewModel.updateDimensions(curH, curW, "${curH}×${curW}")
+            }
+        }
+    }
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onDoubleTap = {
-                        isControlsPermanentlyHidden = false
-                        showControls = true
-                    },
-                )
-            },
+            .background(Color.Black),
     ) {
         val density = LocalDensity.current
         val widthPx = with(density) { maxWidth.toPx() }
@@ -229,18 +244,26 @@ fun StreamScreen(
                 player = player,
                 isTouchMode = isTouchMode,
                 onMove = { x, y, w, h -> input.move(x, y, w, h) },
-                onPointer = { _, _, _, _, btn, pressed ->
+                onPointer = { x, y, w, h, btn, pressed ->
+                    if (x != null && y != null) {
+                        input.move(x, y, w, h)
+                    }
                     input.button(btn, pressed)
                 },
                 onDeltaMove = { dx, dy -> input.moveDelta(dx, dy) },
                 onLeftClick = { input.leftClick() },
                 onRightClick = { input.rightClick() },
                 onScroll = { dy -> input.wheel(dy) },
-                scaleMode = state.scaleMode,
-                onDoubleTap = {
-                    isControlsPermanentlyHidden = false
-                    showControls = true
+                onStylus = { x, y, w, h, pressure, tiltX, tiltY ->
+                    input.stylus(x, y, w, h, pressure, tiltX, tiltY)
                 },
+                scaleMode = state.scaleMode,
+                onDoubleTap = if (isControlsPermanentlyHidden) {
+                    {
+                        isControlsPermanentlyHidden = false
+                        showControls = true
+                    }
+                } else null,
             )
         }
 
@@ -281,7 +304,7 @@ fun StreamScreen(
 
         // Draggable Snap-to-Corner FAB (reveals controls)
         AnimatedVisibility(
-            visible = !showControls,
+            visible = !showControls && !isControlsPermanentlyHidden,
             enter = fadeIn(),
             exit = fadeOut(),
         ) {
@@ -326,15 +349,15 @@ fun StreamScreen(
                         }
                     },
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
                     shadowElevation = 6.dp,
                     modifier = Modifier.size(46.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            Icons.Rounded.Tune,
-                            contentDescription = stringResource(R.string.settings),
+                            Icons.Rounded.Menu,
+                            contentDescription = "Menu",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp),
                         )
@@ -362,12 +385,13 @@ fun StreamScreen(
             ConnectionSettingsSheet(
                 currentWidth = state.displayWidth,
                 currentHeight = state.displayHeight,
-                currentScaleMode = state.scaleMode,
+                currentPointerSpeed = viewModel.pointerSpeed,
                 onApplyDimensions = { w, h, label ->
                     viewModel.updateDimensions(w, h, label)
+                    showSettingsSheet = false
                 },
-                onApplyScaleMode = { mode ->
-                    viewModel.setScaleMode(mode)
+                onPointerSpeedChange = { speed ->
+                    viewModel.setPointerSpeed(speed)
                 },
                 onDismiss = { showSettingsSheet = false },
             )
@@ -409,7 +433,7 @@ fun StreamScreen(
                         Spacer(Modifier.height(14.dp))
 
                         Text(
-                            text = "إنهاء الجلسة؟",
+                            text = "End Session?",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -418,7 +442,7 @@ fun StreamScreen(
                         Spacer(Modifier.height(6.dp))
 
                         Text(
-                            text = "هل أنت متأكد من رغبتك في قطع الاتصال والعودة إلى شاشة الأجهزة؟",
+                            text = stringResource(R.string.disconnect_confirm_message),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.7f),
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -440,7 +464,7 @@ fun StreamScreen(
                                 ),
                                 modifier = Modifier.weight(1f).height(42.dp),
                             ) {
-                                Text("إلغاء", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                Text(stringResource(R.string.cancel), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                             }
 
                             Button(
@@ -455,7 +479,7 @@ fun StreamScreen(
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.weight(1f).height(42.dp),
                             ) {
-                                Text("إنهاء الجلسة", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(stringResource(R.string.disconnect_confirm_action), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                         }
                     }
@@ -470,13 +494,15 @@ fun StreamScreen(
 private fun ConnectionSettingsSheet(
     currentWidth: Int,
     currentHeight: Int,
-    currentScaleMode: Int,
+    currentPointerSpeed: Float,
     onApplyDimensions: (Int, Int, String) -> Unit,
-    onApplyScaleMode: (Int) -> Unit,
+    onPointerSpeedChange: (Float) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
+
+    var pointerSpeedState by remember { mutableFloatStateOf(currentPointerSpeed) }
 
     val screenPixelW = remember {
         val dm = context.resources.displayMetrics
@@ -509,7 +535,7 @@ private fun ConnectionSettingsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 12.dp)
+                .padding(horizontal = 18.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -525,25 +551,25 @@ private fun ConnectionSettingsSheet(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            Icons.Rounded.Settings,
+                            Icons.Rounded.AspectRatio,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = "إعدادات البث والعرض",
-                        style = MaterialTheme.typography.titleSmall,
+                        text = stringResource(R.string.display_settings_title),
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                     )
                     Text(
-                        text = "التحكم في دقة الشاشة ونمط الملاءمة",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.55f),
+                        text = stringResource(R.string.display_settings_sub),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.6f),
                         fontSize = 11.sp,
                     )
                 }
@@ -553,52 +579,148 @@ private fun ConnectionSettingsSheet(
                 ) {
                     Icon(
                         Icons.Rounded.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(R.string.cancel),
                         tint = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.size(18.dp),
                     )
                 }
             }
 
-            // 1. Standard Presets
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // 1. Pointer Speed Control
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFF1E1E2E),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Rounded.Speed,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.pointer_speed_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                        Text(
+                            text = "%.1fx".format(pointerSpeedState),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+
+                    Slider(
+                        value = pointerSpeedState,
+                        onValueChange = {
+                            pointerSpeedState = it
+                            onPointerSpeedChange(it)
+                        },
+                        valueRange = 0.4f..2.2f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = Color(0xFF2E2E42),
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    // Quick presets: Slow, Normal, Fast
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        val presets = listOf(
+                            0.7f to R.string.pointer_speed_slow,
+                            1.0f to R.string.pointer_speed_normal,
+                            1.4f to R.string.pointer_speed_fast,
+                        )
+                        presets.forEach { (spd, labelRes) ->
+                            val isSel = kotlin.math.abs(pointerSpeedState - spd) < 0.08f
+                            Surface(
+                                onClick = {
+                                    pointerSpeedState = spd
+                                    onPointerSpeedChange(spd)
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSel) MaterialTheme.colorScheme.primary else Color(0xFF262638),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isSel) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.10f)
+                                ),
+                                modifier = Modifier.weight(1f).height(32.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = stringResource(labelRes),
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSel) MaterialTheme.colorScheme.onPrimary else Color.White.copy(alpha = 0.85f),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Standard Resolutions Presets
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "دقة العرض الأساسية",
+                    text = stringResource(R.string.res_section_standard),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                 )
 
-                val presets = listOf(
-                    Triple(1920, 1080, "1080p FHD"),
-                    Triple(1280, 720, "720p HD"),
-                    Triple(2560, 1440, "2K QHD"),
-                    Triple(1920, 1200, "16:10"),
-                    Triple(3840, 2160, "4K UHD"),
+                val row1 = listOf(
+                    Triple(1920, 1080, "1080p (1920 × 1080)"),
+                    Triple(1280, 720, "720p (1280 × 720)"),
+                )
+                val row2 = listOf(
+                    Triple(2560, 1440, "1440p (2560 × 1440)"),
+                    Triple(1920, 1200, "1200p (1920 × 1200)"),
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    presets.take(3).forEach { (w, h, label) ->
+                    row1.forEach { (w, h, label) ->
                         val isSelected = currentWidth == w && currentHeight == h
                         Surface(
-                            onClick = { onApplyDimensions(w, h, label) },
+                            onClick = { onApplyDimensions(w, h, label.substringBefore(" ")) },
                             shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF222233),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color(0xFF222233),
                             border = BorderStroke(
-                                1.dp,
-                                if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.08f)
+                                if (isSelected) 1.5.dp else 1.dp,
+                                if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.10f)
                             ),
-                            modifier = Modifier.weight(1f).height(34.dp),
+                            modifier = Modifier.weight(1f).height(44.dp),
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp)) {
                                 Text(
                                     text = label,
                                     fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) Color.Black else Color.White,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.9f),
                                 )
                             }
                         }
@@ -607,26 +729,26 @@ private fun ConnectionSettingsSheet(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    presets.drop(3).forEach { (w, h, label) ->
+                    row2.forEach { (w, h, label) ->
                         val isSelected = currentWidth == w && currentHeight == h
                         Surface(
-                            onClick = { onApplyDimensions(w, h, label) },
+                            onClick = { onApplyDimensions(w, h, label.substringBefore(" ")) },
                             shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF222233),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color(0xFF222233),
                             border = BorderStroke(
-                                1.dp,
-                                if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.08f)
+                                if (isSelected) 1.5.dp else 1.dp,
+                                if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.10f)
                             ),
-                            modifier = Modifier.weight(1f).height(34.dp),
+                            modifier = Modifier.weight(1f).height(44.dp),
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp)) {
                                 Text(
                                     text = label,
                                     fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) Color.Black else Color.White,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.9f),
                                 )
                             }
                         }
@@ -634,30 +756,30 @@ private fun ConnectionSettingsSheet(
                 }
             }
 
-            // 2. Adaptive Phone Screen
+            // 3. Phone Screen Match
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "مطابقة شاشة هاتفك",
+                    text = stringResource(R.string.res_section_phone),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                 )
 
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color(0xFF202030),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF202032),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
                             modifier = Modifier.size(32.dp),
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -672,141 +794,131 @@ private fun ConnectionSettingsSheet(
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                "شاشة الهاتف الحالية",
+                                stringResource(R.string.res_native_label),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
                                 fontSize = 12.sp,
                             )
                             Text(
-                                "${screenPixelW} × ${screenPixelH}",
+                                "$screenPixelW × $screenPixelH",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.5f),
-                                fontSize = 10.sp,
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 11.sp,
                             )
                         }
                         Button(
                             onClick = {
-                                onApplyDimensions(screenPixelW, screenPixelH, "${screenPixelW}×${screenPixelH}")
+                                onApplyDimensions(screenPixelW, screenPixelH, "${screenPixelW}x${screenPixelH}")
                             },
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.height(32.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(34.dp),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
                         ) {
-                            Text("مطابقة", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text(stringResource(R.string.res_match), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                     }
                 }
             }
 
-            // 3. Custom Resolution
+            // 4. Custom Resolution
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "أبعاد مخصصة",
+                    text = stringResource(R.string.res_section_custom),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                 )
 
-                Row(
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF202032),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OutlinedTextField(
-                        value = customW,
-                        onValueChange = { customW = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("العرض", fontSize = 10.sp, color = Color.White.copy(alpha = 0.6f)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        textStyle = androidx.compose.ui.text.TextStyle(
-                            fontSize = 13.sp,
-                            color = Color.White,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
-                        ),
-                    )
-                    Text("×", color = Color.White.copy(alpha = 0.6f), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    OutlinedTextField(
-                        value = customH,
-                        onValueChange = { customH = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("الارتفاع", fontSize = 10.sp, color = Color.White.copy(alpha = 0.6f)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        textStyle = androidx.compose.ui.text.TextStyle(
-                            fontSize = 13.sp,
-                            color = Color.White,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
-                        ),
-                    )
-                    Button(
-                        onClick = {
-                            val w = customW.toIntOrNull() ?: 1920
-                            val h = customH.toIntOrNull() ?: 1080
-                            onApplyDimensions(w, h, "${w}×${h}")
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.size(46.dp),
-                        contentPadding = PaddingValues(0.dp),
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(Icons.Rounded.Check, contentDescription = "Apply", modifier = Modifier.size(18.dp))
-                    }
-                }
-            }
-
-            // 4. Scale Mode
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "نمط ملاءمة الشاشة",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    val scaleModes = listOf(
-                        0 to "احتواء متناسق",
-                        3 to "ملء الشاشة",
-                        4 to "تكبير وقص",
-                    )
-                    scaleModes.forEach { (mode, label) ->
-                        val isSelected = currentScaleMode == mode
-                        Surface(
-                            onClick = { onApplyScaleMode(mode) },
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF222233),
-                            border = BorderStroke(
-                                1.dp,
-                                if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.08f)
-                            ),
-                            modifier = Modifier.weight(1f).height(34.dp),
+                        // Width field
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF2C2C40))
+                                .padding(horizontal = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = label,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) Color.Black else Color.White,
-                                )
-                            }
+                            Text(
+                                text = "W",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            BasicTextField(
+                                value = customW,
+                                onValueChange = { customW = it.filter { ch -> ch.isDigit() } },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White,
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+
+                        Text("×", color = Color.White.copy(alpha = 0.5f), fontWeight = FontWeight.Normal, fontSize = 14.sp)
+
+                        // Height field
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF2C2C40))
+                                .padding(horizontal = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "H",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            BasicTextField(
+                                value = customH,
+                                onValueChange = { customH = it.filter { ch -> ch.isDigit() } },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White,
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+
+                        // Apply button
+                        Button(
+                            onClick = {
+                                val w = customW.toIntOrNull() ?: 1920
+                                val h = customH.toIntOrNull() ?: 1080
+                                onApplyDimensions(w, h, "${w}x${h}")
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(38.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                        ) {
+                            Text(stringResource(R.string.res_apply), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                     }
                 }
@@ -939,11 +1051,13 @@ private fun StatusOverlay(
 
 @Composable
 private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) {
-    var dummyText by remember { mutableStateOf(TextFieldValue("")) }
+    val dummyPrefill = "   "
+    var dummyText by remember { mutableStateOf(TextFieldValue(dummyPrefill, TextRange(dummyPrefill.length))) }
     val focusRequester = remember { FocusRequester() }
 
     var isCtrlLatched by remember { mutableStateOf(false) }
     var isAltLatched by remember { mutableStateOf(false) }
+    var isShiftLatched by remember { mutableStateOf(false) }
     var isSuperLatched by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -957,18 +1071,23 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
         BasicTextField(
             value = dummyText,
             onValueChange = { newVal ->
-                if (newVal.text.isNotEmpty()) {
-                    for (ch in newVal.text) {
+                if (newVal.text.length < dummyText.text.length || newVal.text.isEmpty()) {
+                    val count = (dummyText.text.length - newVal.text.length).coerceAtLeast(1)
+                    for (i in 0 until count) {
+                        onKey(14, true)
+                        onKey(14, false)
+                    }
+                    dummyText = TextFieldValue(dummyPrefill, TextRange(dummyPrefill.length))
+                } else if (newVal.text.length > dummyText.text.length) {
+                    val typed = newVal.text.substring(dummyText.text.length)
+                    for (ch in typed) {
                         sendChar(ch, onKey)
                     }
                     if (isCtrlLatched) { onKey(29, false); isCtrlLatched = false }
                     if (isAltLatched) { onKey(56, false); isAltLatched = false }
+                    if (isShiftLatched) { onKey(42, false); isShiftLatched = false }
                     if (isSuperLatched) { onKey(125, false); isSuperLatched = false }
-                    dummyText = TextFieldValue("")
-                } else if (newVal.text.length < dummyText.text.length) {
-                    onKey(14, true)
-                    onKey(14, false)
-                    dummyText = TextFieldValue("")
+                    dummyText = TextFieldValue(dummyPrefill, TextRange(dummyPrefill.length))
                 }
             },
             modifier = Modifier
@@ -985,61 +1104,105 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
             modifier = Modifier
                 .fillMaxWidth()
                 .imePadding(),
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-            color = Color(0xEE1E1E2E),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
-            shadowElevation = 10.dp,
+            shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
+            color = Color(0xF8161624),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+            shadowElevation = 14.dp,
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .padding(horizontal = 8.dp, vertical = 7.dp),
                 verticalArrangement = Arrangement.spacedBy(5.dp),
             ) {
+                // Row 1: Functions, System & Backspace
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    KeyActionPill("Esc", Modifier.weight(1f)) { onKey(1, true); onKey(1, false) }
-                    KeyActionPill("Tab", Modifier.weight(1f)) { onKey(15, true); onKey(15, false) }
-                    KeyTogglePill("Ctrl", isCtrlLatched, Modifier.weight(1f)) {
-                        isCtrlLatched = !isCtrlLatched
-                        onKey(29, isCtrlLatched)
+                    KeyboardPill("Esc", Modifier.weight(0.95f)) { onKey(1, true); onKey(1, false) }
+                    KeyboardPill("Tab", Modifier.weight(0.95f)) { onKey(15, true); onKey(15, false) }
+                    KeyboardPill("F1", Modifier.weight(0.85f)) { onKey(59, true); onKey(59, false) }
+                    KeyboardPill("F2", Modifier.weight(0.85f)) { onKey(60, true); onKey(60, false) }
+                    KeyboardPill("F5", Modifier.weight(0.85f)) { onKey(63, true); onKey(63, false) }
+                    KeyboardPill("F11", Modifier.weight(0.95f)) { onKey(87, true); onKey(87, false) }
+                    KeyboardPill("F12", Modifier.weight(0.95f)) { onKey(88, true); onKey(88, false) }
+                    KeyboardPill(
+                        label = "⌫",
+                        modifier = Modifier.weight(1.15f),
+                        customColor = Color(0xFF32202A),
+                        customBorder = Color(0xFFFF5555).copy(alpha = 0.35f),
+                        textColor = Color(0xFFFF8888),
+                    ) {
+                        onKey(14, true)
+                        onKey(14, false)
                     }
-                    KeyTogglePill("Alt", isAltLatched, Modifier.weight(1f)) {
-                        isAltLatched = !isAltLatched
-                        onKey(56, isAltLatched)
-                    }
-                    KeyTogglePill("Super", isSuperLatched, Modifier.weight(1.1f)) {
-                        isSuperLatched = !isSuperLatched
-                        onKey(125, isSuperLatched)
-                    }
-                    KeyActionPill("Del", Modifier.weight(1f)) { onKey(111, true); onKey(111, false) }
-                    KeyActionPill("Enter", Modifier.weight(1.3f), isPrimary = true) { onKey(28, true); onKey(28, false) }
                     IconButton(
                         onClick = onClose,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(34.dp),
                     ) {
                         Icon(
                             Icons.Rounded.Close,
                             contentDescription = stringResource(R.string.close_keyboard),
-                            tint = Color.White.copy(alpha = 0.8f),
+                            tint = Color.White.copy(alpha = 0.75f),
                             modifier = Modifier.size(18.dp),
                         )
                     }
                 }
 
+                // Row 2: Modifiers & Productivity Shortcuts
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    KeyActionPill("Space", Modifier.weight(2.2f)) { onKey(57, true); onKey(57, false) }
-                    KeyActionPill("←", Modifier.weight(1f)) { onKey(105, true); onKey(105, false) }
-                    KeyActionPill("↑", Modifier.weight(1f)) { onKey(103, true); onKey(103, false) }
-                    KeyActionPill("↓", Modifier.weight(1f)) { onKey(108, true); onKey(108, false) }
-                    KeyActionPill("→", Modifier.weight(1f)) { onKey(106, true); onKey(106, false) }
+                    KeyboardTogglePill("Ctrl", isCtrlLatched, Modifier.weight(1.05f)) {
+                        isCtrlLatched = !isCtrlLatched
+                        onKey(29, isCtrlLatched)
+                    }
+                    KeyboardTogglePill("Alt", isAltLatched, Modifier.weight(0.95f)) {
+                        isAltLatched = !isAltLatched
+                        onKey(56, isAltLatched)
+                    }
+                    KeyboardTogglePill("Shift", isShiftLatched, Modifier.weight(1.05f)) {
+                        isShiftLatched = !isShiftLatched
+                        onKey(42, isShiftLatched)
+                    }
+                    KeyboardTogglePill("Win", isSuperLatched, Modifier.weight(0.95f)) {
+                        isSuperLatched = !isSuperLatched
+                        onKey(125, isSuperLatched)
+                    }
+                    KeyboardPill(stringResource(R.string.key_undo), Modifier.weight(1.0f)) {
+                        onKey(29, true); onKey(44, true); onKey(44, false); onKey(29, false)
+                    }
+                    KeyboardPill(stringResource(R.string.key_copy), Modifier.weight(1.0f)) {
+                        onKey(29, true); onKey(46, true); onKey(46, false); onKey(29, false)
+                    }
+                    KeyboardPill(stringResource(R.string.key_paste), Modifier.weight(1.0f)) {
+                        onKey(29, true); onKey(47, true); onKey(47, false); onKey(29, false)
+                    }
+                    KeyboardPill("Del", Modifier.weight(0.95f)) { onKey(111, true); onKey(111, false) }
+                    KeyboardPill("↵", Modifier.weight(1.2f), isPrimary = true) {
+                        onKey(28, true); onKey(28, false)
+                    }
+                }
+
+                // Row 3: Navigation, Spacebar & Arrows
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    KeyboardPill("Home", Modifier.weight(1.0f)) { onKey(102, true); onKey(102, false) }
+                    KeyboardPill("End", Modifier.weight(0.95f)) { onKey(107, true); onKey(107, false) }
+                    KeyboardPill("PgUp", Modifier.weight(1.0f)) { onKey(104, true); onKey(104, false) }
+                    KeyboardPill("PgDn", Modifier.weight(1.0f)) { onKey(109, true); onKey(109, false) }
+                    KeyboardPill("Space", Modifier.weight(2.0f)) { onKey(57, true); onKey(57, false) }
+                    KeyboardPill("←", Modifier.weight(0.9f)) { onKey(105, true); onKey(105, false) }
+                    KeyboardPill("↑", Modifier.weight(0.9f)) { onKey(103, true); onKey(103, false) }
+                    KeyboardPill("↓", Modifier.weight(0.9f)) { onKey(108, true); onKey(108, false) }
+                    KeyboardPill("→", Modifier.weight(0.9f)) { onKey(106, true); onKey(106, false) }
                 }
             }
         }
@@ -1047,50 +1210,74 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
 }
 
 @Composable
-private fun KeyActionPill(
+private fun KeyboardPill(
     label: String,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     isPrimary: Boolean = false,
+    customColor: Color? = null,
+    customBorder: Color? = null,
+    textColor: Color? = null,
     onClick: () -> Unit,
 ) {
+    val bgColor = when {
+        isPrimary -> MaterialTheme.colorScheme.primary
+        customColor != null -> customColor
+        else -> Color(0xFF242436)
+    }
+    val borderColor = when {
+        isPrimary -> MaterialTheme.colorScheme.primary
+        customBorder != null -> customBorder
+        else -> Color.White.copy(alpha = 0.10f)
+    }
+    val contentColor = when {
+        isPrimary -> MaterialTheme.colorScheme.onPrimary
+        textColor != null -> textColor
+        else -> Color(0xFFEEEEEE)
+    }
+
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(8.dp),
-        color = if (isPrimary) MaterialTheme.colorScheme.primary else Color(0xFF2B2B3D),
-        border = if (isPrimary) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
-        modifier = modifier.height(36.dp),
+        color = bgColor,
+        border = BorderStroke(1.dp, borderColor),
+        modifier = modifier.height(35.dp),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (isPrimary) Color.Black else Color.White,
+                fontWeight = if (isPrimary || textColor != null) FontWeight.Bold else FontWeight.Medium,
+                color = contentColor,
+                fontSize = 11.5.sp,
             )
         }
     }
 }
 
 @Composable
-private fun KeyTogglePill(
+private fun KeyboardTogglePill(
     label: String,
     isActive: Boolean,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(8.dp),
-        color = if (isActive) MaterialTheme.colorScheme.primary else Color(0xFF2B2B3D),
-        border = if (isActive) BorderStroke(1.5.dp, Color.White) else BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
-        modifier = modifier.height(36.dp),
+        color = if (isActive) MaterialTheme.colorScheme.primary else Color(0xFF242436),
+        border = BorderStroke(
+            1.dp,
+            if (isActive) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.10f),
+        ),
+        modifier = modifier.height(35.dp),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (isActive) Color.Black else Color.White,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                color = if (isActive) MaterialTheme.colorScheme.onPrimary else Color(0xFFEEEEEE),
+                fontSize = 11.5.sp,
             )
         }
     }

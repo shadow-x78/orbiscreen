@@ -23,7 +23,9 @@ rm -f "$HOME/.local/bin/orbiscreen"
 rm -f "$HOME/.local/bin/orbiscreen-gtk"
 rm -f "$HOME/.config/systemd/user/orbiscreen.service"
 
+rm -f "$HOME/.local/share/applications/orbiscreen.desktop"
 rm -f "$HOME/.local/share/applications/com.orbiscreen.OrbiscreenGtk.desktop"
+rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/orbiscreen.svg"
 rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"
 rm -rf "$HOME/.local/share/orbiscreen"
 
@@ -31,7 +33,9 @@ if [ "$EUID" -eq 0 ]; then
     echo "[Orbiscreen] Removing system-wide files..."
     rm -f /usr/bin/orbiscreen
     rm -f /usr/bin/orbiscreen-gtk
+    rm -f /usr/share/applications/orbiscreen.desktop
     rm -f /usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop
+    rm -f /usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
     rm -f /usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
     rm -rf /usr/share/orbiscreen
 fi

@@ -182,7 +182,7 @@ fun DiscoveryScreen(
             )
 
             val recent = state.recent
-            if (recent != null && state.discoveredHosts.none { it.host == recent.host }) {
+            if (recent != null && recent.host != "127.0.0.1" && recent.host != "localhost" && state.discoveredHosts.none { it.host == recent.host }) {
                 RecentHostCard(
                     recent = recent,
                     onConnect = { onConnect(recent.host, recent.port) },
@@ -289,11 +289,7 @@ private fun UsbHeroCard(usbPort: Int, onConnect: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = if (isReady) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-            },
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
     ) {
@@ -305,7 +301,7 @@ private fun UsbHeroCard(usbPort: Int, onConnect: () -> Unit) {
         ) {
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = if (isReady) UsbAmber.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
+                color = if (isReady) UsbAmber.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.size(48.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -332,14 +328,13 @@ private fun UsbHeroCard(usbPort: Int, onConnect: () -> Unit) {
                             color = ActiveGreen.copy(alpha = 0.18f),
                         ) {
                             Text(
-                                "ONLINE",
+                                stringResource(R.string.usb_status_ready).uppercase(),
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ActiveGreen,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 softWrap = false,
-                                letterSpacing = 0.5.sp,
                             )
                         }
                     }

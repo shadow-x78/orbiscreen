@@ -143,10 +143,18 @@ pub struct Transport {
 
 impl Transport {
     pub fn new(cfg: ServerConfig, input_tx: mpsc::Sender<IncomingInput>) -> Self {
+        Self::with_token(cfg, input_tx, None)
+    }
+
+    pub fn with_token(
+        cfg: ServerConfig,
+        input_tx: mpsc::Sender<IncomingInput>,
+        token: Option<String>,
+    ) -> Self {
         Self {
             cfg,
             input_tx,
-            token: generate_token(),
+            token: token.unwrap_or_else(generate_token),
         }
     }
 
@@ -166,7 +174,7 @@ impl Transport {
         mut shutdown_rx: tokio::sync::watch::Receiver<bool>,
     ) -> Result<(), TransportError> {
         let input_tx = self.input_tx;
-        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<SeqPacket>(360);
+        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<SeqPacket>(16);
         let join_buffer: Arc<Mutex<VecDeque<SeqPacket>>> = Arc::new(Mutex::new(VecDeque::new()));
         let state = AppState {
             config: self.cfg.clone(),
@@ -391,15 +399,15 @@ async fn auth_check(
                 ),
             },
         };
-        debug!(
+        warn!(
             "unauthorized request rejected (peer={}, {} {}, auth={}, query_token={}, expected prefix={} len={})",
             peer,
             request.method(),
             request.uri().path(),
             auth_desc,
             query_token(request.uri().query()).is_some(),
-            state.token.get(..4).unwrap_or(""),
-            state.token.len(),
+            state.token.get(..4).unwrap_or(&state.token),
+            state.token.len()
         );
         (
             StatusCode::UNAUTHORIZED,
@@ -436,11 +444,17 @@ async fn client_config(
             .map(|c| c.0.to_string())
             .unwrap_or_else(|| "?".into())
     );
-    Json(serde_json::json!({
-        "token": state.token,
-        "display_width": state.display_width,
-        "display_height": state.display_height,
-    }))
+    (
+        [
+            ("content-type", "application/json"),
+            ("cache-control", "no-cache, no-store, must-revalidate"),
+        ],
+        Json(serde_json::json!({
+            "token": state.token,
+            "display_width": state.display_width,
+            "display_height": state.display_height,
+        })),
+    )
 }
 
 async fn run_command(program: &str, args: &[&str]) -> bool {
@@ -555,6 +569,27 @@ async fn api_control(
             info!("host control: Ctrl+Alt+Del injected");
             (StatusCode::OK, Json(serde_json::json!({"ok": true})))
         }
+        Some("set_resolution") => {
+            let width = payload
+                .get("width")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(1920) as u32;
+            let height = payload
+                .get("height")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(1080) as u32;
+            info!("host control: requested resolution change to {width}x{height}");
+            // If running on KDE Plasma, invoke kscreen-doctor to switch virtual output mode
+            let mode_str = format!("output.Virtual-ORBISCREEN.mode.{width}x{height}@60");
+            let _ = tokio::process::Command::new("kscreen-doctor")
+                .arg(&mode_str)
+                .status()
+                .await;
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({"ok": true, "width": width, "height": height})),
+            )
+        }
         Some("open") => (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({"ok": false,
@@ -645,11 +680,12 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     gstreamer::init().ok();
 
-    let pipeline_str = "appsrc name=src format=time is-live=false \
+    let pipeline_str =
+        "appsrc name=src format=time is-live=true do-timestamp=false min-latency=0 max-latency=0 \
                         ! video/x-h264,stream-format=byte-stream,alignment=au,framerate=0/1 \
                         ! h264parse config-interval=1 \
                         ! mpegtsmux alignment=7 \
-                        ! appsink name=sink drop=false sync=false max-buffers=1024";
+                        ! appsink name=sink drop=false sync=false max-buffers=512 emit-signals=false";
     let pipeline = match gstreamer::parse::launch(pipeline_str) {
         Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
             Ok(pipeline) => pipeline,
@@ -694,7 +730,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     };
 
-    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(1024);
+    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(512);
     let tx_alive = tx.clone();
     appsink.set_callbacks(
         AppSinkCallbacks::builder()

@@ -426,6 +426,13 @@ fn apply_command(state: &mut WlState, cmd: WlCmd, extent: (u32, u32), start: Ins
                     pointer.motion_absolute(time, x, y, xw, yw);
                     pointer.frame();
                 }
+                PointerEvent::RelativeMove { dx, dy } => {
+                    let (xw, yw) = extent;
+                    let x = dx.clamp(-f64::from(xw), f64::from(xw)).round() as u32;
+                    let y = dy.clamp(-f64::from(yw), f64::from(yw)).round() as u32;
+                    pointer.motion_absolute(time, x, y, xw, yw);
+                    pointer.frame();
+                }
                 PointerEvent::Button { button, pressed } => {
                     if button == 0 || button > 8 {
                         warn!("invalid button {button}");

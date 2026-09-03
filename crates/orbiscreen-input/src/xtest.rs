@@ -70,6 +70,9 @@ impl XtestInjector {
                 let (rx, ry) = self.to_root(x, y);
                 self.fake(MOTION_NOTIFY_EVENT, 0, rx, ry)
             }
+            PointerEvent::RelativeMove { dx, dy } => {
+                self.fake(MOTION_NOTIFY_EVENT, 0, dx.round() as i16, dy.round() as i16)
+            }
             PointerEvent::Button { button, pressed } => {
                 if button == 0 || button > 8 {
                     return Err(InputError::Uinput(format!("invalid button: {button}")));

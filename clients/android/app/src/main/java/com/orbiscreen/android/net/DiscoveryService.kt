@@ -99,8 +99,8 @@ class DiscoveryService(private val context: Context) {
                 }
                 override fun onServiceUpdated(info: NsdServiceInfo) {
                     nsd.unregisterServiceInfoCallback(this)
-                    val host = info.hostAddresses.firstOrNull()?.hostAddress
-                    onResult(if (host != null) host to info.port else null)
+                    val ipv4 = info.hostAddresses.firstOrNull { it is java.net.Inet4Address }?.hostAddress
+                    onResult(if (ipv4 != null) ipv4 to info.port else null)
                 }
                 override fun onServiceLost() {
                     nsd.unregisterServiceInfoCallback(this)
@@ -118,7 +118,8 @@ class DiscoveryService(private val context: Context) {
                 }
                 @Suppress("DEPRECATION")
                 override fun onServiceResolved(info: NsdServiceInfo) {
-                    val host = info.host?.hostAddress
+                    val inet = info.host
+                    val host = if (inet is java.net.Inet4Address) inet.hostAddress else null
                     onResult(if (host != null) host to info.port else null)
                 }
             })

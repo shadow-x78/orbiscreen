@@ -59,6 +59,10 @@ impl Default for EncodeParams {
 
 #[derive(Debug, Error)]
 pub enum EncodeError {
+    #[error("pipeline is flushing")]
+    Flushing,
+    #[error("pipeline reached end of stream")]
+    Eos,
     #[error("gstreamer pipeline error: {0}")]
     Pipeline(String),
     #[error("failed to initialize gstreamer: {0}")]
@@ -148,6 +152,9 @@ impl Encoder {
             .map_err(|e| EncodeError::Pipeline(format!("appsink: {e}")))?
             .downcast::<AppSink>()
             .map_err(|_| EncodeError::Pipeline("appsink downcast".into()))?;
+        appsink.set_sync(false);
+        appsink.set_drop(false);
+        appsink.set_max_buffers(4);
         appsink.set_caps(Some(
             &gstreamer::Caps::builder("video/x-h264")
                 .field("stream-format", "byte-stream")
@@ -356,9 +363,11 @@ impl Encoder {
                 .map_err(|e| EncodeError::Pipeline(format!("copy_from_slice: {e}")))?;
             buffer_mut.set_pts(ClockTime::from_nseconds(pts_ns));
         }
-        self.appsrc
-            .push_buffer(buffer)
-            .map_err(|e| EncodeError::Pipeline(format!("push_buffer: {e}")))?;
+        self.appsrc.push_buffer(buffer).map_err(|e| match e {
+            gstreamer::FlowError::Flushing => EncodeError::Flushing,
+            gstreamer::FlowError::Eos => EncodeError::Eos,
+            other => EncodeError::Pipeline(format!("push_buffer: {other}")),
+        })?;
         Ok(())
     }
 
@@ -385,9 +394,11 @@ impl Encoder {
             })?;
             buffer_mut.set_pts(ClockTime::from_nseconds(pts_ns));
         }
-        self.appsrc
-            .push_buffer(buffer)
-            .map_err(|e| EncodeError::Pipeline(format!("push_buffer: {e}")))?;
+        self.appsrc.push_buffer(buffer).map_err(|e| match e {
+            gstreamer::FlowError::Flushing => EncodeError::Flushing,
+            gstreamer::FlowError::Eos => EncodeError::Eos,
+            other => EncodeError::Pipeline(format!("push_buffer: {other}")),
+        })?;
         Ok(())
     }
 

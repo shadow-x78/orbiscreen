@@ -37,16 +37,21 @@ class HostApi {
     )
 
     suspend fun token(host: String, port: Int): String? = withContext(Dispatchers.IO) {
-        withTimeoutOrNull(1500) {
+        withTimeoutOrNull(3500) {
             try {
-                val req = Request.Builder().url("http://$host:$port/client/config.json").build()
+                val req = Request.Builder()
+                    .url("http://$host:$port/client/config.json")
+                    .cacheControl(okhttp3.CacheControl.FORCE_NETWORK)
+                    .build()
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) return@withTimeoutOrNull null
                     val body = readBoundedBody(resp) ?: return@withTimeoutOrNull null
-                    JSONObject(body).optString("token").takeIf { it.isNotBlank() }
+                    val t = JSONObject(body).optString("token").takeIf { it.isNotBlank() }
+                    Log.i(TAG, "token fetched: prefix=${t?.take(4)}")
+                    t
                 }
             } catch (e: Exception) {
-                Log.v(TAG, "token fetch failed: ${e.message}")
+                Log.w(TAG, "token fetch failed: ${e.message}")
                 null
             }
         }

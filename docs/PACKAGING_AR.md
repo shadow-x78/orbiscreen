@@ -2,7 +2,7 @@
 
 # دليل التغليف متعدد التوزيعات - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.17.4-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.18.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -17,7 +17,7 @@
 
 ---
 
-مصفوفة الإصدار: `0.17.4` (مساحة العمل)، `versionCode = 42` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع - راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
+مصفوفة الإصدار: `0.17.4` (مساحة العمل)، `versionCode = 43` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع - راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
 
 يوفّر Orbiscreen تكوينات البناء وتعريفات الحزم لجميع توزيعات Linux الرئيسية وAndroid:
 
@@ -110,7 +110,7 @@ cp PKGBUILD aur-orbiscreen/
 cd aur-orbiscreen
 updpkgsums                     # يجلب أرشيف الوسم ويثبّت sha256 الحقيقية
 makepkg --printsrcinfo > .SRCINFO
-git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.17.4" && git push
+git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.18.0" && git push
 ```
 تثبيت المستخدم: `yay -S orbiscreen` (أو أي مساعد AUR) / `makepkg -si`.
 

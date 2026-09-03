@@ -116,6 +116,12 @@ impl WaylandInjector {
                     .await
                     .map_err(|e| InputError::Uinput(e.to_string()))?;
             }
+            PointerEvent::RelativeMove { dx, dy } => {
+                self.remote
+                    .notify_pointer_motion(&self.session, dx, dy, Default::default())
+                    .await
+                    .map_err(|e| InputError::Uinput(e.to_string()))?;
+            }
             PointerEvent::Button { button, pressed } => {
                 let state = if pressed {
                     KeyState::Pressed

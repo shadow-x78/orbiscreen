@@ -10,6 +10,7 @@ import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
@@ -28,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -122,15 +124,15 @@ class PlayerHolder(
 
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
-                    100,
-                    400,
-                    30,
-                    60,
+                    /* minBufferMs = */ 80,
+                    /* maxBufferMs = */ 250,
+                    /* bufferForPlaybackMs = */ 25,
+                    /* bufferForPlaybackAfterRebufferMs = */ 50,
                 )
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
 
-            ExoPlayer.Builder(context)
+            val newPlayer = ExoPlayer.Builder(context)
                 .setMediaSourceFactory(mediaSourceFactory)
                 .setRenderersFactory(buildRenderersFactory())
                 .setLoadControl(loadControl)
@@ -179,11 +181,12 @@ class PlayerHolder(
                     })
                     prepare()
                 }
+            newPlayer
         } catch (e: Throwable) {
             Log.e("OrbiPlayer", "failed to build player", e)
             _event.value = StreamEvent.Error(-2, e.message ?: "Player init failed")
             scheduleReconnect()
-            return null
+            null
         }
         _player.value = player
         return player
@@ -191,6 +194,8 @@ class PlayerHolder(
 
     private fun buildRenderersFactory(): DefaultRenderersFactory {
         val factory = DefaultRenderersFactory(context)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF)
+            .setEnableDecoderFallback(true)
         if (prefs.forceSoftwareDecoder) {
             factory.setMediaCodecSelector(
                 object : MediaCodecSelector {

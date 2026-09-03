@@ -71,6 +71,10 @@ class PrefsStore(context: Context) {
         get() = prefs.getInt(KEY_USB_PORT, DEFAULT_USB_PORT).coerceIn(1024, 65535)
         set(value) { prefs.edit { putInt(KEY_USB_PORT, value.coerceIn(1024, 65535)) } }
 
+    var pointerSpeed: Float
+        get() = prefs.getFloat(KEY_POINTER_SPEED, 1.0f).coerceIn(0.3f, 3.0f)
+        set(value) { prefs.edit { putFloat(KEY_POINTER_SPEED, value.coerceIn(0.3f, 3.0f)) } }
+
     fun clearRecent() {
         prefs.edit {
             remove(KEY_RECENT_HOST); remove(KEY_RECENT_PORT); remove(KEY_RECENT_TS)
@@ -86,5 +90,6 @@ class PrefsStore(context: Context) {
         private const val KEY_SUBNET = "enable_subnet"
         private const val KEY_SW_DECODER = "sw_decoder"
         private const val KEY_USB_PORT = "usb_port"
+        private const val KEY_POINTER_SPEED = "pointer_speed"
     }
 }

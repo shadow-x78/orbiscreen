@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.17.4
+Version:        0.18.0
 Release:        1%{?dist}
 Summary:        Real virtual secondary displays for Linux, streamed to Android over Wi-Fi or USB
 
@@ -98,6 +98,8 @@ fi
 %{_datadir}/orbiscreen/install-evdi-module.sh
 
 %changelog
+* Wed Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.0-1
+- Release 0.18.0: Stylus pressure/tilt digitizer, auto-orientation, production desktop launcher, SEO-optimized docs and banner.
 * Wed Sep 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.17.4-1
 - Release 0.17.4: Zero-latency NVENC, 60 FPS damage pump, Android UI overhaul, and clean packaging.
 

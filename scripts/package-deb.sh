@@ -21,9 +21,12 @@ rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}/DEBIAN"
 mkdir -p "${BUILD_DIR}/usr/bin"
 mkdir -p "${BUILD_DIR}/usr/lib/systemd/user"
-mkdir -p "${BUILD_DIR}/usr/share/orbiscreen/client/vendor"
+mkdir -p "${BUILD_DIR}/usr/share/applications"
+mkdir -p "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps"
 
 cp -f target/release/orbiscreen "${BUILD_DIR}/usr/bin/"
+cp -f data/orbiscreen.desktop "${BUILD_DIR}/usr/share/applications/"
+cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/"
 
 cp -f clients/web/index.html "${BUILD_DIR}/usr/share/orbiscreen/client/"
 cp -f clients/web/style.css "${BUILD_DIR}/usr/share/orbiscreen/client/"

@@ -182,6 +182,10 @@ pub fn default_config_path() -> std::path::PathBuf {
     std::path::PathBuf::from("orbiscreen.toml")
 }
 
+pub fn default_token_path() -> std::path::PathBuf {
+    default_config_path().with_file_name("token")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
