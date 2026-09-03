@@ -1,12 +1,19 @@
+orbiscreen (0.18.1-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.18.1 for Ubuntu noble.
+  * Pure CLI daemon refactoring: removed desktop application launcher.
+  * Synchronized package metadata descriptions across all Linux distributions.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 03 Sep 2026 18:00:00 +0300
+
 orbiscreen (0.18.0-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.18.0 for Ubuntu noble.
   * Native Graphic Digitizer with stylus pressure/tilt (4095 levels, Krita/GIMP support).
   * Auto-orientation: virtual display adapts aspect ratio automatically on device rotation.
-  * Production XDG desktop launcher with right-click Stop/Doctor Quick Actions.
-  * SEO-optimized README and Arabic README with Schema.org JSON-LD, viral sharing buttons.
+  * SEO-optimized README and Arabic README with rich shields, viral sharing buttons.
   * Professional SVG banner with crisp vector icons replacing emoji.
-  * Packaging: .deb, .rpm, AppImage and install.sh now bundle orbiscreen.desktop and icon.
+  * Packaging: updated .deb, .rpm, and AppImage CLI distributions.
 
  -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 03 Sep 2026 16:00:00 +0300
 

@@ -21,13 +21,9 @@ rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}/DEBIAN"
 mkdir -p "${BUILD_DIR}/usr/bin"
 mkdir -p "${BUILD_DIR}/usr/lib/systemd/user"
-mkdir -p "${BUILD_DIR}/usr/share/applications"
-mkdir -p "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps"
 mkdir -p "${BUILD_DIR}/usr/share/orbiscreen/client/vendor"
 
 cp -f target/release/orbiscreen "${BUILD_DIR}/usr/bin/"
-cp -f data/orbiscreen.desktop "${BUILD_DIR}/usr/share/applications/"
-cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/"
 
 cp -f clients/web/index.html "${BUILD_DIR}/usr/share/orbiscreen/client/"
 cp -f clients/web/style.css "${BUILD_DIR}/usr/share/orbiscreen/client/"
@@ -65,7 +61,7 @@ Description: Turn any Android tablet or phone into a second monitor for Linux
  Orbiscreen turns Android tablets and phones into low-latency (~25ms)
  extended displays for Linux desktops on Wayland and X11. Features native
  graphic tablet digitizer with stylus pressure and tilt for Krita/GIMP,
- auto-orientation, hardware encoding (NVENC/VAAPI), and desktop launcher integration.
+ auto-orientation, and hardware encoding (NVENC/VAAPI).
 EOF
 
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/prerm"

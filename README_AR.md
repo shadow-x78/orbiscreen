@@ -10,7 +10,7 @@
 
 **شاشة افتراضية ثانية حقيقية ومستقلة وبزمن استجابة فائق السرعة (~25ms) لنظام Linux (Wayland و X11) تُبث إلى أجهزة وهواتف Android. البديل الأقوى مفتوح المصدر لـ Spacedesk و Apple Sidecar على لينكس.**
 
-[![الإصدار](https://img.shields.io/badge/version-0.18.0-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.18.1-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=for-the-badge&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
@@ -95,7 +95,6 @@
 - **شاشة افتراضية حقيقية عبر `evdi`** (X11 *و* Wayland)، **أو بدون أي root على KDE Plasma**: مونيتور افتراضي يُنشئه KWin عبر `zkde-screencast` (بلا وحدة نواة وبلا نافذة مشاركة)، مع تراجع التقاط portal في غير ذلك
 - **لوح رسم رقمي بحساسية ضغط وميلان القلم**: دعم كامل لـ 4095 مستوى ضغط على نواة لينكس عبر `uinput` لبرامج Krita و GIMP و Blender
 - **تدوير تلقائي للدقة (Auto-Orientation)**: يتعرف تلقائياً على تدوير الجهاز اللوحي بين الوضع الأفقي والرأسي ويبدل الأبعاد فورياً
-- **إطلاق مكتبي مباشر بنقرة واحدة**: تشغيل وإيقاف وفحص النظام من قائمة تطبيقات سطح المكتب الرسمية دون فتح سطر الأوامر
 - **لوحة مفاتيح علوية واسعة من 3 أسطر**: تثبيت في أعلى الشاشة لضمان عدم حجب شريط المهام السفلي أو سجلات الأوامر
 - **عميل Android بواجهة Material 3**: مبني بأحدث معايير Jetpack Compose ولوحة ألوان Catppuccin المتطورة
 - **عميل ويب مبنّى داخلياً**: شاهد من أي متصفح على `http://<host>:8788/` (MSE عبر `mpegts.js` المضمنة محلياً دون الحاجة لإنترنت)

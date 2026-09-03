@@ -10,7 +10,7 @@
 
 **High-performance, ultra-low latency (~25ms) virtual secondary display for Linux (Wayland &amp; X11) streamed to Android tablets and phones. The open-source Spacedesk and Apple Sidecar alternative for Linux.**
 
-[![Version](https://img.shields.io/badge/version-0.18.0-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.18.1-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=for-the-badge&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
@@ -96,7 +96,6 @@
 - **Material 3 Android client** - Jetpack Compose, Catppuccin Mocha / Latte brand palette, light/dark theme
 - **Graphic Digitizer with Stylus Pressure &amp; Tilt** - 4095 pressure levels mapped to Linux kernel `uinput` for Krita, GIMP, and Blender
 - **Auto-Orientation Resolution Adaptation** - automatically swaps width &amp; height when your phone/tablet rotates between landscape and portrait
-- **Desktop Application Launcher** - start, stop, or diagnose Orbiscreen directly from your application launcher without opening a terminal
 - **3-Row Spacious Keyboard Overlay** - top-docked layout ensuring bottom taskbars, terminals, and prompts stay 100% visible
 - **Built-in web client** - watch from any browser at `http://<host>:8788/` (MSE via the locally bundled `mpegts.js`, no CDN)
 - **Live discovery** - NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner

@@ -5,9 +5,10 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.18.0
+Version:        0.18.1
 Release:        1%{?dist}
 Summary:        Turn any Android tablet or phone into a low-latency second monitor for Linux
+
 License:        GPL-3.0-or-later
 URL:            https://github.com/shadow-x78/orbiscreen
 Source0:        %{url}/archive/v%{version}/orbiscreen-%{version}.tar.gz
@@ -35,7 +36,7 @@ extended monitors for Linux desktops on Wayland and X11. Features native
 graphic tablet digitizer with 4095 levels of stylus pressure and tilt for
 Krita/GIMP, auto-rotating display orientation, rootless KWin/wlroots virtual
 displays, hardware encoding (NVENC/VAAPI), reverse multi-touch and mouse
-control, USB ADB tunneling, and zero-CLI desktop application integration.
+control, and USB ADB tunneling.
 
 %prep
 %autosetup -n orbiscreen-%{version} -p1 -a1
@@ -100,8 +101,11 @@ fi
 %{_datadir}/orbiscreen/install-evdi-module.sh
 
 %changelog
+* Wed Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.1-1
+- Release 0.18.1: Pure CLI daemon refactoring, removal of desktop launcher, and package description synchronization.
+
 * Wed Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.0-1
-- Release 0.18.0: Stylus pressure/tilt digitizer, auto-orientation, production desktop launcher, SEO-optimized docs and banner.
+- Release 0.18.0: Stylus pressure/tilt digitizer, auto-orientation, SEO-optimized docs and banner.
 * Wed Sep 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.17.4-1
 - Release 0.17.4: Zero-latency NVENC, 60 FPS damage pump, Android UI overhaul, and clean packaging.
 

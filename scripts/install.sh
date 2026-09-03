@@ -17,17 +17,6 @@ if command -v cargo >/dev/null 2>&1; then
     install -m755 target/release/orbiscreen "${INSTALL_DIR}/orbiscreen.new"
     mv -f "${INSTALL_DIR}/orbiscreen.new" "${INSTALL_DIR}/orbiscreen"
 
-    echo "[Orbiscreen] Installing desktop entry and icon..."
-    mkdir -p ~/.local/share/applications
-    mkdir -p ~/.local/share/icons/hicolor/scalable/apps
-    install -m644 data/orbiscreen.desktop ~/.local/share/applications/orbiscreen.desktop
-    install -m644 data/orbiscreen.svg ~/.local/share/icons/hicolor/scalable/apps/orbiscreen.svg
-    if command -v update-desktop-database >/dev/null 2>&1; then
-        update-desktop-database ~/.local/share/applications 2>/dev/null || true
-    fi
-    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
-        gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor 2>/dev/null || true
-    fi
 
     echo "[Orbiscreen] Installing web client files..."
     mkdir -p ~/.local/share/orbiscreen/client/vendor

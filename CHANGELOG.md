@@ -2,23 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.18.1] - 2026-09-03
+
+Pure CLI daemon architecture, removal of desktop application launcher, and synchronized package metadata across all distribution channels.
+
+### 🎨 Changed
+- **Pure CLI Daemon Architecture**: Completely removed `data/orbiscreen.desktop` and application launcher integration to focus Orbiscreen entirely on a headless and CLI daemon workflow.
+- **`install.sh` & `uninstall.sh`**: Stripped desktop database triggers (`update-desktop-database`, `gtk-update-icon-cache`) and application entry installations. Clean uninstallation now sweeps legacy files.
+- **Package Metadata Synchronization**: Unified and updated project descriptions across Debian/Ubuntu control, RPM spec, COPR spec, Arch Linux AUR PKGBUILD, and Fedora COPR project settings.
+- **Distribution Packages**: Cleaned `.deb` and `.rpm` file manifests to package only the CLI daemon, web client, and systemd user unit.
+
+### 🔧 CI / Packaging
+- **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.18.1 with new changelog entry.
+- **debian/changelog**: Added 0.18.1-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.18.1.
+- **Android `versionCode`**: Incremented to 44; `versionName` updated to "0.18.1".
+
 ## [v0.18.0] - 2026-09-03
 
-Native Graphic Digitizer (stylus pressure & tilt), auto-orientation virtual display, production desktop launcher, SEO-optimized README and banners, and comprehensive packaging improvements.
+Native Graphic Digitizer (stylus pressure & tilt), auto-orientation virtual display, pure CLI daemon workflow, SEO-optimized README and banners, and comprehensive packaging improvements.
 
 ### ✨ Added
 - **Graphic Tablet Digitizer & Stylus Pressure/Tilt**: Full Linux `uinput` tablet digitizer support - `BTN_TOOL_PEN`, `BTN_TOUCH`, `ABS_PRESSURE` (4095 levels), `ABS_TILT_X/Y`. Android intercepts active stylus events (`TOOL_TYPE_STYLUS`/`TOOL_TYPE_ERASER`), reads normalized pressure (`ev.pressure`) and tilt (`AXIS_TILT`, `AXIS_ORIENTATION`), and forwards to `InputDispatcher.stylus()` → `POST /input`. Krita, GIMP, Blender, and Inkscape respond with full brush pressure sensitivity.
 - **Auto-Orientation Resolution Adaptation**: `StreamScreen.kt` now observes `LocalConfiguration.current.orientation`; on Landscape↔Portrait flip, it calls `viewModel.updateDimensions(curH, curW, ...)` to invoke `kscreen-doctor` on the host and swap the virtual display aspect ratio automatically - no black bars, no manual settings.
-- **Production Desktop Application Launcher** (`data/orbiscreen.desktop`): Full XDG desktop entry integrated into KDE Kickoff, GNOME Activities, rofi, and all standard app launchers. Supports right-click Quick Actions: **Stop** (graceful shutdown) and **Doctor** (diagnostics in terminal). Zero-CLI workflow: users can start, stop, and diagnose without ever opening a terminal.
 - **Production-Grade SEO & Social Discovery**: Fully rewritten `README.md` and `README_AR.md` with `style=for-the-badge` shields, 1-click viral sharing buttons (Reddit, X/Twitter, Hacker News), comprehensive Spacedesk/Deskreen/Weylus/Sidecar comparison matrix, rich FAQ section targeting Google "People Also Ask" boxes, and popular use-case sections for search-intent optimization.
 - **Professional SVG Repository Banner** (`assets/logo/orbiscreen-banner.svg`): 1280×400 dark-themed banner with crisp vector icons (no blurry filter halos), featuring precise SVG paths for Lightning, Monitor, and Stylus Pen icons, with a clean dotless brand logo.
 - **Friendly Capture Pipeline Error Guidance**: `resolve_frame_source` in daemon now emits human-readable `eprintln!` messages directing users to `orbiscreen doctor --fix` when the capture pipeline fails to initialize automatically.
 
 ### 🎨 Changed
-- **`install.sh` Production Upgrade**: Now installs `data/orbiscreen.desktop` to `~/.local/share/applications/` and `data/orbiscreen.svg` to `~/.local/share/icons/hicolor/scalable/apps/`, and runs `update-desktop-database` / `gtk-update-icon-cache` automatically.
-- **`uninstall.sh` Cleanup**: Removes all installed desktop entry and icon files (`orbiscreen.desktop`, `orbiscreen.svg`) for both user-local and system-wide installs.
-- **`package-deb.sh` Packaging**: Installs `orbiscreen.desktop` and `orbiscreen.svg` into the `.deb` package under `/usr/share/applications/` and `/usr/share/icons/hicolor/scalable/apps/`.
-- **`data/orbiscreen.spec` (RPM)**: Adds `orbiscreen.desktop` to `%install` and `%files`, making the RPM package include the application launcher.
+- **`uninstall.sh` Cleanup**: Removes all installed daemon binary, service, and legacy configuration files.
 - **README badges** upgraded from `style=flat-square` to `style=for-the-badge` throughout for higher visual impact.
 - **CONTRIBUTING.md**: Removed stale `--exclude orbiscreen-gtk` flags from verification commands.
 - **ARCHITECTURE.md** (EN & AR): Documented the full Graphic Tablet Digitizer pipeline with `uinput` event codes and Android stylus axis mapping.
