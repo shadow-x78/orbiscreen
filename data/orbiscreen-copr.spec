@@ -31,12 +31,12 @@ Recommends:     gstreamer1-plugins-ugly-free
 Recommends:     android-tools
 
 %description
-Orbiscreen turns Android tablets and phones into high-performance (~25ms)
+Orbiscreen turns Android tablets and phones into high-performance
 extended monitors for Linux desktops on Wayland and X11. Features native
-graphic tablet digitizer with 4095 levels of stylus pressure and tilt for
-Krita/GIMP, auto-rotating display orientation, rootless KWin/wlroots virtual
-displays, hardware encoding (NVENC/VAAPI), reverse multi-touch and mouse
-control, and USB ADB tunneling.
+graphic tablet digitizer with stylus pressure and tilt for Krita/GIMP,
+auto-rotating display orientation, rootless KWin/wlroots virtual displays,
+hardware encoding (NVENC/VAAPI), reverse multi-touch and mouse control,
+and USB ADB tunneling.
 
 %prep
 %autosetup -n orbiscreen-%{version} -p1 -a1

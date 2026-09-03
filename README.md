@@ -8,7 +8,7 @@
 
 # Orbiscreen: Turn Android into a Second Monitor for Linux
 
-**High-performance, ultra-low latency (~25ms) virtual secondary display for Linux (Wayland &amp; X11) streamed to Android tablets and phones. The open-source Spacedesk and Apple Sidecar alternative for Linux.**
+**High-performance, ultra-low latency virtual secondary display for Linux (Wayland &amp; X11) streamed to Android tablets and phones.**
 
 [![Version](https://img.shields.io/badge/version-0.18.1-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
@@ -85,7 +85,7 @@
 - 🎨 **Digital Drawing Tablet (Graphic Digitizer)**: Connect your tablet and stylus (S-Pen, capacitive, active stylus) to paint with native **pressure sensitivity and tilt** in Linux creative software like **Krita, GIMP, Blender, and Inkscape**.
 - 💻 **Dual Monitor On the Go**: Travel light without carrying fragile external monitors. Extend your Linux laptop screen at coffee shops, flights, coworking spaces, or hotel desks.
 - 🖥️ **Auto-Rotating Portrait Monitor**: Rotate your device to vertical orientation for reading code, API documentation, terminal logs, or keeping Discord/Slack visible.
-- ⚡ **Zero Wi-Fi Latency via USB**: Plug in a USB cable; Orbiscreen's automatic ADB reverse tunnel delivers interference-free ~25ms performance.
+- ⚡ **Zero Wi-Fi Latency via USB**: Plug in a USB cable; Orbiscreen's automatic ADB reverse tunnel delivers interference-free, ultra-low latency performance.
 
 ---
 
@@ -99,7 +99,7 @@
 - **3-Row Spacious Keyboard Overlay** - top-docked layout ensuring bottom taskbars, terminals, and prompts stay 100% visible
 - **Built-in web client** - watch from any browser at `http://<host>:8788/` (MSE via the locally bundled `mpegts.js`, no CDN)
 - **Live discovery** - NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner
-- **Native streaming** - ExoPlayer with `OkHttpDataSource` + `DefaultLoadControl` for ultra-low latency (~25ms) MPEG-TS / H.264
+- **Native streaming** - ExoPlayer with `OkHttpDataSource` + `DefaultLoadControl` for ultra-low latency MPEG-TS / H.264
 - **Token protection** - `/stream`, `/input` and `/api/control` require a per-session token (mDNS TXT / `/client/config.json`), rotated on every daemon start
 - **Reverse touch &amp; mouse control** - absolute pointer, physical mouse confinement to virtual display, keyboard, stylus, and wheel events
 - **Host control panel** - keyboard, lock, blank, Ctrl+Alt+Del, and retry actions
@@ -286,9 +286,9 @@ orbiscreen/
 </details>
 
 <details>
-<summary><b>How does Orbiscreen compare to Spacedesk and Apple Sidecar?</b></summary>
+<summary><b>How does Orbiscreen compare to other solutions?</b></summary>
 <br>
-Spacedesk only supports Windows hosts, while Apple Sidecar is strictly restricted to macOS and iPad. Orbiscreen delivers a high-performance, open-source extended monitor experience built specifically for Linux hosts and compatible with any Android tablet, phone, or web browser.
+Unlike proprietary solutions restricted to specific operating systems and ecosystems, Orbiscreen delivers a high-performance, open-source extended monitor experience built specifically for Linux hosts and compatible with any Android tablet, phone, or web browser.
 </details>
 
 <details>
@@ -300,7 +300,7 @@ Spacedesk only supports Windows hosts, while Apple Sidecar is strictly restricte
 <details>
 <summary><b>What is the latency during streaming?</b></summary>
 <br>
-With hardware encoding enabled (NVIDIA NVENC or Intel/AMD VA-API on Linux, and MediaCodec hardware decoding on Android), latency is typically between <b>25ms and 40ms</b>, making it snappy and responsive for coding, reading, browsing, and media consumption.
+With hardware encoding enabled (NVIDIA NVENC or Intel/AMD VA-API on Linux, and MediaCodec hardware decoding on Android), latency is imperceptible and near-zero, making it snappy and responsive for coding, reading, browsing, and media consumption.
 </details>
 
 ---

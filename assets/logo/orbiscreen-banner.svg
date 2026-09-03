@@ -65,12 +65,12 @@
     <!-- Feature Pills -->
     <g transform="translate(0, 176)">
 
-      <!-- Pill 1: Latency (25ms) -->
+      <!-- Pill 1: Latency -->
       <g transform="translate(0, 0)">
         <rect width="148" height="38" rx="10" fill="#181a27" stroke="#89b4fa" stroke-width="1.2"/>
         <!-- Lightning Icon -->
         <path d="M 23 11 L 15 21 L 20 21 L 17 29 L 26 18 L 21 18 Z" fill="#89b4fa"/>
-        <text x="80" y="24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="700" fill="#89b4fa" text-anchor="middle">25ms Latency</text>
+        <text x="80" y="24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="700" fill="#89b4fa" text-anchor="middle">Low Latency</text>
       </g>
 
       <!-- Pill 2: Wayland & X11 -->

@@ -24,9 +24,9 @@ license = "GPL-3.0-or-later"
 authors = ["shadow-x78"]
 repository = "https://github.com/shadow-x78/orbiscreen"
 homepage = "https://github.com/shadow-x78/orbiscreen"
-description = "Turn any Android tablet or phone into a low-latency second monitor for Linux (Wayland & X11). The ultimate Spacedesk and Apple Sidecar alternative for Linux."
+description = "Turn any Android tablet or phone into a high-performance second monitor for Linux (Wayland & X11) with ultra-low latency, hardware encoding, and reverse touch control."
 readme = "README.md"
-keywords = ["second-monitor", "virtual-display", "wayland", "android", "spacedesk-alternative"]
+keywords = ["second-monitor", "virtual-display", "wayland", "android", "extended-display"]
 categories = ["command-line-utilities", "multimedia::video", "hardware-support"]
 
 # ── Shared Dependencies ──

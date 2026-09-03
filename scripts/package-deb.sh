@@ -58,7 +58,7 @@ Section: utils
 Priority: optional
 Homepage: https://github.com/shadow-x78/orbiscreen
 Description: Turn any Android tablet or phone into a second monitor for Linux
- Orbiscreen turns Android tablets and phones into low-latency (~25ms)
+ Orbiscreen turns Android tablets and phones into low-latency
  extended displays for Linux desktops on Wayland and X11. Features native
  graphic tablet digitizer with stylus pressure and tilt for Krita/GIMP,
  auto-orientation, and hardware encoding (NVENC/VAAPI).
