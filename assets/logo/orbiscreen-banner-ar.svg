@@ -34,22 +34,17 @@
 
   <!-- Right: Brand Logo Group (RTL mirrored position) -->
   <g transform="translate(930, 75)">
-    <!-- Decorative outer ring -->
     <circle cx="125" cy="125" r="118" fill="none" stroke="#89b4fa" stroke-width="1" opacity="0.15" stroke-dasharray="6 6"/>
-
-    <!-- Primary Display Ring -->
     <circle cx="125" cy="125" r="92" fill="none" stroke="url(#brandBlue)" stroke-width="28"/>
-
-    <!-- Extension Screen Dot (The Orbiting Display mirrored to bottom-left facing the text) -->
     <circle cx="60" cy="190" r="34" fill="url(#brandBlue)"/>
     <circle cx="60" cy="190" r="34" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.4"/>
   </g>
 
-  <!-- Left: Title, Subtitle, and Feature Pills (RTL aligned to x=860) -->
+  <!-- Left: Title, Subtitle, and Feature Pills -->
   <g transform="translate(0, 80)">
-    <!-- Main Title -->
-    <text x="860" y="58" text-anchor="start" direction="rtl" font-family="'Noto Sans Arabic', 'Cairo', 'Segoe UI', sans-serif" font-size="60" font-weight="900" fill="#ffffff">
-      أوربي <tspan fill="url(#brandBlue)">سكرين</tspan>
+    <!-- Main Title: English ORBISCREEN -->
+    <text x="860" y="60" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="64" font-weight="900" fill="#ffffff" letter-spacing="-1.5">
+      ORBI<tspan fill="url(#brandBlue)">SCREEN</tspan>
     </text>
 
     <!-- Subtitle -->
@@ -58,12 +53,12 @@
     </text>
 
     <!-- Description Details -->
-    <text x="860" y="146" text-anchor="start" direction="rtl" font-family="'Noto Sans Arabic', 'Cairo', 'Segoe UI', sans-serif" font-size="15.5" font-weight="500" fill="#a6adc8">
-      مفتوح المصدر · Wayland و X11 · زمن استجابة فائق · دعم القلم الرقمي واللمس
+    <text x="860" y="144" text-anchor="start" direction="rtl" font-family="'Noto Sans Arabic', 'Cairo', 'Segoe UI', sans-serif" font-size="15.5" font-weight="500" fill="#a6adc8">
+      مفتوح المصدر · Wayland &amp; X11 · زمن استجابة فائق · دعم القلم الرقمي واللمس
     </text>
 
     <!-- Feature Pills (RTL ordered from right to left, aligned to x=860) -->
-    <g transform="translate(358, 182)">
+    <g transform="translate(358, 180)">
       <!-- Pill 3 (Leftmost): قلم رقمي ولمس -->
       <g transform="translate(0, 0)">
         <rect width="160" height="38" rx="10" fill="#181a27" stroke="#f9e2af" stroke-width="1.2"/>
@@ -73,10 +68,10 @@
         </svg>
       </g>
 
-      <!-- Pill 2 (Middle): Wayland و X11 -->
+      <!-- Pill 2 (Middle): Wayland & X11 -->
       <g transform="translate(176, 0)">
         <rect width="160" height="38" rx="10" fill="#181a27" stroke="#a6e3a1" stroke-width="1.2"/>
-        <text x="118" y="19" dominant-baseline="central" text-anchor="end" font-family="'Noto Sans Arabic', 'Segoe UI', sans-serif" font-size="13.5" font-weight="700" fill="#a6e3a1">Wayland و X11</text>
+        <text x="118" y="19" dominant-baseline="central" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="700" fill="#a6e3a1">Wayland &amp; X11</text>
         <svg x="126" y="11" width="16" height="16" viewBox="0 0 24 24" fill="#a6e3a1">
           <path d="M 20 3 L 4 3 C 2.9 3 2 3.9 2 5 L 2 15 C 2 16.1 2.9 17 4 17 L 10 17 L 10 19 L 7 19 C 6.4 19 6 19.4 6 20 C 6 20.6 6.4 21 7 21 L 17 21 C 17.6 21 18 20.6 18 20 C 18 19.4 17.6 19 17 19 L 14 19 L 14 17 L 20 17 C 21.1 17 22 16.1 22 15 L 22 5 C 22 3.9 21.1 3 20 3 Z M 20 15 L 4 15 L 4 5 L 20 5 L 20 15 Z"/>
         </svg>
