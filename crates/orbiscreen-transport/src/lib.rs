@@ -580,7 +580,6 @@ async fn api_control(
                 .and_then(|v| v.as_u64())
                 .unwrap_or(1080) as u32;
             info!("host control: requested resolution change to {width}x{height}");
-            // If running on KDE Plasma, invoke kscreen-doctor to switch virtual output mode
             let mode_str = format!("output.Virtual-ORBISCREEN.mode.{width}x{height}@60");
             let _ = tokio::process::Command::new("kscreen-doctor")
                 .arg(&mode_str)

@@ -1,3 +1,12 @@
+orbiscreen (0.18.3-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.18.3 for Ubuntu noble.
+  * Android 1:1 web client parity: direct keyboard typing via hidden IME, Material 3 hotkey overlay.
+  * Streamlined overlay states, VNC cursor isolation, and brand SVG/PNG favicons.
+  * Refined CLI ASCII logo geometry and standardized command outputs.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Thu, 04 Sep 2026 03:50:00 +0300
+
 orbiscreen (0.18.2-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.18.2 for Ubuntu noble.

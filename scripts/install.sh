@@ -24,6 +24,9 @@ if command -v cargo >/dev/null 2>&1; then
     cp clients/web/index.html ~/.local/share/orbiscreen/client/
     cp clients/web/style.css ~/.local/share/orbiscreen/client/
     cp clients/web/app.js ~/.local/share/orbiscreen/client/
+    cp clients/web/favicon.svg ~/.local/share/orbiscreen/client/
+    cp clients/web/favicon.png ~/.local/share/orbiscreen/client/
+    cp clients/web/apple-touch-icon.png ~/.local/share/orbiscreen/client/
     cp -r clients/web/vendor/. ~/.local/share/orbiscreen/client/vendor/
 
     echo "[Orbiscreen] Binary installed to ${INSTALL_DIR}/orbiscreen"

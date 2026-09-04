@@ -32,11 +32,6 @@ pub struct UinputInjector {
 
 impl UinputInjector {
     pub fn open(spec: VirtualTouchscreenSpec) -> Result<Self, InputError> {
-        // 1. Mouse & Keyboard device:
-        // Contains standard keyboard keys (1..=0x10f), mouse buttons (0x110..=0x117),
-        // and extra multimedia keys (0x160..=0x2ff).
-        // Excludes tablet/digitizer buttons (0x140..=0x14f) so libinput correctly
-        // classifies it as a standard pointer + keyboard.
         let mut mk_keys: Vec<Key> = (1u16..=0x10F).map(Key::from_raw).collect();
         mk_keys.extend((0x110u16..=0x117).map(Key::from_raw));
         mk_keys.extend((0x160u16..=0x2FF).map(Key::from_raw));
@@ -54,8 +49,6 @@ impl UinputInjector {
             .with_keys(mk_keys)?
             .build("Orbiscreen Virtual Mouse and Keyboard")?;
 
-        // 2. Touchscreen & Tablet device:
-        // Reserved for stylus/pen events with pressure and tilt.
         let pressure_axis = AbsInfo::new(0, PRESSURE_MAX).with_resolution(1);
         let tilt_axis = AbsInfo::new(TILT_MIN, TILT_MAX).with_resolution(1);
 
@@ -102,10 +95,9 @@ impl UinputInjector {
                 let events = vec![
                     AbsEvent::new(Abs::X, xi).into(),
                     AbsEvent::new(Abs::Y, yi).into(),
-                    KEv::new(Key::BTN_TOOL_PEN, KeyState::PRESSED).into(),
                     SynEvent::new(Syn::REPORT).into(),
                 ];
-                self.touch_tablet.write_events(&events)?;
+                self.mouse_keyboard.write_events(&events)?;
             }
             PointerEvent::RelativeMove { dx, dy } => {
                 let r_dx = dx.round() as i32;

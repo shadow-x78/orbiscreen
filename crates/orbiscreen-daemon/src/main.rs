@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
 
-use clap::{CommandFactory, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use orbiscreen_capture::capabilities::{Capabilities, CaptureStep};
 use orbiscreen_capture::wlr_virtual_output::{VirtualOutputSpec, WlrootsVirtualOutput};
 use orbiscreen_capture::{CaptureBackend, CapturePreference, CaptureSession};
@@ -24,11 +24,14 @@ use tracing_subscriber::EnvFilter;
 #[derive(Parser, Debug)]
 #[command(
     name = "orbiscreen",
-    version,
+    author = "shadow-x78 <https://github.com/shadow-x78/orbiscreen>",
+    version = concat!(env!("CARGO_PKG_VERSION"), " (by shadow-x78)"),
     about = "Turn any Android device into a second monitor for Linux",
     long_about = "Orbiscreen turns Android tablets and phones into an extended secondary display\n\
                   for Linux (Wayland & X11) with ultra-low latency, hardware encoding, and\n\
                   reverse touch and stylus control.",
+    after_help = "Written by shadow-x78 <https://github.com/shadow-x78/orbiscreen>",
+    after_long_help = "Written by shadow-x78 <https://github.com/shadow-x78/orbiscreen>",
     styles = ui::clap_styles(),
 )]
 struct Cli {
@@ -50,18 +53,37 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    #[command(about = "Start the Orbiscreen daemon and begin streaming")]
+    #[command(
+        about = "Start the Orbiscreen daemon and begin streaming",
+        alias = "up"
+    )]
     Start {
         #[arg(long, help = "Disable mDNS network service broadcasting")]
         no_mdns: bool,
+
+        #[arg(short, long, help = "Run in background as a systemd user service")]
+        daemon: bool,
     },
-    #[command(about = "Query the status of the running Orbiscreen daemon")]
+    #[command(about = "Stop the running Orbiscreen daemon", alias = "down")]
+    Stop,
+    #[command(about = "Query the live status dashboard of the daemon")]
     Status {
         #[arg(long, help = "Output status information in raw JSON format")]
         json: bool,
     },
-    #[command(about = "Stop the running Orbiscreen daemon via D-Bus")]
-    Stop,
+    #[command(about = "Inspect and configure virtual display properties")]
+    Display {
+        #[command(subcommand)]
+        action: Option<DisplayAction>,
+    },
+    #[command(
+        about = "List connected Android USB ADB devices and active clients",
+        alias = "clients"
+    )]
+    Devices {
+        #[arg(long, help = "Output devices list in JSON format")]
+        json: bool,
+    },
     #[command(about = "Run comprehensive system diagnostics and check compatibility")]
     Doctor {
         #[arg(long, help = "Output diagnostic report in JSON format")]
@@ -74,14 +96,63 @@ enum Command {
         #[arg(long, help = "Answer yes to all interactive prompts during fix")]
         yes: bool,
     },
-    #[command(about = "Probe display, capture, and input backends")]
-    Probe,
-    #[command(about = "List configured virtual display properties and monitor specs")]
-    ListDisplays,
-    #[command(about = "Print the active configuration in TOML format")]
-    PrintConfig,
-    #[command(about = "Cleanly remove installed systemd service and local data")]
+    #[command(about = "Manage background systemd service lifecycle")]
+    Service {
+        #[command(subcommand)]
+        action: ServiceAction,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum DisplayAction {
+    #[command(about = "Show current virtual display properties")]
+    Show,
+    #[command(about = "Set virtual display resolution and refresh rate (e.g. 1920x1080@60)")]
+    Set {
+        #[arg(
+            value_name = "SPEC",
+            help = "Resolution spec (e.g. 1920x1080@60 or 2560x1440@120)"
+        )]
+        spec: Option<String>,
+        #[arg(long, help = "Display width in pixels")]
+        width: Option<u32>,
+        #[arg(long, help = "Display height in pixels")]
+        height: Option<u32>,
+        #[arg(long, help = "Refresh rate in Hz")]
+        fps: Option<u32>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum ServiceAction {
+    #[command(about = "Show status of systemd user service")]
+    Status,
+    #[command(about = "Start daemon in background as systemd service")]
+    Start,
+    #[command(about = "Stop background systemd service")]
+    Stop,
+    #[command(about = "Restart background systemd service")]
+    Restart,
+    #[command(about = "Enable systemd service to start at login")]
+    Enable,
+    #[command(about = "Disable systemd service from starting at login")]
+    Disable,
+    #[command(about = "Install systemd user service file")]
+    Install,
+    #[command(about = "Cleanly uninstall systemd service and data")]
     Uninstall,
+    #[command(about = "View or tail live logs from background service")]
+    Logs {
+        #[arg(short, long, help = "Follow log output in real time")]
+        follow: bool,
+        #[arg(
+            short = 'n',
+            long,
+            default_value = "50",
+            help = "Number of log lines to show"
+        )]
+        lines: usize,
+    },
 }
 
 fn init_tracing(verbose: u8) {
@@ -101,71 +172,6 @@ fn load_or_default_config(path: &Path) -> Result<Config, Box<dyn std::error::Err
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Config::default()),
         Err(e) => Err(e.into()),
     }
-}
-
-fn probe() {
-    ui::print_banner();
-    println!();
-    let capture_b = orbiscreen_capture::detect_backend();
-    let input_b = orbiscreen_input::detect_backend();
-    let display_s = orbiscreen_display::probe();
-
-    let display_str = match display_s {
-        DisplayStatus::Compatible => format!("{} Compatible (Kernel + libevdi OK)", ui::badge_ok()),
-        DisplayStatus::Outdated => format!(
-            "{} Outdated (Kernel evdi older than libevdi requires)",
-            ui::badge_warn()
-        ),
-        DisplayStatus::KernelModuleMissing => format!(
-            "{} Kernel module not loaded (EVDI missing)",
-            ui::badge_warn()
-        ),
-        DisplayStatus::NoDeviceNode => format!(
-            "{} Kernel OK, but no evdi device node yet",
-            ui::badge_info()
-        ),
-    };
-
-    let rows = vec![
-        ("Capture Backend", format!("{capture_b:?}")),
-        ("Input Backend", format!("{input_b:?}")),
-        ("Display Backend", display_str),
-    ];
-    ui::print_card("HARDWARE & PROTOCOL PROBE", &rows);
-    println!();
-}
-
-fn list_displays(path: &Path) {
-    ui::print_banner();
-    println!();
-    match load_or_default_config(path) {
-        Ok(cfg) => {
-            let rows = vec![
-                (
-                    "Resolution",
-                    format!("{}x{}", cfg.display.width, cfg.display.height),
-                ),
-                (
-                    "Refresh Rate",
-                    format!("{} Hz", cfg.display.refresh_rate_hz),
-                ),
-                (
-                    "Auto-Orientation",
-                    "Supported (Swaps W/H dynamically)".to_string(),
-                ),
-                ("Capture Preferred", cfg.capture.preferred.clone()),
-                (
-                    "Display Backend",
-                    format!("{:?}", orbiscreen_display::probe()),
-                ),
-            ];
-            ui::print_card("VIRTUAL DISPLAY SPECIFICATION", &rows);
-        }
-        Err(e) => {
-            println!("{} Config error: {e}", ui::badge_err());
-        }
-    }
-    println!();
 }
 
 struct Frame {
@@ -267,14 +273,30 @@ async fn main() -> ExitCode {
     };
 
     match cli.command {
-        Some(Command::Start { no_mdns }) => match run_start(cfg, no_mdns).await {
-            Ok(()) => ExitCode::SUCCESS,
-            Err(e) => {
-                error!("orbiscreen start failed: {e}");
-                ExitCode::from(1)
+        Some(Command::Start { no_mdns, daemon }) => {
+            if daemon {
+                run_service_action(ServiceAction::Start).await
+            } else {
+                match run_start(cfg, no_mdns).await {
+                    Ok(()) => ExitCode::SUCCESS,
+                    Err(e) => {
+                        let err_str = e.to_string();
+                        if err_str.contains("Address already in use") {
+                            println!(
+                                "{} Orbiscreen is already running in the background (port in use)",
+                                ui::badge_warn()
+                            );
+                            println!(
+                                "   Run 'orbiscreen status' to view live status, or 'orbiscreen stop' to stop it."
+                            );
+                        } else {
+                            error!("orbiscreen start failed: {e}");
+                        }
+                        ExitCode::from(1)
+                    }
+                }
             }
-        },
-        Some(Command::Status { json }) => run_status(json).await,
+        }
         Some(Command::Stop) => match dbus::request_stop().await {
             Ok(reply) => {
                 println!("{} {reply}", ui::badge_ok());
@@ -283,33 +305,30 @@ async fn main() -> ExitCode {
             Err(zbus::Error::MethodError(name, _, _))
                 if name.to_string().contains("ServiceUnknown") =>
             {
-                println!(
-                    "{} Daemon is not running (no com.orbiscreen.Daemon on the session bus)",
-                    ui::badge_info()
-                );
-                ExitCode::from(1)
+                let systemd_status = std::process::Command::new("systemctl")
+                    .args(["--user", "is-active", "orbiscreen"])
+                    .output()
+                    .ok()
+                    .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+                    .unwrap_or_default();
+                if systemd_status == "active" {
+                    run_service_action(ServiceAction::Stop).await
+                } else {
+                    println!(
+                        "{} Daemon is not running (no com.orbiscreen.Daemon on the session bus)",
+                        ui::badge_info()
+                    );
+                    ExitCode::from(1)
+                }
             }
             Err(e) => {
                 eprintln!("{} Stop failed: {e}", ui::badge_err());
-                eprintln!(
-                    "{} Hint: use 'systemctl --user stop orbiscreen' if it runs as a service",
-                    ui::badge_info()
-                );
                 ExitCode::from(1)
             }
         },
-        Some(Command::Uninstall) => match tokio::task::spawn_blocking(run_uninstall).await {
-            Ok(code) => code,
-            Err(_) => ExitCode::from(1),
-        },
-        Some(Command::ListDisplays) => {
-            list_displays(&config_path);
-            ExitCode::SUCCESS
-        }
-        Some(Command::Probe) => {
-            probe();
-            ExitCode::SUCCESS
-        }
+        Some(Command::Status { json }) => run_status(json).await,
+        Some(Command::Display { action }) => run_display(&config_path, action).await,
+        Some(Command::Devices { json }) => run_devices(json).await,
         Some(Command::Doctor { json, fix, yes }) => {
             if fix {
                 run_doctor_fix(yes).await
@@ -317,23 +336,16 @@ async fn main() -> ExitCode {
                 run_doctor(json).await
             }
         }
-        Some(Command::PrintConfig) => match dump_config(&cfg) {
-            Ok(s) => {
-                println!("{s}");
+        Some(Command::Service { action }) => run_service_action(action).await,
+        None => match dbus::request_status().await {
+            Ok(_) => run_status(false).await,
+            Err(_) => {
+                ui::print_banner();
+                ui::print_welcome_card();
+                println!();
                 ExitCode::SUCCESS
             }
-            Err(e) => {
-                eprintln!("config serialize error: {e}");
-                ExitCode::from(1)
-            }
         },
-        None => {
-            ui::print_banner();
-            println!();
-            let _ = Cli::command().print_help();
-            println!();
-            ExitCode::SUCCESS
-        }
     }
 }
 
@@ -357,16 +369,8 @@ async fn run_status(json: bool) -> ExitCode {
                     .get("capture_backend")
                     .and_then(|v| v.as_str())
                     .unwrap_or("Unknown");
-                let frames = val
-                    .get("frames_forwarded")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0);
                 let active = val
                     .get("active_clients")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0);
-                let total = val
-                    .get("total_clients")
                     .and_then(|v| v.as_u64())
                     .unwrap_or(0);
                 let usb = val.get("usb_devices").and_then(|v| v.as_u64()).unwrap_or(0);
@@ -385,56 +389,17 @@ async fn run_status(json: bool) -> ExitCode {
                 let port = val
                     .get("signaling_port")
                     .and_then(|v| v.as_u64())
-                    .unwrap_or(8788);
+                    .unwrap_or(8788) as u16;
+
+                let token = std::fs::read_to_string(orbiscreen_core::default_token_path())
+                    .unwrap_or_else(|_| "token-active".to_string())
+                    .trim()
+                    .to_string();
 
                 ui::print_banner();
-                println!();
-                if is_running {
-                    println!(
-                        "{} {}Orbiscreen Daemon is ACTIVE (Running){}",
-                        ui::badge_ok(),
-                        if ui::colors_enabled() {
-                            ui::colors::BOLD
-                        } else {
-                            ""
-                        },
-                        if ui::colors_enabled() {
-                            ui::colors::RESET
-                        } else {
-                            ""
-                        }
-                    );
-                } else {
-                    println!("{} Orbiscreen Daemon is stopping", ui::badge_warn());
-                }
-                println!();
-
-                let rows = vec![
-                    (
-                        "Daemon State",
-                        if is_running {
-                            "Active & Serving".to_string()
-                        } else {
-                            "Inactive".to_string()
-                        },
-                    ),
-                    ("Virtual Display", format!("{w}x{h} @ {fps} Hz")),
-                    ("Hardware Encoder", encoder.to_uppercase()),
-                    ("Capture Backend", capture.to_string()),
-                    ("Signaling Port", port.to_string()),
-                    (
-                        "Active Clients",
-                        format!("{active} streaming ({total} total connections)"),
-                    ),
-                    ("USB ADB Devices", format!("{usb} device(s) connected")),
-                    ("Streamed Frames", format!("{frames} frames forwarded")),
-                    (
-                        "D-Bus Service",
-                        "com.orbiscreen.Daemon (Active)".to_string(),
-                    ),
-                ];
-                ui::print_card("ORBISCREEN DAEMON STATUS", &rows);
-                println!();
+                ui::print_status_dashboard(
+                    is_running, w, h, fps, encoder, capture, port, active, usb, &token,
+                );
                 ExitCode::SUCCESS
             } else {
                 println!("{reply}");
@@ -447,7 +412,7 @@ async fn run_status(json: bool) -> ExitCode {
                 .output()
                 .ok()
                 .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-                .unwrap_or_else(|| "not found".to_string());
+                .unwrap_or_else(|| "inactive".to_string());
 
             if json {
                 println!(
@@ -487,15 +452,375 @@ async fn run_status(json: bool) -> ExitCode {
                     "Systemd Service",
                     format!("orbiscreen.service ({systemd_status})"),
                 ),
-                ("Start Foreground", "orbiscreen start".to_string()),
+                (
+                    "Start Foreground",
+                    "orbiscreen start (or: orbiscreen up)".to_string(),
+                ),
                 (
                     "Start Background",
-                    "systemctl --user start orbiscreen".to_string(),
+                    "orbiscreen start -d (or: orbiscreen service start)".to_string(),
                 ),
+                ("Health Check", "orbiscreen doctor".to_string()),
             ];
-            ui::print_card("ORBISCREEN DAEMON STATUS", &rows);
+            ui::print_card("Orbiscreen Daemon Status", &rows);
             println!();
             ExitCode::from(1)
+        }
+    }
+}
+
+async fn run_display(config_path: &Path, action: Option<DisplayAction>) -> ExitCode {
+    match action {
+        None | Some(DisplayAction::Show) => {
+            ui::print_banner();
+            println!();
+            match load_or_default_config(config_path) {
+                Ok(cfg) => {
+                    let caps = Capabilities::from_env();
+                    let chain = caps.auto_chain();
+                    let display_backend = if caps.compositor
+                        == orbiscreen_capture::capabilities::Compositor::Kde
+                        || chain.iter().any(|s| matches!(s, CaptureStep::KwinVirtual))
+                    {
+                        "KWin Virtual (Native)".to_string()
+                    } else if orbiscreen_capture::wlr_virtual_output::detect_ipc_kind().is_some() {
+                        "wlroots (Native)".to_string()
+                    } else {
+                        format!("{:?}", orbiscreen_display::probe())
+                    };
+                    let rows = vec![
+                        (
+                            "Resolution",
+                            format!("{}x{}", cfg.display.width, cfg.display.height),
+                        ),
+                        (
+                            "Refresh Rate",
+                            format!("{} Hz", cfg.display.refresh_rate_hz),
+                        ),
+                        (
+                            "Auto-Orientation",
+                            "Supported (Swaps W/H dynamically)".to_string(),
+                        ),
+                        ("Capture Preferred", cfg.capture.preferred.clone()),
+                        ("Display Backend", display_backend),
+                    ];
+                    ui::print_card("Virtual Display Specification", &rows);
+                    println!();
+                    println!(
+                        "{} {}To change resolution:{} orbiscreen display set <WIDTHxHEIGHT@FPS>",
+                        ui::badge_info(),
+                        if ui::colors_enabled() {
+                            ui::colors::BOLD
+                        } else {
+                            ""
+                        },
+                        if ui::colors_enabled() {
+                            ui::colors::RESET
+                        } else {
+                            ""
+                        }
+                    );
+                    println!();
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("{} Config error: {e}", ui::badge_err());
+                    ExitCode::from(1)
+                }
+            }
+        }
+        Some(DisplayAction::Set {
+            spec,
+            width,
+            height,
+            fps,
+        }) => {
+            let mut cfg = load_or_default_config(config_path).unwrap_or_default();
+            let mut parsed_w = width;
+            let mut parsed_h = height;
+            let mut parsed_fps = fps;
+
+            if let Some(s) = spec {
+                let s = s.trim();
+                let (res_part, rate_part) = match s.split_once('@') {
+                    Some((res, r)) => (res, Some(r)),
+                    None => (s, None),
+                };
+                if let Some((w_str, h_str)) = res_part.split_once('x') {
+                    if let Ok(w) = w_str.parse::<u32>() {
+                        parsed_w = Some(w);
+                    }
+                    if let Ok(h) = h_str.parse::<u32>() {
+                        parsed_h = Some(h);
+                    }
+                }
+                if let Some(r_str) = rate_part {
+                    if let Ok(r) = r_str
+                        .trim_end_matches("Hz")
+                        .trim_end_matches("hz")
+                        .parse::<u32>()
+                    {
+                        parsed_fps = Some(r);
+                    }
+                }
+            }
+
+            if let Some(w) = parsed_w {
+                cfg.display.width = w;
+            }
+            if let Some(h) = parsed_h {
+                cfg.display.height = h;
+            }
+            if let Some(f) = parsed_fps {
+                cfg.display.refresh_rate_hz = f;
+            }
+
+            match dump_config(&cfg) {
+                Ok(content) => {
+                    if let Some(parent) = config_path.parent() {
+                        let _ = std::fs::create_dir_all(parent);
+                    }
+                    if let Err(e) = std::fs::write(config_path, content) {
+                        eprintln!("{} Failed to save config: {e}", ui::badge_err());
+                        return ExitCode::from(1);
+                    }
+                    println!(
+                        "{} Virtual display set to {}x{} @ {} Hz (saved to {})",
+                        ui::badge_ok(),
+                        cfg.display.width,
+                        cfg.display.height,
+                        cfg.display.refresh_rate_hz,
+                        config_path.display()
+                    );
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("{} Failed to serialize config: {e}", ui::badge_err());
+                    ExitCode::from(1)
+                }
+            }
+        }
+    }
+}
+
+async fn run_devices(json: bool) -> ExitCode {
+    let report = tokio::task::spawn_blocking(usb_doctor_report)
+        .await
+        .unwrap_or_default();
+
+    if json {
+        println!(
+            "{}",
+            serde_json::json!({
+                "adb_installed": report.adb_installed,
+                "devices": report.devices,
+                "reverse_tunnels": report.reverse_tunnels,
+            })
+        );
+        return ExitCode::SUCCESS;
+    }
+
+    ui::print_banner();
+    println!();
+    let dev_str = if !report.adb_installed {
+        format!(
+            "{} ADB not installed (Wi-Fi streaming unaffected)",
+            ui::badge_warn()
+        )
+    } else if report.devices.is_empty() {
+        format!("{} No devices connected (Hot-plug ready)", ui::badge_warn())
+    } else {
+        format!(
+            "{} {} device(s) connected ({})",
+            ui::badge_ok(),
+            report.devices.len(),
+            report.devices.join(", ")
+        )
+    };
+
+    let tunnel_str = if report.reverse_tunnels > 0 {
+        format!("{} Active (Port 8788 reversed)", ui::badge_ok())
+    } else if !report.devices.is_empty() {
+        format!("{} Active on port 8788", ui::badge_ok())
+    } else {
+        format!("{} Waiting for device", ui::badge_info())
+    };
+
+    let rows = vec![
+        ("USB ADB Devices", dev_str),
+        ("Reverse Tunnel", tunnel_str),
+        (
+            "Auto-Discovery",
+            "Active via mDNS on local subnet".to_string(),
+        ),
+        (
+            "Connection Tip",
+            "Enable USB Debugging on Android for zero-config wired streaming".to_string(),
+        ),
+    ];
+    ui::print_card("Connected Devices & Clients", &rows);
+    println!();
+    ExitCode::SUCCESS
+}
+
+async fn run_service_action(action: ServiceAction) -> ExitCode {
+    match action {
+        ServiceAction::Status => {
+            let status = std::process::Command::new("systemctl")
+                .args(["--user", "status", "orbiscreen"])
+                .status();
+            match status {
+                Ok(s) if s.success() => ExitCode::SUCCESS,
+                _ => ExitCode::from(1),
+            }
+        }
+        ServiceAction::Start => {
+            let status = std::process::Command::new("systemctl")
+                .args(["--user", "start", "orbiscreen"])
+                .status();
+            match status {
+                Ok(s) if s.success() => {
+                    println!("{} Orbiscreen background service started", ui::badge_ok());
+                    println!(
+                        "{} Run 'orbiscreen status' to view live dashboard",
+                        ui::badge_info()
+                    );
+                    ExitCode::SUCCESS
+                }
+                _ => {
+                    eprintln!(
+                        "{} Failed to start orbiscreen.service via systemctl",
+                        ui::badge_err()
+                    );
+                    ExitCode::from(1)
+                }
+            }
+        }
+        ServiceAction::Stop => {
+            let status = std::process::Command::new("systemctl")
+                .args(["--user", "stop", "orbiscreen"])
+                .status();
+            match status {
+                Ok(s) if s.success() => {
+                    println!("{} Orbiscreen background service stopped", ui::badge_ok());
+                    ExitCode::SUCCESS
+                }
+                _ => {
+                    eprintln!(
+                        "{} Failed to stop orbiscreen.service via systemctl",
+                        ui::badge_err()
+                    );
+                    ExitCode::from(1)
+                }
+            }
+        }
+        ServiceAction::Restart => {
+            let status = std::process::Command::new("systemctl")
+                .args(["--user", "restart", "orbiscreen"])
+                .status();
+            match status {
+                Ok(s) if s.success() => {
+                    println!("{} Orbiscreen background service restarted", ui::badge_ok());
+                    ExitCode::SUCCESS
+                }
+                _ => {
+                    eprintln!(
+                        "{} Failed to restart orbiscreen.service via systemctl",
+                        ui::badge_err()
+                    );
+                    ExitCode::from(1)
+                }
+            }
+        }
+        ServiceAction::Enable => {
+            let status = std::process::Command::new("systemctl")
+                .args(["--user", "enable", "orbiscreen"])
+                .status();
+            match status {
+                Ok(s) if s.success() => {
+                    println!(
+                        "{} Orbiscreen background service enabled at login",
+                        ui::badge_ok()
+                    );
+                    ExitCode::SUCCESS
+                }
+                _ => {
+                    eprintln!("{} Failed to enable orbiscreen.service", ui::badge_err());
+                    ExitCode::from(1)
+                }
+            }
+        }
+        ServiceAction::Disable => {
+            let status = std::process::Command::new("systemctl")
+                .args(["--user", "disable", "orbiscreen"])
+                .status();
+            match status {
+                Ok(s) if s.success() => {
+                    println!(
+                        "{} Orbiscreen background service disabled from login",
+                        ui::badge_ok()
+                    );
+                    ExitCode::SUCCESS
+                }
+                _ => {
+                    eprintln!("{} Failed to disable orbiscreen.service", ui::badge_err());
+                    ExitCode::from(1)
+                }
+            }
+        }
+        ServiceAction::Install => {
+            let unit_dir = if let Some(xdg) = std::env::var_os("XDG_CONFIG_HOME")
+                .filter(|v| !v.is_empty() && Path::new(v).is_absolute())
+            {
+                PathBuf::from(xdg).join("systemd/user")
+            } else if let Some(home) = std::env::var_os("HOME").filter(|v| !v.is_empty()) {
+                PathBuf::from(home).join(".config/systemd/user")
+            } else {
+                PathBuf::from(".config/systemd/user")
+            };
+            let _ = std::fs::create_dir_all(&unit_dir);
+            let unit_path = unit_dir.join("orbiscreen.service");
+            let unit_content = r#"[Unit]
+Description=Orbiscreen Virtual Display Daemon
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/orbiscreen start
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=graphical-session.target
+"#;
+            if let Err(e) = std::fs::write(&unit_path, unit_content) {
+                eprintln!("{} Failed to write unit file: {e}", ui::badge_err());
+                return ExitCode::from(1);
+            }
+            let _ = std::process::Command::new("systemctl")
+                .args(["--user", "daemon-reload"])
+                .status();
+            println!(
+                "{} Installed systemd user service to {}",
+                ui::badge_ok(),
+                unit_path.display()
+            );
+            ExitCode::SUCCESS
+        }
+        ServiceAction::Uninstall => tokio::task::spawn_blocking(run_uninstall)
+            .await
+            .unwrap_or(ExitCode::from(1)),
+        ServiceAction::Logs { follow, lines } => {
+            let mut cmd = std::process::Command::new("journalctl");
+            cmd.args(["--user", "-u", "orbiscreen", "-n", &lines.to_string()]);
+            if follow {
+                cmd.arg("-f");
+            }
+            let status = cmd.status();
+            match status {
+                Ok(s) if s.success() => ExitCode::SUCCESS,
+                _ => ExitCode::from(1),
+            }
         }
     }
 }
@@ -801,13 +1126,28 @@ async fn run_doctor(json: bool) -> ExitCode {
         _ => None,
     };
 
+    let is_kwin_native = caps.compositor == orbiscreen_capture::capabilities::Compositor::Kde
+        || chain.iter().any(|s| matches!(s, CaptureStep::KwinVirtual));
+    let is_wlr_native = wlr_virtual_ipc.is_some()
+        || chain
+            .iter()
+            .any(|s| matches!(s, CaptureStep::WlrootsVirtual));
+
+    let display_backend_name = if is_kwin_native {
+        "Native (KWin Virtual)"
+    } else if is_wlr_native {
+        "Native (wlroots)"
+    } else {
+        display_status_text(display_status)
+    };
+
     if json {
         let report = serde_json::json!({
             "session": caps.session.to_string(),
             "compositor": caps.compositor.to_string(),
             "current_desktop": caps.current_desktop,
             "capture_plan": chain.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
-            "display_backend": display_status_text(display_status),
+            "display_backend": display_backend_name,
             "input_backend": format!("{input:?}"),
             "uinput_writable": uinput_writable,
             "portal_on_session_bus": portal,
@@ -829,9 +1169,14 @@ async fn run_doctor(json: bool) -> ExitCode {
     ui::print_banner();
     println!();
 
+    let session_name = match caps.session {
+        orbiscreen_capture::capabilities::SessionType::Wayland => "Wayland",
+        orbiscreen_capture::capabilities::SessionType::X11 => "X11",
+        orbiscreen_capture::capabilities::SessionType::Unknown => "Unknown",
+    };
     let session_str = format!(
         "{}{}",
-        caps.session,
+        session_name,
         caps.current_desktop
             .as_deref()
             .map(|d| format!(" (XDG_CURRENT_DESKTOP={d})"))
@@ -840,19 +1185,39 @@ async fn run_doctor(json: bool) -> ExitCode {
 
     let plan_str = chain
         .iter()
-        .map(|s| s.to_string())
+        .map(|s| match s {
+            CaptureStep::KwinVirtual => "KWin Virtual",
+            CaptureStep::WlrootsVirtual => "wlroots Virtual",
+            CaptureStep::WlrScreencopy => "wlroots Screencopy",
+            CaptureStep::Portal => "Portal",
+            CaptureStep::Evdi => "EVDI",
+            CaptureStep::X11Root => "X11 Root",
+        })
         .collect::<Vec<_>>()
         .join(" ➔ ");
 
-    let display_str = match display_status {
-        DisplayStatus::Compatible => format!("{} Compatible (Kernel + libevdi)", ui::badge_ok()),
-        DisplayStatus::Outdated => format!(
-            "{} Outdated (Kernel evdi older than libevdi)",
-            ui::badge_warn()
-        ),
-        DisplayStatus::KernelModuleMissing => format!("{} Kernel module missing", ui::badge_warn()),
-        DisplayStatus::NoDeviceNode => {
-            format!("{} Kernel OK, no evdi device node yet", ui::badge_info())
+    let display_str = if is_kwin_native {
+        format!("{} Native (KWin Virtual)", ui::badge_ok())
+    } else if is_wlr_native {
+        let ipc_label = wlr_virtual_ipc
+            .map(|k| k.to_string())
+            .unwrap_or_else(|| "wlroots".to_string());
+        format!("{} Native ({ipc_label})", ui::badge_ok())
+    } else {
+        match display_status {
+            DisplayStatus::Compatible => {
+                format!("{} Compatible (Kernel + libevdi)", ui::badge_ok())
+            }
+            DisplayStatus::Outdated => format!(
+                "{} Outdated (Kernel evdi older than libevdi)",
+                ui::badge_warn()
+            ),
+            DisplayStatus::KernelModuleMissing => {
+                format!("{} Kernel module missing", ui::badge_warn())
+            }
+            DisplayStatus::NoDeviceNode => {
+                format!("{} Kernel OK, no evdi device node yet", ui::badge_info())
+            }
         }
     };
 
@@ -888,11 +1253,15 @@ async fn run_doctor(json: bool) -> ExitCode {
         },
     );
 
-    let tools_str = format!(
-        "swaymsg: {} · hyprctl: {}",
-        if swaymsg { "Found" } else { "No" },
-        if hyprctl { "Found" } else { "No" },
-    );
+    let tools_str = match caps.compositor {
+        orbiscreen_capture::capabilities::Compositor::Kde => "KWin D-Bus (Native)".to_string(),
+        orbiscreen_capture::capabilities::Compositor::Gnome => "Mutter Portal (Native)".to_string(),
+        _ => format!(
+            "swaymsg: {} · hyprctl: {}",
+            if swaymsg { "Found" } else { "No" },
+            if hyprctl { "Found" } else { "No" },
+        ),
+    };
 
     let usb_str = match usb.adb_installed {
         true => match usb.devices.as_slice() {
@@ -918,7 +1287,7 @@ async fn run_doctor(json: bool) -> ExitCode {
         ("USB ADB Tunnel", usb_str),
     ];
 
-    ui::print_card("SYSTEM DIAGNOSTICS & COMPATIBILITY", &rows);
+    ui::print_card("System Diagnostics & Compatibility", &rows);
     println!();
     ExitCode::SUCCESS
 }
@@ -1056,6 +1425,22 @@ fn confirm_with_user() -> bool {
 }
 
 async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
+    let caps = Capabilities::from_env();
+    let chain = caps.auto_chain();
+    if caps.compositor == orbiscreen_capture::capabilities::Compositor::Kde
+        || chain.iter().any(|s| matches!(s, CaptureStep::KwinVirtual))
+    {
+        println!("[doctor --fix] KWin Virtual display is native on this system; no kernel module required.");
+        return ExitCode::SUCCESS;
+    }
+    if orbiscreen_capture::wlr_virtual_output::detect_ipc_kind().is_some()
+        || chain
+            .iter()
+            .any(|s| matches!(s, CaptureStep::WlrootsVirtual))
+    {
+        println!("[doctor --fix] wlroots virtual display is native on this system; no kernel module required.");
+        return ExitCode::SUCCESS;
+    }
     let display_status = orbiscreen_display::probe();
     match display_status {
         DisplayStatus::Compatible => {
@@ -1579,7 +1964,6 @@ async fn run_start(
         cfg.transport.signaling_port,
         &token,
         true,
-        !no_mdns && cfg.transport.mdns_advertise,
     );
 
     let mut serve_fut = std::pin::pin!(transport.serve(

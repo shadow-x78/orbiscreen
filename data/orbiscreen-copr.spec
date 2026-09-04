@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.18.2
+Version:        0.18.3
 Release:        1%{?dist}
 Summary:        Turn any Android tablet or phone into a low-latency second monitor for Linux
 
@@ -57,7 +57,7 @@ install -Dm0755 target/release/orbiscreen %{buildroot}%{_bindir}/orbiscreen
 install -Dm0644 data/orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen.svg
 install -Dm0755 scripts/install-evdi-module.sh %{buildroot}%{_datadir}/orbiscreen/install-evdi-module.sh
 
-for f in index.html style.css app.js; do
+for f in index.html style.css app.js favicon.svg favicon.png apple-touch-icon.png; do
     install -Dm0644 "clients/web/$f" "%{buildroot}%{_datadir}/orbiscreen/client/$f"
 done
 install -Dm0644 clients/web/vendor/mpegts.js %{buildroot}%{_datadir}/orbiscreen/client/vendor/mpegts.js
@@ -97,10 +97,16 @@ fi
 %{_datadir}/orbiscreen/client/index.html
 %{_datadir}/orbiscreen/client/style.css
 %{_datadir}/orbiscreen/client/app.js
+%{_datadir}/orbiscreen/client/favicon.svg
+%{_datadir}/orbiscreen/client/favicon.png
+%{_datadir}/orbiscreen/client/apple-touch-icon.png
 %{_datadir}/orbiscreen/client/vendor/mpegts.js
 %{_datadir}/orbiscreen/install-evdi-module.sh
 
 %changelog
+* Thu Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.3-1
+- Release 0.18.3: Android 1:1 web client parity, direct keyboard typing, refined ASCII logo, and web favicons.
+
 * Wed Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.2-1
 - Release 0.18.2: Redesigned CLI interface with brand theme, ASCII logo, status command, and clean code headers.
 

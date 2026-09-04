@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.18.3] - 2026-09-04
+
+Full web client parity with Android Compose UI (direct hotkey typing, input isolation, and streamlined overlays), refined ASCII logo geometry, and packaging updates.
+
+### ✨ Added
+- **Android 1:1 Web Client Keyboard (`KeyboardOverlay`)**: Replaced text input field with direct IME keystroke forwarding and a full Material 3 hotkey overlay featuring latched modifiers (`Ctrl`, `Alt`, `Shift`, `Win`), function keys (`F1`-`F12`), productivity shortcuts (`Undo`, `Copy`, `Paste`, `CAD`), and navigation controls.
+- **Brand Favicon Assets**: Added official high-resolution `favicon.svg` (vector ring with sapphire display dot), `favicon.png`, and `apple-touch-icon.png` for PWA and browser tab integration.
+- **Single-Element Streamlined Overlay**: Overhauled connection and error states with mutually exclusive graphics (Material spinner during connecting, official logo on disconnect, and dedicated action `[ ↻ Reconnect ]` button).
+
+### 🛠️ Fixed & Improved
+- **VNC Input Isolation & Disconnect Handling**: Cursor is cleanly released and toolbar/controls are completely hidden upon stream termination; pointer events are blocked when disconnected to prevent accidental cursor capture.
+- **Esc & Fullscreen Separation**: `Esc` solely releases host pointer lock; `F11` independently toggles browser fullscreen.
+- **Refined ASCII Logo Geometry (`ui.rs`)**: Restored true 5-line circular ring contour and highlighted the orbiting satellite node via sapphire TrueColor accent without breaking block alignment.
+- **CLI Credit & Flag Streamlining**: Removed redundant attribution noise from `--version` output, cleaned GNU-style help footers, and pruned unused subcommands.
+- **X11 Input Driver Fix (`x11.rs`)**: Removed erroneous `BTN_TOOL_PEN` injection during mouse motion that caused cursor freezes.
+
+### 🔧 CI / Packaging
+- **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.18.3; included web client favicon assets.
+- **debian/changelog**: Added 0.18.3-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.18.3 and included web favicon assets.
+- **Android `versionCode`**: Incremented to 46; `versionName` updated to "0.18.3".
+
 ## [v0.18.2] - 2026-09-03
 
 Modernized CLI interface with Catppuccin Mocha theme, official ASCII/ANSI vector logo, new interactive `status` command, clean code standards, and standardized credit headers.

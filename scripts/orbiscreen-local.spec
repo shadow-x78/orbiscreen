@@ -38,6 +38,9 @@ install -m 0755 %{_projectroot}/scripts/install-evdi-module.sh %{buildroot}/usr/
 install -m 0644 %{_projectroot}/clients/web/index.html %{buildroot}/usr/share/orbiscreen/client/index.html
 install -m 0644 %{_projectroot}/clients/web/style.css %{buildroot}/usr/share/orbiscreen/client/style.css
 install -m 0644 %{_projectroot}/clients/web/app.js %{buildroot}/usr/share/orbiscreen/client/app.js
+install -m 0644 %{_projectroot}/clients/web/favicon.svg %{buildroot}/usr/share/orbiscreen/client/favicon.svg
+install -m 0644 %{_projectroot}/clients/web/favicon.png %{buildroot}/usr/share/orbiscreen/client/favicon.png
+install -m 0644 %{_projectroot}/clients/web/apple-touch-icon.png %{buildroot}/usr/share/orbiscreen/client/apple-touch-icon.png
 mkdir -p %{buildroot}/usr/share/orbiscreen/client/vendor
 install -m 0644 %{_projectroot}/clients/web/vendor/mpegts.js %{buildroot}/usr/share/orbiscreen/client/vendor/mpegts.js
 
@@ -80,6 +83,9 @@ fi
 /usr/share/orbiscreen/client/index.html
 /usr/share/orbiscreen/client/style.css
 /usr/share/orbiscreen/client/app.js
+/usr/share/orbiscreen/client/favicon.svg
+/usr/share/orbiscreen/client/favicon.png
+/usr/share/orbiscreen/client/apple-touch-icon.png
 /usr/share/orbiscreen/client/vendor/mpegts.js
 /usr/share/orbiscreen/install-evdi-module.sh
 

@@ -1,23 +1,454 @@
 // Orbiscreen - app.js (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-const statusEl = document.getElementById("status");
-const resolutionEl = document.getElementById("resolution");
+// VNC-style isolated focus & Android 1:1 Parity
+
+const statusTitle = document.getElementById("statusTitle");
+const statusSubtitle = document.getElementById("statusSubtitle");
 const overlayEl = document.getElementById("overlay");
+const brandLogo = document.getElementById("brandLogo");
+const statusSpinner = document.getElementById("statusSpinner");
+const statusIcon = document.getElementById("statusIcon");
+const btnReconnect = document.getElementById("btnReconnect");
+const stageEl = document.getElementById("stage");
 const videoEl = document.getElementById("remoteVideo");
 const touchIndicator = document.getElementById("touchIndicator");
+const controlToolbar = document.getElementById("controlToolbar");
+const miniPill = document.getElementById("miniPill");
+const hostNameEl = document.getElementById("hostName");
+const hostInfoEl = document.getElementById("hostInfo");
+const miniInfoEl = document.getElementById("miniInfo");
+
+function setOverlayState(state, title, subtitle) {
+    if (overlayEl) overlayEl.classList.remove("hidden");
+    if (statusTitle && title) statusTitle.textContent = title;
+    if (statusSubtitle && subtitle) statusSubtitle.textContent = subtitle;
+
+    releaseControl();
+    if (controlToolbar) controlToolbar.classList.add("hidden");
+    if (miniPill) miniPill.classList.add("hidden");
+    if (keyboardDrawer) keyboardDrawer.classList.add("hidden");
+    if (settingsModal) settingsModal.classList.add("hidden");
+
+    if (state === "connecting") {
+        if (brandLogo) brandLogo.classList.add("hidden");
+        if (statusSpinner) statusSpinner.classList.remove("hidden");
+        if (btnReconnect) btnReconnect.classList.add("hidden");
+    } else {
+        if (statusSpinner) statusSpinner.classList.add("hidden");
+        if (brandLogo) brandLogo.classList.remove("hidden");
+        if (btnReconnect) btnReconnect.classList.remove("hidden");
+    }
+}
+
+const btnInputMode = document.getElementById("btnInputMode");
+const iconMouse = document.getElementById("iconMouse");
+const iconTouch = document.getElementById("iconTouch");
+const btnKeyboard = document.getElementById("btnKeyboard");
+const btnLock = document.getElementById("btnLock");
+const btnSettings = document.getElementById("btnSettings");
+const btnHideControls = document.getElementById("btnHideControls");
+const btnFullscreen = document.getElementById("btnFullscreen");
+const btnDisconnect = document.getElementById("btnDisconnect");
+const btnRestoreToolbar = document.getElementById("btnRestoreToolbar");
+
+const keyboardDrawer = document.getElementById("keyboardDrawer");
+const btnCloseKeyboard = document.getElementById("btnCloseKeyboard");
+const keyboardImeInput = document.getElementById("keyboardImeInput");
+const btnSendCad = document.getElementById("btnSendCad");
+
+const settingsModal = document.getElementById("settingsModal");
+const btnCloseSettings = document.getElementById("btnCloseSettings");
+const statLatency = document.getElementById("statLatency");
+const statRes = document.getElementById("statRes");
+const statEncoder = document.getElementById("statEncoder");
+const btnActionBlank = document.getElementById("btnActionBlank");
+const btnActionResync = document.getElementById("btnActionResync");
+
+const vncBanner = document.getElementById("vncBanner");
+const toastEl = document.getElementById("toast");
+const tokenRow = document.getElementById("tokenRow");
+const tokenInput = document.getElementById("tokenInput");
+const btnConnect = document.getElementById("btnConnect");
 
 let displayWidth = 1920;
 let displayHeight = 1080;
+let encoderName = "NVENC";
 let authToken = "";
 let mpegtsPlayer = null;
 let reconnectTimer = null;
 let reconnectDelay = 1000;
 const MAX_RECONNECT_DELAY = 10000;
 let streamActive = false;
+let isVncFocused = false;
+let isTouchMode = true;
+let isDpmsOff = false;
+let toastTimer = null;
+let vncBannerTimer = null;
+let latencyWatchdog = null;
+const heldKeys = new Set();
 const pressedButtons = new Set();
+let pendingMove = null;
+let moveRaf = null;
 
-function setStatus(text) {
-    statusEl.textContent = text;
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.has("token")) {
+    authToken = urlParams.get("token");
+}
+
+function showToast(text, duration = 2200) {
+    if (!toastEl) return;
+    toastEl.textContent = text;
+    toastEl.classList.remove("hidden");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toastEl.classList.add("hidden");
+    }, duration);
+}
+
+function updateInfoDisplay() {
+    const infoStr = `${displayWidth}×${displayHeight}  ${encoderName}`;
+    if (hostInfoEl) hostInfoEl.textContent = infoStr;
+    if (miniInfoEl) miniInfoEl.textContent = `${displayWidth}×${displayHeight}`;
+    if (statRes) statRes.textContent = `${displayWidth} × ${displayHeight}`;
+    if (statEncoder) statEncoder.textContent = encoderName;
+}
+
+// ─────────────────────────────────────────────
+// VNC-Style Focus Management (Escape Releases Host)
+// ─────────────────────────────────────────────
+function setVncFocus(focused) {
+    if (focused && !streamActive) return;
+    if (focused === isVncFocused) return;
+    isVncFocused = focused;
+    if (focused) {
+        stageEl.classList.add("vncFocused");
+        stageEl.focus();
+        showVncBanner();
+    } else {
+        releaseControl();
+        showToast("Cursor released", 1400);
+    }
+}
+
+function showVncBanner() {
+    if (!vncBanner) return;
+    vncBanner.classList.remove("hidden");
+    clearTimeout(vncBannerTimer);
+    vncBannerTimer = setTimeout(() => {
+        vncBanner.classList.add("hidden");
+    }, 2400);
+}
+
+function releaseControl() {
+    isVncFocused = false;
+    if (stageEl) stageEl.classList.remove("vncFocused");
+    if (vncBanner) vncBanner.classList.add("hidden");
+    releaseAllKeys();
+    releaseAllButtons();
+}
+
+function releaseAllKeys() {
+    for (const code of heldKeys) {
+        sendInput({ Key: { code, pressed: false } });
+    }
+    heldKeys.clear();
+    // Safety: ensure common modifiers are unpressed on Linux host
+    const modifiers = [29, 97, 42, 54, 56, 100, 125, 126];
+    for (const code of modifiers) {
+        sendInput({ Key: { code, pressed: false } });
+    }
+}
+
+function releaseAllButtons() {
+    for (const button of pressedButtons) {
+        sendInput({ Pointer: { Button: { button, pressed: false } } });
+    }
+    pressedButtons.clear();
+    hideTouch();
+}
+
+window.addEventListener("blur", () => {
+    releaseControl();
+});
+
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        releaseControl();
+    }
+});
+
+if (overlayEl) {
+    overlayEl.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+    });
+}
+
+// Click on stage enters VNC focus
+stageEl.addEventListener("pointerdown", (event) => {
+    if (!streamActive) return;
+    if (!isVncFocused) {
+        setVncFocus(true);
+    }
+    event.preventDefault();
+    const { x, y } = mapPointer(event);
+    sendPointerMove(x, y);
+    sendPointerButton(event.button + 1, true);
+    if (event.pointerType === "pen") {
+        sendStylus(x, y, event.pressure, event.tiltX, event.tiltY);
+    }
+    showTouch(event.clientX, event.clientY);
+});
+
+stageEl.addEventListener("pointermove", (event) => {
+    if (!streamActive || !isVncFocused) return;
+    event.preventDefault();
+    const { x, y } = mapPointer(event);
+    if (event.buttons > 0) {
+        showTouch(event.clientX, event.clientY);
+        if (event.pointerType === "pen") {
+            sendStylus(x, y, event.pressure, event.tiltX, event.tiltY);
+        }
+        sendPointerMove(x, y); // Instantaneous during drag
+    } else {
+        queuePointerMove(x, y); // Throttled when hovering
+    }
+});
+
+stageEl.addEventListener("pointerup", (event) => {
+    if (!streamActive || !isVncFocused) return;
+    event.preventDefault();
+    sendPointerButton(event.button + 1, false);
+    hideTouch();
+});
+
+stageEl.addEventListener("pointerleave", () => {
+    if (isVncFocused) {
+        releaseAllButtons();
+    }
+});
+
+stageEl.addEventListener("pointercancel", () => {
+    if (isVncFocused) {
+        releaseAllButtons();
+    }
+});
+
+stageEl.addEventListener("wheel", (event) => {
+    if (!streamActive || !isVncFocused) return;
+    event.preventDefault();
+    sendWheel(normalizeWheel(event));
+}, { passive: false });
+
+// Keyboard events ONLY when in VNC Focus
+window.addEventListener("keydown", (event) => {
+    if (event.code === "Escape") {
+        event.preventDefault();
+        if (isVncFocused) {
+            setVncFocus(false);
+        }
+        keyboardDrawer.classList.add("hidden");
+        settingsModal.classList.add("hidden");
+        unlatchAll();
+        return;
+    }
+    if (event.code === "F11") {
+        event.preventDefault();
+        toggleFullscreen();
+        return;
+    }
+    if (!isVncFocused || !streamActive || event.repeat) return;
+    if (event.target === keyboardImeInput) return;
+    event.preventDefault();
+    sendKey(event.code, true);
+});
+
+window.addEventListener("keyup", (event) => {
+    if (event.code === "Escape" || event.code === "F11") return;
+    if (!isVncFocused || !streamActive) return;
+    if (event.target === keyboardImeInput) return;
+    event.preventDefault();
+    sendKey(event.code, false);
+});
+
+// ─────────────────────────────────────────────
+// Toolbar Actions (Identical to ControlToolbar.kt)
+// ─────────────────────────────────────────────
+if (btnInputMode) {
+    btnInputMode.addEventListener("click", (e) => {
+        e.stopPropagation();
+        isTouchMode = !isTouchMode;
+        if (isTouchMode) {
+            iconMouse.classList.add("hidden");
+            iconTouch.classList.remove("hidden");
+            showToast("Mode: Touch");
+        } else {
+            iconMouse.classList.remove("hidden");
+            iconTouch.classList.add("hidden");
+            showToast("Mode: Trackpad");
+        }
+    });
+}
+
+if (btnKeyboard) {
+    btnKeyboard.addEventListener("click", (e) => {
+        e.stopPropagation();
+        keyboardDrawer.classList.toggle("hidden");
+        if (!keyboardDrawer.classList.contains("hidden")) {
+            if (keyboardImeInput) {
+                keyboardImeInput.focus();
+            }
+            if (!isVncFocused) {
+                setVncFocus(true);
+            }
+        } else {
+            unlatchAll();
+        }
+    });
+}
+
+if (btnCloseKeyboard) {
+    btnCloseKeyboard.addEventListener("click", (e) => {
+        e.stopPropagation();
+        keyboardDrawer.classList.add("hidden");
+        unlatchAll();
+    });
+}
+
+if (btnSettings) {
+    btnSettings.addEventListener("click", (e) => {
+        e.stopPropagation();
+        settingsModal.classList.remove("hidden");
+    });
+}
+
+if (btnCloseSettings) {
+    btnCloseSettings.addEventListener("click", () => {
+        settingsModal.classList.add("hidden");
+    });
+}
+
+if (settingsModal) {
+    settingsModal.addEventListener("click", (e) => {
+        if (e.target === settingsModal) {
+            settingsModal.classList.add("hidden");
+        }
+    });
+}
+
+document.querySelectorAll(".chipBtn[data-fit]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        document.querySelectorAll(".chipBtn[data-fit]").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        videoEl.style.objectFit = btn.dataset.fit;
+        showToast(`Fit: ${btn.textContent}`);
+    });
+});
+
+if (btnHideControls) {
+    btnHideControls.addEventListener("click", (e) => {
+        e.stopPropagation();
+        controlToolbar.classList.add("hidden");
+        miniPill.classList.remove("hidden");
+        showToast("Controls hidden", 1800);
+    });
+}
+
+if (btnRestoreToolbar) {
+    btnRestoreToolbar.addEventListener("click", (e) => {
+        e.stopPropagation();
+        miniPill.classList.add("hidden");
+        controlToolbar.classList.remove("hidden");
+    });
+}
+
+if (btnFullscreen) {
+    btnFullscreen.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+            document.exitFullscreen().catch(() => {});
+        }
+    });
+}
+
+async function sendHostAction(action, extra = {}) {
+    const headers = { "content-type": "application/json" };
+    if (authToken) headers.authorization = `Bearer ${authToken}`;
+    try {
+        const res = await fetch("/api/control", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ action, ...extra }),
+        });
+        return res.ok;
+    } catch (err) {
+        console.warn(`Host action ${action} failed:`, err);
+        return false;
+    }
+}
+
+if (btnLock) {
+    btnLock.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const ok = await sendHostAction("lock");
+        showToast(ok ? "Linux session locked" : "Lock command sent");
+    });
+}
+
+if (btnActionBlank) {
+    btnActionBlank.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        isDpmsOff = !isDpmsOff;
+        await sendHostAction(isDpmsOff ? "blank" : "unblank");
+        btnActionBlank.textContent = isDpmsOff ? "Turn Screen On" : "Turn Screen Off";
+        showToast(isDpmsOff ? "Virtual display blanked" : "Virtual display active");
+    });
+}
+
+if (btnSendCad) {
+    btnSendCad.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        await sendHostAction("ctrl_alt_del");
+        showToast("Ctrl+Alt+Del sent");
+    });
+}
+
+if (btnActionResync) {
+    btnActionResync.addEventListener("click", (e) => {
+        e.stopPropagation();
+        settingsModal.classList.add("hidden");
+        startStream();
+        showToast("Stream resynced");
+    });
+}
+
+if (btnDisconnect) {
+    btnDisconnect.addEventListener("click", (e) => {
+        e.stopPropagation();
+        destroyPlayer();
+        setOverlayState("disconnected", "Disconnected", "Stream terminated");
+        showToast("Disconnected");
+    });
+}
+
+if (btnReconnect) {
+    btnReconnect.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setOverlayState("connecting", "Connecting", "Connecting to Linux virtual display…");
+        startStream();
+    });
+}
+
+if (btnConnect && tokenInput) {
+    btnConnect.addEventListener("click", () => {
+        const val = tokenInput.value.trim();
+        if (val) {
+            authToken = val;
+            tokenRow.classList.add("hidden");
+            startStream();
+        }
+    });
 }
 
 function sendInput(payload) {
@@ -34,6 +465,19 @@ function sendPointerMove(x, y) {
     sendInput({ Pointer: { Move: { x, y } } });
 }
 
+function queuePointerMove(x, y) {
+    pendingMove = { x, y };
+    if (!moveRaf) {
+        moveRaf = requestAnimationFrame(() => {
+            if (pendingMove) {
+                sendPointerMove(pendingMove.x, pendingMove.y);
+                pendingMove = null;
+            }
+            moveRaf = null;
+        });
+    }
+}
+
 function sendPointerButton(button, pressed) {
     if (pressed) {
         pressedButtons.add(button);
@@ -43,31 +487,16 @@ function sendPointerButton(button, pressed) {
     sendInput({ Pointer: { Button: { button, pressed } } });
 }
 
-function releaseAllButtons() {
-    for (const button of pressedButtons) {
-        sendInput({ Pointer: { Button: { button, pressed: false } } });
-    }
-    pressedButtons.clear();
-    hideTouch();
-}
-
 function sendWheel(deltaY) {
     sendInput({ Pointer: { Wheel: { delta_y: deltaY } } });
 }
 
 function normalizeWheel(event) {
-    const vw = videoEl.videoWidth || displayWidth;
     const vh = videoEl.videoHeight || displayHeight;
-    let pixels;
-    if (event.deltaMode === 1) {
-        pixels = event.deltaY * 16;
-    } else if (event.deltaMode === 2) {
-        pixels = event.deltaY * vh;
-    } else {
-        pixels = event.deltaY;
-    }
-    const steps = pixels / 100;
-    return Math.max(-12, Math.min(12, steps));
+    let pixels = event.deltaY;
+    if (event.deltaMode === 1) pixels *= 16;
+    else if (event.deltaMode === 2) pixels *= vh;
+    return Math.max(-12, Math.min(12, pixels / 100));
 }
 
 const KEYCODE_MAP = {
@@ -79,7 +508,6 @@ const KEYCODE_MAP = {
     PageUp: 104, PageDown: 109, CapsLock: 58, NumLock: 69,
     ScrollLock: 70, PrintScreen: 99, Pause: 119, ContextMenu: 127,
 };
-
 for (let i = 0; i < 10; i += 1) KEYCODE_MAP[`F${i + 1}`] = 59 + i;
 KEYCODE_MAP.F11 = 87;
 KEYCODE_MAP.F12 = 88;
@@ -106,6 +534,11 @@ Object.assign(KEYCODE_MAP, {
 function sendKey(domCode, pressed) {
     const code = KEYCODE_MAP[domCode];
     if (code === undefined) return;
+    if (pressed) {
+        heldKeys.add(code);
+    } else {
+        heldKeys.delete(code);
+    }
     sendInput({ Key: { code, pressed } });
 }
 
@@ -118,6 +551,180 @@ function sendStylus(x, y, pressure, tiltX, tiltY) {
                 tilt_y_deg: tiltY,
             },
         },
+    });
+}
+
+// Latched Modifiers State (Matching Android KeyboardTogglePill)
+const latchedModifiers = {
+    ControlLeft: false,
+    AltLeft: false,
+    ShiftLeft: false,
+    MetaLeft: false,
+};
+
+function sendRawCode(code, pressed) {
+    if (pressed) {
+        heldKeys.add(code);
+    } else {
+        heldKeys.delete(code);
+    }
+    sendInput({ Key: { code, pressed } });
+}
+
+function unlatchAll() {
+    const latches = [
+        { key: "ControlLeft", code: 29 },
+        { key: "AltLeft", code: 56 },
+        { key: "ShiftLeft", code: 42 },
+        { key: "MetaLeft", code: 125 },
+    ];
+    for (const { key, code } of latches) {
+        if (latchedModifiers[key]) {
+            latchedModifiers[key] = false;
+            sendRawCode(code, false);
+            const btn = document.querySelector(`.keyBtn[data-latch="${key}"]`);
+            if (btn) btn.classList.remove("active");
+        }
+    }
+}
+
+function keyCodeFor(c) {
+    const upper = c.toUpperCase();
+    if (LETTER_KEYCODES[upper]) return LETTER_KEYCODES[upper];
+    const map = {
+        '0': 11, '1': 2, '2': 3, '3': 4, '4': 5,
+        '5': 6, '6': 7, '7': 8, '8': 9, '9': 10,
+        ' ': 57, '\n': 28, '\t': 15,
+        '-': 12, '=': 13, '[': 26, ']': 27,
+        ';': 39, "'": 40, '`': 41, '\\': 43,
+        ',': 51, '.': 52, '/': 53,
+    };
+    return map[c] || 0;
+}
+
+function sendChar(c) {
+    const shiftedChars = {
+        '!': 2, '@': 3, '#': 4, '$': 5, '%': 6,
+        '^': 7, '&': 8, '*': 9, '(': 10, ')': 11,
+        '_': 12, '+': 13, '{': 26, '}': 27, ':': 39,
+        '"': 40, '~': 41, '|': 43, '<': 51, '>': 52, '?': 53,
+    };
+    if (c >= 'A' && c <= 'Z') {
+        const code = keyCodeFor(c);
+        if (code) {
+            sendRawCode(42, true);
+            sendRawCode(code, true);
+            sendRawCode(code, false);
+            sendRawCode(42, false);
+        }
+    } else if (shiftedChars[c]) {
+        const code = shiftedChars[c];
+        sendRawCode(42, true);
+        sendRawCode(code, true);
+        sendRawCode(code, false);
+        sendRawCode(42, false);
+    } else {
+        const code = keyCodeFor(c);
+        if (code) {
+            sendRawCode(code, true);
+            sendRawCode(code, false);
+        }
+    }
+}
+
+// Prevent focus loss from hidden input when tapping hotkeys
+document.querySelectorAll(".keyBtn").forEach((btn) => {
+    btn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+    });
+});
+
+// Hotkey buttons (Esc, Tab, F-keys, arrows, Space, Del, Enter, etc.)
+document.querySelectorAll(".keyBtn[data-code]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const code = btn.dataset.code;
+        sendKey(code, true);
+        setTimeout(() => {
+            sendKey(code, false);
+            unlatchAll();
+        }, 50);
+    });
+});
+
+// Toggle Latched Modifiers (Ctrl, Alt, Shift, Win)
+document.querySelectorAll(".keyBtn[data-latch]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const latchKey = btn.dataset.latch;
+        const rawCode = parseInt(btn.dataset.raw, 10);
+        latchedModifiers[latchKey] = !latchedModifiers[latchKey];
+        const active = latchedModifiers[latchKey];
+        btn.classList.toggle("active", active);
+        sendRawCode(rawCode, active);
+    });
+});
+
+// Productivity shortcuts (Undo, Copy, Paste)
+document.querySelectorAll(".keyBtn[data-action]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        const keyMap = { undo: 44, copy: 46, paste: 47 };
+        const key = keyMap[action];
+        if (key) {
+            sendRawCode(29, true); // Ctrl
+            sendRawCode(key, true);
+            setTimeout(() => {
+                sendRawCode(key, false);
+                sendRawCode(29, false);
+                unlatchAll();
+            }, 50);
+        }
+    });
+});
+
+// Invisible IME input for direct typing without a visible text box
+if (keyboardImeInput) {
+    const DUMMY = "   ";
+    keyboardImeInput.value = DUMMY;
+
+    keyboardImeInput.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace") {
+            e.preventDefault();
+            sendRawCode(14, true);
+            setTimeout(() => sendRawCode(14, false), 40);
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            sendRawCode(28, true);
+            setTimeout(() => {
+                sendRawCode(28, false);
+                unlatchAll();
+            }, 40);
+        } else if (e.key === "Tab") {
+            e.preventDefault();
+            sendRawCode(15, true);
+            setTimeout(() => sendRawCode(15, false), 40);
+        } else if (e.key === "Escape") {
+            e.preventDefault();
+            keyboardDrawer.classList.add("hidden");
+            unlatchAll();
+        }
+    });
+
+    keyboardImeInput.addEventListener("input", () => {
+        const val = keyboardImeInput.value;
+        if (val.length < DUMMY.length || !val) {
+            sendRawCode(14, true);
+            setTimeout(() => sendRawCode(14, false), 40);
+        } else if (val.length > DUMMY.length) {
+            const added = val.substring(DUMMY.length);
+            for (const ch of added) {
+                sendChar(ch);
+            }
+            unlatchAll();
+        }
+        keyboardImeInput.value = DUMMY;
     });
 }
 
@@ -135,62 +742,15 @@ function mapPointer(event) {
     };
 }
 
-let controlActive = false;
-let controlFallback = false;
-let virtualX = 0;
-let virtualY = 0;
-
-function videoDimensions() {
-    return {
-        w: videoEl.videoWidth || displayWidth,
-        h: videoEl.videoHeight || displayHeight,
-    };
-}
-
-function hasPointerLockSupport() {
-    return typeof videoEl.requestPointerLock === "function";
-}
-
-function enterControl(event) {
-    if (hasPointerLockSupport() && event.pointerType === "mouse") {
-        const maybePromise = videoEl.requestPointerLock();
-        if (maybePromise && typeof maybePromise.catch === "function") {
-            maybePromise.catch(() => {
-                controlFallback = true;
-                controlActive = true;
-                setControlHint();
-            });
-        }
-        return false;
-    }
-    controlFallback = true;
-    controlActive = true;
-    setControlHint();
-    return true;
-}
-
-function exitControl() {
-    controlActive = false;
-    controlFallback = false;
-    releaseAllButtons();
-    setControlHint();
-}
-
-function relativeMove(event) {
-    const { w, h } = videoDimensions();
-    virtualX = Math.max(0, Math.min(w - 1, virtualX + event.movementX));
-    virtualY = Math.max(0, Math.min(h - 1, virtualY + event.movementY));
-    return { x: virtualX, y: virtualY };
-}
-
 function showTouch(x, y) {
+    if (!touchIndicator) return;
     touchIndicator.style.left = `${x}px`;
     touchIndicator.style.top = `${y}px`;
     touchIndicator.classList.remove("hidden");
 }
 
 function hideTouch() {
-    touchIndicator.classList.add("hidden");
+    if (touchIndicator) touchIndicator.classList.add("hidden");
 }
 
 function canPlayMpegTs() {
@@ -199,6 +759,10 @@ function canPlayMpegTs() {
 }
 
 function destroyPlayer() {
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
     if (mpegtsPlayer) {
         mpegtsPlayer.destroy();
         mpegtsPlayer = null;
@@ -209,15 +773,14 @@ function destroyPlayer() {
         videoEl.load();
     }
     streamActive = false;
-    exitControl();
+    clearInterval(latencyWatchdog);
+    releaseControl();
 }
 
 async function fetchClientConfig() {
     try {
         const cfg = await fetch("/client/config.json");
-        if (cfg.ok) {
-            return await cfg.json();
-        }
+        if (cfg.ok) return await cfg.json();
     } catch (error) {
         console.warn("config.json fetch failed:", error);
     }
@@ -225,6 +788,7 @@ async function fetchClientConfig() {
 }
 
 async function refreshToken() {
+    if (authToken) return;
     const info = await fetchClientConfig();
     if (info && typeof info.token === "string" && info.token.length > 0) {
         authToken = info.token;
@@ -234,8 +798,7 @@ async function refreshToken() {
 function scheduleReconnect(reason) {
     if (reconnectTimer) return;
     destroyPlayer();
-    overlayEl.classList.remove("hidden");
-    setStatus(`Stream lost (${reason}), retrying in ${reconnectDelay / 1000}s…`);
+    setOverlayState("connecting", "Connecting", `Reconnecting (${reason})…`);
     reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         (async () => {
@@ -243,7 +806,7 @@ function scheduleReconnect(reason) {
             startStream();
         })().catch((error) => {
             console.warn("reconnect attempt failed:", error);
-            scheduleReconnect("reconnect error");
+            scheduleReconnect("retry error");
         });
     }, reconnectDelay);
     reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
@@ -251,88 +814,120 @@ function scheduleReconnect(reason) {
 
 function startStream() {
     if (!canPlayMpegTs()) {
-        overlayEl.classList.remove("hidden");
-        setStatus("This browser does not support MSE playback (Chrome/Firefox/Edge required)");
+        setOverlayState("error", "Playback Error", "Browser lacks MSE live video playback support");
         return;
     }
     destroyPlayer();
-    setStatus("Connecting to stream…");
+    setOverlayState("connecting", "Connecting", "Connecting to Linux virtual display…");
 
     const streamUrl = authToken
         ? `/stream?token=${encodeURIComponent(authToken)}`
         : "/stream";
+
     mpegtsPlayer = mpegts.createPlayer({
         type: "mpegts",
         isLive: true,
         url: streamUrl,
     }, {
-        autoCleanupSourceBuffer: true,
         enableStashBuffer: false,
+        stashInitialSize: 128,
+        autoCleanupSourceBuffer: true,
+        autoCleanupMaxBackwardDuration: 2,
+        autoCleanupMinBackwardDuration: 1,
         lazyLoad: false,
         lazyLoadMaxDuration: 0,
         seekType: "range",
         liveBufferLatencyChasing: true,
-        liveBufferLatencyMaxLatency: 1.0,
-        liveBufferLatencyMinRemain: 0.2,
+        liveBufferLatencyMaxLatency: 0.2,
+        liveBufferLatencyMinRemain: 0.05,
         liveSync: true,
+        liveSyncTargetLatency: 0.05,
     });
 
+    videoEl.muted = true;
     mpegtsPlayer.attachMediaElement(videoEl);
 
     mpegtsPlayer.on(mpegts.Events.ERROR, (errorType, errorDetail, errorInfo) => {
         console.error("mpegts error:", errorType, errorDetail, errorInfo);
-        scheduleReconnect(errorDetail || errorType || "unknown error");
+        if (errorDetail === "NetworkError" && !authToken && tokenRow) {
+            tokenRow.classList.remove("hidden");
+        }
+        scheduleReconnect(errorDetail || errorType || "network");
     });
+
     mpegtsPlayer.on(mpegts.Events.MEDIA_INFO, (mediaInfo) => {
         if (mediaInfo && mediaInfo.width && mediaInfo.height) {
             displayWidth = mediaInfo.width;
             displayHeight = mediaInfo.height;
-            resolutionEl.textContent = `${displayWidth} × ${displayHeight}`;
+            updateInfoDisplay();
         }
     });
 
     mpegtsPlayer.load();
-    mpegtsPlayer.play().catch((error) => {
-        console.error("play() failed:", error);
-        scheduleReconnect("play() rejected");
-    });
+    const playPromise = mpegtsPlayer.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch((error) => {
+            console.warn("autoplay blocked or rejected:", error);
+            setOverlayState("connecting", "Ready to Stream", "Click anywhere on the screen to begin");
+            const onFirstClick = () => {
+                window.removeEventListener("pointerdown", onFirstClick);
+                mpegtsPlayer.play().catch(() => {});
+            };
+            window.addEventListener("pointerdown", onFirstClick);
+        });
+    }
+
+    latencyWatchdog = setInterval(() => {
+        if (!streamActive || !videoEl || !videoEl.buffered || videoEl.buffered.length === 0) return;
+        try {
+            const end = videoEl.buffered.end(videoEl.buffered.length - 1);
+            const delay = end - videoEl.currentTime;
+            const ms = Math.max(0, Math.round(delay * 1000));
+            if (statLatency) statLatency.textContent = `${ms} ms`;
+            if (delay > 0.3) {
+                videoEl.currentTime = end - 0.03;
+            }
+        } catch (_) {}
+    }, 250);
 }
 
 async function start() {
-    setStatus("Reading host info…");
-
     const info = await fetchClientConfig();
     if (info) {
-        if (typeof info.token === "string" && info.token.length > 0) {
+        if (!authToken && typeof info.token === "string" && info.token.length > 0) {
             authToken = info.token;
         }
-        if (Number.isFinite(info.display_width)) displayWidth = info.display_width;
-        if (Number.isFinite(info.display_height)) displayHeight = info.display_height;
+        if (Number.isFinite(info.display_width) && Number.isFinite(info.display_height)) {
+            displayWidth = info.display_width;
+            displayHeight = info.display_height;
+        }
     }
     try {
         const response = await fetch("/api/info");
         if (response.ok) {
             const apiInfo = await response.json();
-            if (Number.isFinite(apiInfo?.display_width)
-                && Number.isFinite(apiInfo?.display_height)) {
+            if (Number.isFinite(apiInfo?.display_width) && Number.isFinite(apiInfo?.display_height)) {
                 displayWidth = apiInfo.display_width;
                 displayHeight = apiInfo.display_height;
+            }
+            if (typeof apiInfo?.encoder === "string") {
+                encoderName = apiInfo.encoder.toUpperCase();
             }
         }
     } catch (error) {
         console.warn("api/info fetch failed:", error);
     }
-    resolutionEl.textContent = `${displayWidth} × ${displayHeight}`;
 
-    overlayEl.classList.add("hidden");
+    updateInfoDisplay();
     startStream();
 }
 
 videoEl.addEventListener("playing", () => {
     streamActive = true;
     reconnectDelay = 1000;
-    overlayEl.classList.add("hidden");
-    setStatus("Streaming");
+    if (overlayEl) overlayEl.classList.add("hidden");
+    if (controlToolbar) controlToolbar.classList.remove("hidden");
+    if (miniPill) miniPill.classList.add("hidden");
 });
 
 videoEl.addEventListener("error", () => {
@@ -347,114 +942,7 @@ videoEl.addEventListener("ended", () => {
     }
 });
 
-function setControlHint() {
-    const hint = document.getElementById("controlHint");
-    if (!hint) return;
-    if (controlActive) {
-        hint.textContent = controlFallback
-            ? "Control active - tap outside the video to release"
-            : "Control active - press Esc to release";
-    } else {
-        hint.textContent = "Click to control";
-    }
-}
-
-function applyPointerDown(event) {
-    const { x, y } = mapPointer(event);
-    if (controlFallback) {
-        const { w, h } = videoDimensions();
-        virtualX = Math.max(0, Math.min(w - 1, x));
-        virtualY = Math.max(0, Math.min(h - 1, y));
-    }
-    sendPointerMove(x, y);
-    sendPointerButton(event.button + 1, true);
-    if (event.pointerType === "pen") {
-        sendStylus(x, y, event.pressure, event.tiltX, event.tiltY);
-    }
-    showTouch(event.clientX, event.clientY);
-}
-
-videoEl.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    try {
-        videoEl.setPointerCapture(event.pointerId);
-    } catch (_) { }
-    if (!controlActive) {
-        const enteredFallback = enterControl(event);
-        if (!enteredFallback) return;
-    }
-    applyPointerDown(event);
-});
-
-document.addEventListener("pointerlockchange", () => {
-    const locked = document.pointerLockElement === videoEl;
-    if (locked) {
-        controlActive = true;
-        controlFallback = false;
-        const { w, h } = videoDimensions();
-        virtualX = Math.floor(w / 2);
-        virtualY = Math.floor(h / 2);
-        setControlHint();
-    } else if (controlActive && !controlFallback) {
-        exitControl();
-    }
-});
-
-videoEl.addEventListener("pointermove", (event) => {
-    if (event.pointerType === "pen") {
-        const { x, y } = mapPointer(event);
-        sendStylus(x, y, event.pressure, event.tiltX, event.tiltY);
-        return;
-    }
-    if (!controlActive) return;
-    if (controlFallback) {
-        const { x, y } = mapPointer(event);
-        sendPointerMove(x, y);
-    } else {
-        const { x, y } = relativeMove(event);
-        sendPointerMove(x, y);
-    }
-});
-
-videoEl.addEventListener("pointerup", (event) => {
-    if (!controlActive) return;
-    sendPointerButton(event.button + 1, false);
-    hideTouch();
-});
-
-videoEl.addEventListener("pointercancel", () => {
-    releaseAllButtons();
-});
-
-videoEl.addEventListener("pointerleave", () => {
-    releaseAllButtons();
-});
-
-videoEl.addEventListener("wheel", (event) => {
-    if (!controlActive) return;
-    event.preventDefault();
-    sendWheel(normalizeWheel(event));
-}, { passive: false });
-
-window.addEventListener("keydown", (event) => {
-    if (!streamActive || !controlActive || event.repeat) return;
-    event.preventDefault();
-    sendKey(event.code, true);
-});
-
-window.addEventListener("keyup", (event) => {
-    if (!streamActive || !controlActive) return;
-    event.preventDefault();
-    sendKey(event.code, false);
-});
-
-document.addEventListener("pointerdown", (event) => {
-    if (controlActive && controlFallback && event.target !== videoEl) {
-        exitControl();
-    }
-});
-
 start().catch((error) => {
-    setStatus(`Error: ${error.message}`);
+    setOverlayState("error", "Initialization Failed", error.message);
     console.error(error);
 });
