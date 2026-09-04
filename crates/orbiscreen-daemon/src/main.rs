@@ -1235,7 +1235,7 @@ async fn portal_available() -> Option<bool> {
 }
 
 async fn bind_kwin_virtual_inputs(target_output: &str) {
-    for delay_ms in [250, 500, 1000] {
+    for delay_ms in [250, 500, 1000, 2000] {
         tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
         if let Ok(conn) = zbus::Connection::session().await {
             let mut bound = 0;
@@ -1254,7 +1254,6 @@ async fn bind_kwin_virtual_inputs(target_output: &str) {
                             let _ = proxy
                                 .set_property::<&str>("outputName", target_output)
                                 .await;
-                            let _ = proxy.set_property::<bool>("mapToWorkspace", false).await;
                             info!(
                                 "bound KWin input device {path} ({name}) to output {target_output}"
                             );
@@ -1263,7 +1262,7 @@ async fn bind_kwin_virtual_inputs(target_output: &str) {
                     }
                 }
             }
-            if bound >= 2 {
+            if bound >= 3 {
                 break;
             }
         }

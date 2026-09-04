@@ -32,8 +32,10 @@ class InputDispatcher(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val http = OkHttpClient.Builder()
-        .connectTimeout(2, TimeUnit.SECONDS)
-        .readTimeout(2, TimeUnit.SECONDS)
+        .connectionPool(okhttp3.ConnectionPool(8, 2, TimeUnit.MINUTES))
+        .connectTimeout(1, TimeUnit.SECONDS)
+        .readTimeout(1, TimeUnit.SECONDS)
+        .writeTimeout(1, TimeUnit.SECONDS)
         .build()
 
     @Volatile
@@ -66,15 +68,11 @@ class InputDispatcher(
                     x to y
                 }
                 if (kotlin.math.abs(sendX) >= 0.15f || kotlin.math.abs(sendY) >= 0.15f) {
-                    val nx = (cursorX + sendX).coerceIn(0f, streamWidth.toFloat())
-                    val ny = (cursorY + sendY).coerceIn(0f, streamHeight.toFloat())
-                    cursorX = nx
-                    cursorY = ny
                     val payload = JSONObject().apply {
                         put("Pointer", JSONObject().apply {
-                            put("Move", JSONObject().apply {
-                                put("x", nx.toDouble())
-                                put("y", ny.toDouble())
+                            put("RelativeMove", JSONObject().apply {
+                                put("dx", sendX.toDouble())
+                                put("dy", sendY.toDouble())
                             })
                         })
                     }
@@ -319,19 +317,27 @@ class InputDispatcher(
             val t = tokenProvider?.invoke()?.takeIf { it.isNotBlank() } ?: token
             val builder = Request.Builder()
                 .url("http://$host:$port/input")
+                .header("Connection", "keep-alive")
                 .post(payload.toString().toRequestBody("application/json".toMediaType()))
             if (t.isNotBlank()) {
                 builder.header("Authorization", "Bearer $t")
             }
-            http.newCall(builder.build()).execute().use { resp ->
-                if (resp.code == 401) {
-                    Log.w(TAG, "send rejected with HTTP 401, triggering re-auth")
-                    token = ""
-                    onUnauthorized?.invoke()
-                } else if (!resp.isSuccessful) {
-                    Log.w(TAG, "send rejected with HTTP ${resp.code}")
+            http.newCall(builder.build()).enqueue(object : okhttp3.Callback {
+                override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
+                    Log.v(TAG, "send failed: ${e.message}")
                 }
-            }
+                override fun onResponse(call: okhttp3.Call, resp: okhttp3.Response) {
+                    resp.use {
+                        if (it.code == 401) {
+                            Log.w(TAG, "send rejected with HTTP 401, triggering re-auth")
+                            token = ""
+                            onUnauthorized?.invoke()
+                        } else if (!it.isSuccessful) {
+                            Log.w(TAG, "send rejected with HTTP ${it.code}")
+                        }
+                    }
+                }
+            })
         } catch (e: Exception) {
             Log.v(TAG, "send failed: ${e.message}")
         }
