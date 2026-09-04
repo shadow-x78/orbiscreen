@@ -92,19 +92,23 @@
 <a id="highlights"></a>
 ## ✨ Highlights
 
-- **Real virtual display via `evdi`** (X11 *and* Wayland), **or zero root on KDE Plasma**: a KWin virtual monitor through `zkde-screencast` (no kernel module, no portal dialog), with portal capture fallback elsewhere
-- **Material 3 Android client** - Jetpack Compose, Catppuccin Mocha / Latte brand palette, light/dark theme
-- **Graphic Digitizer with Stylus Pressure &amp; Tilt** - 4095 pressure levels mapped to Linux kernel `uinput` for Krita, GIMP, and Blender
-- **Auto-Orientation Resolution Adaptation** - automatically swaps width &amp; height when your phone/tablet rotates between landscape and portrait
-- **3-Row Spacious Keyboard Overlay** - top-docked layout ensuring bottom taskbars, terminals, and prompts stay 100% visible
-- **Built-in web client** - watch from any browser at `http://<host>:8788/` (MSE via the locally bundled `mpegts.js`, no CDN)
-- **Live discovery** - NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner
-- **Native streaming** - ExoPlayer with `OkHttpDataSource` + `DefaultLoadControl` for ultra-low latency MPEG-TS / H.264
-- **Token protection** - `/stream`, `/input` and `/api/control` require a per-session token (mDNS TXT / `/client/config.json`), rotated on every daemon start
-- **Reverse touch &amp; mouse control** - absolute pointer, physical mouse confinement to virtual display, keyboard, stylus, and wheel events
-- **Host control panel** - keyboard, lock, blank, Ctrl+Alt+Del, and retry actions
-- **USB transport** via `adb reverse` with hot-plug (a device plugged in later is picked up within two seconds)
-- **Hardware encoding** - NVIDIA NVENC, Intel/AMD VA-API, and x264 software fallback
+- **XDG Desktop Portal Virtual Display API**: Rootless virtual display creation on GNOME 46+ and KDE Plasma 6+ via ScreenCast `SourceType::Virtual`, with automatic EVDI fallback
+- **Graphic Digitizer with Stylus Hover &amp; Pressure**: 4095 pressure levels, tilt tracking, and in-air hover cursor tracking mapped to Linux `uinput` for Krita, GIMP, and Blender
+- **Touchpad Drag-and-Drop Gesture**: Double-tap and drag in Touchpad mode for seamless window moving and file selection, with strict multi-monitor boundary confinement
+- **Ultra-Low Latency 5GHz Wi-Fi Tuning**: 6-frame GOP (100ms keyframe interval) with sub-50ms buffer pipeline for instantaneous recovery and zero-lag responsiveness
+- **Chromebook CM3001 &amp; ChromeOS Support**: Auto-probing internal ADB route (`100.115.92.2:5555`) for plug-and-play USB streaming on ChromeOS ARC++
+- **Token Loopback Security Isolation**: Session token generation with strict `0o600` permissions and loopback-only delivery, supporting `#token=` URL hash for remote browsers
+- **Connection Lifecycle &amp; Fast Recovery**: Explicit disconnect detection, 500ms `/health` probe, and capped reconnection attempts
+- **Real virtual display via `evdi`** (X11 and Wayland), **or zero root on KDE Plasma / wlroots**: KWin virtual monitor or compositor headless output without kernel modules
+- **Material 3 Android client**: Jetpack Compose, Catppuccin Mocha / Latte brand palette, light/dark theme
+- **Auto-Orientation Resolution Adaptation**: Automatically swaps width and height when your phone/tablet rotates between landscape and portrait
+- **3-Row Spacious Keyboard Overlay**: Top-docked layout ensuring bottom taskbars, terminals, and prompts stay 100% visible
+- **Built-in web client**: Watch from any browser at `http://<host>:8788/` (MSE via locally bundled `mpegts.js`, no CDN)
+- **Live discovery**: NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner
+- **Native streaming**: ExoPlayer with `OkHttpDataSource` + tuned load control for ultra-low latency MPEG-TS / H.264
+- **Host control panel**: Keyboard, lock, blank, Ctrl+Alt+Del, and retry actions
+- **USB transport via `adb reverse`**: Hot-plug detection picking up newly connected devices within two seconds
+- **Hardware encoding**: NVIDIA NVENC, Intel/AMD VA-API, and x264 software fallback
 - **Cryptographic signing** of every Linux and Android artifact
 
 ---
@@ -114,10 +118,10 @@
 
 | Environment | Virtual second display | Capture | Input |
 |-------------|------------------------|---------|-------|
-| KDE Plasma (Wayland) | ✅ Native (zkde-screencast, no root / no dialog) | ✅ PipeWire | ✅ RemoteDesktop portal / uinput |
+| KDE Plasma (Wayland) | ✅ Native (Portal Virtual / zkde-screencast, no root) | ✅ PipeWire | ✅ RemoteDesktop portal / uinput |
 | COSMIC (Wayland) | ⚠️ Via EVDI (guided by `doctor --fix`) | ✅ Portal ScreenCast (PipeWire) | ✅ uinput (multi-touch & stylus) / RemoteDesktop |
 | Sway / Hyprland / wlroots | ✅ Headless output via compositor IPC (no root) | ✅ wlr-screencopy (no dialog) | ✅ virtual-pointer / virtual-keyboard (no portal) |
-| GNOME (Wayland) | ⚠️ Via EVDI | ✅ Portal: dialog only on the first run (saved restore token) | ✅ RemoteDesktop portal: persisted |
+| GNOME (Wayland) | ✅ Portal Virtual (GNOME 46+) / EVDI | ✅ Portal ScreenCast (PipeWire) | ✅ RemoteDesktop portal: persisted |
 | XFCE / MATE / LXQt / Cinnamon (X11) | ✅ Via EVDI | ✅ XShm mirrored root (pooled, duplicate frames skipped) | ✅ XTEST (rootless), uinput fallback |
 | Anything else | ✅ Via EVDI (guided by `orbiscreen doctor --fix`) | Best available backend | Best available backend |
 
@@ -162,13 +166,16 @@
 
 ### 2. Running Orbiscreen
 
-- **From Application Menu (Zero-CLI):**
-  Search for **Orbiscreen** in your desktop menu (KDE Kickoff, GNOME Activities, rofi, etc.) and click to start!
-  Right-click the icon anytime to stop or run diagnostics.
-
-- **From Terminal:**
+- **From Terminal (Foreground Daemon):**
   ```bash
   orbiscreen start
+  ```
+
+- **As Background Service (systemd user unit):**
+  ```bash
+  systemctl --user start orbiscreen
+  # To enable automatically on login:
+  systemctl --user enable orbiscreen
   ```
 
 ---
@@ -203,7 +210,11 @@ orbiscreen stop
 
 - **Instant mDNS Discovery**: Automatically discovers Linux hosts on your Wi-Fi network.
 - **USB Cable Hot-Plug**: Connect with a single USB cable for zero-latency, zero-interference streaming via ADB reverse.
-- **Graphic Digitizer Support**: Full stylus pressure sensitivity (4095 levels) and tilt for drawing in Krita and GIMP.
+- **Chromebook &amp; ChromeOS ARC++ Ready**: Auto-probing internal ADB route on `100.115.92.2:5555` for Chromebook CM3001 and ChromeOS devices.
+- **Graphic Digitizer Support**: Stylus in-air hover cursor tracking, pressure sensitivity (4095 levels), and tilt angle support for drawing in Krita and GIMP.
+- **Touchpad Drag-and-Drop**: Double-tap and drag gesture for smooth window dragging, file movement, and text selection.
+- **Ultra-Low Latency Wi-Fi Tuning**: 40-120ms tuned buffer profile paired with 6-frame GOP encoding for instant live edge tracking on 5GHz networks.
+- **Fast Disconnect Detection**: Instant 500ms health checking and capped reconnection preventing infinite retry loops.
 - **Dynamic Auto-Rotation**: Rotating your device automatically synchronizes virtual screen aspect ratio.
 - **Top-Docked Keyboard Overlay**: 3-row layout with function keys, shortcuts, and navigation that never obscures your workspace.
 - **Streamlined Display Settings**: Dedicated pointer speed slider and instant resolution picker.

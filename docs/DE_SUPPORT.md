@@ -37,26 +37,26 @@ ordered capture plan. The plan is logged on every `orbiscreen start`:
 
 | Environment | `auto` capture plan (in order) |
 |---|---|
-| KDE Plasma (Wayland) | `kwin-virtual` → `portal` |
+| KDE Plasma (Wayland) | `portal-virtual` → `kwin-virtual` → `portal` |
+| GNOME (Wayland) | `portal-virtual` → `evdi` → `portal` |
 | COSMIC (Wayland) | `evdi` → `portal` |
 | Sway / Hyprland / other wlroots | `wlroots-virtual` → `wlr-screencopy` → `portal` → `evdi` |
-| GNOME / other non-wlroots Wayland | `portal` |
 | X11 (any DE) | `evdi` → `x11-root` (XShm mirror) |
-| Unknown session | `portal` → `x11-root` (or `evdi` → `x11-root` when no desktop is declared) |
+| Unknown session | `portal-virtual` → `portal` → `x11-root` (or `evdi` → `x11-root` when no desktop is declared) |
 
 - `wlroots-virtual` fails fast and falls through when the compositor IPC is
   not reachable, so the chain above also covers wlroots compositors without
   virtual-output support.
 
-- `wlroots-virtual`, `kwin-virtual`, and `evdi` create a **real second
+- `portal-virtual`, `wlroots-virtual`, `kwin-virtual`, and `evdi` create a **real second
   display** that starts empty; drag windows onto it.
 - `wlr-screencopy`, `x11-root`, and `portal` **mirror an existing screen**.
 
 ## KDE Plasma (Wayland)
 
-- **Virtual display:** native, via `zkde_screencast_unstable_v1`. No root, no
-  kernel module, no share dialog. The monitor appears as
-  `Virtual-ORBISCREEN`.
+- **Virtual display:** native, via `zkde_screencast_unstable_v1` or XDG Portal
+  ScreenCast `SourceType::Virtual`. No root, no kernel module, no share dialog.
+  The monitor appears as `Virtual-ORBISCREEN`.
 - **Capture:** PipeWire stream from the virtual monitor.
 - **Input:** RemoteDesktop portal (the grant is remembered after the first
   run, no dialog afterwards).
@@ -96,22 +96,21 @@ ordered capture plan. The plan is logged on every `orbiscreen start`:
 
 ## GNOME (Wayland / Mutter)
 
-Mutter has no public API to hot-plug a virtual monitor inside a running
-graphical session, so:
+Starting with GNOME 46+, mutter supports creating rootless virtual monitors through the XDG Desktop Portal ScreenCast API:
 
-- **Virtual display:** via **EVDI** (kernel module): the guided path is
-  `orbiscreen doctor --fix`.
-- **Capture:** portal ScreenCast. Since v0.13.0 the permission grant is
-  **persisted** (restore token in `$XDG_STATE_HOME/orbiscreen/portal.json`):
+- **Virtual display:**
+  - **Portal Virtual Output (GNOME 46+):** Orbiscreen requests `SourceType::Virtual` via `ashpd::desktop::screencast`. When supported by mutter, an independent virtual display is created on-the-fly without root permissions, kernel modules, or display-manager reconfiguration.
+  - **EVDI Fallback (Pre-GNOME 46 or unsupported backends):** Kernel-level virtual DRM driver (`orbiscreen doctor --fix` guides the setup).
+- **Capture:** portal ScreenCast (PipeWire). The permission grant is **persisted** (restore token in `$XDG_STATE_HOME/orbiscreen/portal.json`):
   the share dialog appears only on the first run, never again afterwards
   (unless revoked).
 - **Input:** RemoteDesktop portal, likewise persisted.
 - **Troubleshooting:**
-  - Dialog appears on every run → the backend does not honour restore tokens,
+  - Dialog appears on every run -> the backend does not honour restore tokens,
     or the state file was deleted. `doctor` shows `screencast grant saved:
     yes/no`.
-  - `portal: org.freedesktop.portal.Desktop NOT on the session bus` → install
-    `xdg-desktop-portal` and the GNOME backend.
+  - `portal: org.freedesktop.portal.Desktop NOT on the session bus` -> install
+    `xdg-desktop-portal` and `xdg-desktop-portal-gnome`.
 
 ## COSMIC Desktop (Wayland / cosmic-comp)
 
@@ -153,6 +152,18 @@ System76's Rust-based COSMIC desktop (`cosmic-comp`, built on Smithay) integrate
     from source: `bash scripts/install-evdi-module.sh`.
   - No input without root → XTEST should have engaged; check `doctor` output
     for the input backend line.
+
+## Chromebooks / ChromeOS (ASUS CM3001 & ARC++)
+
+When running Orbiscreen Android client inside ChromeOS (e.g. ASUS Chromebook CM3001 or any ChromeOS tablet supporting Android apps via ARC++):
+
+- **Android Subnet Isolation:** ChromeOS runs Android applications inside an isolated container (ARC++) behind an internal virtual NAT bridge, typically assigning the Android container an IP on `100.115.92.0/28` (default gateway `100.115.92.2`).
+- **Automatic Internal ADB Probing:** Orbiscreen automatically probes `100.115.92.2:5555` alongside `localhost:5555` to detect ADB reverse tunnels inside ChromeOS.
+- **Stylus Digitizer Integration:** ChromeOS USI styluses report in-air hover events (`ACTION_HOVER_MOVE`) and tilt. Orbiscreen's background coroutine dispatch on `Dispatchers.IO` handles pen events without triggering UI freezes or main thread exceptions.
+- **Setup for ChromeOS Linux (Crostini):**
+  1. Enable **Linux development environment** in ChromeOS Settings.
+  2. Enable **Develop Android apps** -> **Enable ADB debugging**.
+  3. Run `orbiscreen start` inside the Linux terminal container.
 
 ## Anything else
 

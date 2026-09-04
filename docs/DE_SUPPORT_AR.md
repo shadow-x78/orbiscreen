@@ -37,23 +37,23 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
 
 | البيئة | خطة التقاط `auto` (بالترتيب) |
 |---|---|
-| KDE Plasma (Wayland) | ‏`kwin-virtual` ← `portal` |
+| KDE Plasma (Wayland) | ‏`portal-virtual` ← `kwin-virtual` ← `portal` |
+| GNOME (Wayland) | ‏`portal-virtual` ← `evdi` ← `portal` |
 | COSMIC (Wayland) | ‏`evdi` ← `portal` |
 | Sway / Hyprland / باقي wlroots | ‏`wlroots-virtual` ← `wlr-screencopy` ← `portal` ← `evdi` |
-| GNOME / Wayland آخر (غير wlroots) | ‏`portal` |
 | X11 (أي بيئة) | ‏`evdi` ← `x11-root` (عكس عبر XShm) |
-| جلسة غير معروفة | ‏`portal` ← `x11-root` (أو `evdi` ← `x11-root` عندما لا تُعلن أي بيئة) |
+| جلسة غير معروفة | ‏`portal-virtual` ← `portal` ← `x11-root` (أو `evdi` ← `x11-root` عندما لا تُعلن أي بيئة) |
 
 - ‏`wlroots-virtual` يفشل فوراً وينتقل للتالي عندما لا يكون IPC الـ compositor
   متاحاً، لذا تغطي الخطة أعلاه أيضاً compositors عائلة wlroots بلا دعم
   للمخرجات الافتراضية.
-- ‏`wlroots-virtual` و`kwin-virtual` و`evdi` تنشئ **شاشة ثانية حقيقية** تبدأ
+- ‏`portal-virtual` و`wlroots-virtual` و`kwin-virtual` و`evdi` تنشئ **شاشة ثانية حقيقية** تبدأ
   فارغة؛ اسحب النوافذ إليها.
 - ‏`wlr-screencopy` و`x11-root` و`portal` **تعكس شاشة موجودة**.
 
 ## KDE Plasma (Wayland)
 
-- **الشاشة الافتراضية:** أصلية عبر `zkde_screencast_unstable_v1`. بلا root،
+- **الشاشة الافتراضية:** أصلية عبر `zkde_screencast_unstable_v1` أو XDG Portal ScreenCast `SourceType::Virtual`. بلا root،
   بلا وحدة نواة، بلا نافذة مشاركة. تظهر الشاشة باسم `Virtual-ORBISCREEN`.
 - **الالتقاط:** بث PipeWire من المونيتور الافتراضي.
 - **الإدخال:** portal RemoteDesktop (يُحفظ الإذن بعد أول تشغيل، لا حوار بعد
@@ -91,20 +91,16 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
 
 ## GNOME (Wayland / Mutter)
 
-لا تملك Mutter واجهة عامة لإضافة مونيتور افتراضي داخل جلسة رسومية قائمة،
-لذلك:
+بدءاً من إصدار GNOME 46+، تدعم Mutter إنشاء شاشات افتراضية بدون صلاحيات root عبر واجهة XDG Desktop Portal ScreenCast API:
 
-- **الشاشة الافتراضية:** عبر **EVDI** (وحدة نواة): المسار الموجَّه هو
-  ‏`orbiscreen doctor --fix`.
-- **الالتقاط:** ‏portal ScreenCast. منذ v0.13.0 **يُحفظ إذن** المشاركة
-  (restore token في `$XDG_STATE_HOME/orbiscreen/portal.json`): تظهر نافذة
-  المشاركة في أول تشغيل فقط، ولا تظهر مجدداً (إلا إذا أُلغي الإذن).
-- **الإدخال:** ‏portal RemoteDesktop، ويُحفظ بالمثل.
+- **الشاشة الافتراضية:**
+  - **مخرج افتراضي عبر Portal (GNOME 46+):** يطلب Orbiscreen نوع `SourceType::Virtual` عبر `ashpd::desktop::screencast`. عند دعم Mutter لها، تُنشأ شاشة افتراضية مستقلة فورياً بلا حاجة لصلاحيات root أو وحدات نواة أو تعديل إعدادات مدير العرض.
+  - **التراجع إلى EVDI (ما قبل GNOME 46 أو الأنظمة غير المتوافقة):** مشغل DRM افتراضي على مستوى النواة (يساعدك أمر `orbiscreen doctor --fix` في إعداده).
+- **الالتقاط:** portal ScreenCast (عبر PipeWire). منذ v0.13.0 **يُحفظ إذن** المشاركة (restore token في `$XDG_STATE_HOME/orbiscreen/portal.json`): تظهر نافذة المشاركة في أول تشغيل فقط، ولا تظهر مجدداً (إلا إذا أُلغي الإذن).
+- **الإدخال:** portal RemoteDesktop، ويُحفظ بالمثل.
 - **حلول الأعطال:**
-  - يظهر الحوار في كل تشغيل → الـ backend لا يحترم restore tokens، أو حُذف
-    ملف الحالة. يطبع `doctor`: ‏`screencast grant saved: yes/no`.
-  - ‏`portal: org.freedesktop.portal.Desktop NOT on the session bus` → ثبّت
-    ‏`xdg-desktop-portal` مع backend الخاص بـ GNOME.
+  - يظهر الحوار في كل تشغيل -> الـ backend لا يحترم restore tokens، أو حُذف ملف الحالة. يطبع `doctor`: ‏`screencast grant saved: yes/no`.
+  - `portal: org.freedesktop.portal.Desktop NOT on the session bus` -> ثبّت `xdg-desktop-portal` مع backend الخاص بـ GNOME.
 
 ## بيئة COSMIC ‏(Wayland / cosmic-comp)
 
@@ -132,6 +128,18 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
     من المصدر: ‏`bash scripts/install-evdi-module.sh`.
   - لا إدخال بلا root → كان يجب أن يعمل XTEST؛ راجع سطر واجهة الإدخال في
     مخرجات `doctor`.
+
+## أجهزة Chromebook و ChromeOS (ASUS CM3001 و ARC++)
+
+عند تشغيل تطبيق Orbiscreen على نظام ChromeOS (مثل جهاز ASUS Chromebook CM3001 أو أي جهاز لوحي يدعم تطبيقات الأندرويد عبر ARC++):
+
+- **عزل شبكة الأندرويد:** يعمل نظام أندرويد داخل حاوية معزولة (ARC++) خلف جسر NAT افتراضي، ويُعيّن لها عنوان IP ضمن النطاق `100.115.92.0/28` (البوابة الافتراضية `100.115.92.2`).
+- **استكشاف نفق ADB الداخلي تلقائياً:** يقوم Orbiscreen بفحص المنفذ الداخلي `100.115.92.2:5555` تلقائياً إلى جانب `localhost:5555` لربط نفق البث السلكي فورياً داخل ChromeOS.
+- **تكامل القلم الذكي (Stylus):** تدعم أقلام USI تتبع الحركة أثناء التحليق بالهواء ومستويات الضغط والميلان. وتتم معالجة أحداث القلم في خيوط خلفية عبر `Dispatchers.IO` لمنع تجميد واجهة التطبيق.
+- **الإعداد عبر لينكس داخل ChromeOS (Crostini):**
+  1. فعّل **Linux development environment** من إعدادات ChromeOS.
+  2. فعّل **Develop Android apps** -> **Enable ADB debugging**.
+  3. شغّل `orbiscreen start` داخل طرفية لينكس.
 
 ## أي بيئة أخرى
 

@@ -37,6 +37,9 @@
 
 ### Android
 
+- [Android / ChromeOS: ADB connection fails on ASUS Chromebook CM3001](#android-chromebook-adb)
+- [Android: Stylus / Pen not drawing, incorrect pressure, or app crash on Lenovo Tab](#android-stylus)
+- [Android: Dragging windows or selecting files in Touchpad mode](#android-touchpad-drag)
 - [Android: app crashes or process dies when tapping Connect](#android-connect-crash)
 - [Android: black screen after Connect](#android-black-screen)
 - [Android: discovery list is empty even though hosts are on the same Wi-Fi](#android-no-hosts)
@@ -47,6 +50,9 @@
 
 ### Streaming & Clients
 
+- [Streaming: High latency, stutter, or slow mouse movement on 5GHz Wi-Fi](#streaming-wifi-latency)
+- [Streaming: Stream error causes infinite reconnect flicker instead of detecting disconnect](#stream-disconnect-retry)
+- [Multi-Monitor / X11: Mouse cursor escapes virtual display to other physical screens](#cursor-clamping)
 - [Client shows the wrong screen (primary desktop instead of virtual display)](#wrong-screen)
 - [Web client loads but shows no picture](#web-no-picture)
 - [No encoder available - stream starts but errors out (x264 missing)](#no-encoder)
@@ -222,7 +228,59 @@ Use `#[allow(missing_debug_implementations)]` or `#[allow(unsafe_code)]` on the 
 
 ---
 
-## 📱 Android (v0.10.3)
+## 📱 Android Client & Devices
+
+<a id="android-chromebook-adb"></a>
+### Android / ChromeOS: ADB connection fails on ASUS Chromebook CM3001
+
+**Symptom:**
+Running the Orbiscreen Android app on ASUS Chromebook CM3001 (or other ChromeOS devices) shows "Looking for host" in USB mode and fails to find the Linux daemon.
+
+**Cause:**
+ChromeOS isolates Android apps inside an ARC++ container with its own virtual network namespace (`100.115.92.0/28`). Standard ADB reverse commands mapped to `127.0.0.1` inside the Crostini Linux container do not reach ARC++ without routing.
+
+**Fix:**
+- Orbiscreen v0.20.0 automatically probes the internal ARC++ gateway address `100.115.92.2:5555` alongside `localhost:5555`.
+- In ChromeOS Settings, navigate to **Advanced** -> **Developers** -> **Develop Android apps** and turn on **Enable ADB debugging**.
+- Restart the Chromebook if prompted, then launch `orbiscreen start` in the Linux container. USB mode connects instantly.
+
+---
+
+<a id="android-stylus"></a>
+### Android: Stylus / Pen not drawing, incorrect pressure, or app crash on Lenovo Tab
+
+**Symptom:**
+Using a stylus on a Lenovo Tab (IdeaTab) or Chromebook causes either:
+1. The app freezes or crashes with `NetworkOnMainThreadException` when moving the stylus.
+2. In-air hover cursor is missing.
+3. Tilt angle is inverted or pressure remains stuck.
+
+**Cause:**
+Early implementations dispatched stylus network packets synchronously on the Android main UI thread. In addition, generic motion hover listeners (`ACTION_HOVER_MOVE`) were not hooked, and pen release was not emitted on zero pressure.
+
+**Fix:**
+- Update to `orbiscreen-android-release.apk` **v0.20.0** or later.
+- v0.20.0 moves stylus dispatch to background coroutines (`Dispatchers.IO`) with `latestStylus` coalescing, preventing UI freezes and thread exceptions.
+- Implements `setOnGenericMotionListener` for in-air hover cursor tracking.
+- Calibrates tilt math (`-altitudeDeg * cos(orientationRad)`) and ensures `BTN_TOOL_PEN: RELEASED` is cleanly emitted when lifting the pen.
+
+---
+
+<a id="android-touchpad-drag"></a>
+### Android: Dragging windows or selecting files in Touchpad mode
+
+**Symptom:**
+In Touchpad mode, tapping and dragging on the tablet moves the mouse pointer, but does not drag windows or select text.
+
+**Cause:**
+Prior to v0.20.0, Touchpad mode only sent hover pointer movements, lacking a drag gesture.
+
+**Fix:**
+- Update to **v0.20.0**.
+- **Double-tap and drag:** Double-tap on the touch surface and keep your finger held down on the second tap. As you move your finger, mouse button 1 remains pressed, smoothly dragging the window, file, or selection.
+- Lifting your finger releases mouse button 1.
+
+---
 
 <a id="android-connect-crash"></a>
 ### Android: app crashes or process dies when tapping Connect
@@ -329,6 +387,55 @@ Orbiscreen manages the whole `adb reverse` lifecycle on its own: it creates the 
 
 The daemon's tunnel count is also visible at any time in `GET /health` (`usb_devices`) and the D-Bus `GetStatus` payload.
 
+<a id="streaming-wifi-latency"></a>
+## ⚡ Streaming: High latency, stutter, or slow mouse movement on 5GHz Wi-Fi
+
+**Symptom:**
+When connected over 5GHz Wi-Fi (e.g. from a Lenovo Tab or phone), mouse movements feel sluggish or delayed by hundreds of milliseconds, or the stream lags behind the host.
+
+**Cause:**
+1. Traditional video pipelines buffer multiple seconds of video to smooth playback, introducing noticeable display latency.
+2. Infrequent keyframes (GOP) force clients to wait for the next keyframe if any network packet drops over Wi-Fi.
+3. Mouse input batching was queued at long intervals.
+
+**Fix:**
+- Orbiscreen v0.20.0 tunes the entire pipeline for ultra-low latency:
+  - **6-frame GOP:** Hardware encoders emit a keyframe every 100ms, enabling instant recovery from Wi-Fi packet loss without buffering.
+  - **40-120ms load control:** ExoPlayer buffers are tuned down to 40ms minimum and 120ms maximum.
+  - **8ms input loop:** Mouse movement batching interval is reduced to 8ms for 120Hz-class responsiveness.
+- Ensure your Wi-Fi router uses 5GHz with an 80MHz channel width and low channel congestion.
+
+---
+
+<a id="stream-disconnect-retry"></a>
+## 🔁 Streaming: Stream error causes infinite reconnect flicker instead of detecting disconnect
+
+**Symptom:**
+When the Linux daemon stops or the network drops, the Android app repeatedly flickers and attempts to reconnect indefinitely instead of showing a clean disconnected state.
+
+**Cause:**
+Older versions lacked explicit lifecycle states for server disconnection and retried without bounds.
+
+**Fix:**
+- In v0.20.0, `PlayerHolder` introduces `StreamEvent.Disconnected`.
+- On network errors, an immediate 500ms `/health` probe checks if the daemon is alive.
+- Reconnection attempts are capped at 3 retries. If the host is unreachable, the app cleanly shows the disconnected card with manual retry options.
+
+---
+
+<a id="cursor-clamping"></a>
+## 🖥 Multi-Monitor / X11: Mouse cursor escapes virtual display to other physical screens
+
+**Symptom:**
+When moving the mouse or stylus on the tablet, the cursor jumps outside the virtual display area onto your physical laptop/desktop monitors.
+
+**Cause:**
+XTEST coordinate injection without output geometry boundaries spans the entire X11 root desktop dimensions.
+
+**Fix:**
+- In v0.20.0, Orbiscreen queries XRandR output geometry and clamps cursor and stylus coordinates strictly within the virtual output rectangle (`InputProp::DIRECT`).
+- The cursor is strictly confined to the tablet's virtual display screen.
+
 ---
 
 <a id="wrong-screen"></a>
@@ -402,20 +509,31 @@ Then restart the daemon; `GetStatus.encoder` reports which encoder is actually i
 Clients (Android, web, or hand-written scripts) get `401 Unauthorized`. `curl http://host:8788/health` works fine, but `/stream`, `/input` and `/api/control` all reject the request.
 
 **Cause:**
-Since v0.11.0 these three routes require the per-session access token. The token is regenerated on every daemon start and delivered two ways:
-- **mDNS:** TXT record of the advertised service carries `token=...`
-- **HTTP:** `GET /client/config.json` returns `{"token": ..., "display_width": ..., "display_height": ...}`
+These routes require the per-session access token generated when the daemon starts.
+- **Security Isolation:** In v0.20.0, `/client/config.json` is strictly restricted to loopback (`127.0.0.1` and `::1`). Remote devices on the LAN cannot access `/client/config.json` to obtain the token over plaintext HTTP.
+- Remote browsers connecting across the local network must provide the token in the URL.
 
 **Fix:**
-1. Fetch the current token and pass it either way:
+1. For remote web browsers, append the token via URL hash or query string:
+   ```
+   http://<host-ip>:8788/#token=<SECRET_TOKEN>
+   ```
+   Or:
+   ```
+   http://<host-ip>:8788/?token=<SECRET_TOKEN>
+   ```
+2. Retrieve the session token from the host machine:
    ```bash
-   curl -s http://host:8788/client/config.json
-   TOKEN=*** -c "import json,sys;print(json.load(sys.stdin)['token'])")
+   orbiscreen doctor
+   # Or read the token file directly (stored with 0o600 permissions):
+   cat ~/.config/orbiscreen/stream_token
+   ```
+3. Android clients receive the token automatically via mDNS discovery (`token=...` TXT record). If adding a host manually, enter the token in the host connection settings.
+4. Pass the token via Authorization header or query parameter in custom scripts:
+   ```bash
    curl -H "Authorization: Bearer $TOKEN" http://host:8788/stream --output - | head -c 1000
    # or: curl "http://host:8788/stream?token=***"
    ```
-2. Android clients get the token automatically from mDNS discovery or the config endpoint; if a manually-added host 401s, remove it and add it again after a daemon restart (the old token is gone).
-3. `/health`, `/api/info`, `/client/config.json`, `/` and `/client/*` are intentionally public - a 401 on those indicates a misconfigured proxy, not the daemon.
 
 ---
 

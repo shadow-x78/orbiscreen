@@ -131,22 +131,34 @@ com.orbiscreen.android/
 
 ## ⚡ خط أنابيب البث
 
-1. **تهيئة الشاشة الافتراضية:** يفتح `orbiscreen-display` شاشة افتراضية EVDI DRM ويقرأ ذاكرتها الإطارية مباشرة (EvdiFramePump) - هذه هي الشاشة الثانية الحقيقية التي يرسم عليها المنشئ. إذا غابت وحدة النواة يتراجع الدامن إلى التقاط سطح المكتب الرئيسي عبر portal (Wayland) أو جذر X11.
+1. **تهيئة الشاشة الافتراضية:**
+   - **واجهة XDG Desktop Portal ScreenCast Virtual:** على GNOME 46+ و KDE Plasma 6+، يطلب `orbiscreen-capture` نوع `SourceType::Virtual` لإنشاء مخرج افتراضي حقيقي بدون صلاحيات root عبر PipeWire.
+   - **واجهات الـ IPC:** تُنشئ بيئات Sway و Hyprland مخارج headless ديناميكية عبر مقابس التحكم (`$SWAYSOCK` / `hyprctl`).
+   - **مشغل EVDI للنواة:** على X11 و COSMIC وجلسات Wayland السابقة، يُهيئ `orbiscreen-display` شاشة DRM افتراضية عبر وحدة EVDI.
+   - **التراجع للشاشة الرئيسية:** عند تعذر إنشاء شاشة افتراضية، يتراجع النظام تلقائياً لالتقاط الشاشة الرئيسية عبر portal ScreenCast أو X11 `GetImage`.
 2. **التقاط الإطارات:** إطارات BGRA خام من ذاكرة evdi الإطارية (أو PipeWire / X11 Shared Memory في وضع التراجع).
 3. **الترميز:**
-   - يرمَّز `orbiscreen-encode` الإطارات إلى H.264 عبر خطوط أنابيب GStreamer المسرَّعة عتادياً (أوالاً VAAPI ثم NVENC ثم التراجع إلى x264).
-   - لكل عميل يغلّف `orbiscreen-transport` وحدات NAL المرمَّزة بـ H.264 في خط `h264parse + mpegtsmux` مستقل ويقدّمها عبر `http://host:port/stream?token=...`.
+   - يرمّز `orbiscreen-encode` الإطارات إلى H.264 عبر خطوط أنابيب GStreamer المسرّعة عتادياً (VAAPI ثم NVENC مع التراجع البرمجي إلى x264).
+   - يتم ضبط الإطارات المفتاحية (GOP) على 6 إطارات (كل 100ms) للسماح بالاستعادة اللحظية للبث ومنع أي بطء أو تراكم على شبكات Wi-Fi 5GHz.
+   - تفريغ فوري لذاكرة AppSink وضبط `drop = true` لمنع طوابير الانتظار.
 4. **التشغيل على Android:**
-   - تعمل `PlayerHolder.build()` على الخيط الرئيسي (`withContext(Dispatchers.Main)`) لمنع انهيارات التنافس الخيطي عند الاتصال.
-   - جميع تهيئات builder وdataSource داخل `PlayerHolder.build()` مغلّفة بكتلة try-catch لتظهر أخطاء البناء كبطاقات `StreamEvent.Error` قابلة لإعادة المحاولة.
-   - يبني `PlayerHolder` كائن `MediaItem` مع `MimeTypes.VIDEO_MP2T` حتى يفك ExoPlayer ترميز MPEG-TS دون sniffing.
-   - يُضبط `OkHttpDataSource` بمهلة قراءة صفرية (بث مباشر) و`DefaultLoadControl` مضبوط (تخزين 1.5 ثوانٍ أدنى / 5 ثوانٍ أقصى).
-   - يكشف `PlayerHolder` واجهة `Player.Listener` تربط حالات `Player.STATE_*` بأحداث `StreamEvent` لواجهة Compose.
+   - تعمل `PlayerHolder.build()` على مشغل ExoPlayer مع `MimeTypes.VIDEO_MP2T` وتخزين مؤقت فائق الانخفاض (40ms أدنى و 120ms أقصى).
+   - رصد لحظي لحالة انقطاع الاتصال (`StreamEvent.Disconnected`) وفحص سريع عبر `/health` خلال 500ms مع حد أقصى 3 محاولات لإيقاف حلقات الوميض المتكررة.
 5. **الإدخال العكسي:**
-   - يربط `InputDispatcher` أحداث المؤشر / العجلة / القلم / لوحة المفاتيح من مستطيل `PlayerView` في Android بإحداثيات مطلقة للمضيف باستخدام دقة الشاشة المُبلَّغ عنها من `/api/info`.
-   - تُزال تكرارات الأحداث عبر `MutableSharedFlow` مع `BufferOverflow.DROP_OLDEST` لمنع التراكم أثناء السحب السريع.
+   - يربط `InputDispatcher` أحداث المؤشر والعجلة والقلم ولوحة المفاتيح بدقة الشاشة الفعلية مع تقييد صارم للمؤشر داخل حدود الشاشة الافتراضية (عبر XRandR).
+   - **لوح الرسم والقلم:** تتبع حركة القلم أثناء التحليق في الهواء (`setOnGenericMotionListener`)، وتصحيح حسابات زوايا الميلان، ودعم 4095 مستوى ضغط مع إرسال خلفي عبر `Dispatchers.IO`.
+   - **لوحة اللمس والسحب:** إيماءة النقر المزدوج مع السحب (Double-tap & Drag) لتحريك النوافذ وتحديد النصوص بسهولة.
 6. **التحكم بالمضيف:**
-   - يُرسل `HostApi.sendControl` إجراءات JSON إلى `/api/control` لطلبات القفل والتعتيم وctrl-alt-del، مع توكن الجلسة المنتزَع من الـ TXT المُعلن عبر mDNS.
+   - يُرسل `HostApi.sendControl` إجراءات JSON إلى `/api/control` لطلبات القفل والتعتيم وctrl-alt-del، مع التوكن المعتمد.
+
+---
+
+## 🔐 الأمان والمصادقة
+
+- **عزل الواجهة المحلية:** النقطة `/client/config.json` مقصورة تماماً على `127.0.0.1` و `::1` ولا يمكن قراءتها من الأجهزة البعيدة عبر الشبكة المحلية.
+- **مصادقة المتصفحات البعيدة:** تدعم متصفحات الويب المصادقة الآمنة عبر تجزئة الرابط (`#token=<SECRET>`) أو الاستعلام (`?token=`) دون تسريب التوكن في سجلات الخادم.
+- **حماية ملف التوكن:** يُحفظ التوكن في `~/.config/orbiscreen/stream_token` بصلاحيات صارمة `0o600` والمجلدات `0o700`.
+- **حماية النقاط:** يُطلب التوكن إجبارياً على نقاط `/stream` و `/input` و `/api/control` عبر الترويسة `Authorization: Bearer <token>` أو الاستعلام `?token=`.
 
 ---
 
@@ -160,19 +172,21 @@ com.orbiscreen.android/
 | `/health` | `GET` | عامة | &rlm;`200 OK "ok"`&rlm; |
 | `/api/info` | `GET` | عامة | معلومات العرض والترميز والإصدار بصيغة &rlm;JSON&rlm; |
 | `/api/control` | `POST` | توكن | &rlm;`200 OK`&rlm;؛ الإجراءات: `lock`، `blank`، `unblank`، `ctrl_alt_del` |
-| `/client/config.json` | `GET` | عامة | تمهيد عميل الويب: التوكن وأبعاد الشاشة |
+| `/client/config.json` | `GET` | محلية فقط (Loopback) | إعدادات العميل المحلي والتوكن |
 
 </div>
 
-أحداث الإدخال (`/input`، تتطلب توكن) تقبل مخطط الحمولة المستخدم لدى عميل الويب: `Move{x,y}`، `Button{button,pressed,x?,y?}`، `Wheel{delta_y}`، `Key{code,pressed}`، `Stylus{x,y,pressure,tilt_x_deg,tilt_y_deg}`. يُقدم التوكن عبر ترويسة `Authorization: Bearer <token>` أو معامل `?token=`.
+أحداث الإدخال (`/input`، تتطلب توكن) تقبل مخطط الحمولة المستخدم لدى عميل الويب: `Move{x,y}`، `Button{button,pressed,x?,y?}`، `Wheel{delta_y}`، `Key{code,pressed}`، `Stylus{x,y,pressure,tilt_x_deg,tilt_y_deg}`.
 
 ---
 
 ## 🔌 تحسينات النقل
 
+- **قفزات مفتاحية متقاربة (GOP 6):** توليد إطار مفتاحي كل 100ms يضمن التزامن اللحظي حتى في حال فقدان حزم البيانات عبر شبكات Wi-Fi 5GHz.
+- **توجيه نفق ADB لأجهزة Chromebook (ARC++):** استكشاف تلقائي للعنوان الداخلي `100.115.92.2:5555` لتشغيل البث فورياً عبر USB.
 - **OkHttpDataSource:** مهلة قراءة صفرية، مقبس طويل العمر، و`User-Agent: Orbiscreen-Android/1.0` مخصص لسجلات خادم أوضح.
-- **DefaultLoadControl:** يخزّن 1.5 ثانية كحد أدنى و5 ثوانٍ كحد أقصى لامتصاص اضطراب Wi-Fi دون استنزاف RAM.
-- **قناة البث:** `video_tx` هو `tokio::sync::broadcast` بحيث يمكن لعدة عملاء HTTP الاشتراك في نفس البث المرمّز دون ضغط عكسي على المُرمّز.
+- **DefaultLoadControl فائق الاستجابة:** تخزين مؤقت بين 40ms و 120ms لضمان أدنى كمون ممكن وتفادي أي تراكم للمشاهد.
+- **قناة البث:** `video_tx` هو `tokio::sync::broadcast` بحيث يمكن لعدة عملاء الاشتراك في نفس البث المرمّز دون ضغط عكسي على المُرمّز.
 - **بلا Protobuf:** تستخدم الحمولات `org.json.JSONObject` في كلا الاتجاهين للحفاظ على عقد سلكي متماثل مع عميل الويب.
 
 ---

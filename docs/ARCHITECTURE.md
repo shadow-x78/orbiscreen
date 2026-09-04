@@ -102,16 +102,24 @@ com.orbiscreen.android/
 
 Each stage owns its data; frames are copied between stages (no zero-copy, this keeps the lifetimes simple at the cost of one extra copy per stage):
 
-1. **Virtual Monitor Provisioning:** `orbiscreen-display` provisions a virtual DRM connector via EVDI and the compositor draws onto it. When the EVDI kernel module is unavailable, the daemon falls back to capturing the **primary desktop** via `xdg-desktop-portal` ScreenCast (Wayland) or X11 `GetImage`, and logs a prominent warning that clients will see the host's main screen instead of the virtual display.
+1. **Virtual Monitor Provisioning:**
+   - **XDG Desktop Portal ScreenCast Virtual API:** On GNOME 46+ and KDE Plasma 6+, `orbiscreen-capture` requests `SourceType::Virtual`, creating a genuine virtual output rootlessly via PipeWire.
+   - **Compositor IPC:** Sway and Hyprland create headless outputs dynamically via compositor socket commands (`$SWAYSOCK` / `hyprctl`).
+   - **EVDI Kernel Module:** On X11, COSMIC, and legacy Wayland, `orbiscreen-display` provisions a virtual DRM connector via EVDI.
+   - **Primary Desktop Fallback:** When virtual monitor backends are unavailable, the daemon falls back to capturing the primary display via portal ScreenCast or X11 `GetImage`.
 2. **Frame Read & Conversion:** `orbiscreen-display::EvdiFramePump` drives EVDI on a dedicated thread (the underlying handle is `!Send`), waiting on content updates (`request_update` with `UPDATE_BUFFER_TIMEOUT`) and converting the stride-padded XRGB8888/Rgb565 framebuffer to tightly-packed BGRA in `to_tight_bgra()`.
 3. **Encoding:**
-   - `orbiscreen-encode` takes BGRA frames sized to the **actual** negotiated display mode (not the requested spec) through a live `appsrc → videoconvert → x264enc/vaapih264enc/nvh264enc → h264parse` pipeline. PTS is assigned by GStreamer's live appsrc (`do-timestamp`). `push_frame` rejects mis-sized buffers explicitly.
-   - Encoded chunks flow through a bounded channel (drop-oldest under consumer stalls) into `orbiscreen-transport`, which wraps each H.264 AU into a per-client `mpegtsmux` instance served as the HTTP response body.
+   - `orbiscreen-encode` takes BGRA frames sized to the **actual** negotiated display mode (not the requested spec) through a live `appsrc → videoconvert → x264enc/vaapih264enc/nvh264enc → h264parse` pipeline.
+   - Keyframes (GOP) are tuned to 6 frames (~100ms interval) across hardware encoders to allow instant client catch-up and rapid recovery from Wi-Fi jitter.
+   - AppSink buffers are capped with `drop = true` and `max-buffers = 1` to prevent queuing delays.
 4. **Playback:**
    - **Web:** Chrome/Firefox/Edge cannot play raw MPEG-TS in a `<video>` element. The bundled client uses the locally-vendored `mpegts.js` (no CDN) to demux via MSE; on any error it tears down and reconnects with exponential backoff.
-   - **Android:** `PlayerHolder.build()` builds ExoPlayer with `MimeTypes.VIDEO_MP2T`, live-tuned load control (1.5s min / 5s max buffer), sends the session token as `Authorization: Bearer`, and auto-reconnects on `STATE_ENDED`/errors with backoff capped at 10s. A `forceSoftwareDecoder` setting swaps to software codecs when hardware decode misbehaves.
+   - **Android:** `PlayerHolder.build()` builds ExoPlayer with `MimeTypes.VIDEO_MP2T` and ultra-low latency load control (minBuffer: 40ms, maxBuffer: 120ms, bufferForPlayback: 20ms, bufferForPlaybackAfterRebuffer: 30ms).
+   - **Disconnect & Recovery:** On transport errors, an immediate 500ms `/health` probe verifies daemon state, with reconnections capped at 3 attempts to prevent infinite retry loops.
 5. **Reverse Input:**
-   - Clients send pointer / wheel / stylus / keyboard events to `POST /input` (token required). Coordinates map from client rect to the **actual** stream resolution. Events are debounced through `MutableSharedFlow` with `BufferOverflow.DROP_OLDEST` to prevent backlog during fast drags.
+   - Clients send pointer, wheel, stylus, and keyboard events to `POST /input` (token required). Coordinates map to the **actual** stream resolution with strict boundary clamping to the virtual display geometry.
+   - **Stylus Digitizer:** In-air hover cursor tracking (`setOnGenericMotionListener`), calibrated tilt math, and pressure levels up to 4095 dispatched asynchronously on `Dispatchers.IO`.
+   - **Touchpad Drag-and-Drop:** Double-tap and drag keeps mouse button 1 pressed throughout movement until finger lift.
 6. **Host Control:**
    - `HostApi.sendControl` posts JSON to `POST /api/control` (token required): `{"action":"lock"}` (loginctl/xdg-screensaver), `{"action":"blank"}`/`{"action":"unblank"}` (DPMS via swaymsg/hyprctl/xset), `{"action":"ctrl_alt_del"}` (injected through the input pipeline). The legacy `open` action is rejected: opening arbitrary URLs from remote clients is not permitted.
 7. **CLI Control:**
@@ -119,15 +127,16 @@ Each stage owns its data; frames are copied between stages (no zero-copy, this k
 
 ---
 
-## 🔐 Authentication
+## 🔐 Authentication & Security
 
 Every session generates a random 32-byte base64url token at startup:
 
-- Announced in the mDNS TXT record (`token=…`) for desktop discovery, and served unauthenticated from `GET /client/config.json` next to the web client bundle.
-- Required on `POST /input`, `GET /stream` and `POST /api/control` via `Authorization: Bearer <token>` header or a `?token=` query parameter (compared constant-time).
+- **Loopback Isolation:** `/client/config.json` is restricted strictly to loopback (`127.0.0.1` and `::1`). Remote clients across the LAN cannot read session tokens over plain HTTP.
+- **Remote Client Auth:** Remote browsers connect using URL hash tokens (`http://<host>:8788/#token=<SECRET>`) or query parameters (`?token=<SECRET>`), preventing token leaks in server access logs.
+- **Android Client:** Receives the token securely via mDNS TXT records (`token=...`) or manual entry.
+- **Filesystem Security:** The daemon persists the session token in `~/.config/orbiscreen/stream_token` with strict `0o600` file permissions and `0o700` parent directory permissions.
+- **Endpoint Protection:** Required on `POST /input`, `GET /stream` and `POST /api/control` via `Authorization: Bearer <token>` header or a `?token=` query parameter (compared constant-time).
 - `/health` and `/api/info` remain open so discovery and health checks work without credentials.
-
-**Scope note:** anyone who can reach the HTTP port can read the token from `/client/config.json` or mDNS. The token is a convenience guard against accidental/ambient use, not strong authentication; a hostile device on the same LAN can obtain it. Strong auth (TLS/mTLS) is future work; see SECURITY.md.
 
 ---
 
@@ -139,7 +148,7 @@ Every session generates a random 32-byte base64url token at startup:
 | `/stream` | GET | token | - | `video/mp2t` MPEG-TS live stream |
 | `/input` | POST | token | pointer/key/stylus JSON | `202 Accepted` |
 | `/api/control` | POST | token | `{"action":"lock"\|"blank"\|"unblank"\|"ctrl_alt_del"}` | `200 OK` / `501` when the host lacks the required tool / `400` for unknown actions |
-| `/api/info` | GET | - | - | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.11.0"}` |
+| `/api/info` | GET | - | - | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.20.0"}` |
 | `/health` | GET | - | - | `200 OK "ok"` |
 
 Input events (`/input`) accept the same payload schema as the web client: `{"Pointer":{"Move":{"x","y"}\|"Button":{"button","pressed"}\|"Wheel":{"delta_y"}}}`, `{"Key":{"code","pressed"}}` (Linux evdev keycodes), `{"Stylus":{"Tilt":{"x","y","pressure","tilt_x_deg","tilt_y_deg"}}}`.
@@ -149,8 +158,10 @@ Input events (`/input`) accept the same payload schema as the web client: `{"Poi
 ## 🔌 Transport Optimisations
 
 - **Per-client muxing:** every `/stream` request spawns an `appsrc → mpegtsmux → appsink` pipeline with `h264parse config-interval=1`, so SPS/PPS re-emit every keyframe and late-joining clients decode within one GOP.
+- **6-Frame Keyframe Interval (GOP):** High-frequency 100ms keyframe emission guarantees instantaneous stream catch-up even under 5GHz Wi-Fi packet drops.
+- **ChromeOS ARC++ ADB Routing:** Automatic internal ADB probing on `100.115.92.2:5555` bridges USB connections inside ChromeOS ARC++ container networking.
 - **OkHttpDataSource:** zero read-timeout, long-lived socket, custom `User-Agent: Orbiscreen-Android/1.0` for friendlier server logs.
-- **DefaultLoadControl + live tuning:** buffers 1.5 s minimally, 5 s maximally to absorb Wi-Fi jitter; `targetLiveOffsetMs = 1000` keeps the decoder chasing the live edge instead of buffering up.
+- **DefaultLoadControl + Ultra-Low Latency:** buffers 40ms minimally and 120ms maximally, ensuring near-instantaneous live edge playback.
 - **Bounded fan-out:** the encode pipeline uses a bounded mpsc channel; `broadcast::RecvError::Lagged` is tolerated (slow clients fast-forward to the next keyframe) instead of tearing down the HTTP stream; unbounded memory growth from a stalled client is impossible.
 - **Protobuf-free:** payloads use `org.json.JSONObject` for both directions to keep the on-wire contract symmetric with the web client.
 
