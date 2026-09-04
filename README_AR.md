@@ -110,13 +110,13 @@
 <a id="desktop-support"></a>
 ## 🖥️ دعم بيئات سطح المكتب
 
-| الإدخال | شاشة ثانية افتراضية | الالتقاط | البيئة |
+| الإدخال | الالتقاط | شاشة ثانية افتراضية | البيئة |
 | :---: | :---: | :---: | ---: |
-| ✅ تحكم عبر uinput و portal RemoteDesktop | ✅ أصلي عبر zkde-screencast (بدون root) | ✅ التقاط عبر PipeWire | KDE Plasma (Wayland) |
-| ✅ تحكم عبر virtual-pointer و virtual-keyboard (بدون portal) | ✅ مخرج headless أصيل عبر IPC (بدون root) | ✅ التقاط عبر wlr-screencopy (بدون حوار) | Sway / Hyprland / wlroots |
-| ✅ تحكم عبر portal RemoteDesktop (بتوكن دائم) | ⚠️ شاشة افتراضية عبر EVDI | ✅ التقاط عبر portal (حوار لمرة واحدة فقط) | GNOME (Wayland) |
-| ✅ تحكم عبر XTEST و uinput (بدون root) | ✅ شاشة افتراضية عبر EVDI | ✅ التقاط عبر XShm للشاشة الجذرية | XFCE / MATE / LXQt / Cinnamon (X11) |
-| أفضل واجهة متاحة | ✅ عبر EVDI (تثبيت تلقائي عبر doctor --fix) | أفضل واجهة متاحة | أي بيئة أخرى |
+| ✅ تحكم عبر uinput و portal RemoteDesktop | ✅ التقاط عبر PipeWire | ✅ أصلي عبر zkde-screencast (بدون root) | KDE Plasma (Wayland) |
+| ✅ تحكم عبر virtual-pointer و virtual-keyboard (بدون portal) | ✅ التقاط عبر wlr-screencopy (بدون حوار) | ✅ مخرج headless أصيل عبر IPC (بدون root) | Sway / Hyprland / wlroots |
+| ✅ تحكم عبر portal RemoteDesktop (بتوكن دائم) | ✅ التقاط عبر portal (حوار لمرة واحدة فقط) | ⚠️ شاشة افتراضية عبر EVDI | GNOME (Wayland) |
+| ✅ تحكم عبر XTEST و uinput (بدون root) | ✅ التقاط عبر XShm للشاشة الجذرية | ✅ شاشة افتراضية عبر EVDI | XFCE / MATE / LXQt / Cinnamon (X11) |
+| أفضل واجهة متاحة | أفضل واجهة متاحة | ✅ عبر EVDI (تثبيت تلقائي عبر doctor --fix) | أي بيئة أخرى |
 
 يطبع `orbiscreen doctor` الـ compositor المكتشف وخطة الالتقاط التي سيتبعها `auto` وما الناقص في النظام؛ وينفّذ `orbiscreen doctor --fix` تثبيت وحدة نواة EVDI على التوزيعات المكتشفة. التفاصيل الكاملة في [دليل دعم بيئات سطح المكتب](docs/DE_SUPPORT_AR.md).
 
