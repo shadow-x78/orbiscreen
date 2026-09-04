@@ -18,6 +18,9 @@ XDG Desktop Portal virtual display API, comprehensive stylus digitizer overhaul,
 - **Direct Touchscreen Mode Fix**: Decoupled absolute coordinate axes from mouse/keyboard to tablet/touch devices, routing touch events with synthetic `BTN_TOUCH`.
 - **ChromeOS ARC++ ADB Support (`adb.rs`)**: Added internal ADB fallback probing `100.115.92.2:5555` and `localhost:5555` for seamless tethering on Chromebooks (e.g. ASUS CM3001).
 - **Stream Lifecycle & Fast Disconnect Detection (`PlayerHolder.kt`)**: Added explicit `StreamEvent.Disconnected` state, 500ms immediate `/health` probe on network error, and capped automatic reconnection retries at 3 to prevent infinite flickering reconnect loops.
+- **Rich Version & Developer Card (`orbiscreen -V`)**: Added status-card style display with Catppuccin color scheme, ASCII banner, developer attribution, live desktop environment detection, feature matrix, and JSON output support (`orbiscreen version --json`).
+- **Comprehensive Bilingual Localization & Copywriting**: Added pure JavaScript i18n switcher in the web client with instant English/Arabic toggle and RTL styling, refined Android string resources (`values-ar`), streamlined packaging descriptions, and polished technical documentation across all Markdown guides.
+- **Architecture Diagram Fix**: Quoted all node and edge labels in Mermaid diagrams across `docs/ARCHITECTURE.md` and `docs/ARCHITECTURE_AR.md` to prevent syntax parse errors.
 
 ### 🛡️ Security & Hardening
 - **Session Token Security & Bootstrap (`orbiscreen-transport`)**: Hardened token delivery and filesystem permissions (`0o600`). Web client bootstrap serves display geometry and token for zero-friction LAN discovery, supporting URL hash `#token=...` for direct links.

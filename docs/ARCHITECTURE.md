@@ -25,32 +25,31 @@ Orbiscreen is built as a modular multi-crate Rust workspace separating system di
 
 ```mermaid
 graph TD
-    subgraph Host Linux Machine
-        A[evdi Kernel Module] -->|Virtual DRM Device| B(Display Server X11/Wayland)
-        B -->|evdi framebuffer| C1(orbiscreen-display EvdiFramePump)
-        B -.->|portal fallback only| C0(orbiscreen-capture portal/X11)
-        C1 -->|Tight BGRA frames| D(orbiscreen-encode)
-        C0 -.->|BGRA frames (primary desktop)| D
+    subgraph "Host Linux Machine"
+        A["evdi Kernel Module"] -->|"Virtual DRM Device"| B["Display Server (X11 / Wayland)"]
+        B -->|"evdi framebuffer"| C1["orbiscreen-display (EvdiFramePump)"]
+        B -.->|"portal fallback only"| C0["orbiscreen-capture (portal / X11)"]
+        C1 -->|"Tight BGRA frames"| D["orbiscreen-encode"]
         C0 -.->|"BGRA frames (primary desktop)"| D
-        D -->|GStreamer HW/SW Encode| E(H.264 AU stream)
-        E --> F(orbiscreen-transport)
-        F -->|MPEG-TS HTTP /stream| G((Network/USB))
-        F -->|mDNS _orbiscreen._tcp.| G
-        F -->|GET /api/info| G
-        F -->|POST /api/control| G
-        F -->|GET /health| G
+        D -->|"GStreamer HW/SW Encode"| E["H.264 AU stream"]
+        E --> F["orbiscreen-transport"]
+        F -->|"MPEG-TS HTTP /stream"| G["Network / USB"]
+        F -->|"mDNS _orbiscreen._tcp."| G
+        F -->|"GET /api/info"| G
+        F -->|"POST /api/control"| G
+        F -->|"GET /health"| G
     end
 
-    subgraph Clients
-        G -->|MPEG-TS| W(Web client - mpegts.js MSE)
-        W -->|POST /input| F
-        G -->|NSD discovery + token| H(Android DiscoveryService)
-        H -->|onConnect| J(StreamViewModel)
-        J -->|PlayerHolder.build| K(OkHttpDataSource)
-        K -->|MPEG-TS + Bearer token| L(ExoPlayer + MediaCodec)
-        L -->|Touch| N(InputDispatcher)
-        N -->|POST /input + Bearer token| F
-        J -->|POST /api/control| F
+    subgraph "Clients"
+        G -->|"MPEG-TS"| W["Web client (mpegts.js MSE)"]
+        W -->|"POST /input"| F
+        G -->|"NSD discovery + token"| H["Android DiscoveryService"]
+        H -->|"onConnect"| J["StreamViewModel"]
+        J -->|"PlayerHolder.build"| K["OkHttpDataSource"]
+        K -->|"MPEG-TS + Bearer token"| L["ExoPlayer + MediaCodec"]
+        L -->|"Touch"| N["InputDispatcher"]
+        N -->|"POST /input + Bearer token"| F
+        J -->|"POST /api/control"| F
     end
 ```
 
