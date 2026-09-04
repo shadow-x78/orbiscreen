@@ -5,7 +5,6 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.19.0
 Version:        0.20.0
 Release:        1%{?dist}
 Summary:        Turn any Android tablet or phone into a low-latency second monitor for Linux

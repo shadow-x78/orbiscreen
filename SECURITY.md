@@ -2,7 +2,6 @@
 
 # Security Policy - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.19.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![Version](https://img.shields.io/badge/version-0.20.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
@@ -28,10 +27,6 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.17.x | ✅ Active development |
-| 0.16.x | ⚠️ Maintenance |
-| 0.15.x | ⚠️ Maintenance |
-| < 0.15  | ❌ Not supported |
 | 0.20.x | ✅ Active development |
 | 0.19.x | ⚠️ Maintenance |
 | 0.18.x | ⚠️ Maintenance |
@@ -92,7 +87,6 @@ We follow a **coordinated disclosure** model:
 <a id="considerations"></a>
 ## 🔍 Security Considerations
 
-### Scope (v0.19.0)
 ### Scope (v0.20.0)
 
 Orbiscreen is a Linux host daemon plus a Material 3 Android client and a browser web client that:
@@ -171,7 +165,6 @@ The Android release signing key (`orbiscreen-release.keystore`) was removed from
 <a id="audit"></a>
 ## 🔬 Security Audit
 
-Orbiscreen (v0.19.0) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose) and a small browser web client (MSE via vendored mpegts.js). A running daemon performs:
 Orbiscreen (v0.20.0) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose) and a small browser web client (MSE via vendored mpegts.js). A running daemon performs:
 
 - `open()` on `/dev/dri/card*` evdi nodes for capture
