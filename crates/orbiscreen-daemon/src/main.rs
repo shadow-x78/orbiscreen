@@ -1235,26 +1235,36 @@ async fn portal_available() -> Option<bool> {
 }
 
 async fn bind_kwin_virtual_inputs(target_output: &str) {
-    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-    if let Ok(conn) = zbus::Connection::session().await {
-        for idx in 0..64 {
-            let path = format!("/org/kde/KWin/InputDevice/event{idx}");
-            if let Ok(proxy) = zbus::Proxy::new(
-                &conn,
-                "org.kde.KWin",
-                path.as_str(),
-                "org.kde.KWin.InputDevice",
-            )
-            .await
-            {
-                if let Ok(name) = proxy.get_property::<String>("name").await {
-                    if name.starts_with("Orbiscreen") {
-                        let _ = proxy
-                            .set_property::<&str>("outputName", target_output)
-                            .await;
-                        info!("bound KWin input device {path} ({name}) to output {target_output}");
+    for delay_ms in [250, 500, 1000] {
+        tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+        if let Ok(conn) = zbus::Connection::session().await {
+            let mut bound = 0;
+            for idx in 0..64 {
+                let path = format!("/org/kde/KWin/InputDevice/event{idx}");
+                if let Ok(proxy) = zbus::Proxy::new(
+                    &conn,
+                    "org.kde.KWin",
+                    path.as_str(),
+                    "org.kde.KWin.InputDevice",
+                )
+                .await
+                {
+                    if let Ok(name) = proxy.get_property::<String>("name").await {
+                        if name.starts_with("Orbiscreen") {
+                            let _ = proxy
+                                .set_property::<&str>("outputName", target_output)
+                                .await;
+                            let _ = proxy
+                                .set_property::<bool>("mapToWorkspace", false)
+                                .await;
+                            info!("bound KWin input device {path} ({name}) to output {target_output}");
+                            bound += 1;
+                        }
                     }
                 }
+            }
+            if bound >= 2 {
+                break;
             }
         }
     }

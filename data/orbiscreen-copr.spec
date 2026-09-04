@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.21.0
+Version:        0.22.0
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -102,6 +102,9 @@ fi
 %{_datadir}/orbiscreen/install-evdi-module.sh
 
 %changelog
+* Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.0-1
+- Release 0.22.0: Direct touch pointer confinement, zero-snapback mouse release, green screen MPEG-TS fix, and clean startup branding.
+
 * Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.21.0-1
 - Release 0.21.0: Rich developer version card, full bilingual i18n support, Arabic architecture diagram, and token security hardening.
 

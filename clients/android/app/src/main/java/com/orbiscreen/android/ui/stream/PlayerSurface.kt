@@ -20,9 +20,12 @@ private const val TAG = "Orbi.Surface"
 
 internal data class ContentRect(val offsetX: Float, val offsetY: Float, val w: Float, val h: Float)
 
-internal fun computeContentRect(viewW: Int, viewH: Int, streamW: Int, streamH: Int): ContentRect {
+internal fun computeContentRect(viewW: Int, viewH: Int, streamW: Int, streamH: Int, scaleMode: Int = 0): ContentRect {
     if (streamW <= 0 || streamH <= 0 || viewW <= 0 || viewH <= 0) {
         return ContentRect(0f, 0f, viewW.toFloat().coerceAtLeast(1f), viewH.toFloat().coerceAtLeast(1f))
+    }
+    if (scaleMode == 3) {
+        return ContentRect(0f, 0f, viewW.toFloat(), viewH.toFloat())
     }
     val streamAspect = streamW.toFloat() / streamH.toFloat()
     val viewAspect = viewW.toFloat() / viewH.toFloat()
@@ -45,6 +48,7 @@ private class TouchCallbacksHolder(
     var onScroll: (Double) -> Unit,
     var onDoubleTap: (() -> Unit)?,
     var onStylus: ((Float, Float, Int, Int, Float, Float, Float) -> Unit)? = null,
+    var scaleMode: Int = 0,
 )
 
 @OptIn(UnstableApi::class)
@@ -80,6 +84,7 @@ fun PlayerSurface(
     }
 
     holder.isTouchMode = isTouchMode
+    holder.scaleMode = scaleMode
     holder.onMove = onMove
     holder.onPointer = onPointer
     holder.onDeltaMove = onDeltaMove
@@ -120,7 +125,7 @@ fun PlayerSurface(
                 setOnGenericMotionListener { _, ev ->
                     val toolType = ev.getToolType(0)
                     if ((toolType == MotionEvent.TOOL_TYPE_STYLUS || toolType == MotionEvent.TOOL_TYPE_ERASER) && holder.onStylus != null) {
-                        val cr = computeContentRect(width, height, streamWidth, streamHeight)
+                        val cr = computeContentRect(width, height, streamWidth, streamHeight, holder.scaleMode)
                         val cx = (ev.x - cr.offsetX).coerceIn(0f, cr.w)
                         val cy = (ev.y - cr.offsetY).coerceIn(0f, cr.h)
                         val pressure = ev.pressure
@@ -141,7 +146,7 @@ fun PlayerSurface(
                     val toolType = ev.getToolType(0)
                     val isStylus = toolType == MotionEvent.TOOL_TYPE_STYLUS || toolType == MotionEvent.TOOL_TYPE_ERASER
                     if (isStylus && holder.onStylus != null) {
-                        val cr = computeContentRect(w, hPx, streamWidth, streamHeight)
+                        val cr = computeContentRect(w, hPx, streamWidth, streamHeight, holder.scaleMode)
                         val cx = (ev.x - cr.offsetX).coerceIn(0f, cr.w)
                         val cy = (ev.y - cr.offsetY).coerceIn(0f, cr.h)
                         val pressure = if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) 0f else ev.pressure
@@ -155,7 +160,7 @@ fun PlayerSurface(
                     }
 
                     if (holder.isTouchMode) {
-                        val cr = computeContentRect(w, hPx, streamWidth, streamHeight)
+                        val cr = computeContentRect(w, hPx, streamWidth, streamHeight, holder.scaleMode)
                         val cx = (ev.x - cr.offsetX).coerceIn(0f, cr.w)
                         val cy = (ev.y - cr.offsetY).coerceIn(0f, cr.h)
                         val cw = cr.w.toInt().coerceAtLeast(1)
@@ -163,7 +168,6 @@ fun PlayerSurface(
 
                         when (ev.actionMasked) {
                             MotionEvent.ACTION_DOWN -> {
-                                holder.onMove(cx, cy, cw, ch)
                                 holder.onPointer(cx, cy, cw, ch, 1, true)
                             }
                             MotionEvent.ACTION_POINTER_DOWN -> {

@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.22.0] - 2026-09-05
+
+Direct touch reverse input precision, zero-snapback mouse pointer mapping, green screen video pipeline fix, and clean startup branding.
+
+### ✨ Added & Improved
+- **Zero-Snapback Virtual Pointer (`orbiscreen-input`)**: Added absolute coordinate axes (`Abs::X`, `Abs::Y`) and `InputProp::POINTER` directly to `mouse_keyboard`. Completely eliminated mouse pointer snapping back to the primary screen on touch lift by maintaining active pointer position on the virtual display.
+- **KWin Virtual Output Binding (`orbiscreen-daemon`)**: Updated `bind_kwin_virtual_inputs` to explicitly set `mapToWorkspace = false` and implemented resilient retry passes (at 250ms, 500ms, and 1000ms) to ensure all virtual input devices are reliably bound to the target virtual monitor.
+- **Atomic Pointer Event Dispatch (Android Client & Web Client)**: Added `pointerAction` in `InputDispatcher.kt` to send movement coordinates and mouse button state atomically in strict FIFO sequence, preventing premature clicks at stale positions.
+- **Default Direct Touch Mode (`PrefsStore.kt` & `StreamScreen.kt`)**: Defaulted input mode to Direct Touchscreen mode (`isTouchMode = true`) on Android and persisted user preference across sessions.
+- **Dynamic Resize Mode Scaling (`PlayerSurface.kt`)**: Enhanced `computeContentRect` to automatically handle both `RESIZE_MODE_FIT` (aspect letterboxing) and `RESIZE_MODE_FILL` (fullscreen stretching), ensuring pixel-accurate 1:1 touch coordinate tracking directly beneath the user's finger.
+
+### 🐛 Fixed
+- **Green Screen & MPEG-TS Stream Corruption (`orbiscreen-transport`)**:
+  - Eliminated packet dropping in GStreamer `appsink` by setting `drop=false` and increasing buffer queues to 1024 chunks.
+  - Replaced lossy join-buffer with monotonic keyframe PTS synchronization and increased broadcast channel capacity to 128 packets.
+- **Clean Banner Branding (`orbiscreen-daemon`)**: Removed `(by shadow-x78)` from the ASCII art logo and startup CLI output.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.22.0.
+- **Android Client**: Incremented `versionCode` to 50; updated `versionName` to "0.22.0".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.0.
+- **debian/changelog**: Added 0.22.0-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.22.0.
+- **Documentation**: Synchronized version badges across all documentation files.
+
 ## [v0.21.0] - 2026-09-04
 
 Rich developer and system version card, comprehensive bilingual localization (Arabic & English) across web and Android clients, fully translated Arabic architecture diagrams, and streamlined packaging specifications.

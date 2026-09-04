@@ -4,11 +4,10 @@
 pub mod adb;
 pub mod mdns;
 
-use std::collections::VecDeque;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use axum::extract::State;
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
@@ -175,13 +174,11 @@ impl Transport {
         mut shutdown_rx: tokio::sync::watch::Receiver<bool>,
     ) -> Result<(), TransportError> {
         let input_tx = self.input_tx;
-        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<SeqPacket>(4);
-        let join_buffer: Arc<Mutex<VecDeque<SeqPacket>>> = Arc::new(Mutex::new(VecDeque::new()));
+        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(128);
         let state = AppState {
             config: self.cfg.clone(),
             input_tx,
             video_tx: video_tx.clone(),
-            join_buffer: Arc::clone(&join_buffer),
             stats,
             token: self.token.clone(),
             display_width,
@@ -250,19 +247,11 @@ impl Transport {
         let stats_pump = state.stats.clone();
         tokio::spawn(async move {
             let mut frames = frames;
-            let next_seq = std::sync::atomic::AtomicU64::new(0);
             while let Some(pkt) = frames.recv().await {
-                let seq = next_seq.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                let sp = SeqPacket { seq, pkt };
                 if stats_pump.active_clients() > 0 {
                     stats_pump.note_frame();
                 }
-                let mut jb = join_buffer.lock().unwrap_or_else(|e| e.into_inner());
-                if sp.pkt.is_keyframe {
-                    jb.clear();
-                    jb.push_back(sp.clone());
-                }
-                let _ = video_tx.send(sp);
+                let _ = video_tx.send(pkt);
             }
         });
 
@@ -304,17 +293,10 @@ pub struct H264Packet {
 }
 
 #[derive(Clone)]
-struct SeqPacket {
-    seq: u64,
-    pkt: H264Packet,
-}
-
-#[derive(Clone)]
 struct AppState {
     config: ServerConfig,
     input_tx: mpsc::Sender<IncomingInput>,
-    video_tx: tokio::sync::broadcast::Sender<SeqPacket>,
-    join_buffer: Arc<Mutex<VecDeque<SeqPacket>>>,
+    video_tx: tokio::sync::broadcast::Sender<H264Packet>,
     stats: Arc<Stats>,
     token: String,
     display_width: u32,
@@ -682,10 +664,10 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     let pipeline_str =
         "appsrc name=src format=time is-live=true do-timestamp=false min-latency=0 max-latency=0 \
-                        ! video/x-h264,stream-format=byte-stream,alignment=au,framerate=0/1 \
+                        ! video/x-h264,stream-format=byte-stream,alignment=au \
                         ! h264parse config-interval=1 \
                         ! mpegtsmux alignment=7 \
-                        ! appsink name=sink drop=true sync=false max-buffers=4 emit-signals=false";
+                        ! appsink name=sink drop=false sync=false max-buffers=1024 emit-signals=false";
     let pipeline = match gstreamer::parse::launch(pipeline_str) {
         Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
             Ok(pipeline) => pipeline,
@@ -714,7 +696,6 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     let caps = gstreamer::Caps::builder("video/x-h264")
         .field("stream-format", "byte-stream")
         .field("alignment", "au")
-        .field("framerate", gstreamer::Fraction::new(0, 1))
         .build();
     appsrc.set_caps(Some(&caps));
     appsrc.set_format(gstreamer::Format::Time);
@@ -730,7 +711,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     };
 
-    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(8);
+    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(1024);
     let tx_alive = tx.clone();
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
@@ -738,7 +719,16 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                 Ok(sample) => {
                     if let Some(buffer) = sample.buffer() {
                         if let Ok(map) = buffer.map_readable() {
-                            let _ = tx.try_send(map.to_vec());
+                            match tx.try_send(map.to_vec()) {
+                                Ok(()) => {}
+                                Err(tokio::sync::mpsc::error::TrySendError::Closed(_)) => {
+                                    return Err(gstreamer::FlowError::Eos);
+                                }
+                                Err(tokio::sync::mpsc::error::TrySendError::Full(_)) => {
+                                    warn!("stream buffer overrun (1024 chunks); terminating client stream");
+                                    return Err(gstreamer::FlowError::Eos);
+                                }
+                            }
                         }
                     }
                     Ok(gstreamer::FlowSuccess::Ok)
@@ -789,40 +779,21 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     }
     let pipeline_for_task = pipeline.clone();
 
-    let (keyframe_packet, mut video_rx) = {
-        let jb = state.join_buffer.lock().unwrap_or_else(|e| e.into_inner());
-        let kf = jb.front().cloned();
-        let rx = state.video_tx.subscribe();
-        (kf, rx)
-    };
-    let has_keyframe = keyframe_packet
-        .as_ref()
-        .is_some_and(|sp| sp.pkt.is_keyframe);
-    let keyframe_seq = keyframe_packet.as_ref().map(|sp| sp.seq);
-    let mut pts_base: Option<u64> = if has_keyframe {
-        keyframe_packet.as_ref().map(|sp| sp.pkt.pts_ns)
-    } else {
-        None
-    };
-
-    if let (Some(base), Some(sp)) = (pts_base, &keyframe_packet) {
-        let mut normalized = sp.pkt.clone();
-        normalized.pts_ns = sp.pkt.pts_ns.saturating_sub(base);
-        let _ = push_h264_packet(&appsrc_clone, &normalized);
-    }
+    let mut video_rx = state.video_tx.subscribe();
 
     tokio::spawn(async move {
         let _pipeline_guard = PipelineGuard(pipeline_for_task);
         let _guard = ClientGuard(stats);
 
-        let mut wait_keyframe = pts_base.is_none();
+        let mut wait_keyframe = true;
+        let mut pts_base: Option<u64> = None;
         loop {
             if tx_alive.is_closed() {
                 debug!("stream client disconnected");
                 break;
             }
-            let sp = match video_rx.recv().await {
-                Ok(sp) => sp,
+            let pkt = match video_rx.recv().await {
+                Ok(pkt) => pkt,
                 Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
                     debug!("stream client lagged {n} packets; waiting for keyframe");
                     wait_keyframe = true;
@@ -830,26 +801,19 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                 }
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
             };
-            if has_keyframe {
-                if let Some(last) = keyframe_seq {
-                    if sp.seq <= last {
-                        continue;
-                    }
-                }
-            }
             if wait_keyframe {
-                if !sp.pkt.is_keyframe {
+                if !pkt.is_keyframe {
                     continue;
                 }
                 wait_keyframe = false;
                 if pts_base.is_none() {
-                    pts_base = Some(sp.pkt.pts_ns);
+                    pts_base = Some(pkt.pts_ns);
                 }
             }
 
             let base = pts_base.unwrap_or(0);
-            let mut normalized = sp.pkt.clone();
-            normalized.pts_ns = sp.pkt.pts_ns.saturating_sub(base);
+            let mut normalized = pkt;
+            normalized.pts_ns = normalized.pts_ns.saturating_sub(base);
 
             if push_h264_packet(&appsrc_clone, &normalized).is_err() {
                 break;

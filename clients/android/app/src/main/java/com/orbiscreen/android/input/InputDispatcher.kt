@@ -137,6 +137,40 @@ class InputDispatcher(
         }
     }
 
+    fun pointerAction(
+        localX: Float?,
+        localY: Float?,
+        containerW: Int,
+        containerH: Int,
+        button: Int,
+        pressed: Boolean,
+    ) {
+        if (localX != null && localY != null && containerW > 0 && containerH > 0) {
+            val (x, y) = map(localX, localY, containerW, containerH)
+            cursorX = x.toFloat()
+            cursorY = y.toFloat()
+            latestMove.set(null)
+            val movePayload = JSONObject().apply {
+                put("Pointer", JSONObject().apply {
+                    put("Move", JSONObject().apply {
+                        put("x", x.toDouble())
+                        put("y", y.toDouble())
+                    })
+                })
+            }
+            discrete.tryEmit(movePayload)
+        }
+        val btnPayload = JSONObject().apply {
+            put("Pointer", JSONObject().apply {
+                put("Button", JSONObject().apply {
+                    put("button", button)
+                    put("pressed", pressed)
+                })
+            })
+        }
+        discrete.tryEmit(btnPayload)
+    }
+
     fun button(button: Int, pressed: Boolean) {
         val btn = JSONObject()
         btn.put("button", button)

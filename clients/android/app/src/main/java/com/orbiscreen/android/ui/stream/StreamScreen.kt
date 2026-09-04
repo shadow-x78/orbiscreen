@@ -137,9 +137,9 @@ fun StreamScreen(
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showExitConfirmDialog by remember { mutableStateOf(false) }
     var isControlsPermanentlyHidden by remember { mutableStateOf(false) }
-    var isTouchMode by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
+    val prefs = remember { com.orbiscreen.android.data.PrefsStore(context) }
+    var isTouchMode by remember { mutableStateOf(prefs.touchMode) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     BackHandler {
@@ -241,10 +241,7 @@ fun StreamScreen(
                 streamHeight = state.displayHeight,
                 onMove = { x, y, w, h -> input.move(x, y, w, h) },
                 onPointer = { x, y, w, h, btn, pressed ->
-                    if (x != null && y != null) {
-                        input.move(x, y, w, h)
-                    }
-                    input.button(btn, pressed)
+                    input.pointerAction(x, y, w, h, btn, pressed)
                 },
                 onDeltaMove = { dx, dy -> input.moveDelta(dx, dy) },
                 onLeftClick = { input.leftClick() },
@@ -282,7 +279,10 @@ fun StreamScreen(
                 encoder = state.encoder,
                 resolution = "${state.displayWidth}×${state.displayHeight}",
                 isTouchMode = isTouchMode,
-                onToggleInputMode = { isTouchMode = !isTouchMode },
+                onToggleInputMode = {
+                    isTouchMode = !isTouchMode
+                    prefs.touchMode = isTouchMode
+                },
                 onToggleKeyboard = viewModel::toggleKeyboard,
                 onOpenSettings = { showSettingsSheet = true },
                 onLock = viewModel::lock,

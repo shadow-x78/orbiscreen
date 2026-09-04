@@ -68,7 +68,7 @@ pub fn print_banner() {
         println!(
             r#"    {BLUE}▄▄████▄▄{RESET}
   {BLUE}▄██▀    ▀██▄{RESET}
-  {BLUE}██        ██{RESET}    {BOLD}{BLUE}Orbiscreen{RESET}  {LAVENDER}v{version}{RESET}  {DIM}(by shadow-x78){RESET}
+  {BLUE}██        ██{RESET}    {BOLD}{BLUE}Orbiscreen{RESET}  {LAVENDER}v{version}{RESET}
   {BLUE}██        ██{RESET}    {SUBTEXT}Virtual secondary display for Linux{RESET}
   {BLUE}▀██▄    {SAPPHIRE}▄███{RESET}
     {BLUE}▀▀████{SAPPHIRE}██▀{RESET}"#
@@ -78,7 +78,7 @@ pub fn print_banner() {
         println!(
             r#"    ▄▄████▄▄
   ▄██▀    ▀██▄
-  ██        ██    Orbiscreen  v{version}  (by shadow-x78)
+  ██        ██    Orbiscreen  v{version}
   ██        ██    Virtual secondary display for Linux
   ▀██▄    ▄███
     ▀▀██████▀"#

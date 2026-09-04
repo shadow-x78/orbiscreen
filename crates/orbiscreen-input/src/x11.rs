@@ -36,17 +36,22 @@ impl UinputInjector {
         mk_keys.extend((0x110u16..=0x117).map(Key::from_raw));
         mk_keys.extend((0x160u16..=0x2FF).map(Key::from_raw));
 
-        let width_axis = AbsInfo::new(0, spec.width.saturating_sub(1) as i32).with_resolution(10);
-        let height_axis = AbsInfo::new(0, spec.height.saturating_sub(1) as i32).with_resolution(10);
+        let width_axis = AbsInfo::new(0, spec.width.saturating_sub(1) as i32);
+        let height_axis = AbsInfo::new(0, spec.height.saturating_sub(1) as i32);
 
         let mouse_keyboard = UinputDevice::builder()?
             .with_input_id(InputId::new(Bus::VIRTUAL, 0x0BEE, 0x0001, 0x0001))?
+            .with_props([InputProp::POINTER])?
+            .with_abs_axes([
+                AbsSetup::new(Abs::X, width_axis),
+                AbsSetup::new(Abs::Y, height_axis),
+            ])?
             .with_rel_axes([Rel::X, Rel::Y, Rel::WHEEL])?
             .with_keys(mk_keys)?
             .build("Orbiscreen Virtual Mouse and Keyboard")?;
 
-        let pressure_axis = AbsInfo::new(0, PRESSURE_MAX).with_resolution(1);
-        let tilt_axis = AbsInfo::new(TILT_MIN, TILT_MAX).with_resolution(1);
+        let pressure_axis = AbsInfo::new(0, PRESSURE_MAX);
+        let tilt_axis = AbsInfo::new(TILT_MIN, TILT_MAX);
 
         let tablet_keys: Vec<Key> = (0x140u16..=0x14F).map(Key::from_raw).collect();
 
@@ -63,7 +68,7 @@ impl UinputInjector {
             .with_keys(tablet_keys)?
             .build("Orbiscreen Virtual Touchscreen")?;
 
-        info!("opened uinput devices: mouse/keyboard (relative) and touch/tablet (direct, resolution=10)");
+        info!("opened uinput devices: mouse/keyboard (pointer) and touch/tablet (direct)");
         Ok(Self {
             mouse_keyboard,
             touch_tablet,
@@ -94,7 +99,7 @@ impl UinputInjector {
                     AbsEvent::new(Abs::Y, yi).into(),
                     SynEvent::new(Syn::REPORT).into(),
                 ];
-                self.touch_tablet.write_events(&events)?;
+                self.mouse_keyboard.write_events(&events)?;
             }
             PointerEvent::RelativeMove { dx, dy } => {
                 let r_dx = dx.round() as i32;
@@ -121,13 +126,6 @@ impl UinputInjector {
                     SynEvent::new(Syn::REPORT).into(),
                 ];
                 self.mouse_keyboard.write_events(&events)?;
-                if button == 1 {
-                    let touch_events = vec![
-                        KEv::new(Key::BTN_TOUCH, state).into(),
-                        SynEvent::new(Syn::REPORT).into(),
-                    ];
-                    let _ = self.touch_tablet.write_events(&touch_events);
-                }
             }
             PointerEvent::Wheel { delta_y } => {
                 let mut events: Vec<InputEvent> = Vec::new();

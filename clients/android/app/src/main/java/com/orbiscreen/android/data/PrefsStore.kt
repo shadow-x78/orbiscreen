@@ -75,6 +75,10 @@ class PrefsStore(context: Context) {
         get() = prefs.getFloat(KEY_POINTER_SPEED, 1.0f).coerceIn(0.3f, 3.0f)
         set(value) { prefs.edit { putFloat(KEY_POINTER_SPEED, value.coerceIn(0.3f, 3.0f)) } }
 
+    var touchMode: Boolean
+        get() = prefs.getBoolean(KEY_TOUCH_MODE, true)
+        set(value) { prefs.edit { putBoolean(KEY_TOUCH_MODE, value) } }
+
     fun clearRecent() {
         prefs.edit {
             remove(KEY_RECENT_HOST); remove(KEY_RECENT_PORT); remove(KEY_RECENT_TS)
@@ -91,5 +95,6 @@ class PrefsStore(context: Context) {
         private const val KEY_SW_DECODER = "sw_decoder"
         private const val KEY_USB_PORT = "usb_port"
         private const val KEY_POINTER_SPEED = "pointer_speed"
+        private const val KEY_TOUCH_MODE = "touch_mode"
     }
 }

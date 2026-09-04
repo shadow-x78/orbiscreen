@@ -1,3 +1,13 @@
+orbiscreen (0.22.0-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.22.0 for Ubuntu noble.
+  * Absolute pointer mapping for virtual uinput mouse to prevent snapback.
+  * Direct touch precision with atomic FIFO pointer event dispatch.
+  * Fix green screen video artifact by preventing MPEG-TS packet drops.
+  * Streamline CLI startup banner and update packaging metadata.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 00:30:00 +0300
+
 orbiscreen (0.21.0-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.21.0 for Ubuntu noble.
