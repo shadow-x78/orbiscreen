@@ -142,11 +142,6 @@
   sudo dnf install orbiscreen -y
   ```
 
-- **Arch Linux (AUR):**
-  ```bash
-  paru -S orbiscreen
-  ```
-
 - **Universal AppImage (`.AppImage`):**
   Download `orbiscreen-x86_64.AppImage` from [GitHub Releases](https://github.com/shadow-x78/orbiscreen/releases):
   ```bash

@@ -140,11 +140,6 @@
   sudo dnf install orbiscreen -y
   ```
 
-- **آرش لينكس (AUR):**
-  ```bash
-  paru -S orbiscreen
-  ```
-
 - **حزمة AppImage الشاملة لكافة التوزيعات (`.AppImage`):**
   حمّل الملف من [صفحة الإصدارات على GitHub](https://github.com/shadow-x78/orbiscreen/releases):
   ```bash

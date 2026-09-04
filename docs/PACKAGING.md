@@ -16,7 +16,6 @@
 - [Supported Distros & Targets](#supported-distros--targets)
 - [Source Tarballs](#source-tarballs)
 - [Packaging Matrix](#packaging-matrix)
-- [Arch Linux (AUR)](#arch-linux-aur)
 - [Fedora / RHEL / CentOS (COPR)](#fedora--rhel--centos-copr)
 - [Debian / Ubuntu / Linux Mint (.deb)](#debian--ubuntu--linux-mint-deb)
 - [Android Release Packaging](#android-release-packaging)
@@ -111,19 +110,6 @@ echo "deb [signed-by=/etc/apt/keyrings/orbiscreen.gpg] https://shadow-x78.github
 sudo apt update
 sudo apt install orbiscreen -y
 ```
-
-### Arch Linux AUR
-
-`PKGBUILD` at the repo root builds from the release tarball with cargo. The repo copy carries `sha256sums=('SKIP')` on purpose: a tag's archive checksum only exists after the release workflow completes, so a repo-pinned sum would always lag the tag. The pinning happens at publish time - `updpkgsums` on the maintainer's machine writes the real checksum into the AUR copy of the PKGBUILD (never back into this repo). Publish/update flow:
-```bash
-git clone ssh://aur@aur.archlinux.org/orbiscreen.git aur-orbiscreen
-cp PKGBUILD aur-orbiscreen/
-cd aur-orbiscreen
-updpkgsums                     # fetches the tag archive, pins the real sha256
-makepkg --printsrcinfo > .SRCINFO
-git add PKGBUILD .SRCINFO && git commit -m "orbiscreen v0.18.3" && git push
-```
-User install: `yay -S orbiscreen` (or any AUR helper) / `makepkg -si`.
 
 ---
 
