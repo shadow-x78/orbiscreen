@@ -25,7 +25,6 @@ use tracing_subscriber::EnvFilter;
 #[command(
     name = "orbiscreen",
     author = "shadow-x78 <https://github.com/shadow-x78/orbiscreen>",
-    version = concat!(env!("CARGO_PKG_VERSION"), " (by shadow-x78)"),
     about = "Turn any Android device into a second monitor for Linux",
     long_about = "Orbiscreen turns Android tablets and phones into an extended secondary display\n\
                   for Linux (Wayland & X11) with ultra-low latency, hardware encoding, and\n\
@@ -33,8 +32,18 @@ use tracing_subscriber::EnvFilter;
     after_help = "Written by shadow-x78 <https://github.com/shadow-x78/orbiscreen>",
     after_long_help = "Written by shadow-x78 <https://github.com/shadow-x78/orbiscreen>",
     styles = ui::clap_styles(),
+    disable_version_flag = true,
 )]
 struct Cli {
+    #[arg(
+        short = 'V',
+        long = "version",
+        action = clap::ArgAction::SetTrue,
+        global = true,
+        help = "Print detailed version card and developer information"
+    )]
+    version: bool,
+
     #[arg(
         short,
         long,
@@ -100,6 +109,11 @@ enum Command {
     Service {
         #[command(subcommand)]
         action: ServiceAction,
+    },
+    #[command(about = "Display version, developer, and system details")]
+    Version {
+        #[arg(long, help = "Output version details in raw JSON format")]
+        json: bool,
     },
 }
 
@@ -258,6 +272,14 @@ impl FrameSource {
 #[tokio::main]
 async fn main() -> ExitCode {
     let cli = Cli::parse();
+    if cli.version || matches!(cli.command, Some(Command::Version { .. })) {
+        let json = match cli.command {
+            Some(Command::Version { json }) => json,
+            _ => false,
+        };
+        ui::print_version_card(json);
+        return ExitCode::SUCCESS;
+    }
     init_tracing(cli.verbose);
 
     let config_path = cli
@@ -361,6 +383,10 @@ async fn main() -> ExitCode {
             }
         }
         Some(Command::Service { action }) => run_service_action(action).await,
+        Some(Command::Version { json }) => {
+            ui::print_version_card(json);
+            ExitCode::SUCCESS
+        }
         None => match dbus::request_status().await {
             Ok(_) => run_status(false, cfg.transport.signaling_port).await,
             Err(_) => {
@@ -2244,5 +2270,24 @@ mod tests {
         assert!(plan
             .install_cmd
             .contains(&"linux-headers-generic".to_string()));
+    }
+
+    #[test]
+    fn version_flag_is_parsed() {
+        let cli = Cli::try_parse_from(["orbiscreen", "-V"]).unwrap();
+        assert!(cli.version);
+        let cli = Cli::try_parse_from(["orbiscreen", "--version"]).unwrap();
+        assert!(cli.version);
+    }
+
+    #[test]
+    fn version_subcommand_is_parsed() {
+        let cli = Cli::try_parse_from(["orbiscreen", "version"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Command::Version { json: false })
+        ));
+        let cli = Cli::try_parse_from(["orbiscreen", "version", "--json"]).unwrap();
+        assert!(matches!(cli.command, Some(Command::Version { json: true })));
     }
 }

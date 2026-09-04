@@ -319,3 +319,79 @@ pub fn get_lan_ip() -> Option<String> {
     socket.connect("8.8.8.8:80").ok()?;
     socket.local_addr().ok().map(|addr| addr.ip().to_string())
 }
+
+pub fn print_version_card(json: bool) {
+    let version = env!("CARGO_PKG_VERSION");
+    let target = format!("{}/{}", std::env::consts::OS, std::env::consts::ARCH);
+    let caps = orbiscreen_capture::capabilities::Capabilities::from_env();
+    let desktop_str = match (caps.compositor, caps.session) {
+        (
+            orbiscreen_capture::capabilities::Compositor::Unknown,
+            orbiscreen_capture::capabilities::SessionType::Unknown,
+        ) => "Linux Session".to_string(),
+        (c, s) => format!("{c} ({s})"),
+    };
+
+    if json {
+        println!(
+            "{}",
+            serde_json::json!({
+                "name": "orbiscreen",
+                "version": version,
+                "developer": "shadow-x78",
+                "repository": "https://github.com/shadow-x78/orbiscreen",
+                "license": "GPL-3.0-or-later",
+                "target": target,
+                "compositor": caps.compositor.to_string(),
+                "session": caps.session.to_string(),
+                "dbus_service": "org.shadow_x7.Orbiscreen",
+            })
+        );
+        return;
+    }
+
+    print_banner();
+    println!();
+
+    if colors_enabled() {
+        use colors::*;
+        println!("{SAPPHIRE}╭── Developer & System Details ─────────────────────────────────────────{RESET}");
+        println!(
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {BOLD}{GREEN}shadow-x78{RESET}  {DIM}(https://github.com/shadow-x78){RESET}",
+            "Developer"
+        );
+        println!(
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {UNDERLINE}{PEACH}https://github.com/shadow-x78/orbiscreen{RESET}",
+            "Repository"
+        );
+        println!(
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {TEXT}v{version}{RESET}  {DIM}· {target} · GPL-3.0-or-later{RESET}",
+            "Version"
+        );
+        println!(
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {TEXT}{desktop_str}{RESET}",
+            "Environment"
+        );
+        println!(
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {TEXT}Virtual Display · Hardware Encoding · Stylus & Touch · USB ADB{RESET}",
+            "Features"
+        );
+        println!(
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {TEXT}org.shadow_x7.Orbiscreen{RESET}  {DIM}(Session Bus){RESET}",
+            "D-Bus Service"
+        );
+        println!("{SAPPHIRE}╰───────────────────────────────────────────────────────────────────────{RESET}");
+        println!();
+    } else {
+        println!("+-- Developer & System Details -----------------------------------------");
+        println!("|  Developer        shadow-x78 (https://github.com/shadow-x78)");
+        println!("|  Repository       https://github.com/shadow-x78/orbiscreen");
+        println!("|  Version          v{version} · {target} · GPL-3.0-or-later");
+        println!("|  Environment      {desktop_str}");
+        println!(
+            "|  Features         Virtual Display · Hardware Encoding · Stylus & Touch · USB ADB"
+        );
+        println!("|  D-Bus Service    org.shadow_x7.Orbiscreen (Session Bus)");
+        println!("+-----------------------------------------------------------------------\n");
+    }
+}
