@@ -46,7 +46,7 @@ class HostApi {
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) return@withTimeoutOrNull null
                     val body = readBoundedBody(resp) ?: return@withTimeoutOrNull null
-                    val t = JSONObject(body).optString("token").takeIf { it.isNotBlank() }
+                    val t = JSONObject(body).optString("token").takeIf { it.isNotBlank() && it != "null" }
                     Log.i(TAG, "token fetched: prefix=${t?.take(4)}")
                     t
                 }

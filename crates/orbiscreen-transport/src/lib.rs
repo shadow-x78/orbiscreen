@@ -437,30 +437,19 @@ async fn client_config(
     State(state): State<AppState>,
     request: axum::extract::Request,
 ) -> impl IntoResponse {
-    let peer_addr = request
+    let peer = request
         .extensions()
         .get::<axum::extract::ConnectInfo<SocketAddr>>()
-        .map(|c| c.0.ip());
-    let is_local = peer_addr.is_some_and(|ip| ip.is_loopback());
-    let token = if is_local {
-        Some(state.token.as_str())
-    } else {
-        None
-    };
-    debug!(
-        "client config served (peer={}, is_local={})",
-        peer_addr
-            .map(|a| a.to_string())
-            .unwrap_or_else(|| "?".into()),
-        is_local
-    );
+        .map(|c| c.0.to_string())
+        .unwrap_or_else(|| "?".into());
+    debug!("client config served with live token (peer={peer})");
     (
         [
             ("content-type", "application/json"),
             ("cache-control", "no-cache, no-store, must-revalidate"),
         ],
         Json(serde_json::json!({
-            "token": token,
+            "token": state.token,
             "display_width": state.display_width,
             "display_height": state.display_height,
         })),

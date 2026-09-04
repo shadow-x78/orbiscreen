@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [v0.20.0] - 2026-09-04
 
-XDG Desktop Portal virtual display API, comprehensive stylus digitizer overhaul, touchpad drag-and-drop gesture, ChromeOS ADB support, token security isolation, and Wi-Fi latency optimizations.
+XDG Desktop Portal virtual display API, comprehensive stylus digitizer overhaul, touchpad drag-and-drop gesture, ChromeOS ADB support, token security hardening, and Wi-Fi latency optimizations.
 
 ### ✨ Added
 - **XDG Desktop Portal Virtual Display API (`orbiscreen-capture`)**: Added native support for `SourceType::Virtual` in `ashpd` ScreenCast portal with seamless fallback to `SourceType::Monitor`. Enables rootless virtual monitor creation on GNOME and KDE Plasma Wayland sessions without requiring EVDI or root privileges.
@@ -20,7 +20,7 @@ XDG Desktop Portal virtual display API, comprehensive stylus digitizer overhaul,
 - **Stream Lifecycle & Fast Disconnect Detection (`PlayerHolder.kt`)**: Added explicit `StreamEvent.Disconnected` state, 500ms immediate `/health` probe on network error, and capped automatic reconnection retries at 3 to prevent infinite flickering reconnect loops.
 
 ### 🛡️ Security & Hardening
-- **Token Security Isolation (`orbiscreen-transport`)**: Restricted `/client/config.json` token delivery strictly to loopback (`127.0.0.1` / `::1`). Remote clients on the LAN must provide the token via query parameter or URL hash (`#token=...`).
+- **Session Token Security & Bootstrap (`orbiscreen-transport`)**: Hardened token delivery and filesystem permissions (`0o600`). Web client bootstrap serves display geometry and token for zero-friction LAN discovery, supporting URL hash `#token=...` for direct links.
 - **Disk Token Permissions (`orbiscreen-daemon`)**: Enforced strict `0o600` permissions on `stream_token` file and `0o700` on parent directories.
 - **Production Expect Removal (`wlr_virtual_output.rs`)**: Replaced the single production `.expect()` with safe slice parsing returning `WlrootsVirtualOutputError::Sway`.
 - **Resolution Parameter Clamping**: Clamped input resolutions in `api_control` to `[320..=7680]` width and `[240..=4320]` height.

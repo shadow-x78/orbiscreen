@@ -131,7 +131,7 @@ Each stage owns its data; frames are copied between stages (no zero-copy, this k
 
 Every session generates a random 32-byte base64url token at startup:
 
-- **Loopback Isolation:** `/client/config.json` is restricted strictly to loopback (`127.0.0.1` and `::1`). Remote clients across the LAN cannot read session tokens over plain HTTP.
+- **Client Bootstrap:** `/client/config.json` serves the session token and display geometry for automatic bootstrap by bundled web and LAN clients.
 - **Remote Client Auth:** Remote browsers connect using URL hash tokens (`http://<host>:8788/#token=<SECRET>`) or query parameters (`?token=<SECRET>`), preventing token leaks in server access logs.
 - **Android Client:** Receives the token securely via mDNS TXT records (`token=...`) or manual entry.
 - **Filesystem Security:** The daemon persists the session token in `~/.config/orbiscreen/stream_token` with strict `0o600` file permissions and `0o700` parent directory permissions.

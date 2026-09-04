@@ -97,7 +97,7 @@
 - **Touchpad Drag-and-Drop Gesture**: Double-tap and drag in Touchpad mode for seamless window moving and file selection, with strict multi-monitor boundary confinement
 - **Ultra-Low Latency 5GHz Wi-Fi Tuning**: 6-frame GOP (100ms keyframe interval) with sub-50ms buffer pipeline for instantaneous recovery and zero-lag responsiveness
 - **Chromebook CM3001 &amp; ChromeOS Support**: Auto-probing internal ADB route (`100.115.92.2:5555`) for plug-and-play USB streaming on ChromeOS ARC++
-- **Token Loopback Security Isolation**: Session token generation with strict `0o600` permissions and loopback-only delivery, supporting `#token=` URL hash for remote browsers
+- **Session Token Security & Bootstrap**: Session token generation with strict `0o600` permissions and automated discovery delivery, supporting `#token=` URL hash for direct links
 - **Connection Lifecycle &amp; Fast Recovery**: Explicit disconnect detection, 500ms `/health` probe, and capped reconnection attempts
 - **Real virtual display via `evdi`** (X11 and Wayland), **or zero root on KDE Plasma / wlroots**: KWin virtual monitor or compositor headless output without kernel modules
 - **Material 3 Android client**: Jetpack Compose, Catppuccin Mocha / Latte brand palette, light/dark theme

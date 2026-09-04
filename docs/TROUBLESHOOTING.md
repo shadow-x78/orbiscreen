@@ -510,7 +510,7 @@ Clients (Android, web, or hand-written scripts) get `401 Unauthorized`. `curl ht
 
 **Cause:**
 These routes require the per-session access token generated when the daemon starts.
-- **Security Isolation:** In v0.20.0, `/client/config.json` is strictly restricted to loopback (`127.0.0.1` and `::1`). Remote devices on the LAN cannot access `/client/config.json` to obtain the token over plaintext HTTP.
+- **Token Validation:** Make sure the client is providing the correct session token matching the daemon's active session. If connecting via browser, `/client/config.json` automatically bootstraps the token, or you can supply it via `#token=` in the URL.
 - Remote browsers connecting across the local network must provide the token in the URL.
 
 **Fix:**
