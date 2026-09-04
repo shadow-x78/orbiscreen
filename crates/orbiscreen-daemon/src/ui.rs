@@ -246,6 +246,7 @@ pub fn print_startup_card(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn print_status_dashboard(
     is_running: bool,
     w: u64,
