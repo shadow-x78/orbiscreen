@@ -277,17 +277,31 @@ async fn main() -> ExitCode {
             if daemon {
                 run_service_action(ServiceAction::Start).await
             } else {
+                if is_daemon_already_running(cfg.transport.signaling_port).await {
+                    ui::print_banner();
+                    println!();
+                    println!(
+                        "{} Orbiscreen is already running in the background",
+                        ui::badge_warn()
+                    );
+                    println!(
+                        "   Run 'orbiscreen status' to view live status, or 'orbiscreen stop' to stop it.\n"
+                    );
+                    return ExitCode::SUCCESS;
+                }
                 match run_start(cfg, no_mdns).await {
                     Ok(()) => ExitCode::SUCCESS,
                     Err(e) => {
                         let err_str = e.to_string();
                         if err_str.contains("Address already in use") {
+                            ui::print_banner();
+                            println!();
                             println!(
                                 "{} Orbiscreen is already running in the background (port in use)",
                                 ui::badge_warn()
                             );
                             println!(
-                                "   Run 'orbiscreen status' to view live status, or 'orbiscreen stop' to stop it."
+                                "   Run 'orbiscreen status' to view live status, or 'orbiscreen stop' to stop it.\n"
                             );
                         } else {
                             error!("orbiscreen start failed: {e}");
@@ -322,11 +336,21 @@ async fn main() -> ExitCode {
                 }
             }
             Err(e) => {
-                eprintln!("{} Stop failed: {e}", ui::badge_err());
-                ExitCode::from(1)
+                let systemd_status = std::process::Command::new("systemctl")
+                    .args(["--user", "is-active", "orbiscreen"])
+                    .output()
+                    .ok()
+                    .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+                    .unwrap_or_default();
+                if systemd_status == "active" {
+                    run_service_action(ServiceAction::Stop).await
+                } else {
+                    eprintln!("{} Stop failed: {e}", ui::badge_err());
+                    ExitCode::from(1)
+                }
             }
         },
-        Some(Command::Status { json }) => run_status(json).await,
+        Some(Command::Status { json }) => run_status(json, cfg.transport.signaling_port).await,
         Some(Command::Display { action }) => run_display(&config_path, action).await,
         Some(Command::Devices { json }) => run_devices(json).await,
         Some(Command::Doctor { json, fix, yes }) => {
@@ -338,18 +362,62 @@ async fn main() -> ExitCode {
         }
         Some(Command::Service { action }) => run_service_action(action).await,
         None => match dbus::request_status().await {
-            Ok(_) => run_status(false).await,
+            Ok(_) => run_status(false, cfg.transport.signaling_port).await,
             Err(_) => {
-                ui::print_banner();
-                ui::print_welcome_card();
-                println!();
-                ExitCode::SUCCESS
+                if is_daemon_already_running(cfg.transport.signaling_port).await {
+                    run_status(false, cfg.transport.signaling_port).await
+                } else {
+                    ui::print_banner();
+                    ui::print_welcome_card();
+                    println!();
+                    ExitCode::SUCCESS
+                }
             }
         },
     }
 }
 
-async fn run_status(json: bool) -> ExitCode {
+async fn query_local_endpoint(port: u16, path: &str) -> Option<serde_json::Value> {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let mut stream = tokio::time::timeout(
+        std::time::Duration::from_millis(400),
+        tokio::net::TcpStream::connect(("127.0.0.1", port)),
+    )
+    .await
+    .ok()?
+    .ok()?;
+
+    let req = format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n");
+    stream.write_all(req.as_bytes()).await.ok()?;
+
+    let mut buf = Vec::with_capacity(1024);
+    tokio::time::timeout(
+        std::time::Duration::from_millis(400),
+        stream.read_to_end(&mut buf),
+    )
+    .await
+    .ok()?
+    .ok()?;
+
+    let resp = String::from_utf8_lossy(&buf);
+    let body = resp.split("\r\n\r\n").nth(1)?;
+    serde_json::from_str(body).ok()
+}
+
+async fn is_daemon_already_running(port: u16) -> bool {
+    if dbus::request_status().await.is_ok() {
+        return true;
+    }
+    if query_local_endpoint(port, "/health").await.is_some() {
+        return true;
+    }
+    if std::net::TcpListener::bind(("0.0.0.0", port)).is_err() {
+        return true;
+    }
+    false
+}
+
+async fn run_status(json: bool, port: u16) -> ExitCode {
     match dbus::request_status().await {
         Ok(reply) => {
             if json {
@@ -389,7 +457,7 @@ async fn run_status(json: bool) -> ExitCode {
                 let port = val
                     .get("signaling_port")
                     .and_then(|v| v.as_u64())
-                    .unwrap_or(8788) as u16;
+                    .unwrap_or(u64::from(port)) as u16;
 
                 let token = std::fs::read_to_string(orbiscreen_core::default_token_path())
                     .unwrap_or_else(|_| "token-active".to_string())
@@ -407,6 +475,67 @@ async fn run_status(json: bool) -> ExitCode {
             }
         }
         Err(e) => {
+            if let Some(health) = query_local_endpoint(port, "/health").await {
+                let info = query_local_endpoint(port, "/api/info")
+                    .await
+                    .unwrap_or_default();
+                let is_running = health.get("status").and_then(|v| v.as_str()) == Some("ok");
+                let encoder = health
+                    .get("encoder")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| info.get("encoder").and_then(|v| v.as_str()))
+                    .unwrap_or("auto");
+                let active = health
+                    .get("active_clients")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                let usb = health
+                    .get("usb_devices")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                let w = info
+                    .get("display_width")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1920);
+                let h = info
+                    .get("display_height")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1080);
+                let fps = info
+                    .get("refresh_hz")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(60);
+                let capture = "Virtual";
+                let token = std::fs::read_to_string(orbiscreen_core::default_token_path())
+                    .unwrap_or_else(|_| "token-active".to_string())
+                    .trim()
+                    .to_string();
+
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "running": is_running,
+                            "encoder": encoder,
+                            "capture_backend": capture,
+                            "active_clients": active,
+                            "usb_devices": usb,
+                            "display_width": w,
+                            "display_height": h,
+                            "display_fps": fps,
+                            "signaling_port": port,
+                        })
+                    );
+                    return ExitCode::SUCCESS;
+                }
+
+                ui::print_banner();
+                ui::print_status_dashboard(
+                    is_running, w, h, fps, encoder, capture, port, active, usb, &token,
+                );
+                return ExitCode::SUCCESS;
+            }
+
             let systemd_status = std::process::Command::new("systemctl")
                 .args(["--user", "is-active", "orbiscreen"])
                 .output()
