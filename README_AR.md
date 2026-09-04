@@ -110,13 +110,13 @@
 <a id="desktop-support"></a>
 ## 🖥️ دعم بيئات سطح المكتب
 
-| البيئة | شاشة ثانية افتراضية | الالتقاط | الإدخال |
-|--------|---------------------|----------|---------|
-| KDE Plasma (Wayland) | ✅ أصلي (zkde-screencast، بلا root وبلا حوار) | ✅ PipeWire | ✅ portal RemoteDesktop / uinput |
-| Sway / Hyprland / wlroots | ✅ مخرج headless عبر IPC الـ compositor (بلا root) | ✅ wlr-screencopy (بلا حوار) | ✅ virtual-pointer / virtual-keyboard (بلا portal) |
-| GNOME (Wayland) | ⚠️ عبر EVDI | ✅ portal: حوار مرة واحدة فقط (توكن إصرار محفوظ) | ✅ portal RemoteDesktop: محفوظ |
-| XFCE / MATE / LXQt / Cinnamon (X11) | ✅ عبر EVDI | ✅ XShm للشاشة الجذرية (مجمّع، مع تجاوز الإطارات المتطابقة) | ✅ XTEST (بلا root)، مع تراجع إلى uinput |
-| أي بيئة أخرى | ✅ عبر EVDI (بإرشاد `orbiscreen doctor --fix`) | أفضل واجهة متاحة | أفضل واجهة متاحة |
+| الإدخال | الالتقاط | شاشة ثانية افتراضية | البيئة |
+| :---: | :---: | :---: | ---: |
+| ✅ تحكم عبر uinput و portal RemoteDesktop | ✅ التقاط عبر PipeWire | ✅ أصلي عبر zkde-screencast (بدون root) | KDE Plasma (Wayland) |
+| ✅ تحكم عبر virtual-pointer و virtual-keyboard (بدون portal) | ✅ التقاط عبر wlr-screencopy (بدون حوار) | ✅ مخرج headless أصيل عبر IPC (بدون root) | Sway / Hyprland / wlroots |
+| ✅ تحكم عبر portal RemoteDesktop (بتوكن دائم) | ✅ التقاط عبر portal (حوار لمرة واحدة فقط) | ⚠️ شاشة افتراضية عبر EVDI | GNOME (Wayland) |
+| ✅ تحكم عبر XTEST و uinput (بدون root) | ✅ التقاط عبر XShm للشاشة الجذرية | ✅ شاشة افتراضية عبر EVDI | XFCE / MATE / LXQt / Cinnamon (X11) |
+| أفضل واجهة متاحة | أفضل واجهة متاحة | ✅ عبر EVDI (تثبيت تلقائي عبر doctor --fix) | أي بيئة أخرى |
 
 يطبع `orbiscreen doctor` الـ compositor المكتشف وخطة الالتقاط التي سيتبعها `auto` وما الناقص في النظام؛ وينفّذ `orbiscreen doctor --fix` تثبيت وحدة نواة EVDI على التوزيعات المكتشفة. التفاصيل الكاملة في [دليل دعم بيئات سطح المكتب](docs/DE_SUPPORT_AR.md).
 
@@ -301,13 +301,13 @@ orbiscreen/
 <a id="documentation"></a>
 ## 📚 التوثيق المكتبي
 
-| الوثيقة | الوصف |
-|---------|-------|
-| [ARCHITECTURE_AR.md](docs/ARCHITECTURE_AR.md) | طوبولوجيا النظام وخط أنابيب الإطارات وبنية D-Bus |
-| [DE_SUPPORT_AR.md](docs/DE_SUPPORT_AR.md) | مصفوفة دعم بيئات سطح المكتب وخطط الالتقاط واستكشاف الأخطاء |
-| [PACKAGING_AR.md](docs/PACKAGING_AR.md) | مواصفات التغليف متعدد التوزيعات ‏(.deb، .rpm، AppImage)‏ |
-| [DBUS_SPEC_AR.md](docs/DBUS_SPEC_AR.md) | مواصفات واجهة D-Bus Session Bus |
-| [TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) | المشاكل الشائعة والتشخيص وإصلاحات التسريع العتادي |
+| الوصف | الوثيقة |
+| :--- | ---: |
+| طوبولوجيا النظام وخط أنابيب الإطارات وبنية D-Bus | [ARCHITECTURE_AR.md](docs/ARCHITECTURE_AR.md) |
+| مصفوفة دعم بيئات سطح المكتب وخطط الالتقاط واستكشاف الأخطاء | [DE_SUPPORT_AR.md](docs/DE_SUPPORT_AR.md) |
+| مواصفات التغليف متعدد التوزيعات (.deb و .rpm و AppImage) | [PACKAGING_AR.md](docs/PACKAGING_AR.md) |
+| مواصفات واجهة D-Bus Session Bus | [DBUS_SPEC_AR.md](docs/DBUS_SPEC_AR.md) |
+| المشاكل الشائعة والتشخيص وإصلاحات التسريع العتادي | [TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) |
 
 ---
 
