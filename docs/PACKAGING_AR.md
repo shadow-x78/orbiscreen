@@ -84,6 +84,16 @@ dnf copr enable shadow-x78/orbiscreen
 dnf install orbiscreen
 ```
 
+### بناء فيدورا الأصلي وحزم RPM عبر (GitHub Actions)
+
+يتوفر workflow مخصص في GitHub Actions باسم (`.github/workflows/fedora.yml`) يعمل مباشرة داخل حاويات Fedora الرسمية (`fedora:latest` و `41` و `40`). يقوم ببناء وفحص مساحة العمل بحزم فيدورا الأصلية وتوليد حزم RPM الجاهزة للتثبيت.
+
+يمكنك إعادة البناء يدوياً في أي وقت من تبويب **Actions** في غيتهب:
+1. اذهب إلى **Actions** ← **Fedora RPM & CI**.
+2. اضغط على زر **Run workflow**، اختر الفرع وإصدار فيدورا المطلوب ثم اضغط تشغيل.
+3. ستجد ملفات حزم `.rpm` المبنية جاهزة للتحميل مباشرة من قسم **Artifacts** في تقرير التشغيل.
+
+
 ### Ubuntu / Pop!_OS / Linux Mint (Launchpad PPA)
 
 مستودع Launchpad PPA الرسمي:

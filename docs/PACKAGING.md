@@ -94,6 +94,16 @@ dnf copr enable shadow-x78/orbiscreen
 dnf install orbiscreen
 ```
 
+### Fedora Native CI & RPM Packaging (GitHub Actions)
+
+A dedicated GitHub Actions workflow (`.github/workflows/fedora.yml`) runs on native Fedora containers (`fedora:latest`, `41`, `40`). It compiles the workspace, executes unit tests against official Fedora dependencies, and packages binary RPMs.
+
+Maintainers can trigger a rebuild anytime directly from the **Actions** tab on GitHub:
+1. Navigate to **Actions** → **Fedora RPM & CI**.
+2. Click **Run workflow**, choose the target branch and Fedora version, and trigger the job.
+3. Download the compiled `.rpm` directly from the workflow's **Artifacts** section.
+
+
 ### Ubuntu / Pop!_OS / Linux Mint (Launchpad PPA)
 
 Official Launchpad PPA:

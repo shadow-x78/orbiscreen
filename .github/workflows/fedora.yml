@@ -1,0 +1,116 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - Fedora CI & RPM Packaging Workflow
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+
+name: Fedora RPM & CI
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      fedora_version:
+        description: 'Fedora container image tag'
+        required: true
+        default: 'latest'
+        type: choice
+        options:
+          - 'latest'
+          - '41'
+          - '40'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fedora:
+    name: Fedora (${{ github.event.inputs.fedora_version || 'latest' }}) - Build, Test & RPM
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:${{ github.event.inputs.fedora_version || 'latest' }}
+      options: --user root
+
+    steps:
+      - name: Install system build dependencies via DNF
+        run: |
+          dnf install -y --setopt=install_weak_deps=False \
+            git-core \
+            cargo \
+            rust \
+            gcc \
+            zstd \
+            rpm-build \
+            pkgconf-pkg-config \
+            gstreamer1-devel \
+            gstreamer1-plugins-base-devel \
+            gstreamer1-plugins-good \
+            gstreamer1-plugins-bad-free \
+            libevdev-devel \
+            libxkbcommon-devel \
+            dbus-devel \
+            wayland-devel \
+            libX11-devel \
+            libxcb-devel \
+            libXrandr-devel
+
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Environment & Toolchain Info
+        run: |
+          cat /etc/os-release
+          rustc --version
+          cargo --version
+          rpmbuild --version
+
+      - name: Cargo Build (Release)
+        run: cargo build --workspace --release --locked --verbose
+
+      - name: Cargo Test
+        run: cargo test --workspace --locked --verbose
+
+      - name: Build Fedora RPM Package
+        run: |
+          chmod +x scripts/package-rpm.sh
+          ./scripts/package-rpm.sh
+          VERSION=$(grep -m1 -oP '(?<=^version = ")[^"]+' Cargo.toml)
+          if [ -f "target/rpmbuild/RPMS/x86_64/orbiscreen-${VERSION}-1."*".x86_64.rpm" ]; then
+            cp -f target/rpmbuild/RPMS/x86_64/orbiscreen-${VERSION}-1.*.x86_64.rpm .
+          fi
+          ls -la *.rpm
+
+      - name: Verify COPR Spec & Build SRPM
+        continue-on-error: true
+        run: |
+          chmod +x scripts/packit-archive.sh
+          ./scripts/packit-archive.sh
+          mkdir -p target/rpmbuild/SOURCES
+          VERSION=$(grep -m1 -oP '(?<=^version = ")[^"]+' Cargo.toml)
+          cp -f "orbiscreen-${VERSION}.tar.gz" target/rpmbuild/SOURCES/
+          cp -f "orbiscreen-vendor-${VERSION}.tar.zst" target/rpmbuild/SOURCES/
+          rpmbuild -bs \
+            --define "_topdir $(pwd)/target/rpmbuild" \
+            data/orbiscreen-copr.spec
+          cp -f target/rpmbuild/SRPMS/*.src.rpm . 2>/dev/null || true
+          ls -la *.src.rpm 2>/dev/null || true
+
+      - name: Ensure RPM artifacts readable
+        run: chmod -R a+r *.rpm 2>/dev/null || true
+
+      - name: Upload Fedora RPM Artifacts
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: orbiscreen-fedora-${{ github.event.inputs.fedora_version || 'latest' }}-rpm
+          path: |
+            *.rpm
+          if-no-files-found: error
