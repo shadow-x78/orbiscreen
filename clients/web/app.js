@@ -350,8 +350,10 @@ stageEl.addEventListener("pointermove", (event) => {
             sendStylus(x, y, event.pressure, event.tiltX, event.tiltY);
         }
         sendPointerMove(x, y); // Instantaneous during drag
+        sendPointerMove(x, y);
     } else {
         queuePointerMove(x, y); // Throttled when hovering
+        queuePointerMove(x, y);
     }
 });
 
@@ -821,6 +823,7 @@ document.querySelectorAll(".keyBtn[data-action]").forEach((btn) => {
         const key = keyMap[action];
         if (key) {
             sendRawCode(29, true); // Ctrl
+            sendRawCode(29, true);
             sendRawCode(key, true);
             setTimeout(() => {
                 sendRawCode(key, false);

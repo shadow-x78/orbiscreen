@@ -1,3 +1,14 @@
+orbiscreen (0.22.1-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.22.1 for Ubuntu noble.
+  * Ultra-low latency streaming optimizations with is-live=false pipeline.
+  * Dedicated uinput devices: mouse/keyboard, touchscreen, and tablet.
+  * Bound touchscreen and tablet to Virtual-ORBISCREEN via KWin D-Bus.
+  * Non-zero axis resolution for tablet device to ensure libinput stylus recognition.
+  * Low-latency playback buffer tuning and async input dispatch in Android client.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 02:15:00 +0300
+
 orbiscreen (0.22.0-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.0 for Ubuntu noble.

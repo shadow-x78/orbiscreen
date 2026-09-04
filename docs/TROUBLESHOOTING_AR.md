@@ -3,6 +3,7 @@
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
 
 [![الإصدار](https://img.shields.io/badge/version-0.22.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.22.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -91,6 +92,7 @@ Diff in /path/to/file.rs:
 cargo fmt --all
 git add -A
 git commit -m "orbiscreen | v0.22.0 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.22.1 | style: cargo fmt --all"
 ```
 
 **الوقاية:**
@@ -116,6 +118,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
 cargo clippy --workspace --all-targets --locked --fix
 git add -A
 git commit -m "orbiscreen | v0.22.0 | fix: resolve clippy warnings"
+git commit -m "orbiscreen | v0.22.1 | fix: resolve clippy warnings"
 ```
 
 **الوقاية:**
@@ -137,6 +140,7 @@ cargo update -p gstreamer
 cargo build --workspace --locked
 git add Cargo.lock
 git commit -m "orbiscreen | v0.22.0 | chore: refresh Cargo.lock"
+git commit -m "orbiscreen | v0.22.1 | chore: refresh Cargo.lock"
 ```
 
 ---
@@ -567,6 +571,7 @@ gst-inspect-1.0 x264enc
 
 **الإصلاح:**
 حدّث إلى الإصدار الأخير (v0.22.0 أو أحدث).
+حدّث إلى الإصدار الأخير (v0.22.1 أو أحدث).
 
 ---
 

@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.22.1] - 2026-09-05
+
+Ultra-low latency streaming optimizations, 3 dedicated uinput virtual devices, direct touch output confinement, and hardware stylus recognition.
+
+### ✨ Added & Improved
+- **Dedicated uinput Device Separation (`orbiscreen-input`)**: Split virtual input into three specialized uinput devices:
+  1. `Orbiscreen Virtual Mouse and Keyboard`: handles pointer relative movement, buttons, wheel scrolling, and keyboard events.
+  2. `Orbiscreen Virtual Touchscreen`: direct touch input with `InputProp::DIRECT`, absolute X/Y axes, and `BTN_TOUCH`.
+  3. `Orbiscreen Virtual Tablet`: dedicated digitizer with `BTN_TOOL_PEN`, `BTN_TOOL_RUBBER`, `BTN_TOUCH`, `BTN_STYLUS`, `BTN_STYLUS2`, pressure, and tilt.
+- **Hardware Stylus / Tablet Tool Resolution (`orbiscreen-input`)**: Added explicit axis resolution (`with_resolution(10)`) to `ABS_X` and `ABS_Y` on the tablet device. Resolves the Linux `libinput` kernel-level bug where tablet devices without explicit resolution are discarded.
+- **KWin Virtual Output Confinement (`orbiscreen-daemon`)**: Bound both virtual touchscreen and tablet devices to `Virtual-ORBISCREEN` using KWin D-Bus properties (`supportsOutputArea: true`), guaranteeing touch and stylus inputs stay strictly confined to the virtual secondary screen.
+- **Ultra-Low Latency Pipeline (`orbiscreen-transport`)**: Reconfigured GStreamer `appsrc` to `is-live=false` to prevent clock synchronization drift, and trimmed buffer queues (`appsink max-buffers=128`, channel capacity 32) to prevent frame queue latency accumulation.
+- **Client Playback and Dispatch Acceleration (Android Client)**: Added HTTP connection pooling with persistent keep-alive, switched input event dispatch to non-blocking asynchronous execution (`enqueue`), and tuned ExoPlayer live playback buffering to 20-50ms with automatic speed catch-up.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.22.1.
+- **Android Client**: Incremented `versionCode` to 51; updated `versionName` to "0.22.1".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.1.
+- **debian/changelog**: Added 0.22.1-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.22.1.
+- **Documentation**: Synchronized version badges across all documentation files.
+
 ## [v0.22.0] - 2026-09-05
 
 Direct touch reverse input precision, zero-snapback mouse pointer mapping, green screen video pipeline fix, and clean startup branding.
