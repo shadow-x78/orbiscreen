@@ -30,7 +30,7 @@ graph TD
         B -->|evdi framebuffer| C1(orbiscreen-display EvdiFramePump)
         B -.->|portal fallback only| C0(orbiscreen-capture portal/X11)
         C1 -->|Tight BGRA frames| D(orbiscreen-encode)
-        C0 -.->|BGRA frames (primary desktop)| D
+        C0 -.->|"BGRA frames (primary desktop)"| D
         D -->|GStreamer HW/SW Encode| E(H.264 AU stream)
         E --> F(orbiscreen-transport)
         F -->|MPEG-TS HTTP /stream| G((Network/USB))
