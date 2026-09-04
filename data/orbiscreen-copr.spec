@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.20.0
+Version:        0.21.0
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -102,6 +102,9 @@ fi
 %{_datadir}/orbiscreen/install-evdi-module.sh
 
 %changelog
+* Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.21.0-1
+- Release 0.21.0: Rich developer version card, full bilingual i18n support, Arabic architecture diagram, and token security hardening.
+
 * Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.20.0-1
 - Release 0.20.0: XDG Desktop Portal virtual display API, stylus pressure/tilt/hover overhaul, drag-and-drop gestures, ChromeOS ADB support, token security isolation.
 

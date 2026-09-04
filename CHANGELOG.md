@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.21.0] - 2026-09-04
+
+Rich developer and system version card, comprehensive bilingual localization (Arabic & English) across web and Android clients, fully translated Arabic architecture diagrams, and streamlined packaging specifications.
+
+### ✨ Added
+- **Rich Version & Developer Card (`orbiscreen -V`)**: Added status-card style display with Catppuccin color scheme, ASCII banner, developer attribution, live desktop environment detection, feature matrix, and JSON output support (`orbiscreen version --json`).
+- **Comprehensive Bilingual Localization**: Added pure JavaScript i18n switcher in the web client with instant English/Arabic toggle and RTL styling, refined Android string resources (`values-ar`), streamlined packaging descriptions, and polished technical documentation across all Markdown guides.
+- **Arabic Architecture Diagram**: Fully translated system architecture diagrams into clear, standard technical Arabic in `docs/ARCHITECTURE_AR.md`, with complete quotation wrapping to prevent Mermaid parse errors.
+
+### 🧹 Packaging & Maintenance
+- **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.21.0.
+- **debian/changelog**: Added 0.21.0-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.21.0.
+- **Android `versionCode`**: Incremented to 49; `versionName` updated to "0.21.0".
+
 ## [v0.20.0] - 2026-09-04
 
 XDG Desktop Portal virtual display API, comprehensive stylus digitizer overhaul, touchpad drag-and-drop gesture, ChromeOS ADB support, token security hardening, and Wi-Fi latency optimizations.

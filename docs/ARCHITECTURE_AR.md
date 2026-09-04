@@ -2,7 +2,7 @@
 
 # مواصفات المعمارية - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.20.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.21.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -25,31 +25,31 @@
 
 ```mermaid
 graph TD
-    subgraph "Host Linux Machine"
-        A["evdi Kernel Module"] -->|"Virtual DRM Device"| B["Display Server (X11 / Wayland)"]
-        B -->|"evdi framebuffer"| C1["orbiscreen-display (EvdiFramePump)"]
-        B -.->|"portal fallback only"| C0["orbiscreen-capture (portal / X11)"]
-        C1 -->|"Tight BGRA frames"| D["orbiscreen-encode"]
-        C0 -.->|"BGRA frames (primary desktop)"| D
-        D -->|"GStreamer HW Encode"| E["H.264 Stream"]
-        E --> F["orbiscreen-transport"]
-        F -->|"MPEG-TS HTTP /stream"| G["Network / USB"]
-        F -->|"mDNS _orbiscreen._tcp."| G
-        F -->|"GET /api/info"| G
-        F -->|"POST /api/control"| G
-        F -->|"GET /health"| G
+    subgraph "جهاز لينكس المستضيف (Host Linux Machine)"
+        A["وحدة نواة evdi"] -->|"جهاز DRM افتراضي"| B["خادم العرض (X11 / Wayland)"]
+        B -->|"ذاكرة إطارات evdi"| C1["orbiscreen-display (مضخة الإطارات EvdiFramePump)"]
+        B -.->|"مسار التراجع عبر portal"| C0["orbiscreen-capture (التقاط portal / X11)"]
+        C1 -->|"إطارات BGRA مرصوصة"| D["orbiscreen-encode (الترميز)"]
+        C0 -.->|"إطارات BGRA (الشاشة الرئيسية)"| D
+        D -->|"ترميز GStreamer عتادي/برمجي"| E["بث تدفق H.264 AU"]
+        E --> F["orbiscreen-transport (النقل والشبكة)"]
+        F -->|"بث MPEG-TS HTTP عبر مسار /stream"| G["الشبكة / وصلة USB"]
+        F -->|"استكشاف mDNS _orbiscreen._tcp."| G
+        F -->|"معلومات العرض GET /api/info"| G
+        F -->|"أوامر التحكم POST /api/control"| G
+        F -->|"فحص الحيوية GET /health"| G
     end
 
-    subgraph "Clients"
-        G -->|"MPEG-TS + token"| W["Web client (mpegts.js MSE)"]
-        W -->|"POST /input"| F
-        G -->|"NSD discovery + token"| H["Android DiscoveryService"]
-        H -->|"onConnect"| J["StreamViewModel"]
-        J -->|"PlayerHolder.build"| K["OkHttpDataSource"]
-        K -->|"MPEG-TS + Bearer token"| L["ExoPlayer + MediaCodec"]
-        L -->|"Touch"| N["InputDispatcher"]
-        N -->|"POST /input + Bearer token"| F
-        J -->|"POST /api/control"| F
+    subgraph "العملاء (Clients)"
+        G -->|"بث MPEG-TS مع التوكن"| W["عميل الويب (MSE عبر mpegts.js)"]
+        W -->|"أحداث الإدخال POST /input"| F
+        G -->|"اكتشاف NSD والتوكن"| H["خدمة اكتشاف أندرويد (DiscoveryService)"]
+        H -->|"عند الاتصال onConnect"| J["نموذج العرض (StreamViewModel)"]
+        J -->|"بناء المشغل PlayerHolder.build"| K["مصدر البيانات (OkHttpDataSource)"]
+        K -->|"بث MPEG-TS مع توكن المصادقة"| L["المشغل وفك الترميز (ExoPlayer + MediaCodec)"]
+        L -->|"أحداث اللمس والقلم"| N["معالج الإدخال (InputDispatcher)"]
+        N -->|"إرسال الإدخال POST /input مع التوكن"| F
+        J -->|"أوامر التحكم POST /api/control"| F
     end
 ```
 

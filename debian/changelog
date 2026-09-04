@@ -1,3 +1,13 @@
+orbiscreen (0.21.0-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.21.0 for Ubuntu noble.
+  * Rich developer version card and ASCII banner on orbiscreen -V.
+  * Full bilingual i18n support in web client, Android app, and documentation.
+  * Translated Arabic architecture diagrams and documentation polishing.
+  * Token security hardening and streamline packaging metadata.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Fri, 04 Sep 2026 22:30:00 +0300
+
 orbiscreen (0.20.0-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.20.0 for Ubuntu noble.
