@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Orbiscreen - setup-dev-env (GPL-3.0-or-later)
+# ─────────────────────────────────────────────
+# Orbiscreen - Development Environment Setup
 # https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
 
+# ── Privilege Detection ──
 set -euo pipefail
 
 SUDO=""
@@ -9,6 +12,7 @@ if [[ $EUID -ne 0 ]]; then
     SUDO="sudo"
 fi
 
+# ── Distribution Detection ──
 detect_distro() {
     if [[ -f /etc/os-release ]]; then
         . /etc/os-release
@@ -18,6 +22,7 @@ detect_distro() {
     fi
 }
 
+# ── Package Installation Routines ──
 install_fedora() {
     $SUDO dnf install -y \
         rust cargo \
@@ -58,6 +63,7 @@ install_arch() {
     echo "[Orbiscreen] note: evdi is only available from the AUR (package: evdi); install it with an AUR helper"
 }
 
+# ── Entry Point ──
 main() {
     local distro
     distro="$(detect_distro)"

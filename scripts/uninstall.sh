@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-# Orbiscreen - uninstall script (GPL-3.0-or-later)
+# ─────────────────────────────────────────────
+# Orbiscreen - Uninstallation Script
 # https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
 
+# ── Environment & Directory ──
 set -euo pipefail
-
 cd "$(dirname "$0")/.."
 
 echo "[Orbiscreen] Uninstalling..."
 
+# ── Stop & Disable User Service ──
 if systemctl --user is-active --quiet orbiscreen; then
     echo "[Orbiscreen] Stopping service..."
     systemctl --user stop orbiscreen || true
@@ -19,6 +22,7 @@ if systemctl --user is-enabled --quiet orbiscreen; then
 fi
 systemctl --user daemon-reload || true
 
+# ── Remove User Files ──
 echo "[Orbiscreen] Removing binary and service files..."
 rm -f "$HOME/.local/bin/orbiscreen"
 rm -f "$HOME/.local/bin/orbiscreen-gtk"
@@ -30,6 +34,7 @@ rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/orbiscreen.svg"
 rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"
 rm -rf "$HOME/.local/share/orbiscreen"
 
+# ── Remove System Files (if root) ──
 if [ "$EUID" -eq 0 ]; then
     echo "[Orbiscreen] Removing system-wide files..."
     rm -f /usr/bin/orbiscreen

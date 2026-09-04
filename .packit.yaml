@@ -3,9 +3,7 @@
 # https://github.com/shadow-x78/orbiscreen
 # ─────────────────────────────────────────────
 
-# ── Source ──
-# The COPR spec builds from the release tarball with cargo (source-build);
-# the local scripts keep using scripts/orbiscreen-local.spec against prebuilt binaries.
+# ── Source Specification ──
 specfile_path: data/orbiscreen-copr.spec
 files_to_sync:
   - data/orbiscreen-copr.spec
@@ -14,24 +12,20 @@ files_to_sync:
 upstream_package_name: orbiscreen
 downstream_package_name: orbiscreen
 
-# ── RPM Environment ──
-# COPR builders are offline during %build, so the SRPM must carry the crate
-# tree as Source1. This action regenerates the vendored tarball and copies
-# it next to the spec right before Packit assembles the SRPM.
+# ── RPM Environment & Dependencies ──
 srpm_build_deps:
   - cargo
   - git-core
   - zstd
 
+# ── Packaging Actions ──
 actions:
   get-current-version:
     - bash scripts/packit-get-version.sh
   create-archive:
     - bash scripts/packit-archive.sh
 
-# ── Jobs ──
-# PR builds verify the spec compiles on current stable Fedora.
-# Release (tag) builds publish to the COPR repository.
+# ── Build & Publishing Jobs ──
 jobs:
   - job: copr_build
     trigger: pull_request

@@ -175,7 +175,7 @@ impl Transport {
         mut shutdown_rx: tokio::sync::watch::Receiver<bool>,
     ) -> Result<(), TransportError> {
         let input_tx = self.input_tx;
-        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<SeqPacket>(16);
+        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<SeqPacket>(4);
         let join_buffer: Arc<Mutex<VecDeque<SeqPacket>>> = Arc::new(Mutex::new(VecDeque::new()));
         let state = AppState {
             config: self.cfg.clone(),
@@ -437,13 +437,22 @@ async fn client_config(
     State(state): State<AppState>,
     request: axum::extract::Request,
 ) -> impl IntoResponse {
+    let peer_addr = request
+        .extensions()
+        .get::<axum::extract::ConnectInfo<SocketAddr>>()
+        .map(|c| c.0.ip());
+    let is_local = peer_addr.is_some_and(|ip| ip.is_loopback());
+    let token = if is_local {
+        Some(state.token.as_str())
+    } else {
+        None
+    };
     debug!(
-        "client config served with live token (peer={})",
-        request
-            .extensions()
-            .get::<axum::extract::ConnectInfo<SocketAddr>>()
-            .map(|c| c.0.to_string())
-            .unwrap_or_else(|| "?".into())
+        "client config served (peer={}, is_local={})",
+        peer_addr
+            .map(|a| a.to_string())
+            .unwrap_or_else(|| "?".into()),
+        is_local
     );
     (
         [
@@ -451,7 +460,7 @@ async fn client_config(
             ("cache-control", "no-cache, no-store, must-revalidate"),
         ],
         Json(serde_json::json!({
-            "token": state.token,
+            "token": token,
             "display_width": state.display_width,
             "display_height": state.display_height,
         })),
@@ -574,11 +583,13 @@ async fn api_control(
             let width = payload
                 .get("width")
                 .and_then(|v| v.as_u64())
-                .unwrap_or(1920) as u32;
+                .unwrap_or(1920)
+                .clamp(320, 7680) as u32;
             let height = payload
                 .get("height")
                 .and_then(|v| v.as_u64())
-                .unwrap_or(1080) as u32;
+                .unwrap_or(1080)
+                .clamp(240, 4320) as u32;
             info!("host control: requested resolution change to {width}x{height}");
             let mode_str = format!("output.Virtual-ORBISCREEN.mode.{width}x{height}@60");
             let _ = tokio::process::Command::new("kscreen-doctor")
@@ -685,7 +696,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                         ! video/x-h264,stream-format=byte-stream,alignment=au,framerate=0/1 \
                         ! h264parse config-interval=1 \
                         ! mpegtsmux alignment=7 \
-                        ! appsink name=sink drop=false sync=false max-buffers=512 emit-signals=false";
+                        ! appsink name=sink drop=true sync=false max-buffers=4 emit-signals=false";
     let pipeline = match gstreamer::parse::launch(pipeline_str) {
         Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
             Ok(pipeline) => pipeline,
@@ -730,7 +741,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     };
 
-    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(512);
+    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(8);
     let tx_alive = tx.clone();
     appsink.set_callbacks(
         AppSinkCallbacks::builder()

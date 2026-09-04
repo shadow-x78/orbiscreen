@@ -17,7 +17,7 @@ members = [
 
 # ── Package Metadata ──
 [workspace.package]
-version = "0.19.0"
+version = "0.20.0"
 edition = "2021"
 rust-version = "1.75"
 license = "GPL-3.0-or-later"
@@ -39,7 +39,7 @@ thiserror = "2"
 evdi = "0.8"
 drm-fourcc = "2.2"
 
-x11rb = { version = "0.14", features = ["allow-unsafe-code", "xtest", "shm"] }
+x11rb = { version = "0.14", features = ["allow-unsafe-code", "xtest", "shm", "randr"] }
 ashpd = { version = "0.13", features = ["backend", "tokio", "screencast", "remote_desktop"] }
 evdevil = "0.5"
 enumflags2 = "0.7"

@@ -92,6 +92,11 @@ let moveRaf = null;
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.has("token")) {
     authToken = urlParams.get("token");
+} else if (window.location.hash && window.location.hash.length > 1) {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    if (hashParams.has("token")) {
+        authToken = hashParams.get("token");
+    }
 }
 
 function showToast(text, duration = 2200) {

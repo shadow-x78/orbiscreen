@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────
 # Orbiscreen - Launchpad PPA Source Package Builder & Uploader
-
 # https://github.com/shadow-x78/orbiscreen
 # ─────────────────────────────────────────────
-set -euo pipefail
 
+# ── Environment & Directory ──
+set -euo pipefail
 cd "$(dirname "$0")/.."
 
 VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
@@ -17,11 +17,13 @@ RFC_DATE="$(date -R)"
 
 echo "[Orbiscreen] Preparing Launchpad PPA source package for v${PKG_VERSION}..."
 
+# ── Pre-flight Checks ──
 if [ ! -f bin/orbiscreen ] || [ ! -f bin/orbiscreen-gtk ]; then
     echo "::error:: bin/orbiscreen and bin/orbiscreen-gtk must exist before building source package." >&2
     exit 1
 fi
 
+# ── Changelog Generation ──
 cat << CHLOG > debian/changelog
 orbiscreen (${PKG_VERSION}) ${SERIES}; urgency=medium
 
@@ -32,6 +34,7 @@ orbiscreen (${PKG_VERSION}) ${SERIES}; urgency=medium
  -- shadow-x78 <shadow.xox78@gmail.com>  ${RFC_DATE}
 CHLOG
 
+# ── Containerized PPA Build & Upload ──
 CONTAINER_CMD="podman"
 command -v podman >/dev/null 2>&1 || CONTAINER_CMD="docker"
 

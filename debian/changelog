@@ -1,3 +1,14 @@
+orbiscreen (0.20.0-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.20.0 for Ubuntu noble.
+  * XDG Desktop Portal ScreenCast API for rootless virtual display outputs.
+  * Stylus digitizer overhaul: hover events, tilt angle correction, and zero-latency pressure release.
+  * Double-tap and drag mouse gesture in touchpad mode.
+  * ChromeOS ARC++ ADB connection support.
+  * LAN token security isolation, loopback filtering, and 0o600 token storage.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Fri, 04 Sep 2026 18:00:00 +0300
+
 orbiscreen (0.19.0-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.19.0 for Ubuntu noble.

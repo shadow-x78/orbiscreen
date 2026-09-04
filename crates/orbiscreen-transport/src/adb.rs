@@ -84,6 +84,24 @@ fn spawn_error(e: std::io::Error) -> AdbError {
     }
 }
 
+pub fn connect_arc_device(adb_path: &Path) -> Result<String, AdbError> {
+    let candidates = [
+        "100.115.92.2:5555",
+        "192.168.233.2:5555",
+        "localhost:5555",
+        "127.0.0.1:5555",
+    ];
+    for addr in candidates {
+        if let Ok(out) = Command::new(adb_path).args(["connect", addr]).output() {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            if stdout.contains("connected to") || stdout.contains("already connected") {
+                return Ok(addr.to_string());
+            }
+        }
+    }
+    Err(AdbError::NoDevice)
+}
+
 pub fn setup_reverse_for_all(adb_path: &Path, host_port: u16) -> Result<Vec<String>, AdbError> {
     let out = Command::new(adb_path)
         .arg("devices")
@@ -95,12 +113,16 @@ pub fn setup_reverse_for_all(adb_path: &Path, host_port: u16) -> Result<Vec<Stri
         ));
     }
     let stdout = String::from_utf8_lossy(&out.stdout);
-    let serials: Vec<String> = device_serials(&stdout)
+    let mut serials: Vec<String> = device_serials(&stdout)
         .into_iter()
         .map(str::to_owned)
         .collect();
     if serials.is_empty() {
-        return Err(AdbError::NoDevice);
+        if let Ok(arc_serial) = connect_arc_device(adb_path) {
+            serials.push(arc_serial);
+        } else {
+            return Err(AdbError::NoDevice);
+        }
     }
     for serial in &serials {
         reverse_port(adb_path, serial, host_port)?;

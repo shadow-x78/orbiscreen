@@ -42,6 +42,7 @@ sealed interface StreamEvent {
     data object Buffering : StreamEvent
     data object Playing : StreamEvent
     data class Error(val code: Int, val message: String) : StreamEvent
+    data class Disconnected(val reason: String) : StreamEvent
 }
 
 private data class StreamTarget(
@@ -65,6 +66,8 @@ class PlayerHolder(
 
     private var reconnectJob: Job? = null
     private var reconnectDelayMs = 1_000L
+    private var retryCount = 0
+    private val maxRetries = 3
     private var lastTarget: StreamTarget? = null
 
     private val okHttp: OkHttpClient by lazy {
@@ -92,6 +95,7 @@ class PlayerHolder(
             reconnectJob?.cancel()
             reconnectJob = null
             reconnectDelayMs = 1_000L
+            retryCount = 0
         }
         lastTarget = StreamTarget(host, port, tokenProvider)
 
@@ -123,7 +127,7 @@ class PlayerHolder(
             val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
 
             val loadControl = DefaultLoadControl.Builder()
-                .setBufferDurationsMs(80, 250, 25, 50)
+                .setBufferDurationsMs(40, 120, 20, 30)
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
 
@@ -150,12 +154,12 @@ class PlayerHolder(
                                 }
                                 Player.STATE_READY -> {
                                     reconnectDelayMs = 1_000L
+                                    retryCount = 0
                                     _event.value = StreamEvent.Playing
                                 }
                                 Player.STATE_ENDED -> {
                                     if (!isBackgrounded) {
-                                        _event.value = StreamEvent.Error(-1, "Stream ended, reconnecting")
-                                        scheduleReconnect()
+                                        handleFailure(-1, "Stream ended")
                                     }
                                 }
                                 Player.STATE_IDLE -> Unit
@@ -170,8 +174,7 @@ class PlayerHolder(
                             val causeInfo = if (cause != null) " [${cause.javaClass.simpleName}: ${cause.message}]" else ""
                             Log.w("OrbiPlayer", "player error: ${error.errorCodeName} ${error.message}$causeInfo", error)
                             val display = "${error.errorCodeName}: ${error.message ?: error.errorCodeName}$causeInfo"
-                            _event.value = StreamEvent.Error(error.errorCode, display)
-                            scheduleReconnect()
+                            handleFailure(error.errorCode, display)
                         }
                     })
                     prepare()
@@ -179,13 +182,57 @@ class PlayerHolder(
             newPlayer
         } catch (e: Throwable) {
             Log.e("OrbiPlayer", "failed to build player", e)
-            _event.value = StreamEvent.Error(-2, e.message ?: "Player init failed")
-            scheduleReconnect()
+            handleFailure(-2, e.message ?: "Player init failed")
             null
         }
         _player.value = player
         return player
     }
+
+    private fun handleFailure(code: Int, message: String) {
+        val target = lastTarget
+        if (target == null) {
+            _event.value = StreamEvent.Error(code, message)
+            return
+        }
+        scope.launch {
+            val isHostAlive = checkHostAlive(target.host, target.port)
+            if (!isHostAlive) {
+                reconnectJob?.cancel()
+                reconnectJob = null
+                _event.value = StreamEvent.Disconnected("Host daemon stopped or disconnected")
+                return@launch
+            }
+            if (retryCount >= maxRetries) {
+                reconnectJob?.cancel()
+                reconnectJob = null
+                _event.value = StreamEvent.Error(code, "$message (max attempts reached)")
+                return@launch
+            }
+            retryCount++
+            _event.value = StreamEvent.Error(code, "$message (reconnecting $retryCount/$maxRetries)")
+            scheduleReconnect()
+        }
+    }
+
+    private suspend fun checkHostAlive(host: String, port: Int): Boolean =
+        kotlinx.coroutines.withContext(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient.Builder()
+                    .connectTimeout(500, TimeUnit.MILLISECONDS)
+                    .readTimeout(500, TimeUnit.MILLISECONDS)
+                    .build()
+                val req = okhttp3.Request.Builder()
+                    .url("http://$host:$port/health")
+                    .get()
+                    .build()
+                client.newCall(req).execute().use { resp ->
+                    resp.isSuccessful
+                }
+            } catch (_: Exception) {
+                false
+            }
+        }
 
     private fun buildRenderersFactory(): DefaultRenderersFactory {
         val factory = DefaultRenderersFactory(context)

@@ -13,12 +13,16 @@ use super::{InputError, PointerEvent, VirtualTouchscreenSpec};
 
 const MAX_X_KEYCODE: u32 = 247;
 
+use x11rb::protocol::randr::ConnectionExt as _;
+
 #[allow(missing_debug_implementations)]
 pub struct XtestInjector {
     conn: RustConnection,
     root: u32,
-    root_width: u32,
-    root_height: u32,
+    offset_x: i16,
+    offset_y: i16,
+    view_width: u32,
+    view_height: u32,
     width: u32,
     height: u32,
 }
@@ -34,25 +38,67 @@ impl XtestInjector {
             let screen = &conn.setup().roots[screen_num];
             (
                 screen.root,
-                screen.width_in_pixels.into(),
-                screen.height_in_pixels.into(),
+                u32::from(screen.width_in_pixels),
+                u32::from(screen.height_in_pixels),
             )
         };
+        let mut offset_x = 0i16;
+        let mut offset_y = 0i16;
+        let mut view_width = root_width;
+        let mut view_height = root_height;
+
+        if let Some(target_name) = &spec.output_name {
+            if let Ok(cookie) = conn.randr_get_screen_resources(root) {
+                if let Ok(resources) = cookie.reply() {
+                    for output in resources.outputs {
+                        if let Ok(info_cookie) =
+                            conn.randr_get_output_info(output, resources.config_timestamp)
+                        {
+                            if let Ok(info) = info_cookie.reply() {
+                                if let Ok(name) = String::from_utf8(info.name) {
+                                    if (name == *target_name || name.contains(target_name))
+                                        && info.crtc != 0
+                                    {
+                                        if let Ok(crtc_cookie) = conn.randr_get_crtc_info(
+                                            info.crtc,
+                                            resources.config_timestamp,
+                                        ) {
+                                            if let Ok(crtc_info) = crtc_cookie.reply() {
+                                                offset_x = crtc_info.x;
+                                                offset_y = crtc_info.y;
+                                                view_width = crtc_info.width.into();
+                                                view_height = crtc_info.height.into();
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Ok(Self {
             conn,
             root,
-            root_width,
-            root_height,
+            offset_x,
+            offset_y,
+            view_width,
+            view_height,
             width: spec.width,
             height: spec.height,
         })
     }
 
     fn to_root(&self, x: f64, y: f64) -> (i16, i16) {
-        let rx = x * f64::from(self.root_width) / f64::from(self.width.max(1));
-        let ry = y * f64::from(self.root_height) / f64::from(self.height.max(1));
-        let rx = rx.clamp(0.0, f64::from(self.root_width.saturating_sub(1))) as i16;
-        let ry = ry.clamp(0.0, f64::from(self.root_height.saturating_sub(1))) as i16;
+        let scale_x = x * f64::from(self.view_width) / f64::from(self.width.max(1));
+        let scale_y = y * f64::from(self.view_height) / f64::from(self.height.max(1));
+        let max_x = self.offset_x.saturating_add(self.view_width.saturating_sub(1) as i16);
+        let max_y = self.offset_y.saturating_add(self.view_height.saturating_sub(1) as i16);
+        let rx = (f64::from(self.offset_x) + scale_x).clamp(f64::from(self.offset_x), f64::from(max_x)) as i16;
+        let ry = (f64::from(self.offset_y) + scale_y).clamp(f64::from(self.offset_y), f64::from(max_y)) as i16;
         (rx, ry)
     }
 

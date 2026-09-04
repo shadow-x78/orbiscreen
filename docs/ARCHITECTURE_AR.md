@@ -3,6 +3,7 @@
 # مواصفات المعمارية - Orbiscreen
 
 [![الإصدار](https://img.shields.io/badge/version-0.19.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.20.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -30,6 +31,7 @@ graph TD
         B -->|evdi framebuffer| C1(orbiscreen-display EvdiFramePump)
         B -.->|portal fallback only| C0(orbiscreen-capture portal/X11)
         C1 -->|Tight BGRA frames| D(orbiscreen-encode)
+        C0 -.->|BGRA frames (primary desktop)| D
         C0 -.->|"BGRA frames (primary desktop)"| D
         D -->|GStreamer HW Encode| E(H.264 Stream)
         E --> F(orbiscreen-transport)
@@ -75,6 +77,7 @@ graph TD
 
 <h2 dir="rtl" align="right">&rlm;📱 بنية حزم عميل Android</h2>
 
+<div dir="rtl" align="right">
 ```
 com.orbiscreen.android/
 ├── MainActivity.kt                # مستضيف Compose، يراقب تدفق سمات PrefsStore.themePrefFlow
@@ -98,6 +101,32 @@ com.orbiscreen.android/
     ├── stream/                    # شاشة البث وسطح العرض وشريط التحكم
     └── settings/                  # شاشة الإعدادات (السمة، فك الترميز، الماسح، المضيف الأخير)
 ```
+
+| المسار / المكون | الوصف والوظيفة |
+| :--- | :--- |
+| `com.orbiscreen.android/` | الحزمة الأساسية لعميل أندرويد |
+| ├── `MainActivity.kt` | مستضيف Compose، يراقب تدفق سمات `PrefsStore.themePrefFlow` |
+| ├── `data/` | طبقة البيانات والتخزين المحلي |
+| │   └── `PrefsStore.kt` | التفضيلات المشتركة (&rlm;SharedPreferences&rlm;: المضيف الأخير، السمة، مفتاح المسح) |
+| ├── `net/` | طبقة الاتصال الشبكي والاكتشاف التلقائي |
+| │   ├── `DiscoveryService.kt` | غلاف `NsdManager` نحو تدفق `StateFlow<Map<DiscoveredHost>>` |
+| │   ├── `SubnetScanner.kt` | مسح شبكة /24 مع توازي محدد بـ `Semaphore` |
+| │   ├── `HostApi.kt` | عميل `OkHttp` لنقاط `/api/info` و `/api/control` و `/health` |
+| │   ├── `WifiGatewayProvider.kt` | يقرأ بوابة `WifiManager.dhcpInfo.gateway` |
+| │   └── `DiscoveryModel.kt` | التحقق من صحة تعبير `HostSpec` النمطي |
+| ├── `player/` | طبقة تشغيل وفك ترميز الفيديو |
+| │   ├── `PlayerHolder.kt` | مشغل `ExoPlayer` مع `OkHttpDataSource` و `DefaultLoadControl` |
+| │   └── `StreamUrl.kt` | يبني رابط البث `http://host:port/stream?token=...` |
+| ├── `input/` | طبقة إرسال مدخلات اللمس والفأرة والقلم |
+| │   └── `InputDispatcher.kt` | معالج أحداث المؤشر / العجلة / المفاتيح / القلم بإحداثيات مطلقة |
+| └── `ui/` | واجهة المستخدم المبنية بـ &rlm;Material 3 Compose |
+|     ├── `theme/` | ألوان وسمات وخطوط واجهة &rlm;Material 3 (`Color.kt`, `Theme.kt`, `Type.kt`) |
+|     ├── `nav/OrbiNav.kt` | مضيف التنقل `NavHost` (الاستكشاف / البث / الإعدادات) |
+|     ├── `discovery/` | شاشة الاستكشاف ونموذج العرض (`DiscoveryScreen` + `DiscoveryViewModel`) |
+|     ├── `stream/` | شاشة البث وسطح العرض وشريط التحكم (`StreamScreen`, `PlayerSurface`, `ControlToolbar`) |
+|     └── `settings/` | شاشة الإعدادات (السمة، فك الترميز، الماسح، المضيف الأخير) |
+
+</div>
 
 ---
 

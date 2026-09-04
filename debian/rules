@@ -1,4 +1,9 @@
 #!/usr/bin/make -f
+# ─────────────────────────────────────────────
+# Orbiscreen - Debian Package Rules
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+
 export DH_VERBOSE = 1
 
 %:
@@ -20,7 +25,5 @@ override_dh_auto_install:
 	install -Dm0644 data/orbiscreen.service debian/orbiscreen/usr/lib/systemd/user/orbiscreen.service
 
 override_dh_shlibdeps:
-	# Dependencies are explicitly declared in debian/control
 
 override_dh_auto_test:
-	# Pre-validated in upstream CI

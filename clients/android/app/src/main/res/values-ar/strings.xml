@@ -26,6 +26,7 @@
     <string name="manual_connect_placeholder">192.168.1.50 أو host:8788</string>
     <string name="error_stream">خطأ في البث</string>
     <string name="retry">إعادة المحاولة</string>
+    <string name="disconnected">تم قطع الاتصال</string>
     <string name="settings">الإعدادات</string>
     <string name="back">رجوع</string>
     <string name="open_keyboard">لوحة المفاتيح</string>

@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.20.0] - 2026-09-04
+
+XDG Desktop Portal virtual display API, comprehensive stylus digitizer overhaul, touchpad drag-and-drop gesture, ChromeOS ADB support, token security isolation, and Wi-Fi latency optimizations.
+
+### ✨ Added
+- **XDG Desktop Portal Virtual Display API (`orbiscreen-capture`)**: Added native support for `SourceType::Virtual` in `ashpd` ScreenCast portal with seamless fallback to `SourceType::Monitor`. Enables rootless virtual monitor creation on GNOME and KDE Plasma Wayland sessions without requiring EVDI or root privileges.
+- **Stylus Digitizer Overhaul (`orbiscreen-input` & Android Client)**:
+  - Added pointer hover motion listener (`setOnGenericMotionListener`) for stylus in-air tracking.
+  - Resolved `NetworkOnMainThreadException` by offloading stylus network dispatch to background coroutines on `Dispatchers.IO` with `latestStylus` coalescing.
+  - Fixed tilt math sign (`-altitudeDeg * cos(orientationRad)`).
+  - Fixed pen release logic by emitting `BTN_TOOL_PEN: RELEASED` when pressure reaches 0.
+- **Touchpad Drag-and-Drop Gesture (`PlayerSurface.kt`)**: Added double-tap and drag gesture in Touchpad mode, keeping mouse button 1 pressed throughout the drag and releasing on touch lift.
+- **Virtual Display Coordinate Confinement (`xtest.rs` & `x11.rs`)**: Clamped mouse and stylus coordinates strictly within the virtual display geometry retrieved via XRandR and added `InputProp::DIRECT` to prevent cursor jumping across multiple physical monitors.
+- **Direct Touchscreen Mode Fix**: Decoupled absolute coordinate axes from mouse/keyboard to tablet/touch devices, routing touch events with synthetic `BTN_TOUCH`.
+- **ChromeOS ARC++ ADB Support (`adb.rs`)**: Added internal ADB fallback probing `100.115.92.2:5555` and `localhost:5555` for seamless tethering on Chromebooks (e.g. ASUS CM3001).
+- **Stream Lifecycle & Fast Disconnect Detection (`PlayerHolder.kt`)**: Added explicit `StreamEvent.Disconnected` state, 500ms immediate `/health` probe on network error, and capped automatic reconnection retries at 3 to prevent infinite flickering reconnect loops.
+
+### 🛡️ Security & Hardening
+- **Token Security Isolation (`orbiscreen-transport`)**: Restricted `/client/config.json` token delivery strictly to loopback (`127.0.0.1` / `::1`). Remote clients on the LAN must provide the token via query parameter or URL hash (`#token=...`).
+- **Disk Token Permissions (`orbiscreen-daemon`)**: Enforced strict `0o600` permissions on `stream_token` file and `0o700` on parent directories.
+- **Production Expect Removal (`wlr_virtual_output.rs`)**: Replaced the single production `.expect()` with safe slice parsing returning `WlrootsVirtualOutputError::Sway`.
+- **Resolution Parameter Clamping**: Clamped input resolutions in `api_control` to `[320..=7680]` width and `[240..=4320]` height.
+- **Ultra-Low Latency Wi-Fi Tuning**: Tuned GOP keyframe interval to 6 (100ms) in hardware encoders, reduced GStreamer appsink buffers with `drop = true`, tuned ExoPlayer buffers to (40, 120, 20, 30) ms, and reduced mouse batching delay to 8ms.
+
+### 🧹 Code Cleanliness & Packaging
+- **Standardized Box-Drawing Comment Headers**: Standardized Unicode box-drawing headers across all shell scripts, spec files, and config files.
+- **Zero-Comment Compliance**: Verified zero comments after line 2 across all Rust, Kotlin, and web client source files.
+- **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.20.0.
+- **debian/changelog**: Added 0.20.0-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.20.0.
+- **Android `versionCode`**: Incremented to 48; `versionName` updated to "0.20.0".
+
 ## [v0.19.0] - 2026-09-04
 
 Full COSMIC desktop support, native Fedora CI and RPM packaging pipeline, RTL documentation overhaul, and codebase-wide zero-comment standards.

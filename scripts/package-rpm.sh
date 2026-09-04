@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
+# ─────────────────────────────────────────────
 # Orbiscreen - Fedora/RHEL (.rpm) Package Builder
 # https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
 
+# ── Environment & Directory ──
 set -euo pipefail
-
 cd "$(dirname "$0")/.."
 
 VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
@@ -13,6 +15,7 @@ BUILD_ROOT="target/rpm-staging"
 
 echo "[Orbiscreen] Building RPM package for Orbiscreen v${VERSION} (${ARCH})..."
 
+# ── Build Binaries ──
 rm -rf "${BUILD_ROOT}"
 mkdir -p "${BUILD_ROOT}/usr/bin"
 mkdir -p target/rpmbuild/BUILD
@@ -28,6 +31,7 @@ fi
 
 cp -f target/release/orbiscreen "${BUILD_ROOT}/usr/bin/"
 
+# ── Build RPM Package ──
 if command -v rpmbuild >/dev/null 2>&1; then
     rpmbuild -bb \
         --buildroot "$(pwd)/${BUILD_ROOT}" \

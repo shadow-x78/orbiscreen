@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Orbiscreen - verify-stream (GPL-3.0-or-later)
+# ─────────────────────────────────────────────
+# Orbiscreen - Live Stream Verification Utility
 # https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
 
+# ── Environment & Parameters ──
 set -euo pipefail
 
 PORT="${1:-8788}"
@@ -13,10 +16,12 @@ fail() {
     exit 1
 }
 
+# ── Dependency Checks ──
 command -v curl >/dev/null || fail "curl is required"
 command -v python3 >/dev/null || fail "python3 is required"
 command -v ffmpeg >/dev/null || fail "ffmpeg is required"
 
+# ── Daemon Health & Token Retrieval ──
 HEALTH=$(curl -s --max-time 3 "$BASE/health" || true)
 [ -n "$HEALTH" ] || fail "daemon is not responding on $BASE (is it running?)"
 echo "[verify-stream] health: $HEALTH"
@@ -28,6 +33,7 @@ TOKEN=$(curl -s --max-time 3 "$BASE/client/config.json" \
 TMP="$(mktemp -t orbiscreen-verify-XXXXXX.ts)"
 trap 'rm -f "$TMP"' EXIT
 
+# ── Capture Stream Sample ──
 set +e
 curl -sN --max-time "$DURATION" "$BASE/stream?token=$TOKEN" -o "$TMP"
 CURL_RC=$?
@@ -39,6 +45,7 @@ fi
 SIZE=$(stat -c%s "$TMP" 2>/dev/null || echo 0)
 [ "$SIZE" -gt 10000 ] || fail "stream payload too small ($SIZE B)"
 
+# ── Video Stream Validation ──
 if command -v ffprobe >/dev/null 2>&1 \
     && INFO=$(ffprobe -v error -select_streams v:0 -show_entries \
         stream=codec_name,width,height,avg_frame_rate -of csv=p=0 "$TMP" | head -1); then
@@ -50,6 +57,7 @@ else
     echo "[verify-stream] stream: h264 (ffprobe unavailable)"
 fi
 
+# ── Content & Brightness Validation ──
 YAVG=$(ffmpeg -hide_banner -i "$TMP" -vf "signalstats,metadata=print:key=lavfi.signalstats.YAVG" \
     -frames:v 5 -f null - 2>&1 | grep -oE 'YAVG=[0-9.]+' | head -1 | cut -d= -f2)
 [ -n "$YAVG" ] || fail "could not measure frame brightness"

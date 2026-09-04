@@ -7,7 +7,7 @@ use evdevil::event::{
     Abs, AbsEvent, InputEvent, Key, KeyEvent as KEv, KeyState, Rel, RelEvent, Syn, SynEvent,
 };
 use evdevil::uinput::{AbsSetup, UinputDevice};
-use evdevil::{AbsInfo, Bus, InputId};
+use evdevil::{AbsInfo, Bus, InputId, InputProp};
 use tracing::info;
 
 use super::{InputError, PointerEvent, StylusEvent, VirtualTouchscreenSpec};
@@ -42,10 +42,6 @@ impl UinputInjector {
         let mouse_keyboard = UinputDevice::builder()?
             .with_input_id(InputId::new(Bus::VIRTUAL, 0x0BEE, 0x0001, 0x0001))?
             .with_rel_axes([Rel::X, Rel::Y, Rel::WHEEL])?
-            .with_abs_axes([
-                AbsSetup::new(Abs::X, width_axis),
-                AbsSetup::new(Abs::Y, height_axis),
-            ])?
             .with_keys(mk_keys)?
             .build("Orbiscreen Virtual Mouse and Keyboard")?;
 
@@ -56,6 +52,7 @@ impl UinputInjector {
 
         let touch_tablet = UinputDevice::builder()?
             .with_input_id(InputId::new(Bus::VIRTUAL, 0x0BEE, 0x0002, 0x0001))?
+            .with_props([InputProp::DIRECT])?
             .with_abs_axes([
                 AbsSetup::new(Abs::X, width_axis),
                 AbsSetup::new(Abs::Y, height_axis),
@@ -66,7 +63,7 @@ impl UinputInjector {
             .with_keys(tablet_keys)?
             .build("Orbiscreen Virtual Touchscreen")?;
 
-        info!("opened uinput devices: mouse/keyboard (absolute+relative) and touch/tablet (resolution=10)");
+        info!("opened uinput devices: mouse/keyboard (relative) and touch/tablet (direct, resolution=10)");
         Ok(Self {
             mouse_keyboard,
             touch_tablet,
@@ -97,7 +94,7 @@ impl UinputInjector {
                     AbsEvent::new(Abs::Y, yi).into(),
                     SynEvent::new(Syn::REPORT).into(),
                 ];
-                self.mouse_keyboard.write_events(&events)?;
+                self.touch_tablet.write_events(&events)?;
             }
             PointerEvent::RelativeMove { dx, dy } => {
                 let r_dx = dx.round() as i32;
@@ -124,6 +121,13 @@ impl UinputInjector {
                     SynEvent::new(Syn::REPORT).into(),
                 ];
                 self.mouse_keyboard.write_events(&events)?;
+                if button == 1 {
+                    let touch_events = vec![
+                        KEv::new(Key::BTN_TOUCH, state).into(),
+                        SynEvent::new(Syn::REPORT).into(),
+                    ];
+                    let _ = self.touch_tablet.write_events(&touch_events);
+                }
             }
             PointerEvent::Wheel { delta_y } => {
                 let mut events: Vec<InputEvent> = Vec::new();
@@ -180,12 +184,17 @@ impl UinputInjector {
         } else {
             KeyState::RELEASED
         };
+        let pen_state = if pressure > 0 {
+            KeyState::PRESSED
+        } else {
+            KeyState::RELEASED
+        };
 
         let mut events: Vec<InputEvent> = Vec::with_capacity(8);
         events.push(AbsEvent::new(Abs::X, xi).into());
         events.push(AbsEvent::new(Abs::Y, yi).into());
         events.push(AbsEvent::new(Abs::PRESSURE, pressure).into());
-        events.push(KEv::new(Key::BTN_TOOL_PEN, KeyState::PRESSED).into());
+        events.push(KEv::new(Key::BTN_TOOL_PEN, pen_state).into());
         events.push(KEv::new(Key::BTN_TOUCH, touch_state).into());
         if let Some((tx, ty)) = tilt {
             let tx = tx.clamp(f64::from(TILT_MIN), f64::from(TILT_MAX)) as i32;

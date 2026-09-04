@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# Orbiscreen - Installation Script (GPL-3.0-or-later)
+# ─────────────────────────────────────────────
+# Orbiscreen - Local Installation Script
 # https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
 
+# ── Environment & Directory ──
 set -euo pipefail
-
 cd "$(dirname "$0")/.."
 
 echo "[Orbiscreen] Installing Secondary Display..."
-
 INSTALL_DIR="${HOME}/.local/bin"
 mkdir -p "${INSTALL_DIR}"
 
+# ── Build & Install Binary ──
 if command -v cargo >/dev/null 2>&1; then
     echo "[Orbiscreen] Building daemon..."
     cargo build --release -p orbiscreen-daemon
@@ -18,7 +20,7 @@ if command -v cargo >/dev/null 2>&1; then
     install -m755 target/release/orbiscreen "${INSTALL_DIR}/orbiscreen.new"
     mv -f "${INSTALL_DIR}/orbiscreen.new" "${INSTALL_DIR}/orbiscreen"
 
-
+# ── Install Web Client Assets ──
     echo "[Orbiscreen] Installing web client files..."
     mkdir -p ~/.local/share/orbiscreen/client/vendor
     cp clients/web/index.html ~/.local/share/orbiscreen/client/
@@ -35,6 +37,7 @@ else
     exit 1
 fi
 
+# ── Systemd User Service ──
 SYSTEMD_USER_DIR="${HOME}/.config/systemd/user"
 mkdir -p "${SYSTEMD_USER_DIR}"
 
@@ -53,6 +56,7 @@ RestartSec=3
 WantedBy=default.target
 EOF
 
+# ── Final Instructions ──
 echo "[Orbiscreen] Installed systemd user unit to ${SYSTEMD_USER_DIR}/orbiscreen.service"
 echo ""
 echo "[Orbiscreen] Installation complete."

@@ -6,13 +6,13 @@
 # ── Metadata ──
 Name:           orbiscreen
 Version:        0.19.0
+Version:        0.20.0
 Release:        1%{?dist}
 Summary:        Turn any Android tablet or phone into a low-latency second monitor for Linux
 
 License:        GPL-3.0-or-later
 URL:            https://github.com/shadow-x78/orbiscreen
 Source0:        %{url}/archive/v%{version}/orbiscreen-%{version}.tar.gz
-# Vendored crate sources so %build runs fully offline inside mock (no network).
 Source1:        orbiscreen-vendor-%{version}.tar.zst
 
 BuildRequires:  cargo
@@ -104,6 +104,9 @@ fi
 %{_datadir}/orbiscreen/install-evdi-module.sh
 
 %changelog
+* Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.20.0-1
+- Release 0.20.0: XDG Desktop Portal virtual display API, stylus pressure/tilt/hover overhaul, drag-and-drop gestures, ChromeOS ADB support, token security isolation.
+
 * Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.19.0-1
 - Release 0.19.0: COSMIC desktop support, native Fedora CI RPM packaging, RTL documentation, zero-comment code standards.
 

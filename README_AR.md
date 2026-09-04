@@ -11,6 +11,7 @@
 **شاشة افتراضية ثانية حقيقية ومستقلة وبزمن استجابة فائق السرعة لنظام Linux (Wayland و X11) تُبث إلى أجهزة وهواتف Android.**
 
 [![الإصدار](https://img.shields.io/badge/version-0.19.0-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.20.0-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=for-the-badge&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
@@ -244,6 +245,7 @@ orbiscreen stop
 <a id="project-structure"></a>
 <h2 dir="rtl" align="right">&rlm;🏗️ هيكل المشروع</h2>
 
+<div dir="rtl" align="right">
 ```
 orbiscreen/
 ├── crates/
@@ -263,6 +265,28 @@ orbiscreen/
 ├── scripts/                    # سكربتات التثبيت وبناء الحزم (.deb / .rpm / AppImage)
 └── docs/                       # التوثيق الشامل ثنائي اللغة (عربي وإنجليزي)
 ```
+
+| المسار / المجلد | الوصف والوظيفة |
+| :--- | :--- |
+| `orbiscreen/` | المستودع الرئيسي للمشروع |
+| ├── `crates/` | حزم ومكتبات Rust الأساسية للمشروع |
+| │   ├── `orbiscreen-core/` | الأنواع المشتركة والإعدادات والتهيئة وإدارة الأخطاء |
+| │   ├── `orbiscreen-display/` | الشاشات الافتراضية المدعومة بـ evdi و DRM |
+| │   ├── `orbiscreen-capture/` | التقاط X11 و Wayland (&rlm;zkde-screencast / ashpd PipeWire) |
+| │   ├── `orbiscreen-encode/` | خط معالجة GStreamer مسرّع عتادياً (&rlm;VAAPI / NVENC / x264) |
+| │   ├── `orbiscreen-input/` | اللمس والألواح الرقمية uinput وبوابة RemoteDesktop |
+| │   ├── `orbiscreen-transport/` | خادم axum واكتشاف mDNS ونفق USB التلقائي |
+| │   └── `orbiscreen-daemon/` | التطبيق والخدمة الرئيسية التي تربط كافة الطبقات معاً |
+| ├── `clients/` | تطبيقات العميل للأجهزة والمنصات المختلفة |
+| │   ├── `web/` | عميل الويب للمتصفحات الحديثة (&rlm;HTML / CSS / JS) |
+| │   └── `android/` | تطبيق الأندرويد الأصلي المبني بـ &rlm;Material 3 Compose |
+| ├── `assets/` | الملفات والأصول الرسومية الثابتة |
+| │   └── `logo/` | أيقونات وشعارات المشروع المتجهة (&rlm;SVG) |
+| ├── `data/` | اختصار سطح المكتب وملفات الحزم وخدمة systemd |
+| ├── `scripts/` | سكربتات التثبيت وبناء الحزم وتوليد الحزم (&rlm;.deb / .rpm / AppImage) |
+| └── `docs/` | التوثيق التقني الشامل ثنائي اللغة (عربي وإنجليزي) |
+
+</div>
 
 ---
 

@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
+# ─────────────────────────────────────────────
 # Orbiscreen - Debian/Ubuntu (.deb) Package Builder
 # https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
 
+# ── Environment & Directory ──
 set -euo pipefail
-
 cd "$(dirname "$0")/.."
 
 VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
@@ -13,11 +15,13 @@ DEB_NAME="orbiscreen_${VERSION}_${ARCH}.deb"
 
 echo "[Orbiscreen] Building Debian package for Orbiscreen v${VERSION} (${ARCH})..."
 
+# ── Build Binaries ──
 if [ ! -f target/release/orbiscreen ]; then
     echo "[Orbiscreen] Building release binaries for deb..."
     cargo build --release --workspace
 fi
 
+# ── Prepare Staging Layout ──
 rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}/DEBIAN"
 mkdir -p "${BUILD_DIR}/usr/bin"
@@ -35,6 +39,7 @@ cp -f clients/web/apple-touch-icon.png "${BUILD_DIR}/usr/share/orbiscreen/client
 cp -rf clients/web/vendor/. "${BUILD_DIR}/usr/share/orbiscreen/client/vendor/"
 cp -f scripts/install-evdi-module.sh "${BUILD_DIR}/usr/share/orbiscreen/"
 
+# ── Service Definition ──
 cat << 'EOF' > "${BUILD_DIR}/usr/lib/systemd/user/orbiscreen.service"
 [Unit]
 Description=Orbiscreen Virtual Secondary Display Service
@@ -52,6 +57,7 @@ RestartSec=3s
 WantedBy=graphical-session.target
 EOF
 
+# ── Debian Control Metadata ──
 cat << EOF > "${BUILD_DIR}/DEBIAN/control"
 Package: orbiscreen
 Version: ${VERSION}
@@ -68,11 +74,10 @@ Description: Turn any Android tablet or phone into a second monitor for Linux
  auto-orientation, and hardware encoding (NVENC/VAAPI).
 EOF
 
+# ── Pre-Removal Script ──
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/prerm"
-
 set -e
 if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
-
     for u in $(users | tr ' ' '\n' | sort -u); do
         su -s /bin/sh -c "systemctl --user stop orbiscreen || true" "$u" || true
     done
@@ -81,8 +86,8 @@ exit 0
 EOF
 chmod +x "${BUILD_DIR}/DEBIAN/prerm"
 
+# ── Post-Removal Script ──
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/postrm"
-
 set -e
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     echo "[Orbiscreen] Orbiscreen has been removed."
@@ -91,5 +96,6 @@ exit 0
 EOF
 chmod +x "${BUILD_DIR}/DEBIAN/postrm"
 
+# ── Build Final Package ──
 dpkg-deb --build "${BUILD_DIR}" "${DEB_NAME}"
 echo "[Orbiscreen] Debian package built successfully: ${DEB_NAME}"

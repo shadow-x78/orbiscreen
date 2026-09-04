@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Orbiscreen - AppImage Package Builder (GPL-3.0-or-later)
+# ─────────────────────────────────────────────
+# Orbiscreen - AppImage Package Builder
 # https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
 
+# ── Environment & Directory ──
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -15,9 +18,11 @@ DIST="$REPO_ROOT/dist"
 mkdir -p "$DIST"
 ARCH="$(uname -m)"
 
+# ── Build Binaries ──
 echo "Building release binaries..."
 cargo build --release --workspace
 
+# ── Prepare AppDir Staging ──
 APP="$DIST/orbiscreen.AppDir"
 rm -rf "$APP"
 mkdir -p "$APP/usr/bin" "$APP/usr/share/orbiscreen/client/vendor" "$APP/usr/share/icons/hicolor/256x256/apps"
@@ -31,6 +36,7 @@ install -m644 clients/web/favicon.png "$APP/usr/share/orbiscreen/client/favicon.
 install -m644 clients/web/apple-touch-icon.png "$APP/usr/share/orbiscreen/client/apple-touch-icon.png"
 install -m644 clients/web/vendor/mpegts.js "$APP/usr/share/orbiscreen/client/vendor/mpegts.js"
 
+# ── Bundle GStreamer Runtime ──
 GST_PREFIX="$(pkg-config --variable=prefix gstreamer-1.0 2>/dev/null || true)"
 if [ -n "${GST_PREFIX:-}" ] && [ -d "$GST_PREFIX/lib" ]; then
     echo "Bundling GStreamer from $GST_PREFIX ..."
@@ -60,6 +66,7 @@ else
     echo "warning: GStreamer pkg-config prefix not found; AppImage will rely on the host GStreamer install" >&2
 fi
 
+# ── Desktop & Icon Metadata ──
 cat > "$APP/orbiscreen.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
@@ -89,6 +96,7 @@ rasterize_256() {
 rasterize_256 "$REPO_ROOT/data/orbiscreen.svg" "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png"
 cp "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png" "$APP/orbiscreen.png"
 
+# ── AppRun Launcher ──
 cat > "$APP/AppRun" <<'EOF'
 #!/usr/bin/env bash
 HERE="$(dirname "$(readlink -f "$0")")"
@@ -101,6 +109,7 @@ exec "$HERE/usr/bin/orbiscreen" "$@"
 EOF
 chmod +x "$APP/AppRun"
 
+# ── Build AppImage ──
 if ! command -v appimagetool >/dev/null 2>&1; then
     APPIMAGETOOL_VERSION="1.9.1"
     APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-${ARCH}.AppImage"

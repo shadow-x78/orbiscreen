@@ -246,7 +246,15 @@ fn sway_roundtrip(
             "response is missing the i3-ipc magic".to_string(),
         ));
     }
-    let len = u32::from_le_bytes(header[6..10].try_into().expect("4-byte length")) as usize;
+    let len_bytes: [u8; 4] = match header[6..10].try_into() {
+        Ok(b) => b,
+        Err(_) => {
+            return Err(WlrootsVirtualOutputError::Sway(
+                "invalid IPC response length".to_string(),
+            ));
+        }
+    };
+    let len = u32::from_le_bytes(len_bytes) as usize;
     if len > MAX_RESPONSE_BYTES {
         return Err(WlrootsVirtualOutputError::Sway(format!(
             "oversized IPC response ({len} bytes)"

@@ -46,10 +46,12 @@ class InputDispatcher(
     private var streamHeight: Int = displayHeight
 
     private val latestMove = java.util.concurrent.atomic.AtomicReference<JSONObject?>(null)
+    private val latestStylus = java.util.concurrent.atomic.AtomicReference<JSONObject?>(null)
+    private var lastStylusPressure: Float = 0f
 
     private val discrete = MutableSharedFlow<JSONObject>(
         replay = 0,
-        extraBufferCapacity = 32,
+        extraBufferCapacity = 64,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
@@ -82,7 +84,11 @@ class InputDispatcher(
                 if (move != null) {
                     send(move)
                 }
-                kotlinx.coroutines.delay(16)
+                val st = latestStylus.getAndSet(null)
+                if (st != null) {
+                    send(st)
+                }
+                kotlinx.coroutines.delay(8)
             }
         }
         scope.launch {
@@ -124,14 +130,7 @@ class InputDispatcher(
     private var pendingDy = 0f
 
     fun moveDelta(dx: Float, dy: Float) {
-        val dist = kotlin.math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
-        val speedFactor = when {
-            dist < 3.0f -> 0.90f
-            dist < 8.0f -> 1.30f
-            dist < 16.0f -> 1.70f
-            else -> 2.20f
-        }
-        val effSensitivity = 1.35f * pointerSpeed * speedFactor
+        val effSensitivity = 1.0f * pointerSpeed
         synchronized(this) {
             pendingDx += dx * effSensitivity
             pendingDy += dy * effSensitivity
@@ -156,7 +155,7 @@ class InputDispatcher(
                 })
             })
         }
-        send(payload)
+        discrete.tryEmit(payload)
         button(1, true)
         button(1, false)
     }
@@ -170,7 +169,7 @@ class InputDispatcher(
                 })
             })
         }
-        send(payload)
+        discrete.tryEmit(payload)
         button(3, true)
         button(3, false)
     }
@@ -218,7 +217,12 @@ class InputDispatcher(
         val payload = JSONObject().apply {
             put("Stylus", stylusObj)
         }
-        send(payload)
+        if (pressure == 0f || lastStylusPressure == 0f) {
+            discrete.tryEmit(payload)
+        } else {
+            latestStylus.set(payload)
+        }
+        lastStylusPressure = pressure
     }
 
     fun key(code: Int, pressed: Boolean) {

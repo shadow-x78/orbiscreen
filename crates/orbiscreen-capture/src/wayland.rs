@@ -60,6 +60,14 @@ impl From<gstreamer::glib::BoolError> for WaylandCaptureError {
 
 fn virtual_only_options() -> SelectSourcesOptions {
     SelectSourcesOptions::default()
+        .set_sources(Some(BitFlags::from(SourceType::Virtual)))
+        .set_cursor_mode(CursorMode::Hidden)
+        .set_multiple(false)
+        .set_persist_mode(PersistMode::ExplicitlyRevoked)
+}
+
+fn monitor_fallback_options() -> SelectSourcesOptions {
+    SelectSourcesOptions::default()
         .set_sources(Some(BitFlags::from(SourceType::Monitor)))
         .set_cursor_mode(CursorMode::Hidden)
         .set_multiple(false)
@@ -74,13 +82,22 @@ async fn negotiate_screencast(
         .create_session(Default::default())
         .await
         .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
-    screencast
+    let select_res = screencast
         .select_sources(
             &session,
             virtual_only_options().set_restore_token(restore_token),
         )
-        .await
-        .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
+        .await;
+    if let Err(e) = select_res {
+        tracing::warn!("virtual source request failed ({e}); falling back to monitor source");
+        screencast
+            .select_sources(
+                &session,
+                monitor_fallback_options().set_restore_token(restore_token),
+            )
+            .await
+            .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
+    }
     let request = screencast
         .start(&session, None, StartCastOptions::default())
         .await

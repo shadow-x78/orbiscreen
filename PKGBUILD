@@ -7,6 +7,7 @@
 
 pkgname=orbiscreen
 pkgver=0.19.0
+pkgver=0.20.0
 pkgrel=1
 pkgdesc="Turn any Android tablet or phone into a low-latency second monitor for Linux (Wayland & X11)"
 arch=('x86_64')
