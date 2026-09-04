@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.19.0] - 2026-09-04
+
+Full COSMIC desktop support, native Fedora CI and RPM packaging pipeline, RTL documentation overhaul, and codebase-wide zero-comment standards.
+
+### ✨ Added
+- **COSMIC Desktop Support (`capabilities.rs`)**: Added `Compositor::Cosmic` detection for System76's Smithay-based `cosmic-comp`. Implemented dedicated capture pipeline fallback (`evdi -> portal`), refined `KDE_FULL_SESSION` detection logic, and added comprehensive unit test suite.
+- **COSMIC Diagnostics & Auto-Fix (`orbiscreen doctor`)**: Added detection for `cosmic-comp` and `cosmic-randr` binaries, JSON diagnostic outputs, and distro auto-fix tokens for Pop!_OS and Ubuntu COSMIC sessions.
+- **Native Fedora CI Workflow (`.github/workflows/ci.yml`)**: Added native Fedora build job with RPM Fusion repositories, GStreamer dependencies, test execution, and automated RPM artifact packaging.
+- **RTL Arabic Documentation Overhaul**: Converted all Markdown tables across Arabic documentation to native RTL containers with BiDi isolation (`&rlm;`), and converted directory trees in `README_AR.md` and `docs/ARCHITECTURE_AR.md` into structured RTL tables with complete Arabic translations.
+
+### 🧹 Cleaned & Hardened
+- **Zero-Comment Code Standards**: Enforced zero comments after line 2 across all Rust (`.rs`), Kotlin (`.kt`), and web client (`.js`, `.css`, `.html`) source files while preserving official credit headers.
+- **Standardized Configuration Headers**: Standardized Unicode boxed banner headers across all shell scripts, spec files, and environment templates (`.env.example`).
+- **Cleaned Typography**: Removed all em dashes and non-technical filler phrases across documentation and comments.
+- **Transport Test Hardening (`mpegts_mux_timestamps.rs`)**: Added graceful handling for environments without GStreamer x264/openh264 encoders.
+
+### 🔧 CI / Packaging
+- **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.19.0.
+- **debian/changelog**: Added 0.19.0-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.19.0.
+- **Android `versionCode`**: Incremented to 47; `versionName` updated to "0.19.0".
+
 ## [v0.18.3] - 2026-09-04
 
 Full web client parity with Android Compose UI (direct hotkey typing, input isolation, and streamlined overlays), refined ASCII logo geometry, and packaging updates.

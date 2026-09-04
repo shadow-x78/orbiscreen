@@ -2,7 +2,7 @@
 
 # مواصفات المعمارية - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.18.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.19.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -55,45 +55,53 @@ graph TD
 
 ---
 
-## 📦 طوبولوجيا حزم مساحة العمل
+<h2 dir="rtl" align="right">&rlm;📦 طوبولوجيا حزم مساحة العمل</h2>
+
+<div dir="rtl" align="right">
 
 | الحزمة | المسؤولية | التبعيات الرئيسية |
-|-------|----------------|------------------|
+| :--- | :--- | :--- |
 | `orbiscreen-core` | الإعدادات المشتركة وأنواع الأخطاء والتسلسل | `serde`، `toml` |
-| `orbiscreen-display` | إنشاء شاشة افتراضية EVDI DRM وتوليف EDID | `evdi`، `libc` |
-| `orbiscreen-capture` | محركات التقاط Wayland Portal (ashpd) وX11 (x11rb) | `ashpd`، `x11rb` |
-| `orbiscreen-encode` | خطوط أنابيب ترميز H.264 عتادية وبرمجية | `gstreamer`، `gstreamer-app` |
+| `orbiscreen-display` | إنشاء شاشة افتراضية &rlm;EVDI DRM&rlm; وتوليف &rlm;EDID | `evdi`، `libc` |
+| `orbiscreen-capture` | محركات الالتقاط عبر &rlm;Wayland Portal (ashpd)&rlm; و &rlm;X11 (x11rb) | `ashpd`، `x11rb` |
+| `orbiscreen-encode` | خطوط أنابيب ترميز &rlm;H.264&rlm; عتادية وبرمجية | `gstreamer`، `gstreamer-app` |
 | `orbiscreen-input` | حقن اللمس العكسي والقلم ولوحة المفاتيح | `evdevil`، `nix` |
-| `orbiscreen-transport` | Axum HTTP على `/stream`، وmDNS، وADB reverse، و`/api/info`، و`/api/control`، و`/health` | `axum`، `gstreamer`، `tokio` |
-| `orbiscreen-daemon` | ثنائي الـ daemon الرئيسي، تكامل systemd وخدمة D-Bus | `zbus`، `clap`، `tokio` |
+| `orbiscreen-transport` | خادم &rlm;Axum HTTP&rlm; على مسار `/stream`، واكتشاف &rlm;mDNS&rlm;، ونفق &rlm;ADB reverse&rlm;، ونقاط `/api/*` و `/health` | `axum`، `gstreamer`، `tokio` |
+| `orbiscreen-daemon` | ثنائي الـ &rlm;daemon&rlm; الرئيسي، تكامل &rlm;systemd&rlm; وخدمة &rlm;D-Bus | `zbus`، `clap`، `tokio` |
+
+</div>
 
 ---
 
-## 📱 بنية حزم عميل Android
+<h2 dir="rtl" align="right">&rlm;📱 بنية حزم عميل Android</h2>
 
-```
-com.orbiscreen.android/
-├── MainActivity.kt                # Compose host, observes PrefsStore.themePrefFlow
-├── data/
-│   └── PrefsStore.kt              # SharedPreferences (recent host, theme, scanner toggle)
-├── net/
-│   ├── DiscoveryService.kt        # NsdManager wrapper -> StateFlow<Map<DiscoveredHost>>
-│   ├── SubnetScanner.kt           # /24 sweep with Semaphore-bounded parallelism
-│   ├── HostApi.kt                 # OkHttp client for /api/info, /api/control, /health
-│   ├── WifiGatewayProvider.kt     # Reads WifiManager.dhcpInfo.gateway
-│   └── DiscoveryModel.kt          # HostSpec regex validator
-├── player/
-│   ├── PlayerHolder.kt            # ExoPlayer + OkHttpDataSource + DefaultLoadControl
-│   └── StreamUrl.kt               # Builds http://host:port/stream?token=...
-├── input/
-│   └── InputDispatcher.kt         # Absolute-coord pointer / wheel / keyboard / stylus
-└── ui/
-    ├── theme/                     # Material 3 Color.kt, Theme.kt, Type.kt
-    ├── nav/OrbiNav.kt             # NavHost (Discovery / Stream / Settings)
-    ├── discovery/                 # DiscoveryScreen + DiscoveryViewModel
-    ├── stream/                    # StreamScreen, PlayerSurface, ControlToolbar
-    └── settings/                  # SettingsScreen (theme, decoder, scanner, recent host)
-```
+<div dir="rtl" align="right">
+
+| المسار / المكون | الوصف والوظيفة |
+| :--- | :--- |
+| `com.orbiscreen.android/` | الحزمة الأساسية لعميل أندرويد |
+| ├── `MainActivity.kt` | مستضيف Compose، يراقب تدفق سمات `PrefsStore.themePrefFlow` |
+| ├── `data/` | طبقة البيانات والتخزين المحلي |
+| │   └── `PrefsStore.kt` | التفضيلات المشتركة (&rlm;SharedPreferences&rlm;: المضيف الأخير، السمة، مفتاح المسح) |
+| ├── `net/` | طبقة الاتصال الشبكي والاكتشاف التلقائي |
+| │   ├── `DiscoveryService.kt` | غلاف `NsdManager` نحو تدفق `StateFlow<Map<DiscoveredHost>>` |
+| │   ├── `SubnetScanner.kt` | مسح شبكة /24 مع توازي محدد بـ `Semaphore` |
+| │   ├── `HostApi.kt` | عميل `OkHttp` لنقاط `/api/info` و `/api/control` و `/health` |
+| │   ├── `WifiGatewayProvider.kt` | يقرأ بوابة `WifiManager.dhcpInfo.gateway` |
+| │   └── `DiscoveryModel.kt` | التحقق من صحة تعبير `HostSpec` النمطي |
+| ├── `player/` | طبقة تشغيل وفك ترميز الفيديو |
+| │   ├── `PlayerHolder.kt` | مشغل `ExoPlayer` مع `OkHttpDataSource` و `DefaultLoadControl` |
+| │   └── `StreamUrl.kt` | يبني رابط البث `http://host:port/stream?token=...` |
+| ├── `input/` | طبقة إرسال مدخلات اللمس والفأرة والقلم |
+| │   └── `InputDispatcher.kt` | معالج أحداث المؤشر / العجلة / المفاتيح / القلم بإحداثيات مطلقة |
+| └── `ui/` | واجهة المستخدم المبنية بـ &rlm;Material 3 Compose |
+|     ├── `theme/` | ألوان وسمات وخطوط واجهة &rlm;Material 3 (`Color.kt`, `Theme.kt`, `Type.kt`) |
+|     ├── `nav/OrbiNav.kt` | مضيف التنقل `NavHost` (الاستكشاف / البث / الإعدادات) |
+|     ├── `discovery/` | شاشة الاستكشاف ونموذج العرض (`DiscoveryScreen` + `DiscoveryViewModel`) |
+|     ├── `stream/` | شاشة البث وسطح العرض وشريط التحكم (`StreamScreen`, `PlayerSurface`, `ControlToolbar`) |
+|     └── `settings/` | شاشة الإعدادات (السمة، فك الترميز، الماسح، المضيف الأخير) |
+
+</div>
 
 ---
 
@@ -118,15 +126,19 @@ com.orbiscreen.android/
 
 ---
 
-## 🌐 عقد HTTP API
+<h2 dir="rtl" align="right">&rlm;🌐 عقد واجهة HTTP API</h2>
+
+<div dir="rtl" align="right">
 
 | النقطة | الطريقة | المصادقة | الاستجابة |
-|----------|--------|----------|----------|
-| `/stream` | GET | توكن | بث `video/mp2t` MPEG-TS |
-| `/health` | GET | عامة | `200 OK "ok"` |
-| `/api/info` | GET | عامة | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.11.0"}` |
-| `/api/control` | POST | توكن | `200 OK`; الإجراءات: `lock`، `blank`، `unblank`، `ctrl_alt_del` (يُرفض `open` برفض 400) |
-| `/client/config.json` | GET | عامة | `{"token":"...","display_width":1920,"display_height":1080}` - تمهيد عميل الويب |
+| :--- | :---: | :---: | :--- |
+| `/stream` | `GET` | توكن | بث فيديو &rlm;MPEG-TS (`video/mp2t`)&rlm; |
+| `/health` | `GET` | عامة | &rlm;`200 OK "ok"`&rlm; |
+| `/api/info` | `GET` | عامة | معلومات العرض والترميز والإصدار بصيغة &rlm;JSON&rlm; |
+| `/api/control` | `POST` | توكن | &rlm;`200 OK`&rlm;؛ الإجراءات: `lock`، `blank`، `unblank`، `ctrl_alt_del` |
+| `/client/config.json` | `GET` | عامة | تمهيد عميل الويب: التوكن وأبعاد الشاشة |
+
+</div>
 
 أحداث الإدخال (`/input`، تتطلب توكن) تقبل مخطط الحمولة المستخدم لدى عميل الويب: `Move{x,y}`، `Button{button,pressed,x?,y?}`، `Wheel{delta_y}`، `Key{code,pressed}`، `Stylus{x,y,pressure,tilt_x_deg,tilt_y_deg}`. يُقدم التوكن عبر ترويسة `Authorization: Bearer <token>` أو معامل `?token=`.
 

@@ -115,7 +115,6 @@ class StreamViewModel(
                 }
             }
         }
-        // Save recentHost only once streaming succeeds (so we save the working IP)
         viewModelScope.launch {
             playerHolder.event.collect { ev ->
                 if (ev is StreamEvent.Playing && host != "127.0.0.1" && host != "localhost") {

@@ -1245,6 +1245,8 @@ async fn run_doctor(json: bool) -> ExitCode {
         .is_ok();
     let swaymsg = has_binary("swaymsg");
     let hyprctl = has_binary("hyprctl");
+    let cosmic_comp = has_binary("cosmic-comp");
+    let cosmic_randr = has_binary("cosmic-randr");
     let wlr_virtual_ipc = orbiscreen_capture::wlr_virtual_output::detect_ipc_kind();
     let usb = usb_doctor_report();
     let portal_state = orbiscreen_core::portal_state::load_portal_state();
@@ -1284,6 +1286,8 @@ async fn run_doctor(json: bool) -> ExitCode {
             "remote_desktop_saved_token": input_saved,
             "swaymsg": swaymsg,
             "hyprctl": hyprctl,
+            "cosmic_comp": cosmic_comp,
+            "cosmic_randr": cosmic_randr,
             "wlroots_virtual_output_ipc": wlr_virtual_ipc.map(|k| k.to_string()),
             "usb": {
                 "adb_installed": usb.adb_installed,
@@ -1385,6 +1389,11 @@ async fn run_doctor(json: bool) -> ExitCode {
     let tools_str = match caps.compositor {
         orbiscreen_capture::capabilities::Compositor::Kde => "KWin D-Bus (Native)".to_string(),
         orbiscreen_capture::capabilities::Compositor::Gnome => "Mutter Portal (Native)".to_string(),
+        orbiscreen_capture::capabilities::Compositor::Cosmic => format!(
+            "cosmic-comp: {} · cosmic-randr: {}",
+            if cosmic_comp { "Found" } else { "No" },
+            if cosmic_randr { "Found" } else { "No" },
+        ),
         _ => format!(
             "swaymsg: {} · hyprctl: {}",
             if swaymsg { "Found" } else { "No" },
@@ -1520,7 +1529,7 @@ fn evdi_fix_plan_for_os_release(os_release: &str) -> Option<EvdiFixPlan> {
     if tokens.iter().any(|t| {
         matches!(
             *t,
-            "debian" | "ubuntu" | "linuxmint" | "pop" | "elementary" | "zorin"
+            "debian" | "ubuntu" | "linuxmint" | "pop" | "elementary" | "zorin" | "cosmic"
         )
     }) {
         return Some(EvdiFixPlan {

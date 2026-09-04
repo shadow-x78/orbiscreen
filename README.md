@@ -10,7 +10,7 @@
 
 **High-performance, ultra-low latency virtual secondary display for Linux (Wayland &amp; X11) streamed to Android tablets and phones.**
 
-[![Version](https://img.shields.io/badge/version-0.18.3-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.19.0-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=for-the-badge&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
@@ -58,7 +58,7 @@
 <a id="what-is-orbiscreen"></a>
 ## 🤔 What is Orbiscreen?
 
-**Orbiscreen** turns a spare Android tablet or phone into a genuine secondary monitor for your Linux desktop. It creates an independent **kernel-level virtual display** via DisplayLink's `evdi`, or a **compositor-native virtual monitor** on KDE Plasma and wlrootswith zero root required and no screen-share dialogs, streamed as **MPEG-TS/H.264** with reverse multi-touch, mouse, keyboard, and pressure-sensitive stylus control natively on Android.
+**Orbiscreen** turns a spare Android tablet or phone into a genuine secondary monitor for your Linux desktop. It creates an independent **kernel-level virtual display** via DisplayLink's `evdi` (COSMIC, GNOME, X11), or a **compositor-native virtual monitor** on KDE Plasma and wlroots with zero root required and no screen-share dialogs, streamed as **MPEG-TS/H.264** with reverse multi-touch, mouse, keyboard, and pressure-sensitive stylus control natively on Android.
 
 <a id="comparison"></a>
 ### 🆚 How Does Orbiscreen Compare to Alternatives?
@@ -115,6 +115,7 @@
 | Environment | Virtual second display | Capture | Input |
 |-------------|------------------------|---------|-------|
 | KDE Plasma (Wayland) | ✅ Native (zkde-screencast, no root / no dialog) | ✅ PipeWire | ✅ RemoteDesktop portal / uinput |
+| COSMIC (Wayland) | ⚠️ Via EVDI (guided by `doctor --fix`) | ✅ Portal ScreenCast (PipeWire) | ✅ uinput (multi-touch & stylus) / RemoteDesktop |
 | Sway / Hyprland / wlroots | ✅ Headless output via compositor IPC (no root) | ✅ wlr-screencopy (no dialog) | ✅ virtual-pointer / virtual-keyboard (no portal) |
 | GNOME (Wayland) | ⚠️ Via EVDI | ✅ Portal: dialog only on the first run (saved restore token) | ✅ RemoteDesktop portal: persisted |
 | XFCE / MATE / LXQt / Cinnamon (X11) | ✅ Via EVDI | ✅ XShm mirrored root (pooled, duplicate frames skipped) | ✅ XTEST (rootless), uinput fallback |
@@ -271,7 +272,7 @@ orbiscreen/
 <details>
 <summary><b>Does Orbiscreen work on Wayland without root permissions?</b></summary>
 <br>
-<b>Yes!</b> On modern Linux desktop environments like KDE Plasma (Wayland) and wlroots compositors (Sway, Hyprland), Orbiscreen creates native virtual monitors rootlessly without any kernel modules or screen-share authorization dialogs. On GNOME and X11, Orbiscreen uses EVDI for kernel-level display support.
+<b>Yes!</b> On modern Linux desktop environments like KDE Plasma (Wayland) and wlroots compositors (Sway, Hyprland), Orbiscreen creates native virtual monitors rootlessly without any kernel modules or screen-share authorization dialogs. On COSMIC, GNOME, and X11, Orbiscreen uses EVDI for kernel-level display support.
 </details>
 
 <details>

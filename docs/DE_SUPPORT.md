@@ -2,7 +2,7 @@
 
 # Desktop Environment Support - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.18.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.19.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -38,6 +38,7 @@ ordered capture plan. The plan is logged on every `orbiscreen start`:
 | Environment | `auto` capture plan (in order) |
 |---|---|
 | KDE Plasma (Wayland) | `kwin-virtual` → `portal` |
+| COSMIC (Wayland) | `evdi` → `portal` |
 | Sway / Hyprland / other wlroots | `wlroots-virtual` → `wlr-screencopy` → `portal` → `evdi` |
 | GNOME / other non-wlroots Wayland | `portal` |
 | X11 (any DE) | `evdi` → `x11-root` (XShm mirror) |
@@ -111,6 +112,31 @@ graphical session, so:
     yes/no`.
   - `portal: org.freedesktop.portal.Desktop NOT on the session bus` → install
     `xdg-desktop-portal` and the GNOME backend.
+
+## COSMIC Desktop (Wayland / cosmic-comp)
+
+System76's Rust-based COSMIC desktop (`cosmic-comp`, built on Smithay) integrates cleanly with Orbiscreen:
+
+- **Virtual display:** via **EVDI** (kernel virtual DRM driver). When the EVDI
+  kernel module is loaded, Orbiscreen creates a hardware-level virtual DRM
+  connector (`/dev/dri/card*`) that `cosmic-comp` automatically discovers via
+  DRM uevents. You can configure resolution, scaling, and monitor arrangement
+  directly in COSMIC Settings. Run `orbiscreen doctor --fix` to install the EVDI
+  kernel module automatically.
+- **Capture:** PipeWire stream via `xdg-desktop-portal-cosmic`. When EVDI is
+  not installed, `auto` falls back to mirroring an existing display via the
+  portal. Orbiscreen persists the screencast grant restore token
+  (`$XDG_STATE_HOME/orbiscreen/portal.json`), so you only grant permission once.
+- **Input:** rootless `/dev/uinput` injector providing native multi-touch
+  gestures, mouse, keyboard, and stylus tablet with 4095 pressure levels and
+  tilt. `cosmic-comp`'s `libinput` stack discovers the virtual input devices
+  immediately.
+- **Troubleshooting:**
+  - `virtual display: kernel module missing` → Run `orbiscreen doctor --fix`
+    (Pop!_OS / Ubuntu: `sudo apt install evdi-dkms`, Fedora: `sudo dnf install evdi`,
+    Arch: `sudo pacman -S evdi`).
+  - Screen share dialog appears on every run → ensure `xdg-desktop-portal-cosmic`
+    is installed and `$XDG_STATE_HOME/orbiscreen/portal.json` is writable.
 
 ## X11 (XFCE, MATE, LXQt, Cinnamon, Budgie, KDE-X11)
 

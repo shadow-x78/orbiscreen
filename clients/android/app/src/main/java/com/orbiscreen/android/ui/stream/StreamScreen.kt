@@ -142,12 +142,10 @@ fun StreamScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Intercept phone back button gesture/press
     BackHandler {
         showExitConfirmDialog = true
     }
 
-    // Lifecycle tracking: Pause / Resume without showing stream errors
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -162,7 +160,6 @@ fun StreamScreen(
         }
     }
 
-    // Immersive full-screen
     DisposableEffect(Unit) {
         val window = (context as? Activity)?.window
         if (window != null) {
@@ -180,7 +177,6 @@ fun StreamScreen(
         }
     }
 
-    // Auto-hide toolbar after 4 seconds
     LaunchedEffect(showControls) {
         if (showControls) {
             delay(4000)
@@ -188,7 +184,6 @@ fun StreamScreen(
         }
     }
 
-    // Auto-orientation: automatically adjust resolution when phone rotates
     val configuration = LocalConfiguration.current
     var lastOrientation by remember { mutableIntStateOf(configuration.orientation) }
     LaunchedEffect(configuration.orientation) {
@@ -237,7 +232,6 @@ fun StreamScreen(
             label = "cornerFab",
         )
 
-        // Player surface
         if (player != null) {
             val input = remember { viewModel.ensureInput() }
             PlayerSurface(
@@ -267,7 +261,6 @@ fun StreamScreen(
             )
         }
 
-        // Status overlay (only when error or initial connecting)
         if (state.event !is StreamEvent.Playing && state.event !is StreamEvent.Buffering) {
             StatusOverlay(
                 event = state.event,
@@ -276,7 +269,6 @@ fun StreamScreen(
             )
         }
 
-        // Floating Control Toolbar
         AnimatedVisibility(
             visible = showControls,
             enter = fadeIn() + slideInVertically { -it },
@@ -302,7 +294,6 @@ fun StreamScreen(
             )
         }
 
-        // Draggable Snap-to-Corner FAB (reveals controls)
         AnimatedVisibility(
             visible = !showControls && !isControlsPermanentlyHidden,
             enter = fadeIn(),
@@ -366,7 +357,6 @@ fun StreamScreen(
             }
         }
 
-        // Soft Keyboard Overlay (floats above IME)
         AnimatedVisibility(
             visible = state.keyboardVisible,
             enter = fadeIn(),
@@ -380,7 +370,6 @@ fun StreamScreen(
             )
         }
 
-        // Dedicated Connection & Display Settings Bottom Sheet
         if (showSettingsSheet) {
             ConnectionSettingsSheet(
                 currentWidth = state.displayWidth,
@@ -397,7 +386,6 @@ fun StreamScreen(
             )
         }
 
-        // Exit confirmation dialog
         if (showExitConfirmDialog) {
             androidx.compose.ui.window.Dialog(
                 onDismissRequest = { showExitConfirmDialog = false },
@@ -539,7 +527,6 @@ private fun ConnectionSettingsSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
@@ -586,7 +573,6 @@ private fun ConnectionSettingsSheet(
                 }
             }
 
-            // 1. Pointer Speed Control
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = Color(0xFF1E1E2E),
@@ -642,7 +628,6 @@ private fun ConnectionSettingsSheet(
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    // Quick presets: Slow, Normal, Fast
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -681,7 +666,6 @@ private fun ConnectionSettingsSheet(
                 }
             }
 
-            // 2. Standard Resolutions Presets
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = stringResource(R.string.res_section_standard),
@@ -756,7 +740,6 @@ private fun ConnectionSettingsSheet(
                 }
             }
 
-            // 3. Phone Screen Match
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = stringResource(R.string.res_section_phone),
@@ -821,7 +804,6 @@ private fun ConnectionSettingsSheet(
                 }
             }
 
-            // 4. Custom Resolution
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = stringResource(R.string.res_section_custom),
@@ -843,7 +825,6 @@ private fun ConnectionSettingsSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        // Width field
                         Row(
                             modifier = Modifier
                                 .weight(1f)
@@ -876,7 +857,6 @@ private fun ConnectionSettingsSheet(
 
                         Text("×", color = Color.White.copy(alpha = 0.5f), fontWeight = FontWeight.Normal, fontSize = 14.sp)
 
-                        // Height field
                         Row(
                             modifier = Modifier
                                 .weight(1f)
@@ -907,7 +887,6 @@ private fun ConnectionSettingsSheet(
                             )
                         }
 
-                        // Apply button
                         Button(
                             onClick = {
                                 val w = customW.toIntOrNull() ?: 1920
@@ -1115,7 +1094,6 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
                     .padding(horizontal = 8.dp, vertical = 7.dp),
                 verticalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                // Row 1: Functions, System & Backspace
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1151,7 +1129,6 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
                     }
                 }
 
-                // Row 2: Modifiers & Productivity Shortcuts
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1188,7 +1165,6 @@ private fun KeyboardOverlay(onKey: (Int, Boolean) -> Unit, onClose: () -> Unit) 
                     }
                 }
 
-                // Row 3: Navigation, Spacebar & Arrows
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,

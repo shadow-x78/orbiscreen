@@ -111,42 +111,36 @@ fun ControlToolbar(
                 Spacer(Modifier.width(2.dp))
             }
 
-            // 1. Mouse mode toggle
             ToolbarActionButton(
                 icon = if (isTouchMode) Icons.Rounded.TouchApp else Icons.Rounded.Mouse,
                 contentDescription = if (isTouchMode) stringResource(R.string.mode_touch) else stringResource(R.string.mode_trackpad),
                 onClick = onToggleInputMode,
             )
 
-            // 2. Keyboard toggle
             ToolbarActionButton(
                 icon = Icons.Rounded.Keyboard,
                 contentDescription = stringResource(R.string.open_keyboard),
                 onClick = onToggleKeyboard,
             )
 
-            // 3. Lock
             ToolbarActionButton(
                 icon = Icons.Rounded.Lock,
                 contentDescription = stringResource(R.string.lock_screen),
                 onClick = onLock,
             )
 
-            // 4. Settings
             ToolbarActionButton(
                 icon = Icons.Rounded.Settings,
                 contentDescription = stringResource(R.string.settings),
                 onClick = onOpenSettings,
             )
 
-            // 5. Hide controls
             ToolbarActionButton(
                 icon = Icons.Rounded.VisibilityOff,
                 contentDescription = stringResource(R.string.hide_controls),
                 onClick = onHideControls,
             )
 
-            // 4. Red Disconnect Button
             FilledIconButton(
                 onClick = onDisconnect,
                 shape = CircleShape,

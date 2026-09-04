@@ -1,6 +1,5 @@
 /* Orbiscreen - web client styles (GPL-3.0-or-later)
-   https://github.com/shadow-x78/orbiscreen
-   Matched 1-to-1 with Android Material 3 Compose theme */
+   https://github.com/shadow-x78/orbiscreen */
 
 :root {
     color-scheme: dark;
@@ -59,9 +58,6 @@ html, body {
     background: #000;
 }
 
-/* ─────────────────────────────────────────────
-   ControlToolbar (Exact match of ControlToolbar.kt)
-   ───────────────────────────────────────────── */
 .controlToolbar {
     position: fixed;
     top: 14px;
@@ -174,9 +170,6 @@ html, body {
 
 .svgIcon.hidden { display: none; }
 
-/* ─────────────────────────────────────────────
-   Mini Floating Pill (When Controls Hidden)
-   ───────────────────────────────────────────── */
 .miniPill {
     position: fixed;
     top: 14px;
@@ -228,9 +221,6 @@ html, body {
     height: 16px;
 }
 
-/* ─────────────────────────────────────────────
-   VNC Focus Banner
-   ───────────────────────────────────────────── */
 .vncBanner {
     position: fixed;
     bottom: 24px;
@@ -263,9 +253,6 @@ html, body {
     transform: translateX(-50%) translateY(10px);
 }
 
-/* ─────────────────────────────────────────────
-   Virtual Keyboard Drawer
-   ───────────────────────────────────────────── */
 .keyboardDrawer {
     position: fixed;
     bottom: 16px;
@@ -402,9 +389,6 @@ html, body {
     font-weight: 600;
 }
 
-/* ─────────────────────────────────────────────
-   Settings Modal / Sheet
-   ───────────────────────────────────────────── */
 .settingsModal {
     position: fixed;
     inset: 0;
@@ -516,9 +500,6 @@ html, body {
     color: var(--active-green);
 }
 
-/* ─────────────────────────────────────────────
-   Toast Notification
-   ───────────────────────────────────────────── */
 .toast {
     position: fixed;
     bottom: 24px;
@@ -543,9 +524,6 @@ html, body {
     transform: translateX(-50%) translateY(12px);
 }
 
-/* ─────────────────────────────────────────────
-   Loading / Connecting Overlay (Android StreamScreen 940-975)
-   ───────────────────────────────────────────── */
 .overlay {
     position: absolute;
     inset: 0;

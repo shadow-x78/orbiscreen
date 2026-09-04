@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.18.3
+Version:        0.19.0
 Release:        1%{?dist}
 Summary:        Turn any Android tablet or phone into a low-latency second monitor for Linux
 
@@ -104,6 +104,9 @@ fi
 %{_datadir}/orbiscreen/install-evdi-module.sh
 
 %changelog
+* Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.19.0-1
+- Release 0.19.0: COSMIC desktop support, native Fedora CI RPM packaging, RTL documentation, zero-comment code standards.
+
 * Thu Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.3-1
 - Release 0.18.3: Android 1:1 web client parity, direct keyboard typing, refined ASCII logo, and web favicons.
 

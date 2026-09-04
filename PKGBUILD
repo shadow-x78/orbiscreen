@@ -6,7 +6,7 @@
 # Maintainer: shadow-x78 <107577376+shadow-x78@users.noreply.github.com>
 
 pkgname=orbiscreen
-pkgver=0.18.3
+pkgver=0.19.0
 pkgrel=1
 pkgdesc="Turn any Android tablet or phone into a low-latency second monitor for Linux (Wayland & X11)"
 arch=('x86_64')

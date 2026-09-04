@@ -2,7 +2,7 @@
 
 # دعم بيئات سطح المكتب - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.18.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.19.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -38,6 +38,7 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
 | البيئة | خطة التقاط `auto` (بالترتيب) |
 |---|---|
 | KDE Plasma (Wayland) | ‏`kwin-virtual` ← `portal` |
+| COSMIC (Wayland) | ‏`evdi` ← `portal` |
 | Sway / Hyprland / باقي wlroots | ‏`wlroots-virtual` ← `wlr-screencopy` ← `portal` ← `evdi` |
 | GNOME / Wayland آخر (غير wlroots) | ‏`portal` |
 | X11 (أي بيئة) | ‏`evdi` ← `x11-root` (عكس عبر XShm) |
@@ -104,6 +105,17 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
     ملف الحالة. يطبع `doctor`: ‏`screencast grant saved: yes/no`.
   - ‏`portal: org.freedesktop.portal.Desktop NOT on the session bus` → ثبّت
     ‏`xdg-desktop-portal` مع backend الخاص بـ GNOME.
+
+## بيئة COSMIC ‏(Wayland / cosmic-comp)
+
+بيئة سطح المكتب COSMIC من تطوير System76 ‏(`cosmic-comp` المبني على Smithay) مدعومة في Orbiscreen كالتالي:
+
+- **الشاشة الافتراضية:** عبر **EVDI** (مشغل DRM الافتراضي للنواة). عند تحميل وحدة نواة EVDI، ينشئ Orbiscreen منفذ DRM افتراضياً على مستوى العتاد (`/dev/dri/card*`) يكتشفه `cosmic-comp` تلقائياً عبر أحداث DRM uevents. يمكنك ضبط الدقة ومعدل التحديث وترتيب الشاشات مباشرة من إعدادات COSMIC Settings. شغّل `orbiscreen doctor --fix` لتثبيت وحدة نواة EVDI تلقائياً.
+- **الالتقاط:** بث PipeWire عبر `xdg-desktop-portal-cosmic`. في حال عدم تثبيت EVDI، يتراجع `auto` إلى عكس شاشة موجودة عبر الـ portal. يحفظ Orbiscreen توكن تصريح مشاركة الشاشة في ملف الحالة (`$XDG_STATE_HOME/orbiscreen/portal.json`)، وبذلك تمنح الإذن لمرة واحدة فقط.
+- **الإدخال:** جهاز حقن `/dev/uinput` بدون root يوفّر إيماءات اللمس المتعدد الأصلية، الفأرة، لوحة المفاتيح، ولوح الرسم بالقلم مع 4095 مستوى من حساسية الضغط والميلان. يتعرف مكدس `libinput` في `cosmic-comp` على أجهزة الإدخال الافتراضية فوراً.
+- **حلول الأعطال:**
+  - ‏`virtual display: kernel module missing` ← شغّل `orbiscreen doctor --fix` (على Pop!_OS وأوبونتو: `sudo apt install evdi-dkms`، فيدورا: `sudo dnf install evdi`، آرتش: `sudo pacman -S evdi`).
+  - نافذة مشاركة الشاشة تظهر في كل مرة ← تأكد من تثبيت `xdg-desktop-portal-cosmic` وأن ملف `$XDG_STATE_HOME/orbiscreen/portal.json` قابل للكتابة.
 
 ## X11 ‏(XFCE, MATE, LXQt, Cinnamon, Budgie, KDE-X11)
 

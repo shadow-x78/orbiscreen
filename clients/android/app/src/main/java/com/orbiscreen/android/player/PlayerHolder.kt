@@ -123,12 +123,7 @@ class PlayerHolder(
             val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
 
             val loadControl = DefaultLoadControl.Builder()
-                .setBufferDurationsMs(
-                    /* minBufferMs = */ 80,
-                    /* maxBufferMs = */ 250,
-                    /* bufferForPlaybackMs = */ 25,
-                    /* bufferForPlaybackAfterRebufferMs = */ 50,
-                )
+                .setBufferDurationsMs(80, 250, 25, 50)
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
 

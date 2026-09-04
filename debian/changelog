@@ -1,3 +1,13 @@
+orbiscreen (0.19.0-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.19.0 for Ubuntu noble.
+  * Full COSMIC desktop support (cosmic-comp / Smithay) with evdi -> portal fallback.
+  * Automated diagnostic tooling and auto-fix integration in orbiscreen doctor.
+  * Native Fedora CI and RPM packaging pipeline with RPM Fusion.
+  * Comprehensive RTL documentation, zero-comment code standards, and security hardening.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Fri, 04 Sep 2026 16:20:00 +0300
+
 orbiscreen (0.18.3-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.18.3 for Ubuntu noble.

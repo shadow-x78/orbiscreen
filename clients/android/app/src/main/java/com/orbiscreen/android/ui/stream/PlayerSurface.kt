@@ -79,7 +79,6 @@ fun PlayerSurface(
             var moved = false
             var maxPointers = 1
 
-            // Manual double-tap detection (avoids GestureDetector swallowing events)
             var lastTapTime = 0L
             var lastTapX = 0f
             var lastTapY = 0f
@@ -177,23 +176,19 @@ fun PlayerSurface(
                                 val duration = now - downTime
                                 if (!moved && duration < 300L) {
                                     if (maxPointers >= 2) {
-                                        // Two-finger tap = right click
                                         lastTapTime = 0L
                                         holder.onRightClick()
                                         Log.d(TAG, "rightClick")
                                     } else {
-                                        // Check for double-tap
                                         val dx = ev.x - lastTapX
                                         val dy = ev.y - lastTapY
                                         val dist = kotlin.math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
                                         val timeSinceLast = now - lastTapTime
                                         if (timeSinceLast < doubleTapMaxMs && dist < doubleTapMaxDistPx) {
-                                            // Double-tap detected
                                             Log.d(TAG, "doubleTap detected, permanentlyHidden=${holder.onDoubleTap != null}")
                                             holder.onDoubleTap?.invoke()
                                             lastTapTime = 0L
                                         } else {
-                                            // Single tap — record for potential double-tap
                                             lastTapTime = now
                                             lastTapX = ev.x
                                             lastTapY = ev.y

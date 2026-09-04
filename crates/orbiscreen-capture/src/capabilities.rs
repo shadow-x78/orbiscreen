@@ -24,6 +24,7 @@ impl fmt::Display for SessionType {
 pub enum Compositor {
     Kde,
     Gnome,
+    Cosmic,
     Hyprland,
     Sway,
     Wayfire,
@@ -40,6 +41,7 @@ impl fmt::Display for Compositor {
         match self {
             Self::Kde => write!(f, "KDE Plasma"),
             Self::Gnome => write!(f, "GNOME (Mutter)"),
+            Self::Cosmic => write!(f, "COSMIC (cosmic-comp)"),
             Self::Hyprland => write!(f, "Hyprland"),
             Self::Sway => write!(f, "Sway"),
             Self::Wayfire => write!(f, "Wayfire"),
@@ -96,7 +98,8 @@ impl Capabilities {
                 } else if lookup("GAMESCOPE_WAYLAND_DISPLAY").is_some() {
                     Compositor::Gamescope
                 } else if desktop_tokens.iter().any(|t| t == "kde")
-                    || lookup("KDE_FULL_SESSION").as_deref() == Some("true")
+                    || (desktop_tokens.is_empty()
+                        && lookup("KDE_FULL_SESSION").as_deref() == Some("true"))
                 {
                     Compositor::Kde
                 } else if desktop_tokens
@@ -104,6 +107,11 @@ impl Capabilities {
                     .any(|t| t == "gnome" || t.contains("unity"))
                 {
                     Compositor::Gnome
+                } else if desktop_tokens.iter().any(|t| t == "cosmic")
+                    || lookup("XDG_SESSION_DESKTOP").as_deref() == Some("cosmic")
+                    || lookup("COSMIC_DATA_CONTROL").is_some()
+                {
+                    Compositor::Cosmic
                 } else if desktop_tokens.iter().any(|t| t == "wayfire") {
                     Compositor::Wayfire
                 } else if desktop_tokens.iter().any(|t| t == "labwc") {
@@ -141,6 +149,7 @@ impl Capabilities {
         match self.session {
             SessionType::Wayland => match self.compositor {
                 Compositor::Kde => vec![CaptureStep::KwinVirtual, CaptureStep::Portal],
+                Compositor::Cosmic => vec![CaptureStep::Evdi, CaptureStep::Portal],
                 Compositor::Sway
                 | Compositor::Hyprland
                 | Compositor::Wayfire
@@ -230,6 +239,46 @@ mod tests {
     }
 
     #[test]
+    fn cosmic_wayland_is_detected() {
+        let c = caps(&[
+            ("XDG_SESSION_TYPE", "wayland"),
+            ("WAYLAND_DISPLAY", "wayland-0"),
+            ("XDG_CURRENT_DESKTOP", "COSMIC"),
+        ]);
+        assert_eq!(c.session, SessionType::Wayland);
+        assert_eq!(c.compositor, Compositor::Cosmic);
+        assert!(!c.is_wlroots());
+    }
+
+    #[test]
+    fn cosmic_pop_is_detected() {
+        let c = caps(&[
+            ("XDG_SESSION_TYPE", "wayland"),
+            ("XDG_CURRENT_DESKTOP", "COSMIC:Pop"),
+        ]);
+        assert_eq!(c.compositor, Compositor::Cosmic);
+        assert!(!c.is_wlroots());
+    }
+
+    #[test]
+    fn cosmic_via_session_desktop() {
+        let c = caps(&[
+            ("XDG_SESSION_TYPE", "wayland"),
+            ("XDG_SESSION_DESKTOP", "cosmic"),
+        ]);
+        assert_eq!(c.compositor, Compositor::Cosmic);
+    }
+
+    #[test]
+    fn cosmic_via_data_control() {
+        let c = caps(&[
+            ("XDG_SESSION_TYPE", "wayland"),
+            ("COSMIC_DATA_CONTROL", "1"),
+        ]);
+        assert_eq!(c.compositor, Compositor::Cosmic);
+    }
+
+    #[test]
     fn hyprland_wins_over_desktop_tokens() {
         let c = caps(&[
             ("XDG_SESSION_TYPE", "wayland"),
@@ -311,6 +360,15 @@ mod tests {
     }
 
     #[test]
+    fn cosmic_chain_prefers_evdi_then_portal() {
+        let c = caps(&[
+            ("XDG_SESSION_TYPE", "wayland"),
+            ("XDG_CURRENT_DESKTOP", "COSMIC"),
+        ]);
+        assert_eq!(c.auto_chain(), vec![CaptureStep::Evdi, CaptureStep::Portal]);
+    }
+
+    #[test]
     fn wlroots_chain_prefers_virtual_output_then_screencopy() {
         let expected = vec![
             CaptureStep::WlrootsVirtual,
@@ -349,5 +407,10 @@ mod tests {
         assert_eq!(CaptureStep::Portal.to_string(), "portal");
         assert_eq!(CaptureStep::Evdi.to_string(), "evdi");
         assert_eq!(CaptureStep::X11Root.to_string(), "x11-root");
+    }
+
+    #[test]
+    fn cosmic_display_name_is_expected() {
+        assert_eq!(Compositor::Cosmic.to_string(), "COSMIC (cosmic-comp)");
     }
 }

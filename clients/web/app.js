@@ -1,6 +1,5 @@
 // Orbiscreen - app.js (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
-// VNC-style isolated focus & Android 1:1 Parity
 
 const statusTitle = document.getElementById("statusTitle");
 const statusSubtitle = document.getElementById("statusSubtitle");
@@ -113,9 +112,6 @@ function updateInfoDisplay() {
     if (statEncoder) statEncoder.textContent = encoderName;
 }
 
-// ─────────────────────────────────────────────
-// VNC-Style Focus Management (Escape Releases Host)
-// ─────────────────────────────────────────────
 function setVncFocus(focused) {
     if (focused && !streamActive) return;
     if (focused === isVncFocused) return;
@@ -152,7 +148,6 @@ function releaseAllKeys() {
         sendInput({ Key: { code, pressed: false } });
     }
     heldKeys.clear();
-    // Safety: ensure common modifiers are unpressed on Linux host
     const modifiers = [29, 97, 42, 54, 56, 100, 125, 126];
     for (const code of modifiers) {
         sendInput({ Key: { code, pressed: false } });
@@ -183,7 +178,6 @@ if (overlayEl) {
     });
 }
 
-// Click on stage enters VNC focus
 stageEl.addEventListener("pointerdown", (event) => {
     if (!streamActive) return;
     if (!isVncFocused) {
@@ -239,7 +233,6 @@ stageEl.addEventListener("wheel", (event) => {
     sendWheel(normalizeWheel(event));
 }, { passive: false });
 
-// Keyboard events ONLY when in VNC Focus
 window.addEventListener("keydown", (event) => {
     if (event.code === "Escape") {
         event.preventDefault();
@@ -270,9 +263,6 @@ window.addEventListener("keyup", (event) => {
     sendKey(event.code, false);
 });
 
-// ─────────────────────────────────────────────
-// Toolbar Actions (Identical to ControlToolbar.kt)
-// ─────────────────────────────────────────────
 if (btnInputMode) {
     btnInputMode.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -554,7 +544,6 @@ function sendStylus(x, y, pressure, tiltX, tiltY) {
     });
 }
 
-// Latched Modifiers State (Matching Android KeyboardTogglePill)
 const latchedModifiers = {
     ControlLeft: false,
     AltLeft: false,
@@ -632,14 +621,12 @@ function sendChar(c) {
     }
 }
 
-// Prevent focus loss from hidden input when tapping hotkeys
 document.querySelectorAll(".keyBtn").forEach((btn) => {
     btn.addEventListener("pointerdown", (e) => {
         e.preventDefault();
     });
 });
 
-// Hotkey buttons (Esc, Tab, F-keys, arrows, Space, Del, Enter, etc.)
 document.querySelectorAll(".keyBtn[data-code]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -652,7 +639,6 @@ document.querySelectorAll(".keyBtn[data-code]").forEach((btn) => {
     });
 });
 
-// Toggle Latched Modifiers (Ctrl, Alt, Shift, Win)
 document.querySelectorAll(".keyBtn[data-latch]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -665,7 +651,6 @@ document.querySelectorAll(".keyBtn[data-latch]").forEach((btn) => {
     });
 });
 
-// Productivity shortcuts (Undo, Copy, Paste)
 document.querySelectorAll(".keyBtn[data-action]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -684,7 +669,6 @@ document.querySelectorAll(".keyBtn[data-action]").forEach((btn) => {
     });
 });
 
-// Invisible IME input for direct typing without a visible text box
 if (keyboardImeInput) {
     const DUMMY = "   ";
     keyboardImeInput.value = DUMMY;
