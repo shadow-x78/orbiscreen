@@ -75,33 +75,29 @@ graph TD
 
 <h2 dir="rtl" align="right">&rlm;📱 بنية حزم عميل Android</h2>
 
-<div dir="rtl" align="right">
-
-| المسار / المكون | الوصف والوظيفة |
-| :--- | :--- |
-| `com.orbiscreen.android/` | الحزمة الأساسية لعميل أندرويد |
-| ├── `MainActivity.kt` | مستضيف Compose، يراقب تدفق سمات `PrefsStore.themePrefFlow` |
-| ├── `data/` | طبقة البيانات والتخزين المحلي |
-| │   └── `PrefsStore.kt` | التفضيلات المشتركة (&rlm;SharedPreferences&rlm;: المضيف الأخير، السمة، مفتاح المسح) |
-| ├── `net/` | طبقة الاتصال الشبكي والاكتشاف التلقائي |
-| │   ├── `DiscoveryService.kt` | غلاف `NsdManager` نحو تدفق `StateFlow<Map<DiscoveredHost>>` |
-| │   ├── `SubnetScanner.kt` | مسح شبكة /24 مع توازي محدد بـ `Semaphore` |
-| │   ├── `HostApi.kt` | عميل `OkHttp` لنقاط `/api/info` و `/api/control` و `/health` |
-| │   ├── `WifiGatewayProvider.kt` | يقرأ بوابة `WifiManager.dhcpInfo.gateway` |
-| │   └── `DiscoveryModel.kt` | التحقق من صحة تعبير `HostSpec` النمطي |
-| ├── `player/` | طبقة تشغيل وفك ترميز الفيديو |
-| │   ├── `PlayerHolder.kt` | مشغل `ExoPlayer` مع `OkHttpDataSource` و `DefaultLoadControl` |
-| │   └── `StreamUrl.kt` | يبني رابط البث `http://host:port/stream?token=...` |
-| ├── `input/` | طبقة إرسال مدخلات اللمس والفأرة والقلم |
-| │   └── `InputDispatcher.kt` | معالج أحداث المؤشر / العجلة / المفاتيح / القلم بإحداثيات مطلقة |
-| └── `ui/` | واجهة المستخدم المبنية بـ &rlm;Material 3 Compose |
-|     ├── `theme/` | ألوان وسمات وخطوط واجهة &rlm;Material 3 (`Color.kt`, `Theme.kt`, `Type.kt`) |
-|     ├── `nav/OrbiNav.kt` | مضيف التنقل `NavHost` (الاستكشاف / البث / الإعدادات) |
-|     ├── `discovery/` | شاشة الاستكشاف ونموذج العرض (`DiscoveryScreen` + `DiscoveryViewModel`) |
-|     ├── `stream/` | شاشة البث وسطح العرض وشريط التحكم (`StreamScreen`, `PlayerSurface`, `ControlToolbar`) |
-|     └── `settings/` | شاشة الإعدادات (السمة، فك الترميز، الماسح، المضيف الأخير) |
-
-</div>
+```
+com.orbiscreen.android/
+├── MainActivity.kt                # مستضيف Compose، يراقب تدفق سمات PrefsStore.themePrefFlow
+├── data/
+│   └── PrefsStore.kt              # SharedPreferences (المضيف الأخير، السمة، مفتاح المسح)
+├── net/
+│   ├── DiscoveryService.kt        # غلاف NsdManager نحو تدفق StateFlow لقائمة المضيفين
+│   ├── SubnetScanner.kt           # مسح شبكة /24 مع توازي محدد بـ Semaphore
+│   ├── HostApi.kt                 # عميل OkHttp لنقاط /api/info و /api/control و /health
+│   ├── WifiGatewayProvider.kt     # يقرأ بوابة WifiManager.dhcpInfo.gateway
+│   └── DiscoveryModel.kt          # التحقق من تعبير HostSpec النمطي
+├── player/
+│   ├── PlayerHolder.kt            # مشغل ExoPlayer مع OkHttpDataSource و DefaultLoadControl
+│   └── StreamUrl.kt               # يبني رابط البث http://host:port/stream?token=...
+├── input/
+│   └── InputDispatcher.kt         # معالج أحداث المؤشر / العجلة / المفاتيح / القلم بإحداثيات مطلقة
+└── ui/
+    ├── theme/                     # ألوان وسمات وخطوط واجهة Material 3 (Color.kt, Theme.kt, Type.kt)
+    ├── nav/OrbiNav.kt             # مضيف التنقل NavHost (الاستكشاف / البث / الإعدادات)
+    ├── discovery/                 # شاشة الاستكشاف ونموذج العرض
+    ├── stream/                    # شاشة البث وسطح العرض وشريط التحكم
+    └── settings/                  # شاشة الإعدادات (السمة، فك الترميز، الماسح، المضيف الأخير)
+```
 
 ---
 
