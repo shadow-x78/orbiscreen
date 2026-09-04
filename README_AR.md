@@ -56,12 +56,14 @@
 ---
 
 <a id="what-is-orbiscreen"></a>
-## 🤔 ما هو Orbiscreen؟
+<h2 dir="rtl" align="right">&rlm;🤔 ما هو Orbiscreen؟</h2>
 
 يحوّل **Orbiscreen** أي جهاز لوحي (تابلت) أو هاتف Android إضافي إلى شاشة عرض ثانية مستقلة وحقيقية لسطح مكتب Linux. يُنشئ التطبيق **شاشة افتراضية على مستوى النواة** عبر مشغّل `evdi`، أو **شاشة افتراضية أصيلة لمدير النوافذ** على KDE Plasma و wlrootsدون الحاجة لصلاحيات root وبدون أي نوافذ تأكيد، ويقوم ببثها بصيغة **MPEG-TS/H.264** مع تحكم لمس عكسي متعدد، وفأرة، ولوحة مفاتيح، وقلم رسم بحساسية ضغط كاملة.
 
 <a id="comparison"></a>
-### 🆚 مقارنة Orbiscreen بالبدائل الأخرى
+<h3 dir="rtl" align="right">&rlm;🆚 مقارنة Orbiscreen بالبدائل الأخرى</h3>
+
+<div align="right">
 
 | **Orbiscreen** | Apple Sidecar | Weylus | Deskreen | Spacedesk | الميزة / الإمكانية |
 | :---: | :---: | :---: | :---: | :---: | ---: |
@@ -75,6 +77,8 @@
 | **✅ تحكم متعدد، فأرة ومفاتيح** | ✅ | ⚠️ (قلم فقط) | ❌ | ✅ | **لمس وفأرة وكيبورد عكسي** |
 | **✅ بلا روت إطلاقاً (KWin / wlroots)** | غير متاح | ❌ | ✅ | غير متاح | **بدون روت (KDE و wlroots)** |
 | **✅ حر ومفتوح المصدر (GPL-3.0)** | ❌ (مغلق كلياً) | ✅ (AGPL-3.0) | ✅ (GPL-3.0) | ❌ (مغلق ومحتكر) | **مفتوح المصدر** |
+
+</div>
 
 ---
 
@@ -108,7 +112,9 @@
 ---
 
 <a id="desktop-support"></a>
-## 🖥️ دعم بيئات سطح المكتب
+<h2 dir="rtl" align="right">&rlm;🖥️ دعم بيئات سطح المكتب</h2>
+
+<div align="right">
 
 | الإدخال | شاشة ثانية افتراضية | الالتقاط | البيئة |
 | :---: | :---: | :---: | ---: |
@@ -117,6 +123,8 @@
 | ✅ تحكم عبر portal RemoteDesktop (بتوكن دائم) | ⚠️ شاشة افتراضية عبر EVDI | ✅ التقاط عبر portal (حوار لمرة واحدة فقط) | GNOME (Wayland) |
 | ✅ تحكم عبر XTEST و uinput (بدون root) | ✅ شاشة افتراضية عبر EVDI | ✅ التقاط عبر XShm للشاشة الجذرية | XFCE / MATE / LXQt / Cinnamon (X11) |
 | أفضل واجهة متاحة | ✅ عبر EVDI (تثبيت تلقائي عبر doctor --fix) | أفضل واجهة متاحة | أي بيئة أخرى |
+
+</div>
 
 يطبع `orbiscreen doctor` الـ compositor المكتشف وخطة الالتقاط التي سيتبعها `auto` وما الناقص في النظام؛ وينفّذ `orbiscreen doctor --fix` تثبيت وحدة نواة EVDI على التوزيعات المكتشفة. التفاصيل الكاملة في [دليل دعم بيئات سطح المكتب](docs/DE_SUPPORT_AR.md).
 
@@ -258,7 +266,7 @@ orbiscreen/
 ---
 
 <a id="faq"></a>
-## ❓ الأسئلة الشائعة (FAQ)
+<h2 dir="rtl" align="right">&rlm;❓ الأسئلة الشائعة (FAQ)</h2>
 
 <details>
 <summary><b>هل يمكنني استخدام التابلت كشاشة ثانية ممتدة وليس مجرد تكرار (Mirror)؟</b></summary>
@@ -299,7 +307,9 @@ orbiscreen/
 ---
 
 <a id="documentation"></a>
-## 📚 التوثيق المكتبي
+<h2 dir="rtl" align="right">&rlm;📚 التوثيق المكتبي</h2>
+
+<div align="right">
 
 | الوصف | الوثيقة |
 | :--- | ---: |
@@ -308,6 +318,8 @@ orbiscreen/
 | مواصفات التغليف متعدد التوزيعات (.deb و .rpm و AppImage) | [PACKAGING_AR.md](docs/PACKAGING_AR.md) |
 | مواصفات واجهة D-Bus Session Bus | [DBUS_SPEC_AR.md](docs/DBUS_SPEC_AR.md) |
 | المشاكل الشائعة والتشخيص وإصلاحات التسريع العتادي | [TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) |
+
+</div>
 
 ---
 
