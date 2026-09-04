@@ -63,20 +63,20 @@
 <a id="comparison"></a>
 <h3 dir="rtl" align="right">&rlm;🆚 مقارنة Orbiscreen بالبدائل الأخرى</h3>
 
-<div align="right">
+<div dir="rtl" align="right">
 
-| **Orbiscreen** | Apple Sidecar | Weylus | Deskreen | Spacedesk | الميزة / الإمكانية |
-| :---: | :---: | :---: | :---: | :---: | ---: |
-| **✅ مبني لنظام Linux أولاً** | ❌ (macOS فقط) | ✅ (عبر المتصفح) | ✅ (عبر المتصفح) | ❌ (ويندوز فقط) | **دعم نظام Linux كمستضيف** |
-| **✅ أصيل على Wayland و X11** | ❌ | ⚠️ (شاشة مكررة فقط) | ⚠️ (يتطلب Dummy Plug) | ❌ | **دعم Wayland و X11** |
-| **✅ شاشة افتراضية حقيقية ومستقلة** | ✅ (أجهزة Apple فقط) | ❌ (تكرار الشاشة فقط) | ❌ (يحتاج وصلة وهمية) | ✅ (ويندوز فقط) | **شاشة ثانية ممتدة حقيقية** |
-| **✅ تطبيق أصلي (Jetpack Compose)** | ❌ (أجهزة iPad فقط) | ❌ (متصفح ويب فقط) | ❌ (متصفح ويب فقط) | ✅ | **تطبيق أندرويد أصلي** |
-| **✅ تسريع عتادي NVENC و VA-API** | ✅ | ⚠️ | ❌ | ✅ | **ترميز عتادي سريع** |
-| **⚡ ~25-40ms** | ~30ms | ~80-120ms | ~150-300ms | ~50-80ms | **زمن استجابة فائق السرعة** |
-| **✅ 4095 مستوى (Krita و GIMP)** | ✅ | ⚠️ (للقلم فقط) | ❌ | ❌ | **حساسية ضغط وميلان القلم** |
-| **✅ تحكم متعدد، فأرة ومفاتيح** | ✅ | ⚠️ (قلم فقط) | ❌ | ✅ | **لمس وفأرة وكيبورد عكسي** |
-| **✅ بلا روت إطلاقاً (KWin / wlroots)** | غير متاح | ❌ | ✅ | غير متاح | **بدون روت (KDE و wlroots)** |
-| **✅ حر ومفتوح المصدر (GPL-3.0)** | ❌ (مغلق كلياً) | ✅ (AGPL-3.0) | ✅ (GPL-3.0) | ❌ (مغلق ومحتكر) | **مفتوح المصدر** |
+| الميزة / الإمكانية | Spacedesk | Deskreen | Weylus | Apple Sidecar | **Orbiscreen** |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **دعم نظام Linux كمستضيف** | ❌ (ويندوز فقط) | ✅ (عبر المتصفح) | ✅ (عبر المتصفح) | ❌ (macOS فقط) | **✅ مبني لنظام Linux أولاً** |
+| **دعم Wayland و X11** | ❌ | ⚠️ (يتطلب Dummy Plug) | ⚠️ (شاشة مكررة فقط) | ❌ | **✅ أصيل على Wayland و X11** |
+| **شاشة ثانية ممتدة حقيقية** | ✅ (ويندوز فقط) | ❌ (يحتاج وصلة وهمية) | ❌ (تكرار الشاشة فقط) | ✅ (أجهزة Apple فقط) | **✅ شاشة افتراضية حقيقية ومستقلة** |
+| **تطبيق أندرويد أصلي** | ✅ | ❌ (متصفح ويب فقط) | ❌ (متصفح ويب فقط) | ❌ (أجهزة iPad فقط) | **✅ تطبيق أصلي (Jetpack Compose)** |
+| **ترميز عتادي سريع** | ✅ | ❌ | ⚠️ | ✅ | **✅ تسريع عتادي NVENC و VA-API** |
+| **زمن استجابة فائق السرعة** | ~50-80ms | ~150-300ms | ~80-120ms | ~30ms | **⚡ ~25-40ms** |
+| **حساسية ضغط وميلان القلم** | ❌ | ❌ | ⚠️ (للقلم فقط) | ✅ | **✅ 4095 مستوى (Krita و GIMP)** |
+| **لمس وفأرة وكيبورد عكسي** | ✅ | ❌ | ⚠️ (قلم فقط) | ✅ | **✅ تحكم متعدد، فأرة ومفاتيح** |
+| **بدون روت (KDE و wlroots)** | غير متاح | ✅ | ❌ | غير متاح | **✅ بلا روت إطلاقاً (KWin / wlroots)** |
+| **مفتوح المصدر** | ❌ (مغلق ومحتكر) | ✅ (GPL-3.0) | ✅ (AGPL-3.0) | ❌ (مغلق كلياً) | **✅ حر ومفتوح المصدر (GPL-3.0)** |
 
 </div>
 
@@ -114,15 +114,15 @@
 <a id="desktop-support"></a>
 <h2 dir="rtl" align="right">&rlm;🖥️ دعم بيئات سطح المكتب</h2>
 
-<div align="right">
+<div dir="rtl" align="right">
 
-| الإدخال | شاشة ثانية افتراضية | الالتقاط | البيئة |
-| :---: | :---: | :---: | ---: |
-| ✅ تحكم عبر uinput و portal RemoteDesktop | ✅ أصلي عبر zkde-screencast (بدون root) | ✅ التقاط عبر PipeWire | KDE Plasma (Wayland) |
-| ✅ تحكم عبر virtual-pointer و virtual-keyboard (بدون portal) | ✅ مخرج headless أصيل عبر IPC (بدون root) | ✅ التقاط عبر wlr-screencopy (بدون حوار) | Sway / Hyprland / wlroots |
-| ✅ تحكم عبر portal RemoteDesktop (بتوكن دائم) | ⚠️ شاشة افتراضية عبر EVDI | ✅ التقاط عبر portal (حوار لمرة واحدة فقط) | GNOME (Wayland) |
-| ✅ تحكم عبر XTEST و uinput (بدون root) | ✅ شاشة افتراضية عبر EVDI | ✅ التقاط عبر XShm للشاشة الجذرية | XFCE / MATE / LXQt / Cinnamon (X11) |
-| أفضل واجهة متاحة | ✅ عبر EVDI (تثبيت تلقائي عبر doctor --fix) | أفضل واجهة متاحة | أي بيئة أخرى |
+| البيئة | شاشة ثانية افتراضية | الالتقاط | الإدخال |
+| :--- | :---: | :---: | :---: |
+| KDE Plasma (Wayland) | ✅ أصلي عبر zkde-screencast (بدون root) | ✅ التقاط عبر PipeWire | ✅ تحكم عبر uinput و portal RemoteDesktop |
+| Sway / Hyprland / wlroots | ✅ مخرج headless أصيل عبر IPC (بدون root) | ✅ التقاط عبر wlr-screencopy (بدون حوار) | ✅ تحكم عبر virtual-pointer و virtual-keyboard (بدون portal) |
+| GNOME (Wayland) | ⚠️ شاشة افتراضية عبر EVDI | ✅ التقاط عبر portal (حوار لمرة واحدة فقط) | ✅ تحكم عبر portal RemoteDesktop (بتوكن دائم) |
+| XFCE / MATE / LXQt / Cinnamon (X11) | ✅ شاشة افتراضية عبر EVDI | ✅ التقاط عبر XShm للشاشة الجذرية | ✅ تحكم عبر XTEST و uinput (بدون root) |
+| أي بيئة أخرى | ✅ عبر EVDI (تثبيت تلقائي عبر doctor --fix) | أفضل واجهة متاحة | أفضل واجهة متاحة |
 
 </div>
 
@@ -309,15 +309,15 @@ orbiscreen/
 <a id="documentation"></a>
 <h2 dir="rtl" align="right">&rlm;📚 التوثيق المكتبي</h2>
 
-<div align="right">
+<div dir="rtl" align="right">
 
-| الوصف | الوثيقة |
-| :--- | ---: |
-| طوبولوجيا النظام وخط أنابيب الإطارات وبنية D-Bus | [ARCHITECTURE_AR.md](docs/ARCHITECTURE_AR.md) |
-| مصفوفة دعم بيئات سطح المكتب وخطط الالتقاط واستكشاف الأخطاء | [DE_SUPPORT_AR.md](docs/DE_SUPPORT_AR.md) |
-| مواصفات التغليف متعدد التوزيعات (.deb و .rpm و AppImage) | [PACKAGING_AR.md](docs/PACKAGING_AR.md) |
-| مواصفات واجهة D-Bus Session Bus | [DBUS_SPEC_AR.md](docs/DBUS_SPEC_AR.md) |
-| المشاكل الشائعة والتشخيص وإصلاحات التسريع العتادي | [TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) |
+| الوثيقة | الوصف |
+| :--- | :--- |
+| [ARCHITECTURE_AR.md](docs/ARCHITECTURE_AR.md) | طوبولوجيا النظام وخط أنابيب الإطارات وبنية D-Bus |
+| [DE_SUPPORT_AR.md](docs/DE_SUPPORT_AR.md) | مصفوفة دعم بيئات سطح المكتب وخطط الالتقاط واستكشاف الأخطاء |
+| [PACKAGING_AR.md](docs/PACKAGING_AR.md) | مواصفات التغليف متعدد التوزيعات (.deb و .rpm و AppImage) |
+| [DBUS_SPEC_AR.md](docs/DBUS_SPEC_AR.md) | مواصفات واجهة D-Bus Session Bus |
+| [TROUBLESHOOTING_AR.md](docs/TROUBLESHOOTING_AR.md) | المشاكل الشائعة والتشخيص وإصلاحات التسريع العتادي |
 
 </div>
 
