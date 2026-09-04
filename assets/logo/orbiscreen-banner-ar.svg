@@ -8,7 +8,7 @@
     </linearGradient>
 
     <!-- Crisp Brand Gradients -->
-    <linearGradient id="brandBlue" x1="100%" y1="0%" x2="0%" y2="100%">
+    <linearGradient id="brandBlue" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#89b4fa"/>
       <stop offset="100%" stop-color="#74c7ec"/>
     </linearGradient>
@@ -32,12 +32,12 @@
   <!-- Clean Border Outline -->
   <rect width="1278" height="398" x="1" y="1" rx="15" fill="none" stroke="url(#borderGradient)" stroke-width="1"/>
 
-  <!-- Right: Brand Logo Group (RTL mirrored position) -->
+  <!-- Right: Brand Logo Group (Identical real logo, dot on bottom-right at cx=190 cy=190) -->
   <g transform="translate(930, 75)">
     <circle cx="125" cy="125" r="118" fill="none" stroke="#89b4fa" stroke-width="1" opacity="0.15" stroke-dasharray="6 6"/>
     <circle cx="125" cy="125" r="92" fill="none" stroke="url(#brandBlue)" stroke-width="28"/>
-    <circle cx="60" cy="190" r="34" fill="url(#brandBlue)"/>
-    <circle cx="60" cy="190" r="34" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.4"/>
+    <circle cx="190" cy="190" r="34" fill="url(#brandBlue)"/>
+    <circle cx="190" cy="190" r="34" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.4"/>
   </g>
 
   <!-- Left: Title, Subtitle, and Feature Pills -->
