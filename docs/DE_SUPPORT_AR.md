@@ -96,7 +96,7 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
 - **الشاشة الافتراضية:**
   - **مخرج افتراضي عبر Portal (GNOME 46+):** يطلب Orbiscreen نوع `SourceType::Virtual` عبر `ashpd::desktop::screencast`. عند دعم Mutter لها، تُنشأ شاشة افتراضية مستقلة فورياً بلا حاجة لصلاحيات root أو وحدات نواة أو تعديل إعدادات مدير العرض.
   - **التراجع إلى EVDI (ما قبل GNOME 46 أو الأنظمة غير المتوافقة):** مشغل DRM افتراضي على مستوى النواة (يساعدك أمر `orbiscreen doctor --fix` في إعداده).
-- **الالتقاط:** portal ScreenCast (عبر PipeWire). منذ v0.13.0 **يُحفظ إذن** المشاركة (restore token في `$XDG_STATE_HOME/orbiscreen/portal.json`): تظهر نافذة المشاركة في أول تشغيل فقط، ولا تظهر مجدداً (إلا إذا أُلغي الإذن).
+- **الالتقاط:** portal ScreenCast (عبر PipeWire). **يُحفظ تصريح** المشاركة تلقائياً (restore token في `$XDG_STATE_HOME/orbiscreen/portal.json`): تظهر نافذة المشاركة في أول تشغيل فقط، ولا تظهر مجدداً (إلا إذا أُلغي الإذن).
 - **الإدخال:** portal RemoteDesktop، ويُحفظ بالمثل.
 - **حلول الأعطال:**
   - يظهر الحوار في كل تشغيل -> الـ backend لا يحترم restore tokens، أو حُذف ملف الحالة. يطبع `doctor`: ‏`screencast grant saved: yes/no`.

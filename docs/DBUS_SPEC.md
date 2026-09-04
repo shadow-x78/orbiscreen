@@ -17,14 +17,14 @@
 
 ---
 
-Orbiscreen exposes a D-Bus Session Service interface allowing desktop control panels CLI scripts, and system tray indicators to inspect live status and control the daemon process. The implementation lives in `crates/orbiscreen-daemon/src/dbus.rs` - this spec documents exactly what that code exposes.
+Orbiscreen exposes a D-Bus Session Service interface allowing desktop control panels, CLI scripts, and system tray indicators to inspect live status and control the daemon process. The implementation is located in `crates/orbiscreen-daemon/src/dbus.rs`.
 
-- **Bus Type:** Session Bus (the *user* bus, not the system bus)
+- **Bus Type:** Session Bus (user bus)
 - **Service Name:** `com.orbiscreen.Daemon`
 - **Object Path:** `/com/orbiscreen/Daemon`
 - **Interface Name:** `com.orbiscreen.Daemon`
 
-The service is registered by a *running* daemon process. If the service name is absent (`ServiceUnknown`), the daemon is simply not running - there is no activation/D-Bus start.
+The service is registered by the running daemon process. If the service name is absent (`ServiceUnknown`), the daemon is not running.
 
 ---
 
@@ -94,7 +94,7 @@ The daemon cannot be started over D-Bus: there is no interface activation, and n
 
 ### 3. `ListClients() -> Array of String` (signature `as`)
 
-Live client counts for the single stream transport (previously it returned hard-coded strings):
+Live client connection counts for the stream transport:
 
 ```json
 ["HTTP MPEG-TS /stream: 2 active client(s), 5 total connection(s)"]

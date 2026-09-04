@@ -90,7 +90,7 @@ Diff in /path/to/file.rs:
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.10.3 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.20.0 | style: cargo fmt --all"
 ```
 
 **الوقاية:**
@@ -115,7 +115,7 @@ error: this operation is not supported for derived errors
 cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
 cargo clippy --workspace --all-targets --locked --fix
 git add -A
-git commit -m "orbiscreen | v0.10.3 | fix: resolve clippy warnings"
+git commit -m "orbiscreen | v0.20.0 | fix: resolve clippy warnings"
 ```
 
 **الوقاية:**
@@ -136,7 +136,7 @@ error[E0463]: can't find crate for `gstreamer`
 cargo update -p gstreamer
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.10.3 | chore: refresh Cargo.lock"
+git commit -m "orbiscreen | v0.20.0 | chore: refresh Cargo.lock"
 ```
 
 ---
@@ -288,12 +288,12 @@ Error: evdi kernel module is not installed
 **العرَض:**
 النقر على مضيف في شاشة Discovery يقتل فوراً عملية التطبيق أو يعيده إلى المشغّل (launcher).
 
-**السبب (أُصلح في v0.10.3):**
-كانت `PlayerHolder.build()` تُنفَّذ داخل `withContext(Dispatchers.IO)`. يتطلب ExoPlayer الإنشاء على الخيط الرئيسي؛ وإنشاء مكوّنات المشغّل على خيوط IO يرمي استثناءات وصول خيطي تُنهي العملية.
+**السبب:**
+يجب إنشاء `PlayerHolder.build()` على الخيط الرئيسي. يتطلب ExoPlayer الإنشاء على الخيط الرئيسي؛ وإنشاء مكوّنات المشغّل على خيوط IO يرمي استثناءات وصول خيطي تنهي العملية.
 
 **الإصلاح:**
-- حدّث إلى `orbiscreen-android-release.apk` الإصدار **v0.10.3** أو أحدث.
-- ينقل `StreamViewModel` إنشاء ExoPlayer إلى `withContext(Dispatchers.Main)` ويحصّن `build()` بكتلة try-catch بحيث تظهر أخطاء البناء كبطاقات `StreamEvent.Error` قابلة لإعادة المحاولة بدل الانهيار.
+- حدّث إلى `orbiscreen-android-release.apk` الإصدار **v0.20.0** أو أحدث.
+- ينشئ `StreamViewModel` مشغّل ExoPlayer على `Dispatchers.Main` مع تحصين عبر try-catch لتظهر الأخطاء كبطاقة `StreamEvent.Error` قابلة لإعادة المحاولة بدل الانهيار.
 
 ---
 
@@ -303,13 +303,13 @@ Error: evdi kernel module is not installed
 **العرَض:**
 النقر على مضيف مكتشف يعرض سطحاً أسود؛ لا فيديو؛ ولا يظهر شريط التحكم.
 
-**السبب (أُصلح في v0.10.3):**
-اعتمد العميل قبل v0.10.3 على MIME sniffing في ExoPlayer لاستجابة `/stream` وكان يتراجع إلى سطح أسود عند فشل اكتشاف MPEG-TS.
+**السبب:**
+محاولة ExoPlayer التعرف التلقائي على نوع الوسائط (MIME sniffing) لمسار `/stream` والتراجع لسطح أسود عند تعذر الكشف التلقائي.
 
 **الإصلاح:**
-- حدّث إلى `orbiscreen-android-release.apk` الإصدار **v0.10.3** أو أحدث.
-- يبني `PlayerHolder` الجديد كائن `MediaItem` مع `setMimeType(MimeTypes.VIDEO_MP2T)` ويفرض رابطاً بلاحقة `.ts`، حتى يُفك ترميز البث دون sniffing.
-- تظهر الأخطاء كبطاقة إعادة محاولة بدل السطح الأسود.
+- حدّث إلى `orbiscreen-android-release.apk` الإصدار **v0.20.0** أو أحدث.
+- يقوم `PlayerHolder` بضبط `MediaItem` بنوع صريح `setMimeType(MimeTypes.VIDEO_MP2T)` لفك ترميز البث مباشرة دون الحاجة للتعرف التلقائي.
+- تظهر الأخطاء كبطاقة إعادة محاولة واضحة بدل السطح الأسود.
 
 إذا استمرت المشكلة بعد التحديث:
 1. تأكد من إمكانية الوصول إلى المضيف عبر `curl http://host:8788/health` من نفس شبكة Wi-Fi.
@@ -322,11 +322,11 @@ Error: evdi kernel module is not installed
 ### Android: قائمة الاكتشاف فارغة رغم وجود مضيفين على نفس شبكة Wi-Fi
 
 **السبب:**
-بروتوكول mDNS محظور على الشبكة (Wi-Fi شركات، مرشّح Apple Bonjour، إلخ).
+بروتوكول mDNS محظور على الشبكة (شبكات العمل المقيدة، جدار الحماية، إلخ).
 
 **الإصلاح:**
 1. افتح بطاقة **Add manually** وأدخل `host:port` (مثال `192.168.1.50:8788`).
-2. اختياري: فعّل مفتاح **Scan subnet for hosts** في **Settings**. يفحص الماسح شبكة ‎/24 حول البوابة الحالية عبر TCP ويضيف أي مضيف يستجيب على المنفذ 8788.
+2. اختياري: فعّل خيار **Scan subnet for hosts** في **Settings**. يفحص الماسح نطاق ‎/24 عبر TCP ويضيف أي جهاز يستجيب على المنفذ 8788.
 
 ---
 
@@ -334,10 +334,10 @@ Error: evdi kernel module is not installed
 ### Android: اللمس مُدوَّر / غير محاذٍ
 
 **السبب:**
-يعتمد تعيين المؤشر إلى المضيف على دقة الشاشة المُبلَّغ عنها من `/api/info`. إذا كان المضيف مُدوَّراً (مثلاً شاشة افتراضية عمودية) لكن JSON ما زال يبلّغ عن اتجاه أفقي، سيكون التعيين خاطئاً.
+يعتمد تعيين المؤشر إلى المضيف على دقة الشاشة المُبلَّغ عنها من `/api/info`. إذا كان المضيف مُدوَّراً (مثلاً شاشة افتراضية عمودية) لكن JSON ما زال يبلّغ عن اتجاه أفقي، فسيكون التعيين غير متطابق.
 
 **الإصلاح:**
-دوّر المضيف بدلاً من شاشة Android. يطبّق `PlayerView` letterboxing تلقائياً للحفاظ على نسبة العرض إلى الارتفاع المُبلَّغ عنها من المضيف.
+دوّر المضيف بدلاً من شاشة Android. يطبّق `PlayerView` ضبط النطاق تلقائياً للحفاظ على نسبة العرض إلى الارتفاع المحددة.
 
 ---
 
@@ -345,13 +345,13 @@ Error: evdi kernel module is not installed
 ### Android: إجراءات شريط التحكم تُرجع 404
 
 **السبب:**
-المضيف يشغّل daemon أقدم لا يطبّق `/api/control`.
+المضيف يشغّل إصداراً أقدم من الخدمة لا يدعم نقطة `/api/control`.
 
 **الإصلاح:**
-أعد تشغيل الـ daemon على المضيف لالتقاط ثنائي النقل بإصدار v0.10.3. من المضيف:
+أعد تشغيل الخدمة على المضيف:
 ```bash
 orbiscreen stop
-sudo orbiscreen start
+orbiscreen start
 ```
 
 ---
@@ -362,11 +362,11 @@ sudo orbiscreen start
 **العرَض:**
 تفتح تطبيق Orbiscreen على Android فيتعطل فوراً ويعود إلى الشاشة الرئيسية.
 
-**السبب (أُصلح في v0.7.1):**
-ملف `index.html` معطوب (وجود `-->` زائد) أسقط WebView.
+**السبب:**
+مشاكل سابقة متعلقة بـ WebView في الإصدارات القديمة.
 
 **الإصلاح:**
-يستخدم v0.10.3 Compose + `PlayerView` حصراً - لا يوجد WebView. إذا استمر تعطل APK الجديد، التقط logcat عبر `adb logcat *:E | grep orbiscreen` وافتح issue.
+يعتمد تطبيق Orbiscreen على Jetpack Compose + `PlayerView` أصيلاً دون WebView. تأكد من تثبيت `orbiscreen-android-release.apk` الإصدار **v0.20.0** أو أحدث. إذا واجهت أي مشكلة، التقط السجل عبر `adb logcat *:E | grep orbiscreen` وافتح بلاغاً في GitHub.
 
 ---
 
@@ -562,11 +562,11 @@ gst-inspect-1.0 x264enc
 <a id="daemon-cpu"></a>
 ## 🚀 الـ Daemon: استهلاك 100% للمعالج أو تجمّد
 
-**السبب (أُصلح في v0.7.2):**
-كانت حلقة الالتقاط تعمل دون إخلاء للمعالج (yielding).
+**السبب:**
+كانت حلقة الالتقاط تعمل دون إخلاء للمعالج أو تراكم غير محدود في الطابور.
 
 **الإصلاح:**
-حدّث إلى v0.10.3 (مساحة العمل).
+حدّث إلى الإصدار الأخير (v0.20.0 أو أحدث).
 
 ---
 

@@ -7,7 +7,7 @@
 Name:           orbiscreen
 Version:        0.20.0
 Release:        1%{?dist}
-Summary:        Turn any Android tablet or phone into a low-latency second monitor for Linux
+Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
 License:        GPL-3.0-or-later
 URL:            https://github.com/shadow-x78/orbiscreen
@@ -31,11 +31,10 @@ Recommends:     android-tools
 
 %description
 Orbiscreen turns Android tablets and phones into high-performance
-extended monitors for Linux desktops on Wayland and X11. Features native
-graphic tablet digitizer with stylus pressure and tilt for Krita/GIMP,
-auto-rotating display orientation, rootless KWin/wlroots virtual displays,
-hardware encoding (NVENC/VAAPI), reverse multi-touch and mouse control,
-and USB ADB tunneling.
+extended monitors for Linux desktops (Wayland and X11). Features include
+virtual display backends (KWin, wlroots, EVDI), low-latency hardware
+encoding (NVENC, VAAPI), stylus digitizer support with pressure and tilt,
+touch and mouse control, and Wi-Fi or USB tunneling.
 
 %prep
 %autosetup -n orbiscreen-%{version} -p1 -a1

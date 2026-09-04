@@ -1,6 +1,148 @@
 // Orbiscreen - app.js (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
+const I18N = {
+    en: {
+        btnInputMode: "Toggle Input Mode",
+        btnKeyboard: "Virtual Keyboard",
+        btnLock: "Lock Session",
+        btnSettings: "Display & Stats",
+        btnHideControls: "Hide Toolbar",
+        btnFullscreen: "Toggle Fullscreen",
+        btnDisconnect: "Disconnect",
+        btnRestoreToolbar: "Restore Toolbar",
+        btnCloseKeyboard: "Close Keyboard",
+        settingsTitle: "Display Settings",
+        language: "Language",
+        fitMode: "Screen Fit Mode",
+        fitContain: "Fit to Screen",
+        fitCover: "Fill (Stretch)",
+        fitNone: "100% Original",
+        perfStats: "Performance Stats",
+        latency: "Latency",
+        resolution: "Resolution",
+        encoder: "Encoder",
+        hostActions: "Host Actions",
+        actionBlank: "Toggle Display Power",
+        actionResync: "Resync Stream",
+        actionTurnOn: "Turn Screen On",
+        actionTurnOff: "Turn Screen Off",
+        statusConnecting: "Connecting",
+        statusConnectingSub: "Connecting to Linux virtual display...",
+        statusConnected: "Connected",
+        statusDisconnected: "Disconnected",
+        statusStreamError: "Stream Error",
+        statusStreamErrorSub: "Connection lost. Reconnecting...",
+        statusAuthFailed: "Authentication Required",
+        statusAuthFailedSub: "Enter session access token to connect.",
+        tokenPlaceholder: "Session access token...",
+        btnConnect: "Connect",
+        btnReconnect: "Reconnect",
+        vncActive: "Control Active · Press <kbd>Esc</kbd> to release cursor",
+        cursorReleased: "Cursor released",
+        modeTouch: "Mode: Touch",
+        modeTouchpad: "Mode: Touchpad",
+        controlsHidden: "Toolbar hidden",
+        toastLocked: "Session locked",
+        toastLockSent: "Lock command sent",
+        toastBlanked: "Display blanked",
+        toastUnblanked: "Display active",
+        toastCadSent: "Ctrl+Alt+Del sent",
+        toastResynced: "Stream resynced",
+        toastDisconnected: "Disconnected"
+    },
+    ar: {
+        btnInputMode: "تبديل نمط الإدخال",
+        btnKeyboard: "لوحة المفاتيح",
+        btnLock: "قفل الجلسة",
+        btnSettings: "إعدادات العرض والإحصائيات",
+        btnHideControls: "إخفاء شريط الأدوات",
+        btnFullscreen: "ملء الشاشة",
+        btnDisconnect: "قطع الاتصال",
+        btnRestoreToolbar: "استعادة شريط الأدوات",
+        btnCloseKeyboard: "إغلاق لوحة المفاتيح",
+        settingsTitle: "إعدادات العرض",
+        language: "اللغة",
+        fitMode: "نمط تحجيم الشاشة",
+        fitContain: "ملاءمة الشاشة",
+        fitCover: "ملء الشاشة",
+        fitNone: "الحجم الأصلي 100%",
+        perfStats: "إحصائيات الأداء",
+        latency: "زمن الاستجابة",
+        resolution: "الدقة",
+        encoder: "المُرَمِّز",
+        hostActions: "إجراءات المضيف",
+        actionBlank: "تعتيم الشاشة",
+        actionResync: "إعادة مزامنة البث",
+        actionTurnOn: "تشغيل الشاشة",
+        actionTurnOff: "تعتيم الشاشة",
+        statusConnecting: "جارٍ الاتصال",
+        statusConnectingSub: "جارٍ الاتصال بالشاشة الافتراضية...",
+        statusConnected: "متصل",
+        statusDisconnected: "تم قطع الاتصال",
+        statusStreamError: "خطأ في البث",
+        statusStreamErrorSub: "انقطع البث، جارٍ محاولة الاستعادة...",
+        statusAuthFailed: "المصادقة مطلوبة",
+        statusAuthFailedSub: "أدخل توكن الجلسة للاتصال.",
+        tokenPlaceholder: "توكن الجلسة...",
+        btnConnect: "اتصال",
+        btnReconnect: "إعادة الاتصال",
+        vncActive: "التحكم نشط · اضغط <kbd>Esc</kbd> لتحرير المؤشر",
+        cursorReleased: "تم تحرير المؤشر",
+        modeTouch: "النمط: لمس",
+        modeTouchpad: "النمط: لوحة اللمس",
+        controlsHidden: "تم إخفاء شريط الأدوات",
+        toastLocked: "تم قفل الجلسة",
+        toastLockSent: "تم إرسال أمر القفل",
+        toastBlanked: "تم تعتيم الشاشة",
+        toastUnblanked: "الشاشة نشطة",
+        toastCadSent: "تم إرسال Ctrl+Alt+Del",
+        toastResynced: "تمت إعادة المزامنة",
+        toastDisconnected: "تم قطع الاتصال"
+    }
+};
+
+let currentLang = localStorage.getItem("orbiscreen_lang") || (navigator.language && navigator.language.startsWith("ar") ? "ar" : "en");
+
+function t(key) {
+    const dict = I18N[currentLang] || I18N.en;
+    return dict[key] || I18N.en[key] || key;
+}
+
+function applyTranslations() {
+    document.documentElement.lang = currentLang;
+    document.documentElement.dir = currentLang === "ar" ? "rtl" : "ltr";
+
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const k = el.getAttribute("data-i18n");
+        if (k && t(k)) el.textContent = t(k);
+    });
+    document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+        const k = el.getAttribute("data-i18n-title");
+        if (k && t(k)) el.title = t(k);
+    });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        const k = el.getAttribute("data-i18n-placeholder");
+        if (k && t(k)) el.placeholder = t(k);
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+        const k = el.getAttribute("data-i18n-html");
+        if (k && t(k)) el.innerHTML = t(k);
+    });
+
+    const btnEn = document.getElementById("btnLangEn");
+    const btnAr = document.getElementById("btnLangAr");
+    if (btnEn) btnEn.classList.toggle("active", currentLang === "en");
+    if (btnAr) btnAr.classList.toggle("active", currentLang === "ar");
+}
+
+function setLanguage(lang) {
+    if (!I18N[lang]) return;
+    currentLang = lang;
+    localStorage.setItem("orbiscreen_lang", lang);
+    applyTranslations();
+}
+
 const statusTitle = document.getElementById("statusTitle");
 const statusSubtitle = document.getElementById("statusSubtitle");
 const overlayEl = document.getElementById("overlay");
@@ -275,11 +417,11 @@ if (btnInputMode) {
         if (isTouchMode) {
             iconMouse.classList.add("hidden");
             iconTouch.classList.remove("hidden");
-            showToast("Mode: Touch");
+            showToast(t("modeTouch"));
         } else {
             iconMouse.classList.remove("hidden");
             iconTouch.classList.add("hidden");
-            showToast("Mode: Trackpad");
+            showToast(t("modeTouchpad"));
         }
     });
 }
@@ -344,7 +486,7 @@ if (btnHideControls) {
         e.stopPropagation();
         controlToolbar.classList.add("hidden");
         miniPill.classList.remove("hidden");
-        showToast("Controls hidden", 1800);
+        showToast(t("controlsHidden"), 1800);
     });
 }
 
@@ -383,11 +525,26 @@ async function sendHostAction(action, extra = {}) {
     }
 }
 
+const btnLangEn = document.getElementById("btnLangEn");
+const btnLangAr = document.getElementById("btnLangAr");
+if (btnLangEn) {
+    btnLangEn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setLanguage("en");
+    });
+}
+if (btnLangAr) {
+    btnLangAr.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setLanguage("ar");
+    });
+}
+
 if (btnLock) {
     btnLock.addEventListener("click", async (e) => {
         e.stopPropagation();
         const ok = await sendHostAction("lock");
-        showToast(ok ? "Linux session locked" : "Lock command sent");
+        showToast(ok ? t("toastLocked") : t("toastLockSent"));
     });
 }
 
@@ -396,8 +553,8 @@ if (btnActionBlank) {
         e.stopPropagation();
         isDpmsOff = !isDpmsOff;
         await sendHostAction(isDpmsOff ? "blank" : "unblank");
-        btnActionBlank.textContent = isDpmsOff ? "Turn Screen On" : "Turn Screen Off";
-        showToast(isDpmsOff ? "Virtual display blanked" : "Virtual display active");
+        btnActionBlank.textContent = isDpmsOff ? t("actionTurnOn") : t("actionTurnOff");
+        showToast(isDpmsOff ? t("toastBlanked") : t("toastUnblanked"));
     });
 }
 
@@ -405,7 +562,7 @@ if (btnSendCad) {
     btnSendCad.addEventListener("click", async (e) => {
         e.stopPropagation();
         await sendHostAction("ctrl_alt_del");
-        showToast("Ctrl+Alt+Del sent");
+        showToast(t("toastCadSent"));
     });
 }
 
@@ -414,7 +571,7 @@ if (btnActionResync) {
         e.stopPropagation();
         settingsModal.classList.add("hidden");
         startStream();
-        showToast("Stream resynced");
+        showToast(t("toastResynced"));
     });
 }
 
@@ -422,15 +579,15 @@ if (btnDisconnect) {
     btnDisconnect.addEventListener("click", (e) => {
         e.stopPropagation();
         destroyPlayer();
-        setOverlayState("disconnected", "Disconnected", "Stream terminated");
-        showToast("Disconnected");
+        setOverlayState("disconnected", t("statusDisconnected"), t("statusDisconnected"));
+        showToast(t("toastDisconnected"));
     });
 }
 
 if (btnReconnect) {
     btnReconnect.addEventListener("click", (e) => {
         e.stopPropagation();
-        setOverlayState("connecting", "Connecting", "Connecting to Linux virtual display…");
+        setOverlayState("connecting", t("statusConnecting"), t("statusConnectingSub"));
         startStream();
     });
 }
@@ -881,6 +1038,7 @@ function startStream() {
 }
 
 async function start() {
+    applyTranslations();
     const info = await fetchClientConfig();
     if (info) {
         if (!authToken && typeof info.token === "string" && info.token.length > 0) {

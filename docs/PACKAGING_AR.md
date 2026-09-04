@@ -141,9 +141,9 @@ rpm -K orbiscreen_x86_64.rpm
 
 ## 🚀 مصفوفة إصدارات GitHub Actions
 
-عند دفع وسم إصدار (مثلاً `git tag v0.17.4 && git push origin v0.17.4`)، يبني سير العمل `.github/workflows/release.yml` تلقائياً جميع حزم الإصدار ويرفقها بصفحة GitHub Releases.
+عند دفع وسم إصدار (مثلاً `git tag v0.20.0 && git push origin v0.20.0`)، يبني سير العمل `.github/workflows/release.yml` تلقائياً جميع حزم الإصدار ويرفقها بصفحة GitHub Releases.
 
-يُولَّد محتوى `body` للإصدار من كتلة `## [v0.17.4]` في `CHANGELOG.md`.
+يُولَّد محتوى `body` للإصدار من كتلة `## [v0.20.0]` في `CHANGELOG.md`.
 
 ---
 

@@ -90,7 +90,7 @@ Rust source files don't match `cargo fmt`'s formatting.
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.10.3 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.20.0 | style: cargo fmt --all"
 ```
 
 **Prevention:**
@@ -115,7 +115,7 @@ error: this operation is not supported for derived errors
 cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
 cargo clippy --workspace --all-targets --locked --fix
 git add -A
-git commit -m "orbiscreen | v0.10.3 | fix: resolve clippy warnings"
+git commit -m "orbiscreen | v0.20.0 | fix: resolve clippy warnings"
 ```
 
 **Prevention:**
@@ -136,7 +136,7 @@ error[E0463]: can't find crate for `gstreamer`
 cargo update -p gstreamer
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.10.3 | chore: refresh Cargo.lock"
+git commit -m "orbiscreen | v0.20.0 | chore: refresh Cargo.lock"
 ```
 
 ---
@@ -288,12 +288,12 @@ Prior to v0.20.0, Touchpad mode only sent hover pointer movements, lacking a dra
 **Symptom:**
 Tapping a host on the Discovery screen immediately kills the app process or crashes back to the launcher.
 
-**Cause (fixed in v0.10.3):**
-`PlayerHolder.build()` was executed inside `withContext(Dispatchers.IO)`. ExoPlayer requires main-thread construction; creating player components on IO threads throws thread access exceptions that terminate the process.
+**Cause:**
+`PlayerHolder.build()` must be executed on the main thread. ExoPlayer requires main-thread construction; creating player components on IO threads throws thread access exceptions that terminate the process.
 
 **Fix:**
-- Upgrade to `orbiscreen-android-release.apk` **v0.10.3** or later.
-- `StreamViewModel` moves ExoPlayer construction to `withContext(Dispatchers.Main)` and hardens `build()` with a try-catch block so construction errors surface as `StreamEvent.Error` retry cards instead of crashing.
+- Upgrade to `orbiscreen-android-release.apk` **v0.20.0** or later.
+- `StreamViewModel` constructs ExoPlayer on `Dispatchers.Main` with try-catch hardening so errors surface as `StreamEvent.Error` retry cards instead of crashing.
 
 ---
 
@@ -303,12 +303,12 @@ Tapping a host on the Discovery screen immediately kills the app process or cras
 **Symptom:**
 Tapping a discovered host shows a black surface; no video; the control toolbar does not appear.
 
-**Cause (fixed in v0.10.3):**
-The pre-v0.10.3 client relied on ExoPlayer's MIME sniffing for the `/stream` response and fell back to a black surface when it failed to detect MPEG-TS.
+**Cause:**
+ExoPlayer MIME sniffing for `/stream` falling back to a black surface when failing to detect MPEG-TS automatically.
 
 **Fix:**
-- Upgrade to `orbiscreen-android-release.apk` **v0.10.3** or later.
-- The new `PlayerHolder` builds `MediaItem` with `setMimeType(MimeTypes.VIDEO_MP2T)` and forces a `.ts` URL, so the stream is decoded without sniffing.
+- Upgrade to `orbiscreen-android-release.apk` **v0.20.0** or later.
+- `PlayerHolder` configures `MediaItem` with explicit `setMimeType(MimeTypes.VIDEO_MP2T)`, ensuring the stream decodes without sniffing.
 - Errors are surfaced as a retry card instead of a black surface.
 
 If the issue persists after upgrade:
@@ -348,10 +348,10 @@ Rotate the host rather than the Android screen. The `PlayerView` letterboxes aut
 The host is running an older daemon that does not implement `/api/control`.
 
 **Fix:**
-Restart the daemon on the host to pick up the v0.10.3 transport binary. From the host:
+Restart the daemon on the host:
 ```bash
 orbiscreen stop
-sudo orbiscreen start
+orbiscreen start
 ```
 
 ---
@@ -362,11 +362,11 @@ sudo orbiscreen start
 **Symptom:**
 You open the Orbiscreen app on Android and it immediately crashes back to the home screen.
 
-**Cause (fixed in v0.7.1):**
-Malformed `index.html` (stray `-->`) crashed the WebView.
+**Cause:**
+Legacy WebView issues in obsolete versions.
 
 **Fix:**
-v0.10.3 uses Compose + `PlayerView` exclusively - there is no WebView. If the new APK still crashes, capture a logcat with `adb logcat *:E | grep orbiscreen` and open an issue.
+Orbiscreen uses Jetpack Compose + `PlayerView` exclusively without WebView. Ensure you are running `orbiscreen-android-release.apk` **v0.20.0** or later. If any crash occurs, capture a logcat with `adb logcat *:E | grep orbiscreen` and open an issue.
 
 ---
 
@@ -563,11 +563,11 @@ The D-Bus service (`com.orbiscreen.Daemon`) is registered on the **user session 
 <a id="daemon-cpu"></a>
 ## 🚀 Daemon: 100% CPU usage or freeze
 
-**Cause (fixed in v0.7.2):**
-Capture loop ran without yielding.
+**Cause:**
+Capture loop running without yielding or unbounded queue backlog.
 
 **Fix:**
-Update to v0.10.3 (workspace).
+Update to the latest release (v0.20.0 or newer).
 
 ---
 

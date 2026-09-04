@@ -8,7 +8,7 @@
     <string name="usb_connect">USB</string>
     <string name="usb_mode_desc">Ultra-low latency via USB cable</string>
     <string name="usb_status_ready">Tunnel active, host reachable</string>
-    <string name="usb_status_tunnel_down">No tunnel. Start daemon or reconnect cable.</string>
+    <string name="usb_status_tunnel_down">USB tunnel inactive. Start daemon or reconnect cable.</string>
     <string name="usb_badge">USB</string>
     <string name="refresh">Refresh</string>
     <string name="no_hosts_found">No hosts found</string>
@@ -30,8 +30,8 @@
     <string name="back">Back</string>
     <string name="open_keyboard">Keyboard</string>
     <string name="close_keyboard">Hide</string>
-    <string name="lock_screen">Lock</string>
-    <string name="blank_screen">Blank</string>
+    <string name="lock_screen">Lock Session</string>
+    <string name="blank_screen">Blank Screen</string>
     <string name="send_ctrl_alt_del">Ctrl+Alt+Del</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
@@ -76,22 +76,20 @@
     <string name="display_settings_title">Display</string>
     <string name="display_settings_sub">Resolution &amp; scaling</string>
 
-    <!-- Display settings sheet sections -->
-    <string name="res_section_standard">Resolutions</string>
-    <string name="res_section_phone">Phone Screen</string>
+    <string name="res_section_standard">Standard Resolutions</string>
+    <string name="res_section_phone">Device Screen</string>
     <string name="res_native_label">Native Resolution</string>
     <string name="res_match">Match</string>
     <string name="res_section_custom">Custom</string>
     <string name="res_apply">Apply</string>
-    <string name="scale_section">Scaling</string>
-    <string name="scale_fit">Fit</string>
-    <string name="scale_fill">Fill</string>
-    <string name="scale_zoom">Zoom</string>
+    <string name="scale_section">Screen Scaling</string>
+    <string name="scale_fit">Fit Screen</string>
+    <string name="scale_fill">Fill Screen</string>
+    <string name="scale_zoom">100% Original</string>
 
-    <!-- Toolbar -->
     <string name="mode_touch">Touch</string>
-    <string name="mode_trackpad">Trackpad</string>
-    <string name="hide_controls">Hide</string>
+    <string name="mode_trackpad">Touchpad</string>
+    <string name="hide_controls">Hide Toolbar</string>
     <string name="cancel">Cancel</string>
     <string name="usb_status_label">Connected via USB</string>
     <string name="wifi_status_label">Connected via Wi\u2011Fi</string>

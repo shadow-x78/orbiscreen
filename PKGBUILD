@@ -8,7 +8,7 @@
 pkgname=orbiscreen
 pkgver=0.20.0
 pkgrel=1
-pkgdesc="Turn any Android tablet or phone into a low-latency second monitor for Linux (Wayland & X11)"
+pkgdesc="Turn Android devices into high-performance secondary monitors for Linux (Wayland & X11)"
 arch=('x86_64')
 url="https://github.com/shadow-x78/orbiscreen"
 license=('GPL-3.0-or-later')

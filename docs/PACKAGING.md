@@ -151,9 +151,9 @@ rpm -K orbiscreen_x86_64.rpm
 
 ## 🚀 GitHub Actions Release Matrix
 
-When a version tag is pushed (e.g. `git tag v0.17.4 && git push origin v0.17.4`), the `.github/workflows/release.yml` workflow automatically builds and attaches all release packages to the GitHub Releases page.
+When a version tag is pushed (e.g. `git tag v0.20.0 && git push origin v0.20.0`), the `.github/workflows/release.yml` workflow automatically builds and attaches all release packages to the GitHub Releases page.
 
-The release `body` is generated from the `## [v0.17.4]` block in `CHANGELOG.md`.
+The release `body` is generated from the `## [v0.20.0]` block in `CHANGELOG.md`.
 
 ---
 
