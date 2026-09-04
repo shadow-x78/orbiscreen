@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://github.com/shadow-x78/orbiscreen">
-  <img src="https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/assets/logo/orbiscreen-banner.png" alt="Orbiscreen - تحويل أي جهاز أو هاتف أندرويد إلى شاشة ثانية لنظام لينكس" width="100%" />
+  <img src="https://raw.githubusercontent.com/shadow-x78/orbiscreen/main/assets/logo/orbiscreen-banner-ar.png" alt="Orbiscreen - تحويل أي جهاز أو هاتف أندرويد إلى شاشة ثانية لنظام لينكس" width="100%" />
 </a>
 
 <br><br>
