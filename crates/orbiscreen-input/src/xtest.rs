@@ -95,10 +95,16 @@ impl XtestInjector {
     fn to_root(&self, x: f64, y: f64) -> (i16, i16) {
         let scale_x = x * f64::from(self.view_width) / f64::from(self.width.max(1));
         let scale_y = y * f64::from(self.view_height) / f64::from(self.height.max(1));
-        let max_x = self.offset_x.saturating_add(self.view_width.saturating_sub(1) as i16);
-        let max_y = self.offset_y.saturating_add(self.view_height.saturating_sub(1) as i16);
-        let rx = (f64::from(self.offset_x) + scale_x).clamp(f64::from(self.offset_x), f64::from(max_x)) as i16;
-        let ry = (f64::from(self.offset_y) + scale_y).clamp(f64::from(self.offset_y), f64::from(max_y)) as i16;
+        let max_x = self
+            .offset_x
+            .saturating_add(self.view_width.saturating_sub(1) as i16);
+        let max_y = self
+            .offset_y
+            .saturating_add(self.view_height.saturating_sub(1) as i16);
+        let rx = (f64::from(self.offset_x) + scale_x)
+            .clamp(f64::from(self.offset_x), f64::from(max_x)) as i16;
+        let ry = (f64::from(self.offset_y) + scale_y)
+            .clamp(f64::from(self.offset_y), f64::from(max_y)) as i16;
         (rx, ry)
     }
 
