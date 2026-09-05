@@ -81,6 +81,9 @@ import androidx.compose.ui.unit.dp
 import com.orbiscreen.android.BuildConfig
 import com.orbiscreen.android.R
 import com.orbiscreen.android.data.PrefsStore
+import com.orbiscreen.android.ui.updater.UpdateDialog
+import com.orbiscreen.android.updater.ReleaseInfo
+import com.orbiscreen.android.updater.UpdateManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -99,6 +102,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isCheckingUpdates by remember { mutableStateOf(false) }
+    var availableUpdate by remember { mutableStateOf<ReleaseInfo?>(null) }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -256,64 +260,22 @@ fun SettingsScreen(
                 ProjectCardContent(
                     isCheckingUpdates = isCheckingUpdates,
                     onCheckUpdates = {
-                        scope.launch(Dispatchers.IO) {
+                        scope.launch {
                             isCheckingUpdates = true
-                            try {
-                                val client = OkHttpClient.Builder()
-                                    .connectTimeout(6, TimeUnit.SECONDS)
-                                    .readTimeout(6, TimeUnit.SECONDS)
-                                    .build()
-                                val req = Request.Builder()
-                                    .url("https://api.github.com/repos/shadow-x78/orbiscreen/releases/latest")
-                                    .header("User-Agent", "Orbiscreen-Android")
-                                    .build()
-                                val response = client.newCall(req).execute()
-                                if (response.isSuccessful) {
-                                    val body = response.body?.string() ?: ""
-                                    val json = JSONObject(body)
-                                    val tagName = json.optString("tag_name", "")
-                                    val htmlUrl = json.optString("html_url", "https://github.com/shadow-x78/orbiscreen/releases")
-                                    val currentVersion = BuildConfig.VERSION_NAME
-                                    withContext(Dispatchers.Main) {
-                                        if (isNewerVersion(tagName, currentVersion)) {
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.update_available, tagName),
-                                                Toast.LENGTH_LONG,
-                                            ).show()
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(htmlUrl))
-                                            context.startActivity(intent)
-                                        } else {
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.latest_version_installed),
-                                                Toast.LENGTH_SHORT,
-                                            ).show()
-                                        }
-                                    }
-                                } else {
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.latest_version_installed),
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.update_check_failed),
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shadow-x78/orbiscreen/releases"))
-                                    context.startActivity(intent)
-                                }
-                            } finally {
-                                withContext(Dispatchers.Main) {
-                                    isCheckingUpdates = false
-                                }
+                            val release = try {
+                                UpdateManager(context).checkForUpdates()
+                            } catch (_: Exception) {
+                                null
+                            }
+                            isCheckingUpdates = false
+                            if (release != null) {
+                                availableUpdate = release
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.latest_version_installed),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                             }
                         }
                     },
@@ -335,6 +297,13 @@ fun SettingsScreen(
                 },
             )
         }
+    }
+
+    availableUpdate?.let { release ->
+        UpdateDialog(
+            release = release,
+            onDismiss = { availableUpdate = null },
+        )
     }
 }
 

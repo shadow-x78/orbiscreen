@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.22.5] - 2026-09-05
+
+Implement native in-app Android updater with real-time download progress bar, automated SHA-256 checksum integrity verification, and direct PackageInstaller integration without external browser redirects.
+
+### ✨ Added & Improved
+- **Native In-App Android Updater (`com.orbiscreen.android.updater`)**:
+  - Implemented `UpdateManager` to query GitHub Releases API, parse version tags, release notes, APK download endpoints (`orbiscreen-android-release.apk`), and published checksum assets (`orbiscreen-android-release.apk.sha256`).
+  - Added streaming file download with live coroutine progress updates (percentage and downloaded/total megabytes) and cancellation support.
+  - Added automatic SHA-256 checksum verification before launching installation, protecting against corrupted or incomplete downloads.
+  - Added seamless `FileProvider` (`content://...`) and `REQUEST_INSTALL_PACKAGES` permission management with direct navigation to Android system settings when required.
+- **Material 3 Update Dialog (`UpdateDialog.kt`)**:
+  - Custom styled dialog displaying new version badge, scrollable release notes, live progress indicator, and action buttons ("Update Now", "Cancel", "Install", and fallback "Open in Browser").
+- **Automatic & Manual Update Triggers**:
+  - Non-intrusive background check on application launch in `MainActivity.kt` after initial splash delay.
+  - Interactive "Check for Updates" button in `SettingsScreen.kt` triggering the in-app update dialog directly.
+- **Bilingual Localization**:
+  - Full Arabic and English translations for all update dialog states, progress labels, permission prompts, and error notices.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.22.5.
+- **Android Client**: Incremented `versionCode` to 55; updated `versionName` to "0.22.5".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.5.
+- **debian/changelog**: Added 0.22.5-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.22.5.
+- **Documentation**: Synchronized version badges and references across all documentation files.
+
 ## [v0.22.4] - 2026-09-05
 
 Fix pure pointer classification in libinput/KWin, add automatic USB Tethering gateway discovery for ADB-free high-speed USB connections, implement styled ASCII stop card, and register org.shadow-x78.Orbiscreen on D-Bus.

@@ -1,3 +1,12 @@
+orbiscreen (0.22.5-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.22.5 for Ubuntu noble.
+  * Implement native in-app Android updater with live progress, SHA-256 verification, and PackageInstaller.
+  * Add automatic background update check on app launch and manual check in Settings.
+  * Configure secure FileProvider and REQUEST_INSTALL_PACKAGES permission in AndroidManifest.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 17:05:00 +0300
+
 orbiscreen (0.22.4-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.4 for Ubuntu noble.

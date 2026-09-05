@@ -10,11 +10,20 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.orbiscreen.android.data.PrefsStore
 import com.orbiscreen.android.ui.nav.OrbiNav
 import com.orbiscreen.android.ui.theme.OrbiscreenTheme
 import com.orbiscreen.android.ui.theme.ThemeMode
+import com.orbiscreen.android.ui.updater.UpdateDialog
+import com.orbiscreen.android.updater.ReleaseInfo
+import com.orbiscreen.android.updater.UpdateManager
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
@@ -31,6 +40,21 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun App(prefs: PrefsStore) {
+    val context = LocalContext.current
+    var startupUpdate by remember { mutableStateOf<ReleaseInfo?>(null) }
+
+    LaunchedEffect(Unit) {
+        delay(1200)
+        val release = try {
+            UpdateManager(context).checkForUpdates()
+        } catch (_: Exception) {
+            null
+        }
+        if (release != null) {
+            startupUpdate = release
+        }
+    }
+
     val theme by prefs.themePrefFlow.collectAsState(initial = PrefsStore.ThemePref.System)
     OrbiscreenTheme(
         mode = when (theme) {
@@ -40,5 +64,11 @@ private fun App(prefs: PrefsStore) {
         },
     ) {
         OrbiNav(prefs)
+        startupUpdate?.let { release ->
+            UpdateDialog(
+                release = release,
+                onDismiss = { startupUpdate = null },
+            )
+        }
     }
 }
