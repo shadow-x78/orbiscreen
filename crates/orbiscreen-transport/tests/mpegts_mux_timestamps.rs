@@ -87,11 +87,11 @@ fn mpegts_muxer_emits_for_daemon_normalized_timestamps() {
 
 fn mux_to_ts(chunks: Vec<(Vec<u8>, bool, u64)>) -> usize {
     let pipeline = gstreamer::parse::launch(
-        "appsrc name=src format=time is-live=false \
+        "appsrc name=src format=time is-live=false block=false \
          ! video/x-h264,stream-format=byte-stream,alignment=au,framerate=60/1 \
          ! h264parse config-interval=1 \
          ! mpegtsmux alignment=7 \
-         ! appsink name=sink drop=false sync=false max-buffers=256",
+         ! appsink name=sink drop=false sync=false max-buffers=4",
     )
     .unwrap()
     .downcast::<gstreamer::Pipeline>()

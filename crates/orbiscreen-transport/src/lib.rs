@@ -628,11 +628,11 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     gstreamer::init().ok();
 
-    let pipeline_str = "appsrc name=src format=time is-live=false \
+    let pipeline_str = "appsrc name=src format=time is-live=false block=false \
                         ! video/x-h264,stream-format=byte-stream,alignment=au \
                         ! h264parse config-interval=1 \
                         ! mpegtsmux alignment=7 \
-                        ! appsink name=sink drop=false sync=false max-buffers=64 emit-signals=false";
+                        ! appsink name=sink drop=false sync=false max-buffers=4 emit-signals=false";
     let pipeline = match gstreamer::parse::launch(pipeline_str) {
         Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
             Ok(pipeline) => pipeline,
@@ -664,6 +664,8 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         .build();
     appsrc.set_caps(Some(&caps));
     appsrc.set_format(gstreamer::Format::Time);
+    appsrc.set_max_bytes(512 * 1024);
+    appsrc.set_block(false);
 
     let appsink = match pipeline
         .by_name("sink")
@@ -676,7 +678,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     };
 
-    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(64);
+    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(16);
     let tx_alive = tx.clone();
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
@@ -773,8 +775,13 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
             let mut normalized = pkt;
             normalized.pts_ns = normalized.pts_ns.saturating_sub(base);
 
-            if push_h264_packet(&appsrc_clone, &normalized).is_err() {
-                break;
+            if let Err(e) = push_h264_packet(&appsrc_clone, &normalized) {
+                match e {
+                    gstreamer::FlowError::Flushing | gstreamer::FlowError::Eos => break,
+                    _ => {
+                        wait_keyframe = true;
+                    }
+                }
             }
         }
         let _ = pipeline.set_state(gstreamer::State::Null);
