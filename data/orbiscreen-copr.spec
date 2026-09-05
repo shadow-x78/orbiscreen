@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.22.2
+Version:        0.22.3
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -102,6 +102,9 @@ fi
 %{_datadir}/orbiscreen/install-evdi-module.sh
 
 %changelog
+* Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.3-1
+- Release 0.22.3: Eliminate video stuttering with 1s GOP interval, pure absolute pointer mapping, zero cursor snapback, and stylus stability.
+
 * Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.2-1
 - Release 0.22.2: Fix video stuttering and buffer overrun, confine mouse to virtual screen, fix stylus touch and hover.
 

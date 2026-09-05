@@ -1,3 +1,14 @@
+orbiscreen (0.22.3-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.22.3 for Ubuntu noble.
+  * Eliminate video stuttering and packet bursts by increasing GOP interval to 60 frames (1 keyframe per second).
+  * Make virtual mouse an absolute pointer device without REL_X/REL_Y to eliminate cursor snapback.
+  * Confine cursor strictly to the virtual secondary screen during touch, drag, and stylus input.
+  * Fix stylus tablet tool proximity release to prevent cursor jumping to host display on pen lift.
+  * Tune Android input dispatcher loop to 16ms (60 Hz) to avoid uplink Wi-Fi network congestion.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 13:30:00 +0300
+
 orbiscreen (0.22.2-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.2 for Ubuntu noble.

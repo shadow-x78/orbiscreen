@@ -86,7 +86,7 @@ class InputDispatcher(
                 if (st != null) {
                     send(st)
                 }
-                kotlinx.coroutines.delay(8)
+                kotlinx.coroutines.delay(16)
             }
         }
         scope.launch {

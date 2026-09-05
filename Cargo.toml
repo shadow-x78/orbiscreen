@@ -17,7 +17,7 @@ members = [
 
 # ── Package Metadata ──
 [workspace.package]
-version = "0.22.2"
+version = "0.22.3"
 edition = "2021"
 rust-version = "1.75"
 license = "GPL-3.0-or-later"

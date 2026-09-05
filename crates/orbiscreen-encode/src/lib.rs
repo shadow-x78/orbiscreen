@@ -211,7 +211,7 @@ impl Encoder {
                 encoder.set_property_from_str("repeat-sequence-header", "true");
             }
             if encoder.find_property("gop-size").is_some() {
-                encoder.set_property_from_str("gop-size", "6");
+                encoder.set_property_from_str("gop-size", "60");
             }
             if encoder.find_property("b-frames").is_some() {
                 encoder.set_property_from_str("b-frames", "0");
@@ -222,7 +222,7 @@ impl Encoder {
                 encoder.set_property_from_str("rate-control", "cbr");
             }
             if encoder.find_property("keyframe-period").is_some() {
-                encoder.set_property_from_str("keyframe-period", "6");
+                encoder.set_property_from_str("keyframe-period", "60");
             }
         }
         if kind == EncoderKind::X264 {
@@ -238,7 +238,7 @@ impl Encoder {
                 encoder.set_property_from_str("repeat-headers", "true");
             }
             if encoder.find_property("key-int-max").is_some() {
-                encoder.set_property_from_str("key-int-max", "6");
+                encoder.set_property_from_str("key-int-max", "60");
             }
             if encoder.find_property("b-adapt").is_some() {
                 encoder.set_property_from_str("b-adapt", "0");

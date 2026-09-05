@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.22.3] - 2026-09-05
+
+Eliminate video stuttering and packet bursts with 1-second GOP interval, make virtual mouse a pure absolute pointer device to permanently eliminate cursor snapback, and stabilize stylus proximity and network dispatch.
+
+### ✨ Added & Improved
+- **Video Stuttering Elimination via GOP Interval Normalization (`orbiscreen-encode`)**:
+  - Increased encoder `gop-size` (NVENC), `keyframe-period` (VAAPI), and `key-int-max` (x264) from 6 frames to 60 frames (1 keyframe per second at 60 FPS).
+  - Eliminates the 10 IDR bursts per second that flooded Wi-Fi networks and caused continuous frame drops on mobile hardware decoders.
+- **Pure Absolute Pointer Device & Zero Cursor Snapback (`orbiscreen-input`)**:
+  - Removed `REL_X` and `REL_Y` axes from `Orbiscreen Virtual Mouse and Keyboard`, leaving only `ABS_X`, `ABS_Y`, and `REL_WHEEL`.
+  - In `libinput`, devices declaring `REL_X`/`REL_Y` ignore `ABS_X`/`ABS_Y`. Removing relative axes allows `libinput` and KWin to treat the device as a pure absolute pointer.
+  - Absolute pointer coordinates are strictly mapped to `Virtual-ORBISCREEN` (`outputName` + `mapToWorkspace = false`).
+  - Cursor is permanently confined to the virtual screen during pointer moves, finger taps, drags, and pen lifts, with zero snapback to the host display.
+  - Preserved relative movement compatibility via clamped internal coordinate tracking.
+- **Stylus Proximity Release & Hover Stability (`orbiscreen-input`)**:
+  - Updated virtual tablet tool lifecycle: `BTN_TOOL_PEN` releases cleanly when physical contact ends (`pressure == 0`), preventing fake permanent hover locks in KWin and Xwayland.
+  - Mirrored absolute pointer events continuously ensure smooth, lag-free stylus drawing and desktop control.
+- **Network Contention Reduction (Android Client)**:
+  - Adjusted Android input dispatch loop delay from 8ms to 16ms, aligning input events with the 60 Hz display refresh rate and cutting upstream HTTP POST traffic by 50%.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.22.3.
+- **Android Client**: Incremented `versionCode` to 53; updated `versionName` to "0.22.3".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.3.
+- **debian/changelog**: Added 0.22.3-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.22.3.
+- **Documentation**: Synchronized version badges across all documentation files.
+
 ## [v0.22.2] - 2026-09-05
 
 Fix video stuttering, prevent stream termination on buffer overrun, confine mouse pointer strictly to virtual screen without snapback, and enable universal stylus touch and hover support.
