@@ -2,6 +2,7 @@
 // https://github.com/shadow-x78/orbiscreen
 
 pub mod adb;
+pub mod aoa;
 pub mod mdns;
 
 use std::net::SocketAddr;
@@ -198,10 +199,19 @@ impl Transport {
             .unwrap_or_else(|_| "?".into());
         info!("orbiscreen transport listening on http://{local}");
 
+        let aoa_port = self.cfg.signaling_port;
+        let aoa_active = Arc::new(AtomicUsize::new(0));
+        let aoa_active_for_sup = aoa_active.clone();
+        let aoa_shutdown = shutdown_rx.clone();
+        tokio::spawn(async move {
+            aoa::supervisor(aoa_port, aoa_active_for_sup, aoa_shutdown).await;
+        });
+
         let adb_port = self.cfg.signaling_port;
         let adb_stats = state.stats.clone();
         let adb_stats_for_exit = state.stats.clone();
         let mut adb_shutdown = shutdown_rx.clone();
+        let aoa_active_for_adb = aoa_active.clone();
         let adb_task = tokio::spawn(async move {
             let mut known: Vec<String> = Vec::new();
             loop {
@@ -235,7 +245,8 @@ impl Transport {
                     Ok(Err(e)) => debug!("ADB reverse port forwarding inactive: {e}"),
                     Err(_) => break,
                 }
-                adb_stats.note_usb_devices(known.len());
+                adb_stats
+                    .note_usb_devices(known.len() + aoa_active_for_adb.load(Ordering::Relaxed));
                 tokio::select! {
                     _ = tokio::time::sleep(std::time::Duration::from_secs(2)) => {}
                     _ = adb_shutdown.changed() => break,

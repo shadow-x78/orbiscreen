@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <usb-accessory
+        manufacturer="shadow-x78"
+        model="Orbiscreen"
+        version="0.22.6" />
+</resources>

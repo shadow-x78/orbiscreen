@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.22.6] - 2026-09-05
+
+Implement native USB Direct streaming via Android Open Accessory (AOA) protocol with standard Linux kernel usbfs ioctls, and unify concise, tool-oriented translations across Web, Android, and CLI interfaces.
+
+### ✨ Added & Improved
+- **Direct USB Streaming via Android Open Accessory (AOA)**:
+  - Implemented native Linux `usbfs` AOA driver in `orbiscreen-transport` (`aoa.rs`), communicating directly with USB bulk endpoints via standard kernel ioctls without external dependencies.
+  - Enables plug-and-play high-speed streaming over a standard USB cable while the device is in default "File Transfer" (MTP) mode, with zero requirement for ADB, USB debugging, or developer options.
+  - Added Android USB accessory filter and `UsbAccessoryManager` running a local loopback bridge on `127.0.0.1:8789`.
+  - Expanded network interface and gateway discovery in `HostApi.kt` to cover `eth*`, `arc*`, `usb*`, `rndis*`, `ncm*`, `tun*`, and ChromeOS ARCVM fallback routes (`100.115.92.2`), ensuring 100% compatibility across tablets, phones, and ChromeOS devices (`android:required="false"` on accessory feature).
+  - Updated CLI diagnostics (`orbiscreen doctor`, `orbiscreen -V`, `orbiscreen status`) and UI cards to reflect "USB Direct".
+- **Tool-Oriented Bilingual Translations (Web, Android, CLI)**:
+  - Completely audited and refined English and Arabic dictionaries across the web client (`clients/web/app.js`, `index.html`), Android app (`strings.xml`, `values-ar/strings.xml`), and CLI output cards.
+  - Eliminated verbose descriptions and manual-style sentences in favor of sleek, punchy, action-oriented tool terminology.
+  - Graceful styled stop card for `orbiscreen stop` when daemon is not currently running.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.22.6.
+- **Android Client**: Incremented `versionCode` to 56; updated `versionName` to "0.22.6".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.6.
+- **debian/changelog**: Added 0.22.6-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.22.6.
+- **Documentation**: Synchronized version badges and references across all documentation files.
+
 ## [v0.22.5] - 2026-09-05
 
 Implement native in-app Android updater with real-time download progress bar, automated SHA-256 checksum integrity verification, and direct PackageInstaller integration without external browser redirects.
@@ -17,8 +41,6 @@ Implement native in-app Android updater with real-time download progress bar, au
 - **Automatic & Manual Update Triggers**:
   - Non-intrusive background check on application launch in `MainActivity.kt` after initial splash delay.
   - Interactive "Check for Updates" button in `SettingsScreen.kt` triggering the in-app update dialog directly.
-- **Bilingual Localization**:
-  - Full Arabic and English translations for all update dialog states, progress labels, permission prompts, and error notices.
 
 ### 🧹 Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.5.

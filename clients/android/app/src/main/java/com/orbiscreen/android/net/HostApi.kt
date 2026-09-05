@@ -81,18 +81,29 @@ class HostApi {
     }
 
     sealed class UsbProbeResult {
-        data class Ready(val host: String) : UsbProbeResult()
+        data class Ready(val host: String, val port: Int, val isAoa: Boolean = false) : UsbProbeResult()
         object TunnelDown : UsbProbeResult()
     }
 
     suspend fun probeUsb(port: Int): UsbProbeResult = withContext(Dispatchers.IO) {
-        val candidates = mutableListOf("127.0.0.1")
+        if (com.orbiscreen.android.usb.UsbAccessoryManager.isAoaActive) {
+            val localPort = com.orbiscreen.android.usb.UsbAccessoryManager.localProxyPort
+            return@withContext UsbProbeResult.Ready("127.0.0.1", localPort, isAoa = true)
+        }
+
+        val candidates = mutableListOf(
+            "127.0.0.1",
+            "100.115.92.2",
+            "100.115.92.1",
+            "192.168.233.1",
+            "192.168.233.2"
+        )
         try {
             val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
             while (interfaces != null && interfaces.hasMoreElements()) {
                 val iface = interfaces.nextElement()
                 val name = iface.name.lowercase()
-                if (name.startsWith("rndis") || name.startsWith("usb") || name.startsWith("ncm")) {
+                if (name.startsWith("rndis") || name.startsWith("usb") || name.startsWith("ncm") || name.startsWith("eth") || name.startsWith("arc") || name.startsWith("tun")) {
                     val addrs = iface.inetAddresses
                     while (addrs.hasMoreElements()) {
                         val addr = addrs.nextElement()
@@ -113,7 +124,7 @@ class HostApi {
         } catch (_: Exception) {}
 
         for (host in candidates) {
-            val ok = withTimeoutOrNull(400) {
+            val ok = withTimeoutOrNull(350) {
                 try {
                     val req = Request.Builder().url("http://$host:$port/health").build()
                     client.newCall(req).execute().use { resp -> resp.isSuccessful }
@@ -122,7 +133,7 @@ class HostApi {
                 }
             } ?: false
             if (ok) {
-                return@withContext UsbProbeResult.Ready(host)
+                return@withContext UsbProbeResult.Ready(host, port, isAoa = false)
             }
         }
         UsbProbeResult.TunnelDown

@@ -3,6 +3,13 @@
 
 package com.orbiscreen.android
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.hardware.usb.UsbAccessory
+import android.hardware.usb.UsbManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -23,18 +30,70 @@ import com.orbiscreen.android.ui.theme.ThemeMode
 import com.orbiscreen.android.ui.updater.UpdateDialog
 import com.orbiscreen.android.updater.ReleaseInfo
 import com.orbiscreen.android.updater.UpdateManager
+import com.orbiscreen.android.usb.UsbAccessoryManager
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
+
+    private val usbReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                UsbManager.ACTION_USB_ACCESSORY_ATTACHED -> handleAccessoryIntent(intent)
+                UsbManager.ACTION_USB_ACCESSORY_DETACHED -> UsbAccessoryManager.onAccessoryDetached()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val filter = IntentFilter().apply {
+            addAction(UsbManager.ACTION_USB_ACCESSORY_ATTACHED)
+            addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(usbReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(usbReceiver, filter)
+        }
+
+        handleAccessoryIntent(intent)
+        UsbAccessoryManager.init(this)
+
         val prefs = PrefsStore(this)
         setContent {
             App(prefs)
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleAccessoryIntent(intent)
+    }
+
+    private fun handleAccessoryIntent(intent: Intent?) {
+        if (intent == null) return
+        if (UsbManager.ACTION_USB_ACCESSORY_ATTACHED == intent.action) {
+            val accessory = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY, UsbAccessory::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY)
+            }
+            if (accessory != null) {
+                UsbAccessoryManager.onAccessoryAttached(this, accessory)
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            unregisterReceiver(usbReceiver)
+        } catch (_: Exception) {}
+        UsbAccessoryManager.stopAccessory()
     }
 }
 

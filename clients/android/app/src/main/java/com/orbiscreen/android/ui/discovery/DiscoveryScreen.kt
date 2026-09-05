@@ -178,7 +178,7 @@ fun DiscoveryScreen(
 
             UsbHeroCard(
                 usbPort = state.usbPort,
-                onConnect = { host -> onConnect(host, state.usbPort) },
+                onConnect = { host, port -> onConnect(host, port) },
             )
 
             val recent = state.recent
@@ -278,13 +278,19 @@ private fun NetworkStatusPill(
 }
 
 @Composable
-private fun UsbHeroCard(usbPort: Int, onConnect: (String) -> Unit) {
+private fun UsbHeroCard(usbPort: Int, onConnect: (String, Int) -> Unit) {
     var probe by remember(usbPort) { mutableStateOf<UsbProbeResult?>(null) }
-    LaunchedEffect(usbPort) {
-        probe = HostApi().probeUsb(usbPort)
+    val aoaActive by com.orbiscreen.android.usb.UsbAccessoryManager.isAoaActiveFlow.collectAsState()
+
+    LaunchedEffect(usbPort, aoaActive) {
+        while (true) {
+            probe = HostApi().probeUsb(usbPort)
+            kotlinx.coroutines.delay(1200)
+        }
     }
-    val readyHost = (probe as? UsbProbeResult.Ready)?.host
-    val isReady = readyHost != null
+    val readyResult = probe as? UsbProbeResult.Ready
+    val isReady = readyResult != null
+    val isAoa = readyResult?.isAoa == true
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -329,7 +335,7 @@ private fun UsbHeroCard(usbPort: Int, onConnect: (String) -> Unit) {
                             color = ActiveGreen.copy(alpha = 0.18f),
                         ) {
                             Text(
-                                stringResource(R.string.usb_status_ready).uppercase(),
+                                if (isAoa) stringResource(R.string.usb_status_aoa_ready).uppercase() else stringResource(R.string.usb_status_ready).uppercase(),
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ActiveGreen,
@@ -341,7 +347,11 @@ private fun UsbHeroCard(usbPort: Int, onConnect: (String) -> Unit) {
                     }
                 }
                 Text(
-                    text = if (isReady) stringResource(R.string.usb_status_ready) else stringResource(R.string.usb_mode_desc),
+                    text = when {
+                        isAoa -> stringResource(R.string.usb_desc_aoa_connected)
+                        isReady -> stringResource(R.string.usb_status_ready)
+                        else -> stringResource(R.string.usb_mode_desc)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -349,7 +359,7 @@ private fun UsbHeroCard(usbPort: Int, onConnect: (String) -> Unit) {
             }
             Spacer(Modifier.width(10.dp))
             Button(
-                onClick = { readyHost?.let { onConnect(it) } },
+                onClick = { readyResult?.let { onConnect(it.host, it.port) } },
                 enabled = isReady,
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(

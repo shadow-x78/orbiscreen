@@ -86,7 +86,7 @@ enum Command {
         action: Option<DisplayAction>,
     },
     #[command(
-        about = "List connected Android USB ADB devices and active clients",
+        about = "List connected Android USB devices and active clients",
         alias = "clients"
     )]
     Devices {
@@ -339,7 +339,8 @@ async fn main() -> ExitCode {
                 ExitCode::SUCCESS
             }
             Err(zbus::Error::MethodError(name, _, _))
-                if name.to_string().contains("ServiceUnknown") =>
+                if name.to_string().contains("ServiceUnknown")
+                    || name.to_string().contains("NameHasNoOwner") =>
             {
                 let systemd_status = std::process::Command::new("systemctl")
                     .args(["--user", "is-active", "orbiscreen"])
@@ -364,7 +365,15 @@ async fn main() -> ExitCode {
                 if systemd_status == "active" {
                     run_service_action(ServiceAction::Stop).await
                 } else {
-                    ui::print_stop_card(false, &format!("Stop failed: {e}"));
+                    let err_str = e.to_string();
+                    if err_str.contains("No such file or directory")
+                        || err_str.contains("ServiceUnknown")
+                        || err_str.contains("NameHasNoOwner")
+                    {
+                        ui::print_stop_card(false, "Daemon is not running on the session bus");
+                    } else {
+                        ui::print_stop_card(false, &format!("Stop failed: {e}"));
+                    }
                     ExitCode::from(1)
                 }
             }
@@ -799,7 +808,7 @@ async fn run_devices(json: bool) -> ExitCode {
     };
 
     let rows = vec![
-        ("USB ADB Devices", dev_str),
+        ("USB Devices", dev_str),
         ("Reverse Tunnel", tunnel_str),
         (
             "Auto-Discovery",
@@ -1434,16 +1443,10 @@ async fn run_doctor(json: bool) -> ExitCode {
         ),
     };
 
-    let usb_str = match usb.adb_installed {
-        true => match usb.devices.as_slice() {
-            [] => format!("{} Ready (No devices connected)", ui::badge_ok()),
-            [only] => format!("{} Device connected ({only})", ui::badge_ok()),
-            many => format!("{} Devices connected ({})", ui::badge_ok(), many.join(", ")),
-        },
-        false => format!(
-            "{} ADB not installed (Wi-Fi streaming unaffected)",
-            ui::badge_warn()
-        ),
+    let usb_str = match usb.devices.as_slice() {
+        [] => format!("{} Hot-plug ready (No device connected)", ui::badge_ok()),
+        [only] => format!("{} Device connected ({only})", ui::badge_ok()),
+        many => format!("{} Devices connected ({})", ui::badge_ok(), many.join(", ")),
     };
 
     let rows = vec![
@@ -1455,7 +1458,7 @@ async fn run_doctor(json: bool) -> ExitCode {
         ("Desktop Portal", portal_str),
         ("Saved Grants", grants_str),
         ("Compositor Tools", tools_str),
-        ("USB ADB Tunnel", usb_str),
+        ("USB Direct / Cable", usb_str),
     ];
 
     ui::print_card("System Diagnostics & Compatibility", &rows);
@@ -1471,13 +1474,48 @@ struct UsbDoctorReport {
 }
 
 fn usb_doctor_report() -> UsbDoctorReport {
+    let mut aoa_devices = Vec::new();
+    let usb_devs = orbiscreen_transport::aoa::scan_usb_devices();
+    for dev in &usb_devs {
+        if dev.vendor_id == 0x1d6b {
+            continue;
+        }
+        if orbiscreen_transport::aoa::is_google_accessory(dev.vendor_id, dev.product_id) {
+            aoa_devices.push(format!(
+                "Google Accessory ({:04x}:{:04x})",
+                dev.vendor_id, dev.product_id
+            ));
+        } else {
+            let prod = std::fs::read_to_string(dev.sysfs_path.join("product"))
+                .unwrap_or_else(|_| format!("{:04x}:{:04x}", dev.vendor_id, dev.product_id))
+                .trim()
+                .to_owned();
+            let mfg = std::fs::read_to_string(dev.sysfs_path.join("manufacturer"))
+                .unwrap_or_default()
+                .trim()
+                .to_owned();
+            if !mfg.is_empty() {
+                aoa_devices.push(format!("{mfg} {prod}"));
+            } else if !prod.is_empty() {
+                aoa_devices.push(prod);
+            }
+        }
+    }
+
     let adb_path = orbiscreen_transport::adb::default_adb_path();
     let probe = tokio::task::block_in_place(|| {
         orbiscreen_transport::adb::setup_reverse_for_all(adb_path, cfg_default_signaling_port())
     });
     let devices = match probe {
         Ok(devices) => devices,
-        Err(_) => return UsbDoctorReport::default(),
+        Err(_) => {
+            let has_usb = !aoa_devices.is_empty();
+            return UsbDoctorReport {
+                adb_installed: has_usb,
+                devices: aoa_devices,
+                reverse_tunnels: 0,
+            };
+        }
     };
     let mut tunnels = 0usize;
     for serial in &devices {
@@ -1489,9 +1527,15 @@ fn usb_doctor_report() -> UsbDoctorReport {
             tunnels += n;
         }
     }
+    let mut all_devices = aoa_devices;
+    for d in devices {
+        if !all_devices.contains(&d) {
+            all_devices.push(d);
+        }
+    }
     UsbDoctorReport {
         adb_installed: true,
-        devices,
+        devices: all_devices,
         reverse_tunnels: tunnels,
     }
 }

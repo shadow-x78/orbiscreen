@@ -2,7 +2,7 @@
 
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.22.5-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.22.6-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -90,32 +90,32 @@ Diff in /path/to/file.rs:
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.22.5 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.22.6 | style: cargo fmt --all"
 ```
 
 **الوقاية:**
-شغّل `./gradlew :app:lintDebug` و`cargo fmt --all` محلياً قبل الدفع.
+شغّل `./gradlew :app:lintDebug` و `cargo fmt --all` محلياً قبل الدفع.
 
 ---
 
 <a id="ci-clippy"></a>
 ## 🧪 إجراء CI: `Clippy (deny warnings)`
 
-**العرَض:**
+**العَرَض:**
 ```
 error: this operation is not supported for derived errors
   --> src/lib.rs:42:5
 ```
 
 **السبب:**
-`cargo clippy -D warnings` يعامل كل تحذير clippy كخطأ.
+يعامل أمر `cargo clippy -D warnings` كل تحذيرات clippy كأخطاء توقف البناء.
 
-**الإصلح:**
+**الحل:**
 ```bash
 cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
 cargo clippy --workspace --all-targets --locked --fix
 git add -A
-git commit -m "orbiscreen | v0.22.5 | fix: resolve clippy warnings"
+git commit -m "orbiscreen | v0.22.6 | fix: resolve clippy warnings"
 ```
 
 **الوقاية:**
@@ -124,19 +124,19 @@ git commit -m "orbiscreen | v0.22.5 | fix: resolve clippy warnings"
 ---
 
 <a id="ci-build"></a>
-## 🧪 إجراء CI: `Build` ‏(`cargo build --workspace --locked`)
+## 🧪 إجراء CI: `Build` (`cargo build --workspace --locked`)
 
-**العرَض:**
+**العَرَض:**
 ```
 error[E0463]: can't find crate for `gstreamer`
 ```
 
-**الإصلاح:**
+**الحل:**
 ```bash
 cargo update -p gstreamer
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.22.5 | chore: refresh Cargo.lock"
+git commit -m "orbiscreen | v0.22.6 | chore: refresh Cargo.lock"
 ```
 
 ---
@@ -566,7 +566,7 @@ gst-inspect-1.0 x264enc
 كانت حلقة الالتقاط تعمل دون إخلاء للمعالج أو تراكم غير محدود في الطابور.
 
 **الإصلاح:**
-حدّث إلى الإصدار الأخير (v0.22.5 أو أحدث).
+حدّث إلى الإصدار الأخير (v0.22.6 أو أحدث).
 
 ---
 

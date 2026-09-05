@@ -212,12 +212,12 @@ pub fn print_startup_card(
             "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}Display{RESET}   {TEXT}{display_info}{RESET}  {DIM}· {enc} · {back}{RESET}"
         );
         println!(
-            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}USB ADB{RESET}   {TEXT}{}{RESET}",
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}USB Direct{RESET}  {TEXT}{}{RESET}",
             if usb_active {
                 format!("{GREEN}✔ Active on port {port}{RESET}")
             } else {
                 format!(
-                    "{YELLOW}Hot-plug ready{RESET}  {DIM}(Plug in Android with USB Debugging){RESET}"
+                    "{YELLOW}Hot-plug ready{RESET}  {DIM}(Plug in Android via standard USB cable){RESET}"
                 )
             }
         );
@@ -233,7 +233,7 @@ pub fn print_startup_card(
         println!("+-- Stream Details -----------------------------------------------------");
         println!("|  Display   {display_info} · {enc} · {back}");
         println!(
-            "|  USB ADB   {}",
+            "|  USB Direct   {}",
             if usb_active {
                 "Active"
             } else {
@@ -275,7 +275,7 @@ pub fn print_status_dashboard(
         println!();
 
         let dev_str = if usb_count > 0 {
-            format!("{GREEN}✔ {usb_count} Android device connected{RESET}  {DIM}(USB ADB){RESET}")
+            format!("{GREEN}✔ {usb_count} Android device connected{RESET}  {DIM}(USB Direct / AOA){RESET}")
         } else if active_clients > 0 {
             format!("{GREEN}✔ {active_clients} client(s) streaming{RESET}")
         } else {
@@ -373,7 +373,7 @@ pub fn print_version_card(json: bool) {
             "Environment"
         );
         println!(
-            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {TEXT}Virtual Display · Hardware Encoding · Stylus & Touch · USB ADB{RESET}",
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {TEXT}Virtual Display · Hardware Encoding · Stylus & Touch · USB Direct{RESET}",
             "Features"
         );
         println!(
@@ -389,7 +389,7 @@ pub fn print_version_card(json: bool) {
         println!("|  Version          v{version} · {target} · GPL-3.0-or-later");
         println!("|  Environment      {desktop_str}");
         println!(
-            "|  Features         Virtual Display · Hardware Encoding · Stylus & Touch · USB ADB"
+            "|  Features         Virtual Display · Hardware Encoding · Stylus & Touch · USB Direct"
         );
         println!("|  D-Bus Service    org.shadow-x78.Orbiscreen (Session Bus)");
         println!("+-----------------------------------------------------------------------\n");

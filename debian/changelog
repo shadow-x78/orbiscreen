@@ -1,3 +1,13 @@
+orbiscreen (0.22.6-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.22.6 for Ubuntu noble.
+  * Implement native USB Direct streaming via Android Open Accessory (AOA) protocol.
+  * Provide native Linux usbfs ioctl transport with zero third-party crate dependencies.
+  * Add automatic AOA intent handling and accessory filter in Android client.
+  * Unify and polish tool-oriented translations across Web, Android, and CLI interfaces.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 19:15:00 +0300
+
 orbiscreen (0.22.5-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.5 for Ubuntu noble.
