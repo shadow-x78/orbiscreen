@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### ⚡ Performance & Low Latency
+- **HTTP MPEG-TS Transport Queue (`orbiscreen-transport`, Android, Web)**:
+  - Per-client muxer keeps four sink buffers and a 16-slot HTTP queue instead of 512 / 1024 queued chunks.
+  - HTTP send no longer drops MPEG-TS packets on a full queue (that desynced the decoder). The muxer backpressures instead; a stalled `appsrc` push resyncs on the next keyframe.
+  - Android ExoPlayer live offset cut to 24 ms (8–48 ms) with 32–64 ms load control, `FEATURE_LowLatency` decoder preference, and MediaCodec low-latency flags.
+  - Web `mpegts.js` live sync target cut to 30 ms with a tighter latency chase.
+
 ## [v0.23.3] - 2026-09-06
 
 Enable Gradle dependency caching in CI workflows to eliminate Cloudflare 403 Forbidden errors; enhance in-page Code of Conduct navigation anchors.

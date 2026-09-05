@@ -4,13 +4,17 @@
 package com.orbiscreen.android.player
 
 import android.content.Context
+import android.media.MediaCrypto
+import android.media.MediaFormat
 import android.net.Uri
+import android.os.Build
+import android.os.Handler
 import android.util.Log
 import androidx.annotation.OptIn
+import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
-import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
@@ -18,11 +22,16 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.Renderer
+import androidx.media3.exoplayer.mediacodec.MediaCodecAdapter
 import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.video.MediaCodecVideoRenderer
+import androidx.media3.exoplayer.video.VideoRendererEventListener
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
+import java.util.ArrayList
 import com.orbiscreen.android.data.PrefsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -127,7 +136,7 @@ class PlayerHolder(
             val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
 
             val loadControl = DefaultLoadControl.Builder()
-                .setBufferDurationsMs(40, 120, 25, 40)
+                .setBufferDurationsMs(32, 64, 16, 32)
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
 
@@ -141,11 +150,11 @@ class PlayerHolder(
                         .setMimeType(MimeTypes.VIDEO_MP2T)
                         .setLiveConfiguration(
                             MediaItem.LiveConfiguration.Builder()
-                                .setTargetOffsetMs(40)
-                                .setMinOffsetMs(25)
-                                .setMaxOffsetMs(120)
-                                .setMinPlaybackSpeed(0.97f)
-                                .setMaxPlaybackSpeed(1.03f)
+                                .setTargetOffsetMs(24)
+                                .setMinOffsetMs(8)
+                                .setMaxOffsetMs(48)
+                                .setMinPlaybackSpeed(0.95f)
+                                .setMaxPlaybackSpeed(1.08f)
                                 .build()
                         )
                         .build()
@@ -153,6 +162,7 @@ class PlayerHolder(
                     repeatMode = Player.REPEAT_MODE_OFF
                     playWhenReady = true
                     volume = 0f
+                    setForegroundMode(true)
                     addListener(object : Player.Listener {
                         override fun onPlaybackStateChanged(state: Int) {
                             when (state) {
@@ -244,25 +254,47 @@ class PlayerHolder(
         }
 
     private fun buildRenderersFactory(): DefaultRenderersFactory {
-        val factory = DefaultRenderersFactory(context)
+        val selector = if (prefs.forceSoftwareDecoder) {
+            MediaCodecSelector { mimeType, secure, tunneling ->
+                MediaCodecSelector.DEFAULT
+                    .getDecoderInfos(mimeType, secure, tunneling)
+                    .filter { !it.hardwareAccelerated }
+            }
+        } else {
+            MediaCodecSelector { mimeType, secure, tunneling ->
+                val all = MediaCodecSelector.DEFAULT.getDecoderInfos(mimeType, secure, tunneling)
+                val lowLatency = all.filter { info ->
+                    info.hardwareAccelerated &&
+                        info.capabilities?.isFeatureSupported("low-latency") == true
+                }
+                (lowLatency + all.filter { it.hardwareAccelerated } + all).distinct()
+            }
+        }
+        return object : DefaultRenderersFactory(context) {
+            override fun buildVideoRenderers(
+                context: Context,
+                extensionRendererMode: Int,
+                mediaCodecSelector: MediaCodecSelector,
+                enableDecoderFallback: Boolean,
+                eventHandler: Handler,
+                eventListener: VideoRendererEventListener,
+                allowedVideoJoiningTimeMs: Long,
+                out: ArrayList<Renderer>,
+            ) {
+                out.add(
+                    LowLatencyVideoRenderer(
+                        context,
+                        mediaCodecSelector,
+                        enableDecoderFallback,
+                        eventHandler,
+                        eventListener,
+                    ),
+                )
+            }
+        }
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF)
             .setEnableDecoderFallback(true)
-        if (prefs.forceSoftwareDecoder) {
-            factory.setMediaCodecSelector(
-                object : MediaCodecSelector {
-                    override fun getDecoderInfos(
-                        mimeType: String,
-                        requiresSecureDecoder: Boolean,
-                        requiresTunnelingDecoder: Boolean,
-                    ): List<MediaCodecInfo> {
-                        return MediaCodecSelector.DEFAULT
-                            .getDecoderInfos(mimeType, requiresSecureDecoder, requiresTunnelingDecoder)
-                            .filter { !it.hardwareAccelerated }
-                    }
-                },
-            )
-        }
-        return factory
+            .setMediaCodecSelector(selector)
     }
 
     private fun scheduleReconnect() {
@@ -316,5 +348,43 @@ class PlayerHolder(
 
     fun retry(host: String, port: Int, tokenProvider: suspend () -> String = { "" }) {
         scope.launch { build(host, port, tokenProvider) }
+    }
+}
+
+@OptIn(UnstableApi::class)
+private class LowLatencyVideoRenderer(
+    context: Context,
+    mediaCodecSelector: MediaCodecSelector,
+    enableDecoderFallback: Boolean,
+    eventHandler: Handler,
+    eventListener: VideoRendererEventListener,
+) : MediaCodecVideoRenderer(
+    context,
+    mediaCodecSelector,
+    0L,
+    enableDecoderFallback,
+    eventHandler,
+    eventListener,
+    50,
+) {
+    override fun getMediaCodecConfiguration(
+        codecInfo: MediaCodecInfo,
+        format: Format,
+        crypto: MediaCrypto?,
+        codecOperatingRate: Float,
+    ): MediaCodecAdapter.Configuration {
+        val config = super.getMediaCodecConfiguration(codecInfo, format, crypto, codecOperatingRate)
+        val mediaFormat = config.mediaFormat
+        if (Build.VERSION.SDK_INT >= 30) {
+            mediaFormat.setInteger(MediaFormat.KEY_LOW_LATENCY, 1)
+        }
+        if (Build.VERSION.SDK_INT >= 23) {
+            mediaFormat.setInteger(MediaFormat.KEY_PRIORITY, 0)
+            mediaFormat.setInteger(MediaFormat.KEY_OPERATING_RATE, Short.MAX_VALUE.toInt())
+        }
+        mediaFormat.setInteger("low-latency", 1)
+        mediaFormat.setInteger("vdec-lowlatency", 1)
+        mediaFormat.setInteger("vendor.low-latency.enable", 1)
+        return config
     }
 }

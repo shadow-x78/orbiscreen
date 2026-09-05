@@ -984,10 +984,10 @@ function startStream() {
         lazyLoadMaxDuration: 0,
         seekType: "range",
         liveBufferLatencyChasing: true,
-        liveBufferLatencyMaxLatency: 0.2,
-        liveBufferLatencyMinRemain: 0.05,
+        liveBufferLatencyMaxLatency: 0.08,
+        liveBufferLatencyMinRemain: 0.016,
         liveSync: true,
-        liveSyncTargetLatency: 0.05,
+        liveSyncTargetLatency: 0.03,
     });
 
     videoEl.muted = true;
@@ -1030,8 +1030,8 @@ function startStream() {
             const delay = end - videoEl.currentTime;
             const ms = Math.max(0, Math.round(delay * 1000));
             if (statLatency) statLatency.textContent = `${ms} ms`;
-            if (delay > 0.3) {
-                videoEl.currentTime = end - 0.03;
+            if (delay > 0.08) {
+                videoEl.currentTime = end - 0.02;
             }
         } catch (_) {}
     }, 250);
