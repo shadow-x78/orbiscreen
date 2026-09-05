@@ -81,8 +81,43 @@ jobs:
         run: |
           debuild --no-lintian -S -sa -d -k"${GPG_KEY_ID}" -p"gpg --batch --pinentry-mode loopback"
 
+      - name: Configure dput
+        run: |
+          cat << 'EOF' > ~/.dput.cf
+          [DEFAULT]
+          passive_ftp = 1
+          allow_unsigned_uploads = 1
+
+          [ppa]
+          fqdn = ppa.launchpad.net
+          method = ftp
+          incoming = ~%(ppa)s/ubuntu/
+          login = anonymous
+          passive_ftp = 1
+          allow_unsigned_uploads = 1
+
+          [orbiscreen-ppa]
+          fqdn = ppa.launchpad.net
+          method = ftp
+          incoming = ~shadow-x78/ubuntu/ppa/
+          login = anonymous
+          passive_ftp = 1
+          allow_unsigned_uploads = 1
+          EOF
+
       - name: Upload to Launchpad PPA via dput
         run: |
           CHANGES_FILE=$(ls ../orbiscreen_*_source.changes | tail -n 1)
           echo "Uploading $CHANGES_FILE to Launchpad PPA..."
-          dput ppa:shadow-x78/ppa "$CHANGES_FILE" || dput ppa:shadow-x78/orbiscreen "$CHANGES_FILE"
+          for attempt in 1 2 3 4; do
+            echo "Attempt $attempt: uploading to Launchpad PPA..."
+            if dput -u -P -f orbiscreen-ppa "$CHANGES_FILE" || dput -u -P -f ppa:shadow-x78/ppa "$CHANGES_FILE"; then
+              echo "Upload successfully completed."
+              exit 0
+            fi
+            echo "Attempt $attempt failed. Waiting 15s before retry..."
+            sleep 15
+          done
+          echo "::error::Failed to upload to Launchpad PPA after multiple attempts."
+          exit 1
+
