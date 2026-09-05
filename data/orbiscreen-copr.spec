@@ -5,7 +5,6 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.22.0
 Version:        0.22.1
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
@@ -118,16 +117,16 @@ fi
 * Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.19.0-1
 - Release 0.19.0: COSMIC desktop support, native Fedora CI RPM packaging, RTL documentation, zero-comment code standards.
 
-* Thu Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.3-1
+* Thu Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.3-1
 - Release 0.18.3: Android 1:1 web client parity, direct keyboard typing, refined ASCII logo, and web favicons.
 
-* Wed Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.2-1
+* Thu Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.2-1
 - Release 0.18.2: Redesigned CLI interface with brand theme, ASCII logo, status command, and clean code headers.
 
-* Wed Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.1-1
+* Thu Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.1-1
 - Release 0.18.1: Pure CLI daemon refactoring, removal of desktop launcher, and package description synchronization.
 
-* Wed Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.0-1
+* Thu Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.0-1
 - Release 0.18.0: Stylus pressure/tilt digitizer, auto-orientation, SEO-optimized docs and banner.
 * Wed Sep 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.17.4-1
 - Release 0.17.4: Zero-latency NVENC, 60 FPS damage pump, Android UI overhaul, and clean packaging.
