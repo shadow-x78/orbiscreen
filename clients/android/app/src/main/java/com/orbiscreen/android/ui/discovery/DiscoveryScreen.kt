@@ -178,7 +178,7 @@ fun DiscoveryScreen(
 
             UsbHeroCard(
                 usbPort = state.usbPort,
-                onConnect = { onConnect("127.0.0.1", state.usbPort) },
+                onConnect = { host -> onConnect(host, state.usbPort) },
             )
 
             val recent = state.recent
@@ -278,12 +278,13 @@ private fun NetworkStatusPill(
 }
 
 @Composable
-private fun UsbHeroCard(usbPort: Int, onConnect: () -> Unit) {
+private fun UsbHeroCard(usbPort: Int, onConnect: (String) -> Unit) {
     var probe by remember(usbPort) { mutableStateOf<UsbProbeResult?>(null) }
     LaunchedEffect(usbPort) {
         probe = HostApi().probeUsb(usbPort)
     }
-    val isReady = probe == UsbProbeResult.Ready
+    val readyHost = (probe as? UsbProbeResult.Ready)?.host
+    val isReady = readyHost != null
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -348,7 +349,7 @@ private fun UsbHeroCard(usbPort: Int, onConnect: () -> Unit) {
             }
             Spacer(Modifier.width(10.dp))
             Button(
-                onClick = onConnect,
+                onClick = { readyHost?.let { onConnect(it) } },
                 enabled = isReady,
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(

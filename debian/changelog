@@ -1,3 +1,13 @@
+orbiscreen (0.22.4-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.22.4 for Ubuntu noble.
+  * Restrict mouse key bitmask to pure keyboard and mouse buttons so libinput and KWin correctly classify it as pointer instead of tablet-pad.
+  * Implement USB Tethering auto-discovery in Android client to support direct cable connections without ADB.
+  * Add styled ASCII stop card for CLI stop command with Catppuccin accents and D-Bus service status.
+  * Register org.shadow-x78.Orbiscreen well-known name on the session bus.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 16:50:00 +0300
+
 orbiscreen (0.22.3-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.3 for Ubuntu noble.

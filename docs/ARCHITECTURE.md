@@ -2,7 +2,7 @@
 
 # Architecture Specification - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.22.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.22.4-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -147,7 +147,7 @@ Every session generates a random 32-byte base64url token at startup:
 | `/stream` | GET | token | - | `video/mp2t` MPEG-TS live stream |
 | `/input` | POST | token | pointer/key/stylus JSON | `202 Accepted` |
 | `/api/control` | POST | token | `{"action":"lock"\|"blank"\|"unblank"\|"ctrl_alt_del"}` | `200 OK` / `501` when the host lacks the required tool / `400` for unknown actions |
-| `/api/info` | GET | - | - | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.22.3"}` |
+| `/api/info` | GET | - | - | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.22.4"}` |
 | `/health` | GET | - | - | `200 OK "ok"` |
 
 Input events (`/input`) accept the same payload schema as the web client: `{"Pointer":{"Move":{"x","y"}\|"Button":{"button","pressed"}\|"Wheel":{"delta_y"}}}`, `{"Key":{"code","pressed"}}` (Linux evdev keycodes), `{"Stylus":{"Tilt":{"x","y","pressure","tilt_x_deg","tilt_y_deg"}}}`.

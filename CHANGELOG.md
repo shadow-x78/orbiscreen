@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.22.4] - 2026-09-05
+
+Fix pure pointer classification in libinput/KWin, add automatic USB Tethering gateway discovery for ADB-free high-speed USB connections, implement styled ASCII stop card, and register org.shadow-x78.Orbiscreen on D-Bus.
+
+### ✨ Added & Improved
+- **Pure Pointer Device Classification (`orbiscreen-input`)**:
+  - Filtered key capabilities in `Orbiscreen Virtual Mouse and Keyboard`: restricted keys to standard keyboard codes (`1..=248`) and mouse buttons (`0x110..=0x117`), removing `BTN_PAD` (`0x160..=0x2FF`) and `BTN_MISC` (`0x100..=0x10F`).
+  - Resolves issue where `libinput` mistakenly classified the device as a `tablet-pad` (`pointer = false` in KWin). The device is now correctly recognized as `Capabilities: keyboard pointer` (`pointer = true`), enabling instant absolute touch and mouse control.
+  - Cursor coordinates remain strictly confined to `Virtual-ORBISCREEN` with zero snapback.
+- **Automatic USB Tethering Discovery (Android Client)**:
+  - Updated `HostApi.probeUsb` and `DiscoveryScreen` to scan local network interfaces for active USB Tethering adapters (`rndis*`, `usb*`, `ncm*`) and probe default gateway endpoints (e.g. `192.168.42.1`).
+  - Android users can now connect over a USB cable simply by enabling USB Tethering (توصيل شبكة USB) in Android settings, without needing ADB, USB debugging, or terminal commands.
+- **Styled ASCII Stop Card (`orbiscreen-daemon`)**:
+  - Implemented `ui::print_stop_card` providing a formatted Catppuccin ASCII card for `orbiscreen stop` matching `orbiscreen -V` and `orbiscreen status`.
+  - Clearly displays shutdown status, message, and session D-Bus service identifier.
+- **D-Bus Service Registration (`orbiscreen-daemon`)**:
+  - Registered `org.shadow-x78.Orbiscreen` well-known name on the D-Bus session bus alongside `com.orbiscreen.Daemon` for seamless client compatibility.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.22.4.
+- **Android Client**: Incremented `versionCode` to 54; updated `versionName` to "0.22.4".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.4.
+- **debian/changelog**: Added 0.22.4-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.22.4.
+- **Documentation**: Synchronized version badges and references across all documentation files.
+
 ## [v0.22.3] - 2026-09-05
 
 Eliminate video stuttering and packet bursts with 1-second GOP interval, make virtual mouse a pure absolute pointer device to permanently eliminate cursor snapback, and stabilize stylus proximity and network dispatch.

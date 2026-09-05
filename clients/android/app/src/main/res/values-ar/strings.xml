@@ -7,9 +7,9 @@
     <string name="host_label">العنوان</string>
     <string name="connect">اتصال</string>
     <string name="usb_connect">USB</string>
-    <string name="usb_mode_desc">زمن استجابة فائق السرعة عبر كابل USB</string>
-    <string name="usb_status_ready">نفق USB نشط، الخادم متصل</string>
-    <string name="usb_status_tunnel_down">نفق USB غير نشط. شغّل الخدمة أو أعد توصيل الكابل.</string>
+    <string name="usb_mode_desc">سرعة فائقة عبر توصيل شبكة USB (Tethering) أو الكابل</string>
+    <string name="usb_status_ready">اتصال USB نشط، الجهاز متصل</string>
+    <string name="usb_status_tunnel_down">فعّل توصيل شبكة USB (Tethering) في الإعدادات أو أعد وصل الكابل.</string>
     <string name="usb_badge">USB</string>
     <string name="refresh">تحديث</string>
     <string name="no_hosts_found">لم يُعثر على أجهزة</string>

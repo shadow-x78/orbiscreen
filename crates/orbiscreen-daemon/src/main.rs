@@ -335,7 +335,7 @@ async fn main() -> ExitCode {
         }
         Some(Command::Stop) => match dbus::request_stop().await {
             Ok(reply) => {
-                println!("{} {reply}", ui::badge_ok());
+                ui::print_stop_card(false, &reply);
                 ExitCode::SUCCESS
             }
             Err(zbus::Error::MethodError(name, _, _))
@@ -350,10 +350,7 @@ async fn main() -> ExitCode {
                 if systemd_status == "active" {
                     run_service_action(ServiceAction::Stop).await
                 } else {
-                    println!(
-                        "{} Daemon is not running (no com.orbiscreen.Daemon on the session bus)",
-                        ui::badge_info()
-                    );
+                    ui::print_stop_card(false, "Daemon is not running on the session bus");
                     ExitCode::from(1)
                 }
             }
@@ -367,7 +364,7 @@ async fn main() -> ExitCode {
                 if systemd_status == "active" {
                     run_service_action(ServiceAction::Stop).await
                 } else {
-                    eprintln!("{} Stop failed: {e}", ui::badge_err());
+                    ui::print_stop_card(false, &format!("Stop failed: {e}"));
                     ExitCode::from(1)
                 }
             }
@@ -601,7 +598,7 @@ async fn run_status(json: bool, port: u16) -> ExitCode {
             let rows = vec![
                 (
                     "Daemon Process",
-                    "Not running (No com.orbiscreen.Daemon on D-Bus)".to_string(),
+                    "Not running (No org.shadow-x78.Orbiscreen on D-Bus)".to_string(),
                 ),
                 (
                     "Systemd Service",

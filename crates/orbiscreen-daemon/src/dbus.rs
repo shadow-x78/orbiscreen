@@ -77,12 +77,24 @@ impl OrbiscreenDbusServer {
 pub async fn call_stop(conn: &zbus::Connection) -> zbus::Result<String> {
     let proxy = zbus::Proxy::new(
         conn,
-        "com.orbiscreen.Daemon",
+        "org.shadow-x78.Orbiscreen",
         "/com/orbiscreen/Daemon",
         "com.orbiscreen.Daemon",
     )
     .await?;
-    proxy.call("Stop", &()).await
+    match proxy.call("Stop", &()).await {
+        Ok(res) => Ok(res),
+        Err(_) => {
+            let fallback = zbus::Proxy::new(
+                conn,
+                "com.orbiscreen.Daemon",
+                "/com/orbiscreen/Daemon",
+                "com.orbiscreen.Daemon",
+            )
+            .await?;
+            fallback.call("Stop", &()).await
+        }
+    }
 }
 
 pub async fn request_stop() -> zbus::Result<String> {
@@ -93,12 +105,24 @@ pub async fn request_stop() -> zbus::Result<String> {
 pub async fn call_status(conn: &zbus::Connection) -> zbus::Result<String> {
     let proxy = zbus::Proxy::new(
         conn,
-        "com.orbiscreen.Daemon",
+        "org.shadow-x78.Orbiscreen",
         "/com/orbiscreen/Daemon",
         "com.orbiscreen.Daemon",
     )
     .await?;
-    proxy.call("GetStatus", &()).await
+    match proxy.call("GetStatus", &()).await {
+        Ok(res) => Ok(res),
+        Err(_) => {
+            let fallback = zbus::Proxy::new(
+                conn,
+                "com.orbiscreen.Daemon",
+                "/com/orbiscreen/Daemon",
+                "com.orbiscreen.Daemon",
+            )
+            .await?;
+            fallback.call("GetStatus", &()).await
+        }
+    }
 }
 
 pub async fn request_status() -> zbus::Result<String> {
@@ -109,6 +133,7 @@ pub async fn request_status() -> zbus::Result<String> {
 pub async fn run_dbus_server(handles: Arc<DaemonHandles>) -> zbus::Result<()> {
     let server = OrbiscreenDbusServer::new(handles);
     let _conn = zbus::connection::Builder::session()?
+        .name("org.shadow-x78.Orbiscreen")?
         .name("com.orbiscreen.Daemon")?
         .serve_at("/com/orbiscreen/Daemon", server)?
         .build()

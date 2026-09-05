@@ -36,9 +36,8 @@ pub struct UinputInjector {
 
 impl UinputInjector {
     pub fn open(spec: VirtualTouchscreenSpec) -> Result<Self, InputError> {
-        let mut mk_keys: Vec<Key> = (1u16..=0x10F).map(Key::from_raw).collect();
+        let mut mk_keys: Vec<Key> = (1u16..=248).map(Key::from_raw).collect();
         mk_keys.extend((0x110u16..=0x117).map(Key::from_raw));
-        mk_keys.extend((0x160u16..=0x2FF).map(Key::from_raw));
 
         let width_axis = AbsInfo::new(0, spec.width.saturating_sub(1) as i32);
         let height_axis = AbsInfo::new(0, spec.height.saturating_sub(1) as i32);
@@ -180,7 +179,7 @@ impl UinputInjector {
     }
 
     pub fn inject_key(&mut self, code: u32, pressed: bool) -> Result<(), InputError> {
-        if code == 0 || code > 0x2FF {
+        if code == 0 || code > 248 {
             return Err(InputError::Uinput(format!("invalid key code: {code}")));
         }
         let state = if pressed {

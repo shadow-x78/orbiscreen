@@ -80,24 +80,52 @@ class HostApi {
         }
     }
 
-    enum class UsbProbeResult { Ready, TunnelDown }
+    sealed class UsbProbeResult {
+        data class Ready(val host: String) : UsbProbeResult()
+        object TunnelDown : UsbProbeResult()
+    }
 
     suspend fun probeUsb(port: Int): UsbProbeResult = withContext(Dispatchers.IO) {
-        withTimeoutOrNull(1200) {
-            try {
-                val req = Request.Builder().url("http://127.0.0.1:$port/health").build()
-                client.newCall(req).execute().use { resp ->
-                    when {
-                        resp.isSuccessful -> UsbProbeResult.Ready
-                        resp.code == 404 -> UsbProbeResult.TunnelDown
-                        else -> UsbProbeResult.TunnelDown
+        val candidates = mutableListOf("127.0.0.1")
+        try {
+            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
+            while (interfaces != null && interfaces.hasMoreElements()) {
+                val iface = interfaces.nextElement()
+                val name = iface.name.lowercase()
+                if (name.startsWith("rndis") || name.startsWith("usb") || name.startsWith("ncm")) {
+                    val addrs = iface.inetAddresses
+                    while (addrs.hasMoreElements()) {
+                        val addr = addrs.nextElement()
+                        if (addr is java.net.Inet4Address && !addr.isLoopbackAddress) {
+                            val ip = addr.hostAddress ?: continue
+                            val parts = ip.split(".")
+                            if (parts.size == 4) {
+                                val prefix = "${parts[0]}.${parts[1]}.${parts[2]}"
+                                val c1 = "$prefix.1"
+                                val c2 = "$prefix.2"
+                                if (!candidates.contains(c1)) candidates.add(c1)
+                                if (!candidates.contains(c2)) candidates.add(c2)
+                            }
+                        }
                     }
                 }
-            } catch (e: Exception) {
-                Log.v(TAG, "usb health probe failed: ${e.message}")
-                UsbProbeResult.TunnelDown
             }
-        } ?: UsbProbeResult.TunnelDown
+        } catch (_: Exception) {}
+
+        for (host in candidates) {
+            val ok = withTimeoutOrNull(400) {
+                try {
+                    val req = Request.Builder().url("http://$host:$port/health").build()
+                    client.newCall(req).execute().use { resp -> resp.isSuccessful }
+                } catch (_: Exception) {
+                    false
+                }
+            } ?: false
+            if (ok) {
+                return@withContext UsbProbeResult.Ready(host)
+            }
+        }
+        UsbProbeResult.TunnelDown
     }
 
     companion object {

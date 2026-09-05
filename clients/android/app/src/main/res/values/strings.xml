@@ -6,9 +6,9 @@
     <string name="host_label">Host Address</string>
     <string name="connect">Connect</string>
     <string name="usb_connect">USB</string>
-    <string name="usb_mode_desc">Ultra-low latency via USB cable</string>
-    <string name="usb_status_ready">Tunnel active, host reachable</string>
-    <string name="usb_status_tunnel_down">USB tunnel inactive. Start daemon or reconnect cable.</string>
+    <string name="usb_mode_desc">Ultra-low latency via USB Tethering or cable</string>
+    <string name="usb_status_ready">USB connected, host reachable</string>
+    <string name="usb_status_tunnel_down">Enable USB Tethering in Android Settings or connect cable.</string>
     <string name="usb_badge">USB</string>
     <string name="refresh">Refresh</string>
     <string name="no_hosts_found">No hosts found</string>

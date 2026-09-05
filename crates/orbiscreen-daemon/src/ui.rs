@@ -344,7 +344,7 @@ pub fn print_version_card(json: bool) {
                 "target": target,
                 "compositor": caps.compositor.to_string(),
                 "session": caps.session.to_string(),
-                "dbus_service": "org.shadow_x7.Orbiscreen",
+                "dbus_service": "org.shadow-x78.Orbiscreen",
             })
         );
         return;
@@ -377,7 +377,7 @@ pub fn print_version_card(json: bool) {
             "Features"
         );
         println!(
-            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {TEXT}org.shadow_x7.Orbiscreen{RESET}  {DIM}(Session Bus){RESET}",
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {TEXT}org.shadow-x78.Orbiscreen{RESET}  {DIM}(Session Bus){RESET}",
             "D-Bus Service"
         );
         println!("{SAPPHIRE}╰───────────────────────────────────────────────────────────────────────{RESET}");
@@ -391,7 +391,43 @@ pub fn print_version_card(json: bool) {
         println!(
             "|  Features         Virtual Display · Hardware Encoding · Stylus & Touch · USB ADB"
         );
-        println!("|  D-Bus Service    org.shadow_x7.Orbiscreen (Session Bus)");
+        println!("|  D-Bus Service    org.shadow-x78.Orbiscreen (Session Bus)");
         println!("+-----------------------------------------------------------------------\n");
+    }
+}
+
+pub fn print_stop_card(running: bool, message: &str) {
+    if colors_enabled() {
+        use colors::*;
+        let status_badge = if running {
+            format!("{BOLD}{GREEN}Active{RESET}")
+        } else {
+            format!("{BOLD}{RED}Inactive / Stopped{RESET}")
+        };
+        println!("{SAPPHIRE}╭── Orbiscreen Daemon Status ───────────────────────────────────────────{RESET}");
+        println!(
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {status_badge}",
+            "Status"
+        );
+        println!(
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {TEXT}org.shadow-x78.Orbiscreen{RESET}  {DIM}(Session Bus){RESET}",
+            "D-Bus Service"
+        );
+        println!(
+            "{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{:<16}{RESET} {TEXT}{message}{RESET}",
+            "Result"
+        );
+        println!("{SAPPHIRE}╰───────────────────────────────────────────────────────────────────────{RESET}");
+    } else {
+        let status_str = if running {
+            "Active"
+        } else {
+            "Inactive / Stopped"
+        };
+        println!("+-- Orbiscreen Daemon Status -------------------------------------------");
+        println!("|  Status           {status_str}");
+        println!("|  D-Bus Service    org.shadow-x78.Orbiscreen (Session Bus)");
+        println!("|  Result           {message}");
+        println!("+-----------------------------------------------------------------------");
     }
 }
