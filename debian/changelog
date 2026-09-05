@@ -1,3 +1,13 @@
+orbiscreen (0.22.2-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.22.2 for Ubuntu noble.
+  * Fix video stuttering and packet drops by expanding buffers and preventing EOS on overrun.
+  * Confine mouse pointer strictly to virtual screen and prevent snapback to host monitor.
+  * Fix stylus touch, pressure and hover for drawing and desktop navigation on tablets.
+  * Tune ExoPlayer buffer for stutter-free 60 FPS streaming over USB ADB and Wi-Fi.
+
+ -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 12:35:00 +0300
+
 orbiscreen (0.22.1-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.1 for Ubuntu noble.

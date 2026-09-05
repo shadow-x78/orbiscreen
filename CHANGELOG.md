@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.22.2] - 2026-09-05
+
+Fix video stuttering, prevent stream termination on buffer overrun, confine mouse pointer strictly to virtual screen without snapback, and enable universal stylus touch and hover support.
+
+### ✨ Added & Improved
+- **Video Stuttering and Pipeline Stability (`orbiscreen-transport`)**:
+  - Expanded broadcast video packet channel from 32 to 512 packets, eliminating keyframe lag stalls.
+  - Increased MPEG-TS appsink queue to 512 buffers and mpsc delivery channel to 1024 chunks.
+  - Eliminated stream termination on buffer overrun: chunks are safely dropped under transient network pressure instead of returning EOS.
+- **Mouse Pointer Confinement and Snapback Elimination (`orbiscreen-input`, `orbiscreen-daemon`)**:
+  - Routed all pointer button clicks (including Left Click / Button 1) through the virtual mouse device (`mouse_keyboard`), preventing KWin from dropping the pointer back to the primary monitor when releasing touch.
+  - Applied `mapToWorkspace = false` alongside `outputName` in KWin input binding for all Orbiscreen virtual devices, ensuring strict confinement to the secondary display.
+- **Universal Stylus Touch, Pressure, and Hover (`orbiscreen-input`, Android Client)**:
+  - Corrected Linux evdev tablet tool states: `BTN_TOOL_PEN` stays pressed while in proximity, with `BTN_TOUCH` reflecting physical contact.
+  - Mirrored stylus coordinates and touch state to `mouse_keyboard`, enabling stylus interaction across all standard desktop applications, window controls, and menus, while retaining pressure and tilt in drawing software.
+  - Enhanced Android `PlayerSurface` with automatic view focus, positive pressure clamping on physical touch, and responsive hover tracking.
+- **Stutter-Free 60 FPS Android Playback (Android Client)**:
+  - Tuned ExoPlayer `DefaultLoadControl` to 40-80ms playback threshold and 80-250ms buffer range, preventing micro-stutter buffering loops over USB ADB and Wi-Fi.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.22.2.
+- **Android Client**: Incremented `versionCode` to 52; updated `versionName` to "0.22.2".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.2.
+- **debian/changelog**: Added 0.22.2-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.22.2.
+- **Documentation**: Synchronized version badges across all documentation files.
+
 ## [v0.22.1] - 2026-09-05
 
 Ultra-low latency streaming optimizations, 3 dedicated uinput virtual devices, direct touch output confinement, and hardware stylus recognition.

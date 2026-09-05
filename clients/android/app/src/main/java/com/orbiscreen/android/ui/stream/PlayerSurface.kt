@@ -121,6 +121,7 @@ fun PlayerSurface(
                 resizeMode = scaleMode
                 isClickable = true
                 isFocusable = true
+                requestFocus()
 
                 setOnGenericMotionListener { _, ev ->
                     val toolType = ev.getToolType(0)
@@ -149,7 +150,7 @@ fun PlayerSurface(
                         val cr = computeContentRect(w, hPx, streamWidth, streamHeight, holder.scaleMode)
                         val cx = (ev.x - cr.offsetX).coerceIn(0f, cr.w)
                         val cy = (ev.y - cr.offsetY).coerceIn(0f, cr.h)
-                        val pressure = if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) 0f else ev.pressure
+                        val pressure = if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) 0f else ev.pressure.coerceAtLeast(0.1f)
                         val tiltRad = ev.getAxisValue(MotionEvent.AXIS_TILT)
                         val altitudeDeg = Math.toDegrees(tiltRad.toDouble()).toFloat()
                         val orientationRad = ev.getAxisValue(MotionEvent.AXIS_ORIENTATION)

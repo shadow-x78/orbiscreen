@@ -1254,6 +1254,7 @@ async fn bind_kwin_virtual_inputs(target_output: &str) {
                             let _ = proxy
                                 .set_property::<&str>("outputName", target_output)
                                 .await;
+                            let _ = proxy.set_property::<bool>("mapToWorkspace", false).await;
                             info!(
                                 "bound KWin input device {path} ({name}) to output {target_output}"
                             );
