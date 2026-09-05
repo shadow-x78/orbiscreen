@@ -6,7 +6,7 @@ orbiscreen (0.22.6-1~ubuntunoble1) noble; urgency=medium
   * Add automatic AOA intent handling and accessory filter in Android client.
   * Unify and polish tool-oriented translations across Web, Android, and CLI interfaces.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 19:15:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 19:15:00 +0300
 
 orbiscreen (0.22.5-1~ubuntunoble1) noble; urgency=medium
 
@@ -15,7 +15,7 @@ orbiscreen (0.22.5-1~ubuntunoble1) noble; urgency=medium
   * Add automatic background update check on app launch and manual check in Settings.
   * Configure secure FileProvider and REQUEST_INSTALL_PACKAGES permission in AndroidManifest.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 17:05:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 17:05:00 +0300
 
 orbiscreen (0.22.4-1~ubuntunoble1) noble; urgency=medium
 
@@ -25,7 +25,7 @@ orbiscreen (0.22.4-1~ubuntunoble1) noble; urgency=medium
   * Add styled ASCII stop card for CLI stop command with Catppuccin accents and D-Bus service status.
   * Register org.shadow-x78.Orbiscreen well-known name on the session bus.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 16:50:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 16:50:00 +0300
 
 orbiscreen (0.22.3-1~ubuntunoble1) noble; urgency=medium
 
@@ -36,7 +36,7 @@ orbiscreen (0.22.3-1~ubuntunoble1) noble; urgency=medium
   * Fix stylus tablet tool proximity release to prevent cursor jumping to host display on pen lift.
   * Tune Android input dispatcher loop to 16ms (60 Hz) to avoid uplink Wi-Fi network congestion.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 13:30:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 13:30:00 +0300
 
 orbiscreen (0.22.2-1~ubuntunoble1) noble; urgency=medium
 
@@ -46,7 +46,7 @@ orbiscreen (0.22.2-1~ubuntunoble1) noble; urgency=medium
   * Fix stylus touch, pressure and hover for drawing and desktop navigation on tablets.
   * Tune ExoPlayer buffer for stutter-free 60 FPS streaming over USB ADB and Wi-Fi.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 12:35:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 12:35:00 +0300
 
 orbiscreen (0.22.1-1~ubuntunoble1) noble; urgency=medium
 
@@ -57,7 +57,7 @@ orbiscreen (0.22.1-1~ubuntunoble1) noble; urgency=medium
   * Non-zero axis resolution for tablet device to ensure libinput stylus recognition.
   * Low-latency playback buffer tuning and async input dispatch in Android client.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 02:15:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 02:15:00 +0300
 
 orbiscreen (0.22.0-1~ubuntunoble1) noble; urgency=medium
 
@@ -67,7 +67,7 @@ orbiscreen (0.22.0-1~ubuntunoble1) noble; urgency=medium
   * Fix green screen video artifact by preventing MPEG-TS packet drops.
   * Streamline CLI startup banner and update packaging metadata.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Sat, 05 Sep 2026 00:30:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 00:30:00 +0300
 
 orbiscreen (0.21.0-1~ubuntunoble1) noble; urgency=medium
 
@@ -77,7 +77,7 @@ orbiscreen (0.21.0-1~ubuntunoble1) noble; urgency=medium
   * Translated Arabic architecture diagrams and documentation polishing.
   * Token security hardening and streamline packaging metadata.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Fri, 04 Sep 2026 22:30:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 04 Sep 2026 22:30:00 +0300
 
 orbiscreen (0.20.0-1~ubuntunoble1) noble; urgency=medium
 
@@ -88,7 +88,7 @@ orbiscreen (0.20.0-1~ubuntunoble1) noble; urgency=medium
   * ChromeOS ARC++ ADB connection support.
   * LAN token security isolation, loopback filtering, and 0o600 token storage.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Fri, 04 Sep 2026 18:00:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 04 Sep 2026 18:00:00 +0300
 
 orbiscreen (0.19.0-1~ubuntunoble1) noble; urgency=medium
 
@@ -98,7 +98,7 @@ orbiscreen (0.19.0-1~ubuntunoble1) noble; urgency=medium
   * Native Fedora CI and RPM packaging pipeline with RPM Fusion.
   * Comprehensive RTL documentation, zero-comment code standards, and security hardening.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Fri, 04 Sep 2026 16:20:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 04 Sep 2026 16:20:00 +0300
 
 orbiscreen (0.18.3-1~ubuntunoble1) noble; urgency=medium
 
@@ -107,7 +107,7 @@ orbiscreen (0.18.3-1~ubuntunoble1) noble; urgency=medium
   * Streamlined overlay states, VNC cursor isolation, and brand SVG/PNG favicons.
   * Refined CLI ASCII logo geometry and standardized command outputs.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Thu, 04 Sep 2026 03:50:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 04 Sep 2026 03:50:00 +0300
 
 orbiscreen (0.18.2-1~ubuntunoble1) noble; urgency=medium
 
@@ -115,7 +115,7 @@ orbiscreen (0.18.2-1~ubuntunoble1) noble; urgency=medium
   * Modernized CLI interface with brand theme, ASCII logo, and status command.
   * Cleaned codebase and standardized credit headers across all source files.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 03 Sep 2026 21:30:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 03 Sep 2026 21:30:00 +0300
 
 orbiscreen (0.18.1-1~ubuntunoble1) noble; urgency=medium
 
@@ -123,7 +123,7 @@ orbiscreen (0.18.1-1~ubuntunoble1) noble; urgency=medium
   * Pure CLI daemon refactoring: removed desktop application launcher.
   * Synchronized package metadata descriptions across all Linux distributions.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 03 Sep 2026 18:00:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 03 Sep 2026 18:00:00 +0300
 
 orbiscreen (0.18.0-1~ubuntunoble1) noble; urgency=medium
 
@@ -134,35 +134,35 @@ orbiscreen (0.18.0-1~ubuntunoble1) noble; urgency=medium
   * Professional SVG banner with crisp vector icons replacing emoji.
   * Packaging: updated .deb, .rpm, and AppImage CLI distributions.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 03 Sep 2026 16:00:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 03 Sep 2026 16:00:00 +0300
 
 orbiscreen (0.17.4-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.4 for Ubuntu noble.
   * Ultra-low latency KWin virtual capture (framerate-matched damage pump, drop=true max-buffers=1), zero-backlog keyframe delivery, hardware NVENC prioritization, double-tap gesture fix, redesigned Arabic exit modal and settings bottom sheet.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 02 Sep 2026 17:15:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 17:15:00 +0300
 
 orbiscreen (0.17.3-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.3 for Ubuntu noble.
   * Streaming pitch-black fix, sleek keyboard accessory bar, settings FAB & sheet redesign, exit confirmation modal.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 02 Sep 2026 16:35:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 16:35:00 +0300
 
 orbiscreen (0.17.2-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.2 for Ubuntu noble.
   * Comprehensive UI/UX overhaul, sub-100ms latency, mouse input fix, background auto-resume.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 02 Sep 2026 15:55:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 15:55:00 +0300
 
 orbiscreen (0.17.1-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.1 for Ubuntu noble.
   * In-app developer credits, GitHub links, update check, zero-buffering playback.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 02 Sep 2026 15:10:00 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 15:10:00 +0300
 
 orbiscreen (0.16.2-1~ubuntu24.04.3) noble; urgency=medium
 
@@ -170,4 +170,4 @@ orbiscreen (0.16.2-1~ubuntu24.04.3) noble; urgency=medium
   * Fast offline Launchpad PPA packaging with explicit dependencies.
   * Include machine-readable debian/copyright file.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  Wed, 02 Sep 2026 06:02:26 +0300
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 06:02:26 +0300

@@ -17,6 +17,9 @@ Implement native USB Direct streaming via Android Open Accessory (AOA) protocol 
   - Completely audited and refined English and Arabic dictionaries across the web client (`clients/web/app.js`, `index.html`), Android app (`strings.xml`, `values-ar/strings.xml`), and CLI output cards.
   - Eliminated verbose descriptions and manual-style sentences in favor of sleek, punchy, action-oriented tool terminology.
   - Graceful styled stop card for `orbiscreen stop` when daemon is not currently running.
+- **Contributor Covenant Code of Conduct**:
+  - Added project community standards (`CODE_OF_CONDUCT.md`) based on Contributor Covenant v2.1.
+  - Linked across `README.md`, `README_AR.md`, and `CONTRIBUTING.md`.
 
 ### 🧹 Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.6.

@@ -74,7 +74,7 @@ jobs:
 
             * Release ${VERSION} for Ubuntu ${SERIES}.
 
-           -- shadow-x78 <shadow.xox78@gmail.com>  $(date -R)
+           -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  $(date -R)
           CHLOG
 
       - name: Build Debian Source Package

@@ -1,6 +1,6 @@
 # Contributing to Orbiscreen
 
-Contributions to Orbiscreen are welcome. This document describes the development workflow.
+Contributions to Orbiscreen are welcome. Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
 
 ## 🌿 Day-to-Day Work
 
@@ -53,6 +53,7 @@ The tag push triggers the [release workflow](.github/workflows/release.yml), whi
 <div align="center">
 
 Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+[Code of Conduct](CODE_OF_CONDUCT.md) ·
 [Back to README](README.md)
 
 <sub>&copy; 2026 Orbiscreen (shadow-x78)</sub>

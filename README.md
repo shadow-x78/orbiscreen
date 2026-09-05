@@ -346,7 +346,7 @@ If Orbiscreen has made your workflow smoother or saved you from buying a costly 
 4. Push to the branch
 5. Open a Pull Request
 
-Please read our [Contributing Guidelines](CONTRIBUTING.md) for the development environment, code style, and the release process.
+Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) for community standards, development workflow, and the release process.
 
 ---
 
@@ -361,6 +361,7 @@ Distributed under the [GPL-3.0 License](LICENSE).
 
 Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [Changelog](CHANGELOG.md) ·
+[Code of Conduct](CODE_OF_CONDUCT.md) ·
 [Security](SECURITY.md)
 
 <sub>&copy; 2026 Orbiscreen</sub>

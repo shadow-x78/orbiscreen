@@ -31,7 +31,7 @@ orbiscreen (${PKG_VERSION}) ${SERIES}; urgency=medium
   * Fast offline Launchpad PPA packaging with explicit dependencies.
   * Include machine-readable debian/copyright file.
 
- -- shadow-x78 <shadow.xox78@gmail.com>  ${RFC_DATE}
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  ${RFC_DATE}
 CHLOG
 
 # ── Containerized PPA Build & Upload ──
