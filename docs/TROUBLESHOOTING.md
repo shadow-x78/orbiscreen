@@ -2,7 +2,7 @@
 
 # Troubleshooting - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.22.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.22.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -64,33 +64,67 @@
 - [Daemon: 100% CPU usage or freeze](#daemon-cpu)
 
 ### Still Stuck?
-
-- [Build still failing? Check the action logs](#still-stuck)
-- [Re-run a single CI job](#re-run-job)
-- [Verify a live stream end to end (`scripts/verify-stream.sh`)](#verify-stream)
-- [Set up a development environment (`scripts/setup-dev-env.sh`)](#setup-dev-env)
+- [CI Failures](#ci-failures)
+  - [Cargo Fmt / Lint Check](#ci-fmt)
+  - [Clippy (deny warnings)](#ci-clippy)
+  - [Build](#ci-build)
+  - [Test](#ci-test)
+  - [Debian Package Build](#ci-deb)
+  - [RPM Package Build](#ci-rpm)
+  - [Release Workflow](#ci-release)
+- [Local Build Issues](#local-build-issues)
+  - [Missing evdi kernel module](#local-evdi)
+  - [GStreamer plugins missing](#local-gst)
+  - [Android SDK not found](#local-android-sdk)
+  - [uinput permission denied](#local-uinput)
+- [Runtime Issues](#runtime-issues)
+  - [No screen displayed on client](#runtime-no-screen)
+  - [High latency or stuttering](#runtime-latency)
+  - [Mouse / Touch not responding](#runtime-touch)
+  - [Host daemon exits immediately](#runtime-exit)
+- [Audio Issues](#audio-issues)
+  - [No sound on Android device](#audio-no-sound)
+  - [Audio out of sync with video](#audio-sync)
+- [Network & Connection Issues](#network--connection-issues)
+  - [mDNS discovery fails](#net-mdns)
+  - [Connection refused / timed out](#net-timeout)
+  - [Bandwidth saturation](#net-bandwidth)
+- [Compositor-Specific Issues](#compositor-specific-issues)
+  - [KDE Plasma Wayland (KWin)](#comp-kwin)
+  - [GNOME Wayland (Mutter)](#comp-mutter)
+  - [sway / Hyprland (wlroots)](#comp-wlroots)
+  - [COSMIC (cosmic-comp)](#comp-cosmic)
+  - [X11](#comp-x11)
+- [Android Client Issues](#android-client-issues)
+  - [App crashes on launch](#app-crash)
+  - [Decoder fallback to software](#app-sw-decoder)
+  - [Stylus pressure/tilt not working](#app-stylus)
+- [Performance & Resource Leaks](#performance--resource-leaks)
+- [Still Stuck?](#still-stuck)
 
 ---
 
+<a id="ci-failures"></a>
+# CI Failures
+
 <a id="ci-fmt"></a>
-## 🧪 CI Action: `Check formatting` (`cargo fmt --all -- --check`)
+## 🧪 CI Action: `Format & Lint` (`cargo fmt --check`)
 
 **Symptom:**
 ```
-Diff in /path/to/file.rs:
-   println!("x");
--  println!("y");
-+  println!("z");
+Diff in src/main.rs:
+-    let x = 1;
++    let x = 1;
 ```
 
 **Cause:**
-Rust source files don't match `cargo fmt`'s formatting.
+Source code does not adhere to standard Rust formatting (`rustfmt`).
 
 **Fix:**
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.22.7 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.22.8 | style: cargo fmt --all"
 ```
 
 **Prevention:**
@@ -115,7 +149,7 @@ error: this operation is not supported for derived errors
 cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
 cargo clippy --workspace --all-targets --locked --fix
 git add -A
-git commit -m "orbiscreen | v0.22.7 | fix: resolve clippy warnings"
+git commit -m "orbiscreen | v0.22.8 | fix: resolve clippy warnings"
 ```
 
 **Prevention:**
@@ -136,7 +170,7 @@ error[E0463]: can't find crate for `gstreamer`
 cargo update -p gstreamer
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.22.7 | chore: refresh Cargo.lock"
+git commit -m "orbiscreen | v0.22.8 | chore: refresh Cargo.lock"
 ```
 
 ---
@@ -567,7 +601,7 @@ The D-Bus service (`com.orbiscreen.Daemon`) is registered on the **user session 
 Capture loop running without yielding or unbounded queue backlog.
 
 **Fix:**
-Update to the latest release (v0.22.7 or newer).
+Update to the latest release (v0.22.8 or newer).
 
 ---
 

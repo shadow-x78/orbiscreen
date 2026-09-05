@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.22.8] - 2026-09-05
+
+Embed full multi-vendor Android udev rules in `orbiscreen doctor --fix`, implement resilient token retry logic on Android client to eliminate initial unauthorized stream errors, and provide zero-root USB Tethering guidance.
+
+### ✨ Added & Improved
+- **Multi-Vendor Udev Rule Installation (`doctor --fix`)**:
+  - Embedded complete `data/99-orbiscreen-usb.rules` in `orbiscreen doctor --fix`, ensuring all Android vendor IDs (`18d1`, `17ef`, `2717`, `04e8`, `12d1`, `22b8`, etc.) receive unprivileged non-root access (`TAG+="uaccess", MODE="0666"`).
+  - Enhanced error handling in AOA supervisor: prevents log spamming on permission denied and logs helpful non-root remediation instructions.
+  - Added explicit diagnostic guidance recommending USB Tethering for 100% configuration-free, zero-root USB cable streaming.
+- **Resilient Android Session Token Handshake**:
+  - Implemented automatic retry loop (up to 6 attempts with 250ms backoff) in `StreamViewModel.kt` when fetching session token (`/client/config.json`) during stream startup.
+  - Eliminates the race condition where Android connects before daemon token initialization, preventing `401 Unauthorized` stream errors.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.22.8.
+- **Android Client**: Incremented `versionCode` to 58; updated `versionName` to "0.22.8".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.8.
+- **debian/changelog**: Added 0.22.8-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.22.8.
+- **Documentation**: Synchronized version badges and references across all documentation files.
+
 ## [v0.22.7] - 2026-09-05
 
 Purge all ADB legacy dependencies, implement real-time progressive terminal diagnostics in `orbiscreen doctor`, provide unprivileged Linux udev rules for Android Open Accessory (AOA) mode, and enhance the Android in-app update dialog with native Compose Markdown rendering and auto-installation.

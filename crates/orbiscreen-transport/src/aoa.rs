@@ -501,20 +501,31 @@ pub async fn supervisor(
                 run_accessory_bridge(&acc, daemon_port, running_inner)
             });
 
+            let mut permission_error = false;
             tokio::select! {
                 _ = shutdown_inner.changed() => {
                     running.store(false, Ordering::Relaxed);
                 }
                 res = bridge_task => {
                     if let Ok(Err(e)) = res {
-                        warn!("AOA bridge exited: {e}");
+                        if e.contains("Permission denied") {
+                            permission_error = true;
+                            warn!("AOA USB node requires non-root permissions: run 'orbiscreen doctor --fix' once, or use USB Tethering on Android for 100% root-free streaming");
+                        } else {
+                            warn!("AOA bridge exited: {e}");
+                        }
                     }
                 }
             }
 
             active_count.store(0, Ordering::Relaxed);
             tried_devices.clear();
-            tokio::time::sleep(Duration::from_secs(2)).await;
+            let sleep_duration = if permission_error {
+                Duration::from_secs(8)
+            } else {
+                Duration::from_secs(2)
+            };
+            tokio::time::sleep(sleep_duration).await;
         } else {
             for dev in &devices {
                 if dev.vendor_id == 0x1d6b || !is_android_candidate(dev) {

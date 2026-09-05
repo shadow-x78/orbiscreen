@@ -829,8 +829,9 @@ async fn run_devices(json: bool) -> ExitCode {
             "  {} To enable direct USB cable streaming for regular users without root:",
             ui::badge_info()
         );
-        println!("     echo 'SUBSYSTEM==\"usb\", ATTR{{idVendor}}==\"18d1\", MODE=\"0666\", TAG+=\"uaccess\"' | sudo tee /etc/udev/rules.d/99-orbiscreen-usb.rules");
-        println!("     sudo udevadm control --reload-rules && sudo udevadm trigger");
+        println!("     1. Run: orbiscreen doctor --fix");
+        println!("        (or run: sudo cp data/99-orbiscreen-usb.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger)");
+        println!("     2. Or enable 'USB Tethering' on Android for 100% root-free streaming without any udev rules.");
     }
     println!();
     ExitCode::SUCCESS
@@ -1664,6 +1665,8 @@ fn confirm_with_user() -> bool {
     matches!(line.trim().to_ascii_lowercase().as_str(), "y" | "yes")
 }
 
+const UDEV_RULES_DATA: &str = include_str!("../../../data/99-orbiscreen-usb.rules");
+
 async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
     let usb = usb_doctor_report();
     let mut udev_fixed = false;
@@ -1672,17 +1675,20 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
         println!("[doctor --fix] target file: /etc/udev/rules.d/99-orbiscreen-usb.rules");
         let proceed = assume_yes || confirm_with_user();
         if proceed {
-            let script = "echo 'SUBSYSTEM==\"usb\", ATTR{idVendor}==\"18d1\", MODE=\"0666\", TAG+=\"uaccess\"' | tee /etc/udev/rules.d/99-orbiscreen-usb.rules && udevadm control --reload-rules && udevadm trigger";
+            let script = format!(
+                "cat << 'EOF' > /etc/udev/rules.d/99-orbiscreen-usb.rules\n{}\nEOF\nudevadm control --reload-rules && udevadm trigger",
+                UDEV_RULES_DATA.trim()
+            );
             let res = std::process::Command::new("pkexec")
                 .arg("sh")
                 .arg("-c")
-                .arg(script)
+                .arg(&script)
                 .status()
                 .or_else(|_| {
                     std::process::Command::new("sudo")
                         .arg("sh")
                         .arg("-c")
-                        .arg(script)
+                        .arg(&script)
                         .status()
                 });
             match res {
@@ -1691,7 +1697,7 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
                     udev_fixed = true;
                 }
                 _ => {
-                    println!("[doctor --fix] could not install udev rules automatically; run manually:\n    echo 'SUBSYSTEM==\"usb\", ATTR{{idVendor}}==\"18d1\", MODE=\"0666\", TAG+=\"uaccess\"' | sudo tee /etc/udev/rules.d/99-orbiscreen-usb.rules && sudo udevadm control --reload-rules && sudo udevadm trigger");
+                    println!("[doctor --fix] could not install udev rules automatically; run manually:\n    sudo cp data/99-orbiscreen-usb.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger");
                 }
             }
         }

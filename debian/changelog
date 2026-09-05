@@ -1,3 +1,13 @@
+orbiscreen (0.22.8-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.22.8 for Ubuntu noble.
+  * Embed full multi-vendor Android udev rules in orbiscreen doctor --fix.
+  * Add resilient session token retry logic in Android client.
+  * Eliminate race conditions on AOA stream startup and 401 unauthorized errors.
+  * Add non-root diagnostic guidance for direct USB streaming and USB Tethering.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 21:40:00 +0300
+
 orbiscreen (0.22.7-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.7 for Ubuntu noble.

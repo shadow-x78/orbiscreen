@@ -61,14 +61,16 @@ class StreamViewModel(
 
     private suspend fun freshToken(): String =
         withContext(Dispatchers.IO) {
-            val t = hostApi.token(host, port)
-            if (!t.isNullOrBlank()) {
-                sessionToken = t
-                inputDispatcher?.updateToken(t)
-                t
-            } else {
-                sessionToken.orEmpty()
+            for (attempt in 1..6) {
+                val t = hostApi.token(host, port)
+                if (!t.isNullOrBlank()) {
+                    sessionToken = t
+                    inputDispatcher?.updateToken(t)
+                    return@withContext t
+                }
+                if (attempt < 6) delay(250)
             }
+            sessionToken.orEmpty()
         }
 
     init {
@@ -79,7 +81,14 @@ class StreamViewModel(
         }
         viewModelScope.launch {
             val info = withContext(Dispatchers.IO) {
-                val t = hostApi.token(host, port)
+                var t: String? = null
+                var retries = 0
+                while (t.isNullOrBlank() && retries < 6) {
+                    t = hostApi.token(host, port)
+                    if (!t.isNullOrBlank()) break
+                    delay(250)
+                    retries++
+                }
                 val i = hostApi.info(host, port)
                 t to i
             }

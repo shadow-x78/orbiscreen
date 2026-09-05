@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.22.7
+Version:        0.22.8
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -103,6 +103,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.8-1
+- Release 0.22.8: Comprehensive multi-vendor udev rules in doctor fix, resilient Android token acquisition, and zero-root USB Tethering guidance.
+
 * Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.7-1
 - Release 0.22.7: Purge ADB dependencies, add unprivileged AOA udev rules, real-time live doctor diagnostics, and Markdown update dialog.
 
