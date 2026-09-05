@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.22.6
+Version:        0.22.7
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -27,7 +27,6 @@ BuildRequires:  git-core
 Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free
 Requires:       libevdev libxkbcommon
 Recommends:     gstreamer1-plugins-ugly-free
-Recommends:     android-tools
 
 %description
 Orbiscreen turns Android tablets and phones into high-performance
@@ -54,6 +53,7 @@ cargo build --release --workspace --locked
 install -Dm0755 target/release/orbiscreen %{buildroot}%{_bindir}/orbiscreen
 install -Dm0644 data/orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen.svg
 install -Dm0755 scripts/install-evdi-module.sh %{buildroot}%{_datadir}/orbiscreen/install-evdi-module.sh
+install -Dm0644 data/99-orbiscreen-usb.rules %{buildroot}%{_udevrulesdir}/99-orbiscreen-usb.rules
 
 for f in index.html style.css app.js favicon.svg favicon.png apple-touch-icon.png; do
     install -Dm0644 "clients/web/$f" "%{buildroot}%{_datadir}/orbiscreen/client/$f"
@@ -100,8 +100,12 @@ fi
 %{_datadir}/orbiscreen/client/apple-touch-icon.png
 %{_datadir}/orbiscreen/client/vendor/mpegts.js
 %{_datadir}/orbiscreen/install-evdi-module.sh
+%{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.7-1
+- Release 0.22.7: Purge ADB dependencies, add unprivileged AOA udev rules, real-time live doctor diagnostics, and Markdown update dialog.
+
 * Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.6-1
 - Release 0.22.6: Native direct USB streaming via Android Open Accessory (AOA), polished and unified tool translations across Web, Android, and CLI.
 

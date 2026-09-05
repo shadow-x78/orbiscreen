@@ -773,9 +773,9 @@ async fn run_devices(json: bool) -> ExitCode {
         println!(
             "{}",
             serde_json::json!({
-                "adb_installed": report.adb_installed,
                 "devices": report.devices,
-                "reverse_tunnels": report.reverse_tunnels,
+                "aoa_ready": report.aoa_ready,
+                "permission_denied": report.permission_denied,
             })
         );
         return ExitCode::SUCCESS;
@@ -783,13 +783,8 @@ async fn run_devices(json: bool) -> ExitCode {
 
     ui::print_banner();
     println!();
-    let dev_str = if !report.adb_installed {
-        format!(
-            "{} ADB not installed (Wi-Fi streaming unaffected)",
-            ui::badge_warn()
-        )
-    } else if report.devices.is_empty() {
-        format!("{} No devices connected (Hot-plug ready)", ui::badge_warn())
+    let dev_str = if report.devices.is_empty() {
+        format!("{} No devices connected (Hot-plug ready)", ui::badge_ok())
     } else {
         format!(
             "{} {} device(s) connected ({})",
@@ -799,27 +794,44 @@ async fn run_devices(json: bool) -> ExitCode {
         )
     };
 
-    let tunnel_str = if report.reverse_tunnels > 0 {
-        format!("{} Active (Port 8788 reversed)", ui::badge_ok())
+    let usb_status_str = if report.aoa_ready {
+        format!("{} Active (Ready for streaming)", ui::badge_ok())
+    } else if report.permission_denied {
+        format!(
+            "{} Permission denied (Udev rule required)",
+            ui::badge_warn()
+        )
     } else if !report.devices.is_empty() {
-        format!("{} Active on port 8788", ui::badge_ok())
+        format!("{} Ready (Auto-connects on stream start)", ui::badge_ok())
     } else {
-        format!("{} Waiting for device", ui::badge_info())
+        format!(
+            "{} Hot-plug ready (Plug in Android via USB cable)",
+            ui::badge_info()
+        )
     };
 
     let rows = vec![
         ("USB Devices", dev_str),
-        ("Reverse Tunnel", tunnel_str),
+        ("USB Direct (AOA)", usb_status_str),
         (
             "Auto-Discovery",
             "Active via mDNS on local subnet".to_string(),
         ),
         (
             "Connection Tip",
-            "Enable USB Debugging on Android for zero-config wired streaming".to_string(),
+            "Plug in Android tablet via USB cable for direct low-latency streaming".to_string(),
         ),
     ];
     ui::print_card("Connected Devices & Clients", &rows);
+    if report.permission_denied {
+        println!();
+        println!(
+            "  {} To enable direct USB cable streaming for regular users without root:",
+            ui::badge_info()
+        );
+        println!("     echo 'SUBSYSTEM==\"usb\", ATTR{{idVendor}}==\"18d1\", MODE=\"0666\", TAG+=\"uaccess\"' | sudo tee /etc/udev/rules.d/99-orbiscreen-usb.rules");
+        println!("     sudo udevadm control --reload-rules && sudo udevadm trigger");
+    }
     println!();
     ExitCode::SUCCESS
 }
@@ -1332,9 +1344,9 @@ async fn run_doctor(json: bool) -> ExitCode {
             "cosmic_randr": cosmic_randr,
             "wlroots_virtual_output_ipc": wlr_virtual_ipc.map(|k| k.to_string()),
             "usb": {
-                "adb_installed": usb.adb_installed,
                 "devices": usb.devices,
-                "reverse_tunnels": usb.reverse_tunnels,
+                "aoa_ready": usb.aoa_ready,
+                "permission_denied": usb.permission_denied,
             },
         });
         println!("{report}");
@@ -1343,6 +1355,7 @@ async fn run_doctor(json: bool) -> ExitCode {
 
     ui::print_banner();
     println!();
+    ui::print_card_header("System Diagnostics & Compatibility");
 
     let session_name = match caps.session {
         orbiscreen_capture::capabilities::SessionType::Wayland => "Wayland",
@@ -1357,6 +1370,8 @@ async fn run_doctor(json: bool) -> ExitCode {
             .map(|d| format!(" (XDG_CURRENT_DESKTOP={d})"))
             .unwrap_or_default(),
     );
+    ui::print_card_row("Session / Desktop", &session_str);
+    ui::print_card_row("Compositor", &caps.compositor.to_string());
 
     let plan_str = chain
         .iter()
@@ -1370,6 +1385,7 @@ async fn run_doctor(json: bool) -> ExitCode {
         })
         .collect::<Vec<_>>()
         .join(" ➔ ");
+    ui::print_card_row("Capture Pipeline", &plan_str);
 
     let display_str = if is_kwin_native {
         format!("{} Native (KWin Virtual)", ui::badge_ok())
@@ -1395,12 +1411,14 @@ async fn run_doctor(json: bool) -> ExitCode {
             }
         }
     };
+    ui::print_card_row("Virtual Display", &display_str);
 
     let uinput_str = if uinput_writable {
         format!("{} Writable (/dev/uinput)", ui::badge_ok())
     } else {
         format!("{} Needs root or uinput group", ui::badge_warn())
     };
+    ui::print_card_row("Input Injection", &uinput_str);
 
     let portal_str = match portal {
         Some(true) => format!("{} Active (org.freedesktop.portal.Desktop)", ui::badge_ok()),
@@ -1413,6 +1431,7 @@ async fn run_doctor(json: bool) -> ExitCode {
             }
         }
     };
+    ui::print_card_row("Desktop Portal", &portal_str);
 
     let grants_str = format!(
         "Screencast: {} · Remote Input: {}",
@@ -1427,6 +1446,7 @@ async fn run_doctor(json: bool) -> ExitCode {
             "Prompt on start"
         },
     );
+    ui::print_card_row("Saved Grants", &grants_str);
 
     let tools_str = match caps.compositor {
         orbiscreen_capture::capabilities::Compositor::Kde => "KWin D-Bus (Native)".to_string(),
@@ -1442,47 +1462,79 @@ async fn run_doctor(json: bool) -> ExitCode {
             if hyprctl { "Found" } else { "No" },
         ),
     };
+    ui::print_card_row("Compositor Tools", &tools_str);
 
-    let usb_str = match usb.devices.as_slice() {
-        [] => format!("{} Hot-plug ready (No device connected)", ui::badge_ok()),
-        [only] => format!("{} Device connected ({only})", ui::badge_ok()),
-        many => format!("{} Devices connected ({})", ui::badge_ok(), many.join(", ")),
+    let usb_str = if usb.aoa_ready {
+        format!("{} Active (AOA Stream Ready)", ui::badge_ok())
+    } else if usb.permission_denied {
+        format!(
+            "{} Permission denied (Udev rule required)",
+            ui::badge_warn()
+        )
+    } else {
+        match usb.devices.as_slice() {
+            [] => format!("{} Hot-plug ready (No device connected)", ui::badge_ok()),
+            [only] => format!("{} Device connected ({only})", ui::badge_ok()),
+            many => format!("{} Devices connected ({})", ui::badge_ok(), many.join(", ")),
+        }
     };
+    ui::print_card_row("USB Direct / Cable", &usb_str);
+    ui::print_card_footer();
 
-    let rows = vec![
-        ("Session / Desktop", session_str),
-        ("Compositor", caps.compositor.to_string()),
-        ("Capture Pipeline", plan_str),
-        ("Virtual Display", display_str),
-        ("Input Injection", uinput_str),
-        ("Desktop Portal", portal_str),
-        ("Saved Grants", grants_str),
-        ("Compositor Tools", tools_str),
-        ("USB Direct / Cable", usb_str),
-    ];
-
-    ui::print_card("System Diagnostics & Compatibility", &rows);
+    if usb.permission_denied {
+        println!();
+        println!(
+            "  {} To enable direct USB cable streaming for regular users without root:",
+            ui::badge_info()
+        );
+        println!("     echo 'SUBSYSTEM==\"usb\", ATTR{{idVendor}}==\"18d1\", MODE=\"0666\", TAG+=\"uaccess\"' | sudo tee /etc/udev/rules.d/99-orbiscreen-usb.rules");
+        println!("     sudo udevadm control --reload-rules && sudo udevadm trigger");
+    }
     println!();
     ExitCode::SUCCESS
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct UsbDoctorReport {
-    adb_installed: bool,
     devices: Vec<String>,
-    reverse_tunnels: usize,
+    aoa_ready: bool,
+    permission_denied: bool,
 }
 
 fn usb_doctor_report() -> UsbDoctorReport {
-    let mut aoa_devices = Vec::new();
+    let mut devices = Vec::new();
+    let mut aoa_ready = false;
+    let mut permission_denied = false;
     let usb_devs = orbiscreen_transport::aoa::scan_usb_devices();
     for dev in &usb_devs {
         if dev.vendor_id == 0x1d6b {
             continue;
         }
-        if orbiscreen_transport::aoa::is_google_accessory(dev.vendor_id, dev.product_id) {
-            aoa_devices.push(format!(
-                "Google Accessory ({:04x}:{:04x})",
+        let is_acc = orbiscreen_transport::aoa::is_google_accessory(dev.vendor_id, dev.product_id);
+        let is_cand = orbiscreen_transport::aoa::is_android_candidate(dev);
+        if !is_acc && !is_cand {
+            continue;
+        }
+
+        let writable = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&dev.dev_node)
+            .is_ok();
+
+        if !writable {
+            permission_denied = true;
+        }
+
+        if is_acc {
+            aoa_ready = writable;
+            let status = if writable {
+                "Ready"
+            } else {
+                "Udev rule needed"
+            };
+            devices.push(format!(
+                "Google Accessory ({:04x}:{:04x} - {status})",
                 dev.vendor_id, dev.product_id
             ));
         } else {
@@ -1494,54 +1546,27 @@ fn usb_doctor_report() -> UsbDoctorReport {
                 .unwrap_or_default()
                 .trim()
                 .to_owned();
-            if !mfg.is_empty() {
-                aoa_devices.push(format!("{mfg} {prod}"));
+            let name = if !mfg.is_empty() && !prod.is_empty() {
+                format!("{mfg} {prod}")
             } else if !prod.is_empty() {
-                aoa_devices.push(prod);
-            }
-        }
-    }
-
-    let adb_path = orbiscreen_transport::adb::default_adb_path();
-    let probe = tokio::task::block_in_place(|| {
-        orbiscreen_transport::adb::setup_reverse_for_all(adb_path, cfg_default_signaling_port())
-    });
-    let devices = match probe {
-        Ok(devices) => devices,
-        Err(_) => {
-            let has_usb = !aoa_devices.is_empty();
-            return UsbDoctorReport {
-                adb_installed: has_usb,
-                devices: aoa_devices,
-                reverse_tunnels: 0,
+                prod
+            } else {
+                format!("{:04x}:{:04x}", dev.vendor_id, dev.product_id)
             };
-        }
-    };
-    let mut tunnels = 0usize;
-    for serial in &devices {
-        if let Ok(n) = orbiscreen_transport::adb::reverse_tunnel_count(
-            adb_path,
-            serial,
-            cfg_default_signaling_port(),
-        ) {
-            tunnels += n;
+            let status = if writable {
+                "Plug & Play"
+            } else {
+                "Udev rule needed"
+            };
+            devices.push(format!("{name} ({status})"));
         }
     }
-    let mut all_devices = aoa_devices;
-    for d in devices {
-        if !all_devices.contains(&d) {
-            all_devices.push(d);
-        }
-    }
-    UsbDoctorReport {
-        adb_installed: true,
-        devices: all_devices,
-        reverse_tunnels: tunnels,
-    }
-}
 
-fn cfg_default_signaling_port() -> u16 {
-    orbiscreen_core::TransportConfig::default().signaling_port
+    UsbDoctorReport {
+        devices,
+        aoa_ready,
+        permission_denied,
+    }
 }
 
 struct EvdiFixPlan {
@@ -1640,13 +1665,49 @@ fn confirm_with_user() -> bool {
 }
 
 async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
+    let usb = usb_doctor_report();
+    let mut udev_fixed = false;
+    if usb.permission_denied {
+        println!("[doctor --fix] USB direct streaming requires udev rules for non-root access.");
+        println!("[doctor --fix] target file: /etc/udev/rules.d/99-orbiscreen-usb.rules");
+        let proceed = assume_yes || confirm_with_user();
+        if proceed {
+            let script = "echo 'SUBSYSTEM==\"usb\", ATTR{idVendor}==\"18d1\", MODE=\"0666\", TAG+=\"uaccess\"' | tee /etc/udev/rules.d/99-orbiscreen-usb.rules && udevadm control --reload-rules && udevadm trigger";
+            let res = std::process::Command::new("pkexec")
+                .arg("sh")
+                .arg("-c")
+                .arg(script)
+                .status()
+                .or_else(|_| {
+                    std::process::Command::new("sudo")
+                        .arg("sh")
+                        .arg("-c")
+                        .arg(script)
+                        .status()
+                });
+            match res {
+                Ok(s) if s.success() => {
+                    println!("[doctor --fix] udev rules installed successfully.");
+                    udev_fixed = true;
+                }
+                _ => {
+                    println!("[doctor --fix] could not install udev rules automatically; run manually:\n    echo 'SUBSYSTEM==\"usb\", ATTR{{idVendor}}==\"18d1\", MODE=\"0666\", TAG+=\"uaccess\"' | sudo tee /etc/udev/rules.d/99-orbiscreen-usb.rules && sudo udevadm control --reload-rules && sudo udevadm trigger");
+                }
+            }
+        }
+    }
+
     let caps = Capabilities::from_env();
     let chain = caps.auto_chain();
     if caps.compositor == orbiscreen_capture::capabilities::Compositor::Kde
         || chain.iter().any(|s| matches!(s, CaptureStep::KwinVirtual))
     {
         println!("[doctor --fix] KWin Virtual display is native on this system; no kernel module required.");
-        return ExitCode::SUCCESS;
+        return if udev_fixed || !usb.permission_denied {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::from(1)
+        };
     }
     if orbiscreen_capture::wlr_virtual_output::detect_ipc_kind().is_some()
         || chain
@@ -1654,7 +1715,11 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
             .any(|s| matches!(s, CaptureStep::WlrootsVirtual))
     {
         println!("[doctor --fix] wlroots virtual display is native on this system; no kernel module required.");
-        return ExitCode::SUCCESS;
+        return if udev_fixed || !usb.permission_denied {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::from(1)
+        };
     }
     let display_status = orbiscreen_display::probe();
     match display_status {

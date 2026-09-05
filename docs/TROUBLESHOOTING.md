@@ -2,7 +2,7 @@
 
 # Troubleshooting - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.22.6-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.22.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -90,7 +90,7 @@ Rust source files don't match `cargo fmt`'s formatting.
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.22.6 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.22.7 | style: cargo fmt --all"
 ```
 
 **Prevention:**
@@ -115,7 +115,7 @@ error: this operation is not supported for derived errors
 cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
 cargo clippy --workspace --all-targets --locked --fix
 git add -A
-git commit -m "orbiscreen | v0.22.6 | fix: resolve clippy warnings"
+git commit -m "orbiscreen | v0.22.7 | fix: resolve clippy warnings"
 ```
 
 **Prevention:**
@@ -136,7 +136,7 @@ error[E0463]: can't find crate for `gstreamer`
 cargo update -p gstreamer
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.22.6 | chore: refresh Cargo.lock"
+git commit -m "orbiscreen | v0.22.7 | chore: refresh Cargo.lock"
 ```
 
 ---
@@ -567,7 +567,7 @@ The D-Bus service (`com.orbiscreen.Daemon`) is registered on the **user session 
 Capture loop running without yielding or unbounded queue backlog.
 
 **Fix:**
-Update to the latest release (v0.22.6 or newer).
+Update to the latest release (v0.22.7 or newer).
 
 ---
 

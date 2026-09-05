@@ -207,52 +207,18 @@ impl Transport {
             aoa::supervisor(aoa_port, aoa_active_for_sup, aoa_shutdown).await;
         });
 
-        let adb_port = self.cfg.signaling_port;
-        let adb_stats = state.stats.clone();
-        let adb_stats_for_exit = state.stats.clone();
-        let mut adb_shutdown = shutdown_rx.clone();
-        let aoa_active_for_adb = aoa_active.clone();
-        let adb_task = tokio::spawn(async move {
-            let mut known: Vec<String> = Vec::new();
+        let usb_stats = state.stats.clone();
+        let mut usb_shutdown = shutdown_rx.clone();
+        let aoa_active_for_stats = aoa_active.clone();
+        let usb_stats_task = tokio::spawn(async move {
             loop {
-                let port_now = adb_port;
-                let joined = tokio::task::spawn_blocking(move || {
-                    adb::setup_reverse_for_all(adb::default_adb_path(), port_now)
-                })
-                .await;
-                match joined {
-                    Ok(Ok(devices)) => {
-                        for serial in &devices {
-                            if !known.contains(serial) {
-                                info!("ADB reverse tunnel established on USB device {serial}");
-                            }
-                        }
-                        for serial in &known {
-                            if !devices.contains(serial) {
-                                info!("USB device {serial} disconnected (tunnel closed by adb)");
-                            }
-                        }
-                        known = devices;
-                    }
-                    Ok(Err(adb::AdbError::NoDevice | adb::AdbError::NotInstalled)) => {
-                        if !known.is_empty() {
-                            for serial in &known {
-                                info!("USB device {serial} disconnected (tunnel closed by adb)");
-                            }
-                        }
-                        known.clear();
-                    }
-                    Ok(Err(e)) => debug!("ADB reverse port forwarding inactive: {e}"),
-                    Err(_) => break,
-                }
-                adb_stats
-                    .note_usb_devices(known.len() + aoa_active_for_adb.load(Ordering::Relaxed));
+                usb_stats.note_usb_devices(aoa_active_for_stats.load(Ordering::Relaxed));
                 tokio::select! {
-                    _ = tokio::time::sleep(std::time::Duration::from_secs(2)) => {}
-                    _ = adb_shutdown.changed() => break,
+                    _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {}
+                    _ = usb_shutdown.changed() => break,
                 }
             }
-            adb_stats.note_usb_devices(0);
+            usb_stats.note_usb_devices(0);
         });
 
         let stats_pump = state.stats.clone();
@@ -278,20 +244,8 @@ impl Transport {
             _ = tokio::signal::ctrl_c() => {}
         }
 
-        adb_task.abort();
-        adb_stats_for_exit.note_usb_devices(0);
-        let teardown = tokio::task::spawn_blocking(move || {
-            adb::teardown_reverse_for_all(adb::default_adb_path(), adb_port)
-        })
-        .await;
-        match teardown {
-            Ok(Ok(devices)) => {
-                info!("ADB reverse tunnels removed for devices: {devices:?}")
-            }
-            Ok(Err(adb::AdbError::NoDevice | adb::AdbError::NotInstalled)) => {}
-            Ok(Err(e)) => debug!("ADB reverse teardown inactive: {e}"),
-            Err(_) => debug!("ADB reverse teardown task aborted"),
-        }
+        usb_stats_task.abort();
+        state.stats.note_usb_devices(0);
         Ok(())
     }
 }

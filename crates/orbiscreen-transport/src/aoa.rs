@@ -131,6 +131,30 @@ pub fn is_google_accessory(vid: u16, pid: u16) -> bool {
     vid == 0x18d1 && matches!(pid, 0x2d00 | 0x2d01 | 0x2d04 | 0x2d05)
 }
 
+pub fn is_android_candidate(dev: &UsbDeviceInfo) -> bool {
+    if is_google_accessory(dev.vendor_id, dev.product_id) {
+        return false;
+    }
+    const ANDROID_VENDORS: &[u16] = &[
+        0x18d1, 0x17ef, 0x2717, 0x04e8, 0x12d1, 0x22b8, 0x22d9, 0x2d95, 0x1004, 0x0fce, 0x0b05,
+        0x0bb4, 0x19d2, 0x2a45, 0x2a70, 0x2833, 0x1949,
+    ];
+    if ANDROID_VENDORS.contains(&dev.vendor_id) {
+        return true;
+    }
+    let prod = std::fs::read_to_string(dev.sysfs_path.join("product"))
+        .unwrap_or_default()
+        .to_lowercase();
+    let mfg = std::fs::read_to_string(dev.sysfs_path.join("manufacturer"))
+        .unwrap_or_default()
+        .to_lowercase();
+    prod.contains("android")
+        || prod.contains("phone")
+        || prod.contains("tablet")
+        || prod.contains("pad")
+        || mfg.contains("android")
+}
+
 fn ctrl_transfer(
     fd: i32,
     req_type: u8,
@@ -223,7 +247,7 @@ fn detect_endpoints(sysfs_path: &Path) -> (u32, u32) {
     if let Ok(entries) = std::fs::read_dir(sysfs_path) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_dir() && entry.file_name().to_string_lossy().contains(":1.0") {
+            if path.is_dir() && entry.file_name().to_string_lossy().contains(':') {
                 if let Ok(ep_entries) = std::fs::read_dir(&path) {
                     for ep_entry in ep_entries.flatten() {
                         let name = ep_entry.file_name();
@@ -483,16 +507,17 @@ pub async fn supervisor(
                 }
                 res = bridge_task => {
                     if let Ok(Err(e)) = res {
-                        debug!("AOA bridge exited: {e}");
+                        warn!("AOA bridge exited: {e}");
                     }
                 }
             }
 
             active_count.store(0, Ordering::Relaxed);
             tried_devices.clear();
+            tokio::time::sleep(Duration::from_secs(2)).await;
         } else {
             for dev in &devices {
-                if dev.vendor_id == 0x1d6b {
+                if dev.vendor_id == 0x1d6b || !is_android_candidate(dev) {
                     continue;
                 }
                 let pair = (dev.vendor_id, dev.product_id);

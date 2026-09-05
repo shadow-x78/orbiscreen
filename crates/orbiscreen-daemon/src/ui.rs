@@ -1,7 +1,7 @@
 // Orbiscreen - ui.rs (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
-use std::io::{stdout, IsTerminal};
+use std::io::{stdout, IsTerminal, Write};
 
 pub fn colors_enabled() -> bool {
     if std::env::var_os("NO_COLOR").is_some() {
@@ -150,24 +150,45 @@ pub fn print_welcome_card() {
     }
 }
 
-pub fn print_card(title: &str, rows: &[(&str, String)]) {
+pub fn print_card_header(title: &str) {
     let dashes_len = 72_usize.saturating_sub(5 + title.chars().count());
     if colors_enabled() {
         use colors::*;
         let dashes = "─".repeat(dashes_len);
         println!("{SAPPHIRE}╭── {BOLD}{BLUE}{title}{RESET} {SAPPHIRE}{dashes}{RESET}");
-        for (k, v) in rows {
-            println!("{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{k:<18}{RESET} {TEXT}{v}{RESET}");
-        }
-        println!("{SAPPHIRE}╰───────────────────────────────────────────────────────────────────────{RESET}");
     } else {
         let dashes = "-".repeat(dashes_len);
         println!("+-- {title} {dashes}");
-        for (k, v) in rows {
-            println!("|  {k:<18} {v}");
-        }
+    }
+    let _ = stdout().flush();
+}
+
+pub fn print_card_row(k: &str, v: &str) {
+    if colors_enabled() {
+        use colors::*;
+        println!("{SAPPHIRE}│{RESET}  {BOLD}{LAVENDER}{k:<18}{RESET} {TEXT}{v}{RESET}");
+    } else {
+        println!("|  {k:<18} {v}");
+    }
+    let _ = stdout().flush();
+}
+
+pub fn print_card_footer() {
+    if colors_enabled() {
+        use colors::*;
+        println!("{SAPPHIRE}╰───────────────────────────────────────────────────────────────────────{RESET}");
+    } else {
         println!("+-----------------------------------------------------------------------");
     }
+    let _ = stdout().flush();
+}
+
+pub fn print_card(title: &str, rows: &[(&str, String)]) {
+    print_card_header(title);
+    for (k, v) in rows {
+        print_card_row(k, v);
+    }
+    print_card_footer();
 }
 
 pub fn format_encoder_name(encoder: &str) -> &'static str {

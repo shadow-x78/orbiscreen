@@ -2,6 +2,5 @@
 <resources>
     <usb-accessory
         manufacturer="shadow-x78"
-        model="Orbiscreen"
-        version="0.22.6" />
+        model="Orbiscreen" />
 </resources>

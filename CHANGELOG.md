@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.22.7] - 2026-09-05
+
+Purge all ADB legacy dependencies, implement real-time progressive terminal diagnostics in `orbiscreen doctor`, provide unprivileged Linux udev rules for Android Open Accessory (AOA) mode, and enhance the Android in-app update dialog with native Compose Markdown rendering and auto-installation.
+
+### ✨ Added & Improved
+- **Direct USB Cable Streaming & Udev Rules**:
+  - Completely purged ADB socket calls (`adb::setup_reverse_for_all`, `adb_installed`, `reverse_tunnels`) from diagnostics and background streaming services.
+  - Implemented smart device filtering (`is_android_candidate`) in `aoa::supervisor` targeting Android vendor IDs (`0x18d1`, `0x17ef`, `0x2717`, `0x04e8`, etc.) and skipping non-Android peripherals (keyboards, gaming mice, audio headsets, USB hubs).
+  - Added `data/99-orbiscreen-usb.rules` with `TAG+="uaccess", MODE="0666"` for Android Open Accessory (`18d1:2d00-2d05`) and Android devices, allowing unprivileged direct streaming without root or ADB.
+  - Extended endpoint discovery in `aoa.rs` across all interface subdirectories under sysfs.
+- **Progressive Live Diagnostics (`orbiscreen doctor`)**:
+  - Implemented real-time progressive output with immediate stdout flushing (`print_card_header`, `print_card_row`, `print_card_footer`), completely eliminating CLI freezing.
+  - Added dedicated `USB Direct / Cable` diagnostic check detecting AOA accessory readiness and guiding users with a 1-line command when udev permissions are missing.
+  - Added auto-installation support for udev rules in `orbiscreen doctor --fix`.
+  - Updated `orbiscreen devices` to report direct USB hardware status instead of legacy ADB reverse tunnels.
+- **Android In-App Update Dialog Enhancements (`UpdateDialog.kt`)**:
+  - Native Jetpack Compose Markdown renderer supporting headings, bullet lists, bold, italics, and code blocks.
+  - Polished Catppuccin surface design with symmetrical action button weights.
+  - Lifecycle observer on `ON_RESUME` to automatically detect package install permission grant, dynamically update the button to "Install", and invoke installation immediately.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.22.7.
+- **Android Client**: Incremented `versionCode` to 57; updated `versionName` to "0.22.7".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.7, installed `99-orbiscreen-usb.rules`, and removed `Recommends: android-tools`.
+- **debian/changelog**: Added 0.22.7-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.22.7.
+- **Documentation**: Synchronized version badges and references across all documentation files.
+
 ## [v0.22.6] - 2026-09-05
 
 Implement native USB Direct streaming via Android Open Accessory (AOA) protocol with standard Linux kernel usbfs ioctls, and unify concise, tool-oriented translations across Web, Android, and CLI interfaces.
