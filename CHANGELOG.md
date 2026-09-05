@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### 🐛 Fixed
+- **Direct Touch Injected as Mouse (`orbiscreen-input`, Android Client)**:
+  - v0.22.3 stopped writing to `Orbiscreen Virtual Touchscreen` (marked `dead_code`) and routed every Android touch through the virtual mouse as `Pointer` Move/Button, so a finger only moved the host cursor.
+  - Android Direct Touch mode now posts a per-finger `Touch` event (`slot`, `id`, `x`, `y`, `pressed`) instead of a mouse pointer payload.
+  - The host injects evdev type-B multitouch (`ABS_MT_SLOT`, `ABS_MT_TRACKING_ID`, `ABS_MT_POSITION_X/Y`, `BTN_TOUCH`) on the dedicated touchscreen bound to `Virtual-ORBISCREEN`.
+  - Touchpad mode is unchanged.
+
 ## [v0.22.8] - 2026-09-05
 
 Embed full multi-vendor Android udev rules in `orbiscreen doctor --fix`, implement resilient token retry logic on Android client to eliminate initial unauthorized stream errors, and provide zero-root USB Tethering guidance.
