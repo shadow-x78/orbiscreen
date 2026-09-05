@@ -50,6 +50,10 @@ Confine trackpad pointer motion and clicks to the virtual display via virtual ta
 ## [Unreleased]
 
 ### ⚡ Performance & Low Latency
+- **Hardware H.264 Encoder Detection (`orbiscreen-encode`)**:
+  - Auto now selects GStreamer `vah264enc` (current VA plugin) as well as legacy `vaapih264enc` / `nvh264enc` / `nvcudah264enc`.
+  - Falling back to software `x264enc` logs a warning instead of silently encoding 1440p+ on the CPU.
+  - `vah264enc` is tuned for low latency (`cbr`, `target-usage=7`, one reference frame, no B-frames).
 - **HTTP MPEG-TS Transport Queue (`orbiscreen-transport`, Android, Web)**:
   - Per-client muxer keeps four sink buffers and a 16-slot HTTP queue instead of 512 / 1024 queued chunks.
   - HTTP send no longer drops MPEG-TS packets on a full queue (that desynced the decoder). The muxer backpressures instead; a stalled `appsrc` push resyncs on the next keyframe.

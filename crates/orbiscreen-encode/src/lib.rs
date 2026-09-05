@@ -30,9 +30,17 @@ impl EncoderKind {
 
     pub fn gst_element(self) -> &'static str {
         match self {
-            Self::Auto | Self::Nvenc => "nvh264enc",
-            Self::Vaapi => "vaapih264enc",
-            Self::X264 => "x264enc",
+            Self::Auto => "nvh264enc",
+            other => other.gst_candidates()[0],
+        }
+    }
+
+    fn gst_candidates(self) -> &'static [&'static str] {
+        match self {
+            Self::Auto => Self::Nvenc.gst_candidates(),
+            Self::Nvenc => &["nvh264enc", "nvcudah264enc", "nvautogpuh264enc"],
+            Self::Vaapi => &["vah264enc", "vaapih264enc"],
+            Self::X264 => &["x264enc"],
         }
     }
 }
@@ -81,8 +89,20 @@ pub fn init() -> Result<(), EncodeError> {
     gstreamer::init().map_err(|e| EncodeError::Init(e.to_string()))
 }
 
-fn detect_available(preferred: EncoderKind) -> EncoderKind {
-    let registry = gstreamer::Registry::get();
+fn element_available(name: &str) -> bool {
+    gstreamer::Registry::get()
+        .find_feature(name, gstreamer::ElementFactory::static_type())
+        .is_some()
+}
+
+fn first_available_element(kind: EncoderKind) -> Option<&'static str> {
+    kind.gst_candidates()
+        .iter()
+        .copied()
+        .find(|name| element_available(name))
+}
+
+fn detect_available(preferred: EncoderKind) -> (EncoderKind, &'static str) {
     let search_order = match preferred {
         EncoderKind::Auto | EncoderKind::Nvenc => {
             [EncoderKind::Nvenc, EncoderKind::Vaapi, EncoderKind::X264]
@@ -91,15 +111,17 @@ fn detect_available(preferred: EncoderKind) -> EncoderKind {
         EncoderKind::X264 => [EncoderKind::X264, EncoderKind::Nvenc, EncoderKind::Vaapi],
     };
     for kind in search_order {
-        if registry
-            .find_feature(kind.gst_element(), gstreamer::ElementFactory::static_type())
-            .is_some()
-        {
-            return kind;
+        if let Some(element) = first_available_element(kind) {
+            if kind == EncoderKind::X264 && preferred != EncoderKind::X264 {
+                warn!(
+                    "hardware H.264 encoder not found (tried nvh264enc, nvcudah264enc, vah264enc, vaapih264enc); falling back to software x264 — expect high encode latency at 1440p+"
+                );
+            }
+            return (kind, element);
         }
     }
     warn!("no H.264 encoder found; pipeline construction will fail");
-    EncoderKind::X264
+    (EncoderKind::X264, "x264enc")
 }
 
 fn make_element(name: &str) -> Result<gstreamer::Element, EncodeError> {
@@ -135,9 +157,8 @@ impl Encoder {
     #[instrument(skip_all, fields(width = params.width, height = params.height))]
     pub fn new(params: EncodeParams) -> Result<Self, EncodeError> {
         init()?;
-        let kind = detect_available(params.kind);
-        let encoder_el = kind.gst_element();
-        info!(?kind, "Using GStreamer encoder");
+        let (kind, encoder_el) = detect_available(params.kind);
+        info!(?kind, element = encoder_el, "Using GStreamer encoder");
         let encoder = make_element(encoder_el)?;
 
         let appsrc = ElementFactory::make("appsrc")
@@ -223,6 +244,18 @@ impl Encoder {
             }
             if encoder.find_property("keyframe-period").is_some() {
                 encoder.set_property_from_str("keyframe-period", "60");
+            }
+            if encoder.find_property("key-int-max").is_some() {
+                encoder.set_property_from_str("key-int-max", "60");
+            }
+            if encoder.find_property("b-frames").is_some() {
+                encoder.set_property_from_str("b-frames", "0");
+            }
+            if encoder.find_property("target-usage").is_some() {
+                encoder.set_property_from_str("target-usage", "7");
+            }
+            if encoder.find_property("ref-frames").is_some() {
+                encoder.set_property_from_str("ref-frames", "1");
             }
         }
         if kind == EncoderKind::X264 {
@@ -441,7 +474,11 @@ mod tests {
     fn gst_element_names_are_stable() {
         assert_eq!(EncoderKind::X264.gst_element(), "x264enc");
         assert_eq!(EncoderKind::Nvenc.gst_element(), "nvh264enc");
-        assert_eq!(EncoderKind::Vaapi.gst_element(), "vaapih264enc");
+        assert_eq!(EncoderKind::Vaapi.gst_element(), "vah264enc");
+        assert!(EncoderKind::Vaapi
+            .gst_candidates()
+            .contains(&"vaapih264enc"));
+        assert!(EncoderKind::Nvenc.gst_candidates().contains(&"nvh264enc"));
     }
 
     #[test]
@@ -462,11 +499,25 @@ mod tests {
     #[test]
     fn detect_available_returns_a_known_kind() {
         init().unwrap();
-        let kind = detect_available(EncoderKind::X264);
+        let (kind, element) = detect_available(EncoderKind::X264);
         assert!(matches!(
             kind,
             EncoderKind::X264 | EncoderKind::Vaapi | EncoderKind::Nvenc,
         ));
+        assert!(!element.is_empty());
+    }
+
+    #[test]
+    fn auto_prefers_hardware_when_va_or_nvenc_is_registered() {
+        init().unwrap();
+        let (kind, element) = detect_available(EncoderKind::Auto);
+        if element_available("vah264enc")
+            || element_available("vaapih264enc")
+            || element_available("nvh264enc")
+        {
+            assert_ne!(kind, EncoderKind::X264, "auto selected software {element}");
+            assert_ne!(element, "x264enc");
+        }
     }
 
     #[test]
