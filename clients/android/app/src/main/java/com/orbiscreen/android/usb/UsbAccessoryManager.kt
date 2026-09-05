@@ -22,7 +22,6 @@ import java.io.OutputStream
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
-import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -113,20 +112,14 @@ object UsbAccessoryManager {
         _isAoaActive.value = false
 
         for ((_, socket) in activeStreams) {
-            try {
-                socket.close()
-            } catch (_: Exception) {}
+            try { socket.close() } catch (_: Exception) {}
         }
         activeStreams.clear()
 
-        try {
-            activeServer?.close()
-        } catch (_: Exception) {}
+        try { activeServer?.close() } catch (_: Exception) {}
         activeServer = null
 
-        try {
-            activePfd?.close()
-        } catch (_: Exception) {}
+        try { activePfd?.close() } catch (_: Exception) {}
         activePfd = null
 
         Log.i(TAG, "AOA accessory stopped")
@@ -146,7 +139,7 @@ object UsbAccessoryManager {
             activeStreams[streamId] = clientSocket
 
             scope.launch {
-                sendFrame(outStream, streamId, FRAME_FLAG_OPEN, ByteArray(0))
+                sendDataFrame(outStream, streamId, FRAME_FLAG_OPEN, null, 0, 0)
 
                 val inSock = clientSocket.getInputStream()
                 val buf = ByteArray(MAX_PAYLOAD_LEN)
@@ -154,55 +147,73 @@ object UsbAccessoryManager {
                     while (isRunning.get() && !clientSocket.isClosed) {
                         val n = inSock.read(buf)
                         if (n <= 0) break
-                        val chunk = buf.copyOf(n)
-                        sendFrame(outStream, streamId, FRAME_FLAG_DATA, chunk)
+                        sendDataFrame(outStream, streamId, FRAME_FLAG_DATA, buf, 0, n)
                     }
                 } catch (_: Exception) {}
 
-                sendFrame(outStream, streamId, FRAME_FLAG_CLOSE, ByteArray(0))
+                sendDataFrame(outStream, streamId, FRAME_FLAG_CLOSE, null, 0, 0)
                 activeStreams.remove(streamId)
-                try {
-                    clientSocket.close()
-                } catch (_: Exception) {}
+                try { clientSocket.close() } catch (_: Exception) {}
             }
         }
     }
 
     private fun handleUsbIncoming(inStream: InputStream) {
-        val headerBuf = ByteArray(FRAME_HEADER_LEN)
+        val rxBuf = ByteArray(MAX_PAYLOAD_LEN + FRAME_HEADER_LEN)
+        var accBuf = ByteArray(65536)
+        var accLen = 0
+
         while (isRunning.get()) {
-            try {
-                if (!readFully(inStream, headerBuf)) break
-                val streamId = ByteBuffer.wrap(headerBuf, 0, 2).short
-                val flags = headerBuf[2]
-                val payloadLen = ByteBuffer.wrap(headerBuf, 3, 2).short.toInt() and 0xFFFF
+            val bytesRead = try {
+                inStream.read(rxBuf)
+            } catch (_: Exception) {
+                break
+            }
+            if (bytesRead <= 0) break
 
-                val payload = if (payloadLen > 0) {
-                    val p = ByteArray(payloadLen)
-                    if (!readFully(inStream, p)) break
-                    p
-                } else {
-                    ByteArray(0)
-                }
+            if (accLen + bytesRead > accBuf.size) {
+                val newCap = maxOf(accBuf.size * 2, accLen + bytesRead)
+                val expanded = ByteArray(newCap)
+                System.arraycopy(accBuf, 0, expanded, 0, accLen)
+                accBuf = expanded
+            }
+            System.arraycopy(rxBuf, 0, accBuf, accLen, bytesRead)
+            accLen += bytesRead
 
-                if ((flags.toInt() and FRAME_FLAG_DATA.toInt()) != 0) {
+            var offset = 0
+            while (accLen - offset >= FRAME_HEADER_LEN) {
+                val streamId = (((accBuf[offset].toInt() and 0xFF) shl 8) or (accBuf[offset + 1].toInt() and 0xFF)).toShort()
+                val flags = accBuf[offset + 2]
+                val payloadLen = ((accBuf[offset + 3].toInt() and 0xFF) shl 8) or (accBuf[offset + 4].toInt() and 0xFF)
+                val totalFrameLen = FRAME_HEADER_LEN + payloadLen
+
+                if (accLen - offset < totalFrameLen) break
+
+                if ((flags.toInt() and FRAME_FLAG_DATA.toInt()) != 0 && payloadLen > 0) {
                     val sock = activeStreams[streamId]
                     if (sock != null && !sock.isClosed) {
                         try {
-                            sock.getOutputStream().write(payload)
+                            sock.getOutputStream().write(accBuf, offset + FRAME_HEADER_LEN, payloadLen)
                             sock.getOutputStream().flush()
                         } catch (_: Exception) {
                             activeStreams.remove(streamId)
+                            try { sock.close() } catch (_: Exception) {}
                         }
                     }
                 } else if ((flags.toInt() and FRAME_FLAG_CLOSE.toInt()) != 0) {
                     val sock = activeStreams.remove(streamId)
-                    try {
-                        sock?.close()
-                    } catch (_: Exception) {}
+                    try { sock?.close() } catch (_: Exception) {}
                 }
-            } catch (_: Exception) {
-                break
+
+                offset += totalFrameLen
+            }
+
+            if (offset > 0) {
+                val remaining = accLen - offset
+                if (remaining > 0) {
+                    System.arraycopy(accBuf, offset, accBuf, 0, remaining)
+                }
+                accLen = remaining
             }
         }
 
@@ -210,31 +221,27 @@ object UsbAccessoryManager {
     }
 
     @Synchronized
-    private fun sendFrame(outStream: OutputStream, streamId: Short, flags: Byte, payload: ByteArray) {
+    private fun sendDataFrame(
+        outStream: OutputStream,
+        streamId: Short,
+        flags: Byte,
+        payload: ByteArray?,
+        payloadOffset: Int,
+        payloadLen: Int,
+    ) {
         try {
-            val total = FRAME_HEADER_LEN + payload.size
+            val total = FRAME_HEADER_LEN + payloadLen
             val frame = ByteArray(total)
-            ByteBuffer.wrap(frame).apply {
-                putShort(streamId)
-                put(flags)
-                putShort(payload.size.toShort())
-                if (payload.isNotEmpty()) {
-                    put(payload)
-                }
+            frame[0] = (streamId.toInt() ushr 8).toByte()
+            frame[1] = streamId.toByte()
+            frame[2] = flags
+            frame[3] = (payloadLen ushr 8).toByte()
+            frame[4] = payloadLen.toByte()
+            if (payload != null && payloadLen > 0) {
+                System.arraycopy(payload, payloadOffset, frame, FRAME_HEADER_LEN, payloadLen)
             }
             outStream.write(frame)
             outStream.flush()
         } catch (_: Exception) {}
     }
-
-    private fun readFully(stream: InputStream, buf: ByteArray): Boolean {
-        var offset = 0
-        while (offset < buf.size) {
-            val r = stream.read(buf, offset, buf.size - offset)
-            if (r < 0) return false
-            offset += r
-        }
-        return true
-    }
 }
-

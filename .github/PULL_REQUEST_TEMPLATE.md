@@ -15,5 +15,5 @@ belongs to.
 ### Checklist
 
 - [ ] No new warnings introduced.
-- [ ] File headers match UMO style (`// Orbiscreen - <module> (GPL-3.0-or-later)` + GitHub URL).
+- [ ] File headers match Orbiscreen style (`// Orbiscreen - <module> (GPL-3.0-or-later)` + GitHub URL).
 - [ ] `CHANGELOG.md` updated.

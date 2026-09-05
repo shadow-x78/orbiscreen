@@ -33,7 +33,7 @@ data class StreamState(
     val keyboardVisible: Boolean = false,
     val blanked: Boolean = false,
     val scaleMode: Int = 0,
-    val resolutionLabel: String = "1920×1080",
+    val resolutionLabel: String = "1920x1080",
 )
 
 class StreamViewModel(
@@ -59,8 +59,11 @@ class StreamViewModel(
 
     val player get() = playerHolder.player
 
-    private suspend fun freshToken(): String =
-        withContext(Dispatchers.IO) {
+    private suspend fun freshToken(forceRefresh: Boolean = false): String {
+        return withContext(Dispatchers.IO) {
+            if (!forceRefresh && !sessionToken.isNullOrBlank()) {
+                return@withContext sessionToken!!
+            }
             for (attempt in 1..6) {
                 val t = hostApi.token(host, port)
                 if (!t.isNullOrBlank()) {
@@ -72,6 +75,7 @@ class StreamViewModel(
             }
             sessionToken.orEmpty()
         }
+    }
 
     init {
         viewModelScope.launch {
@@ -144,7 +148,7 @@ class StreamViewModel(
         ).also {
             it.pointerSpeed = prefs.pointerSpeed
             it.onUnauthorized = {
-                viewModelScope.launch { freshToken() }
+                viewModelScope.launch { freshToken(forceRefresh = true) }
             }
             inputDispatcher = it
         }
@@ -158,7 +162,7 @@ class StreamViewModel(
         inputDispatcher?.pointerSpeed = speed
     }
 
-    fun retry() = playerHolder.retry(state.value.host, state.value.port) { freshToken() }
+    fun retry() = playerHolder.retry(state.value.host, state.value.port) { freshToken(forceRefresh = true) }
 
     fun toggleKeyboard() {
         _state.value = _state.value.copy(keyboardVisible = !_state.value.keyboardVisible)
@@ -182,7 +186,7 @@ class StreamViewModel(
         _state.value = _state.value.copy(scaleMode = mode)
     }
 
-    fun updateDimensions(w: Int, h: Int, label: String = "${w}×${h}") {
+    fun updateDimensions(w: Int, h: Int, label: String = "${w}x${h}") {
         if (w > 0 && h > 0) {
             _state.value = _state.value.copy(
                 displayWidth = w,

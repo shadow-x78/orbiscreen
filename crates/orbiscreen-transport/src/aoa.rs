@@ -34,6 +34,13 @@ struct UsbDevFsBulkTransfer {
     data: *mut u8,
 }
 
+#[repr(C)]
+struct UsbDevFsDisconnectClaim {
+    interface: u32,
+    flags: u32,
+    driver: [u8; 256],
+}
+
 extern "C" {
     fn ioctl(fd: i32, request: u64, ...) -> i32;
 }
@@ -42,6 +49,8 @@ const USBDEVFS_CONTROL: u64 = 0xc0185500;
 const USBDEVFS_BULK: u64 = 0xc0185502;
 const USBDEVFS_CLAIMINTERFACE: u64 = 0x8004550f;
 const USBDEVFS_RELEASEINTERFACE: u64 = 0x80045510;
+const USBDEVFS_DISCONNECT_CLAIM: u64 = 0x8108551b;
+const USBDEVFS_DISCONNECT_CLAIM_EXCEPT_DRIVER: u32 = 0x02;
 
 const AOA_GET_PROTOCOL: u8 = 51;
 const AOA_SEND_STRING: u8 = 52;
@@ -288,7 +297,19 @@ pub fn run_accessory_bridge(
     let fd = f.as_raw_fd();
 
     let iface = 0u32;
-    let claim_res = unsafe { ioctl(fd, USBDEVFS_CLAIMINTERFACE, &iface) };
+    let mut dc = UsbDevFsDisconnectClaim {
+        interface: iface,
+        flags: USBDEVFS_DISCONNECT_CLAIM_EXCEPT_DRIVER,
+        driver: [0u8; 256],
+    };
+    dc.driver[..5].copy_from_slice(b"usbfs");
+
+    let claim_res = unsafe { ioctl(fd, USBDEVFS_DISCONNECT_CLAIM, &mut dc) };
+    let claim_res = if claim_res < 0 {
+        unsafe { ioctl(fd, USBDEVFS_CLAIMINTERFACE, &iface) }
+    } else {
+        0
+    };
     if claim_res < 0 {
         return Err(format!(
             "Failed to claim interface 0: {}",
@@ -334,8 +355,10 @@ pub fn run_accessory_bridge(
         }
     });
 
-    let tcp_streams: Arc<Mutex<HashMap<u16, std::sync::mpsc::Sender<Vec<u8>>>>> =
-        Arc::new(Mutex::new(HashMap::new()));
+    type StreamEntry = (std::sync::mpsc::Sender<Vec<u8>>, TcpStream);
+    type StreamMap = Arc<Mutex<HashMap<u16, StreamEntry>>>;
+
+    let tcp_streams: StreamMap = Arc::new(Mutex::new(HashMap::new()));
     let mut rx_buf = vec![0u8; MAX_PAYLOAD_LEN];
     let mut acc_buf = Vec::new();
 
@@ -380,13 +403,14 @@ pub fn run_accessory_bridge(
                             let _ = tcp_stream.set_nodelay(true);
                             let _ = tcp_stream.set_read_timeout(Some(Duration::from_millis(1500)));
                             let (tcp_tx, tcp_rx) = std::sync::mpsc::channel::<Vec<u8>>();
-                            {
+                            if let Ok(stream_for_map) = tcp_stream.try_clone() {
                                 let mut map = tcp_streams.lock().unwrap();
-                                map.insert(stream_id, tcp_tx);
+                                map.insert(stream_id, (tcp_tx, stream_for_map));
                             }
 
                             let out_tx_clone = out_tx.clone();
                             let running_tcp = running.clone();
+                            let tcp_streams_reader = tcp_streams.clone();
                             let mut tcp_read_stream = match tcp_stream.try_clone() {
                                 Ok(s) => s,
                                 Err(_) => continue,
@@ -424,6 +448,8 @@ pub fn run_accessory_bridge(
                                 close_frame.push(FRAME_FLAG_CLOSE);
                                 close_frame.extend_from_slice(&0u16.to_be_bytes());
                                 let _ = out_tx_clone.send(close_frame);
+                                let mut map = tcp_streams_reader.lock().unwrap();
+                                map.remove(&stream_id);
                             });
 
                             let running_writer = running.clone();
@@ -454,18 +480,26 @@ pub fn run_accessory_bridge(
                     }
                 } else if (flags & FRAME_FLAG_DATA) != 0 {
                     let map = tcp_streams.lock().unwrap();
-                    if let Some(tx) = map.get(&stream_id) {
+                    if let Some((tx, _)) = map.get(&stream_id) {
                         let _ = tx.send(payload);
                     }
                 } else if (flags & FRAME_FLAG_CLOSE) != 0 {
                     let mut map = tcp_streams.lock().unwrap();
-                    map.remove(&stream_id);
+                    if let Some((_, stream)) = map.remove(&stream_id) {
+                        let _ = stream.shutdown(std::net::Shutdown::Both);
+                    }
                 }
             }
         }
     }
 
     running.store(false, Ordering::Relaxed);
+    {
+        let mut map = tcp_streams.lock().unwrap();
+        for (_, (_, stream)) in map.drain() {
+            let _ = stream.shutdown(std::net::Shutdown::Both);
+        }
+    }
     let _ = writer_handle.join();
     unsafe { ioctl(fd, USBDEVFS_RELEASEINTERFACE, &iface) };
     info!("AOA accessory released on {:?}", device.dev_node);

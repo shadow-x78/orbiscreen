@@ -1,3 +1,13 @@
+orbiscreen (0.22.9-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.22.9 for Ubuntu noble.
+  * Fix AOA USB packet truncation in UsbAccessoryManager causing session token loss and auth=missing rejections.
+  * Replace readFully per-field approach with streaming accumulator buffer in handleUsbIncoming.
+  * Properly shutdown TcpStream on FRAME_FLAG_CLOSE in Linux AOA bridge to prevent resource leaks.
+  * Add forceRefresh flag to freshToken() to avoid redundant HTTP requests during stream setup.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 06 Sep 2026 01:20:00 +0300
+
 orbiscreen (0.22.8-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.8 for Ubuntu noble.
