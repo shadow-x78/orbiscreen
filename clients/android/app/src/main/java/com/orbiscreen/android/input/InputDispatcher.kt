@@ -49,6 +49,7 @@ class InputDispatcher(
 
     private val latestMove = java.util.concurrent.atomic.AtomicReference<JSONObject?>(null)
     private val latestStylus = java.util.concurrent.atomic.AtomicReference<JSONObject?>(null)
+    private val latestTouches = java.util.concurrent.ConcurrentHashMap<Int, JSONObject>()
     private var lastStylusPressure: Float = 0f
 
     private val discrete = MutableSharedFlow<JSONObject>(
@@ -85,6 +86,12 @@ class InputDispatcher(
                 val st = latestStylus.getAndSet(null)
                 if (st != null) {
                     send(st)
+                }
+                if (latestTouches.isNotEmpty()) {
+                    val slots = latestTouches.keys.toList()
+                    for (slot in slots) {
+                        latestTouches.remove(slot)?.let { send(it) }
+                    }
                 }
                 kotlinx.coroutines.delay(16)
             }
@@ -213,6 +220,35 @@ class InputDispatcher(
             })
         }
         discrete.tryEmit(payload)
+    }
+
+    fun touch(
+        slot: Int,
+        id: Int,
+        localX: Float,
+        localY: Float,
+        containerW: Int,
+        containerH: Int,
+        pressed: Boolean,
+        coalesce: Boolean = false,
+    ) {
+        val (x, y) = map(localX, localY, containerW, containerH)
+        val payload = JSONObject().apply {
+            put("Touch", JSONObject().apply {
+                put("slot", slot)
+                put("id", id)
+                put("x", x.toDouble())
+                put("y", y.toDouble())
+                put("pressed", pressed)
+            })
+        }
+        if (coalesce && pressed) {
+            latestTouches[slot] = payload
+        } else {
+            latestTouches.remove(slot)
+            discrete.tryEmit(payload)
+            Log.d(TAG, "touch slot=$slot id=$id pressed=$pressed")
+        }
     }
 
     fun stylus(

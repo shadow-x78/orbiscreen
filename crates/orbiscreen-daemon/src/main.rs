@@ -2159,6 +2159,11 @@ async fn run_start(
                     };
                     let _ = inj.inject_stylus(s).await;
                 }
+                IncomingInput::Touch(t) => {
+                    let (x, y) = scale(t.x, t.y);
+                    let t = orbiscreen_input::TouchEvent { x, y, ..t };
+                    let _ = inj.inject_touch(t).await;
+                }
                 IncomingInput::RawPointer { x, y } => {
                     let (x, y) = scale(x, y);
                     let _ = inj.inject_pointer(PointerEvent::Move { x, y }).await;
