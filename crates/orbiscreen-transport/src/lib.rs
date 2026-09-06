@@ -174,6 +174,7 @@ impl Transport {
         refresh_hz: u32,
         encoder_kind: &'static str,
         mut shutdown_rx: tokio::sync::watch::Receiver<bool>,
+        idr_tx: Option<mpsc::Sender<()>>,
     ) -> Result<(), TransportError> {
         let input_tx = self.input_tx;
         let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(64);
@@ -189,6 +190,7 @@ impl Transport {
             encoder_kind,
             version: env!("CARGO_PKG_VERSION"),
             started: std::time::Instant::now(),
+            idr_tx,
         };
         let app = build_router(state.clone());
         let listener = TcpListener::bind(("0.0.0.0", self.cfg.signaling_port))
@@ -271,6 +273,7 @@ struct AppState {
     encoder_kind: &'static str,
     version: &'static str,
     started: std::time::Instant,
+    idr_tx: Option<mpsc::Sender<()>>,
 }
 
 fn build_router(state: AppState) -> Router {
@@ -470,6 +473,12 @@ fn inject_ctrl_alt_del(tx: &mpsc::Sender<IncomingInput>) {
     }
 }
 
+fn request_idr(state: &AppState) {
+    if let Some(tx) = &state.idr_tx {
+        let _ = tx.try_send(());
+    }
+}
+
 async fn api_control(
     State(state): State<AppState>,
     Json(payload): Json<serde_json::Value>,
@@ -514,6 +523,11 @@ async fn api_control(
         Some("ctrl_alt_del") => {
             inject_ctrl_alt_del(&state.input_tx);
             info!("host control: Ctrl+Alt+Del injected");
+            (StatusCode::OK, Json(serde_json::json!({"ok": true})))
+        }
+        Some("idr") | Some("keyframe") => {
+            request_idr(&state);
+            info!("host control: IDR requested");
             (StatusCode::OK, Json(serde_json::json!({"ok": true})))
         }
         Some("set_resolution") => {
@@ -728,8 +742,10 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
     }
 
     state.stats.client_started();
+    request_idr(&state);
     let appsrc_clone = appsrc.clone();
     let stats = state.stats.clone();
+    let idr_tx = state.idr_tx.clone();
 
     struct PipelineGuard(gstreamer::Pipeline);
     impl Drop for PipelineGuard {
@@ -757,6 +773,9 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                 Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
                     debug!("stream client lagged {n} packets; waiting for keyframe");
                     wait_keyframe = true;
+                    if let Some(tx) = &idr_tx {
+                        let _ = tx.try_send(());
+                    }
                     continue;
                 }
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => break,

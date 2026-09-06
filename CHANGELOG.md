@@ -50,6 +50,10 @@ Confine trackpad pointer motion and clicks to the virtual display via virtual ta
 ## [Unreleased]
 
 ### ⚡ Performance & Low Latency
+- **Infinite GOP + On-Demand IDR (`orbiscreen-encode`, `orbiscreen-transport`, Android, Web)**:
+  - Encoders no longer emit a keyframe every 60 frames. GOP length uses the encoder maximum (`key-int-max` / `gop-size`); `x264enc` also enables periodic intra-refresh.
+  - Clients request a recovery IDR via `POST /api/control` (`action: idr`). A new `/stream` client and a lagged muxer do the same.
+  - The encoder src pad receives an upstream `GstForceKeyUnit` (all-headers), debounced to 200 ms.
 - **Hardware H.264 Encoder Detection (`orbiscreen-encode`)**:
   - Auto now selects GStreamer `vah264enc` (current VA plugin) as well as legacy `vaapih264enc` / `nvh264enc` / `nvcudah264enc`.
   - Falling back to software `x264enc` logs a warning instead of silently encoding 1440p+ on the CPU.

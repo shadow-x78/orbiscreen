@@ -47,6 +47,7 @@ class StreamViewModel(
     private val playerHolder = PlayerHolder(context, prefs)
     private var inputDispatcher: InputDispatcher? = null
     private var sessionToken: String? = null
+    private var lastIdrAtMs = 0L
 
     private val _state = MutableStateFlow(
         StreamState(
@@ -81,6 +82,9 @@ class StreamViewModel(
         viewModelScope.launch {
             playerHolder.event.collect { ev ->
                 _state.value = _state.value.copy(event = ev)
+                if (ev is StreamEvent.Error) {
+                    requestIdr()
+                }
             }
         }
         viewModelScope.launch {
@@ -135,6 +139,13 @@ class StreamViewModel(
                 }
             }
         }
+    }
+
+    private fun requestIdr() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastIdrAtMs < 250L) return
+        lastIdrAtMs = now
+        ensureInput().control("idr")
     }
 
     fun ensureInput(): InputDispatcher {

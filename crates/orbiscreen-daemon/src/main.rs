@@ -1918,6 +1918,13 @@ async fn run_start(
     };
     let mut encoded_rx = encoder.subscribe().ok_or("encoder returned no rx")?;
     let encoder = Arc::new(encoder);
+    let (idr_tx, mut idr_rx) = mpsc::channel::<()>(8);
+    let encoder_for_idr = Arc::clone(&encoder);
+    tokio::spawn(async move {
+        while idr_rx.recv().await.is_some() {
+            encoder_for_idr.request_keyframe();
+        }
+    });
 
     let stats = std::sync::Arc::new(Stats::default());
 
@@ -2294,6 +2301,7 @@ async fn run_start(
         spec.refresh_rate_hz,
         encoder_name,
         shutdown_rx.clone(),
+        Some(idr_tx),
     ));
 
     tokio::select! {
