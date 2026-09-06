@@ -2,7 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
-<<<<<<< HEAD
+## [v0.23.6] - 2026-09-07
+
+Select GStreamer vah264enc hardware encoder, fallback through NVENC candidates, warn when falling back to software x264, and tune VA-API pipeline for low latency.
+
+### ⚡ Performance & Low Latency
+- **Hardware H.264 Encoder Detection & VA Low Latency (`orbiscreen-encode` - PR [#71](https://github.com/shadow-x78/orbiscreen/pull/71) by [@sentinelt](https://github.com/sentinelt))**:
+  - Auto mode now probes modern GStreamer `vah264enc` (current VA plugin) as well as legacy `vaapih264enc` and NVENC factory names (`nvh264enc`, `nvcudah264enc`, `nvautogpuh264enc`).
+  - Emits a clear warning when falling back to software `x264enc` instead of silently encoding 1440p+ displays on the CPU.
+  - Tuned `vah264enc` pipeline for ultra-low latency (`cbr`, `target-usage=7`, `ref-frames=1`, `b-frames=0`, `key-int-max=60`).
+  - Added unit test `auto_prefers_hardware_when_va_or_nvenc_is_registered`.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.23.6.
+- **Android Client**: Incremented `versionCode` to 66; updated `versionName` to "0.23.6".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.6 with changelog entry.
+- **debian/changelog**: Added 0.23.6-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.23.6.
+
 ## [v0.23.5] - 2026-09-06
 
 Shrink HTTP MPEG-TS transport queues, backpressure on full queue, reduce Android live offset to 24 ms, and enable MediaCodec low-latency decoding for ultra-low latency streaming.
@@ -46,20 +63,6 @@ Confine trackpad pointer motion and clicks to the virtual display via virtual ta
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.4 with changelog entry.
 - **debian/changelog**: Added 0.23.4-1 release for Ubuntu noble.
 - **PKGBUILD**: Bumped `pkgver` to 0.23.4.
-=======
-## [Unreleased]
-
-### ⚡ Performance & Low Latency
-- **Hardware H.264 Encoder Detection (`orbiscreen-encode`)**:
-  - Auto now selects GStreamer `vah264enc` (current VA plugin) as well as legacy `vaapih264enc` / `nvh264enc` / `nvcudah264enc`.
-  - Falling back to software `x264enc` logs a warning instead of silently encoding 1440p+ on the CPU.
-  - `vah264enc` is tuned for low latency (`cbr`, `target-usage=7`, one reference frame, no B-frames).
-- **HTTP MPEG-TS Transport Queue (`orbiscreen-transport`, Android, Web)**:
-  - Per-client muxer keeps four sink buffers and a 16-slot HTTP queue instead of 512 / 1024 queued chunks.
-  - HTTP send no longer drops MPEG-TS packets on a full queue (that desynced the decoder). The muxer backpressures instead; a stalled `appsrc` push resyncs on the next keyframe.
-  - Android ExoPlayer live offset cut to 24 ms (8–48 ms) with 32–64 ms load control, `FEATURE_LowLatency` decoder preference, and MediaCodec low-latency flags.
-  - Web `mpegts.js` live sync target cut to 30 ms with a tighter latency chase.
->>>>>>> a8c6964 (orbiscreen | fix: shrink HTTP MPEG-TS transport queues)
 
 ## [v0.23.3] - 2026-09-06
 

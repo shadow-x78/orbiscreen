@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.23.5
+Version:        0.23.6
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -103,6 +103,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Mon Sep 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.6-1
+- Release 0.23.6: Probe vah264enc hardware encoder, warn on silent software x264 fallback, and tune VA-API low latency (PR #71 by @sentinelt).
+
 * Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.5-1
 - Release 0.23.5: Shrink HTTP MPEG-TS transport queues, backpressure on full queue, 24ms Android live offset, and MediaCodec low-latency decoding (PR #70 by @sentinelt).
 

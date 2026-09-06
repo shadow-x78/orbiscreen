@@ -1,3 +1,12 @@
+orbiscreen (0.23.6-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.23.6 for Ubuntu noble.
+  * Probe GStreamer vah264enc hardware encoder and fallback through NVENC candidates.
+  * Emit warning when falling back to software x264enc to prevent silent high CPU encode on 1440p+.
+  * Tune VA-API pipeline for low latency (CBR, target-usage=7, ref-frames=1, no B-frames) (PR #71 by @sentinelt).
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 02:00:00 +0300
+
 orbiscreen (0.23.5-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.5 for Ubuntu noble.
