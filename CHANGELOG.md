@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.23.0] - 2026-09-06
+
+Eliminate USB and streaming latency by redesigning the pipeline with single-buffer appsink, non-blocking queue drops, and dual-channel USB egress; resolve USB interface claim collisions with kernel driver detachment retries; and prevent Android app exit when the Linux server disconnects.
+
+### 🐛 Fixed & Optimized
+- **Real-Time Stream Latency (`crates/orbiscreen-transport`)**:
+  - Reconfigured `mpegtsmux` appsink from `drop=false max-buffers=512` to `drop=true sync=false max-buffers=1`. Eliminates internal GStreamer buffer queues that caused multi-second visual and cursor lag.
+  - Reduced bounded video channel from 1024 frames to 32 frames using non-blocking `try_send()`. On throughput bottlenecks, stale frames are discarded immediately instead of queuing up and delaying subsequent user input.
+  - Implemented a **Dual-Channel AOA USB Writer**: split USB egress into an unbounded high-priority channel (`prio_tx` for control frames, input HTTP responses, and close events) and a bounded video channel (`video_tx`, depth 8). Control packets and mouse/touch ACKs are dispatched ahead of video data and are never blocked behind bulk video bursts.
+  - Lowered bulk transfer write timeout from 2000ms to 100ms.
+- **Resilient USB Interface 0 Claim (`crates/orbiscreen-transport/src/aoa.rs`)**:
+  - Resolved `Device or resource busy (os error 16)` during accessory bridge startup: configured `USBDEVFS_DISCONNECT_CLAIM` with `flags = 0` to unconditionally unbind any active kernel driver from interface 0 before claiming.
+  - Added a 3-attempt retry loop with exponential backoff and fallback to `USBDEVFS_CLAIMINTERFACE`, ensuring smooth accessory handover across daemon restarts.
+- **ExoPlayer Ultra-Low Latency Buffer Tuning (`PlayerHolder.kt`)**:
+  - Reconfigured `DefaultLoadControl` on the Android client: reduced minimum and maximum buffer duration from 80ms–250ms down to 15ms–45ms (`bufferForPlaybackMs = 10`, `bufferForPlaybackAfterRebufferMs = 15`).
+  - Tuned `MediaItem.LiveConfiguration` target live offset down to 15ms (min 10ms, max 35ms), eliminating playback buffer accumulation and providing instant mouse cursor and screen reaction.
+- **Graceful USB Detach & App Lifecycle (`MainActivity.kt` & `OrbiNav.kt`)**:
+  - Overrode `finish()` in `MainActivity` to prevent the Android system from force-terminating the activity when the USB accessory is detached (`ACTION_USB_ACCESSORY_DETACHED`).
+  - Added reactive observation of `isAoaActiveFlow` in `OrbiNav`: when the Linux server stops or the USB cable is unplugged, the app automatically transitions from `Routes.STREAM` back to `Routes.DISCOVERY` instead of closing.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.23.0.
+- **Android Client**: Incremented `versionCode` to 60; updated `versionName` to "0.23.0".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.0 with changelog entry.
+- **debian/changelog**: Added 0.23.0-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.23.0.
+
 ## [v0.22.9] - 2026-09-06
 
 Fix USB bulk packet truncation in Android AOA proxy that caused session tokens to be silently lost, implement proper TCP connection lifecycle management on the Linux bridge, and optimize session token caching in the Android client.

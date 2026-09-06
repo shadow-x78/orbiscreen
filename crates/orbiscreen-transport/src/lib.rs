@@ -627,12 +627,11 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     gstreamer::init().ok();
 
-    let pipeline_str =
-        "appsrc name=src format=time is-live=false \
+    let pipeline_str = "appsrc name=src format=time is-live=false \
                         ! video/x-h264,stream-format=byte-stream,alignment=au \
                         ! h264parse config-interval=1 \
                         ! mpegtsmux alignment=7 \
-                        ! appsink name=sink drop=false sync=false max-buffers=512 emit-signals=false";
+                        ! appsink name=sink drop=true sync=false max-buffers=1 emit-signals=false";
     let pipeline = match gstreamer::parse::launch(pipeline_str) {
         Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
             Ok(pipeline) => pipeline,
@@ -676,7 +675,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     };
 
-    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(1024);
+    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(32);
     let tx_alive = tx.clone();
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
@@ -690,7 +689,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                                     return Err(gstreamer::FlowError::Eos);
                                 }
                                 Err(tokio::sync::mpsc::error::TrySendError::Full(_)) => {
-                                    warn!("stream buffer overrun; dropping chunk to preserve connection");
+                                    debug!("stream buffer overrun; dropping chunk to preserve real-time latency");
                                 }
                             }
                         }

@@ -50,7 +50,6 @@ const USBDEVFS_BULK: u64 = 0xc0185502;
 const USBDEVFS_CLAIMINTERFACE: u64 = 0x8004550f;
 const USBDEVFS_RELEASEINTERFACE: u64 = 0x80045510;
 const USBDEVFS_DISCONNECT_CLAIM: u64 = 0x8108551b;
-const USBDEVFS_DISCONNECT_CLAIM_EXCEPT_DRIVER: u32 = 0x02;
 
 const AOA_GET_PROTOCOL: u8 = 51;
 const AOA_SEND_STRING: u8 = 52;
@@ -297,24 +296,31 @@ pub fn run_accessory_bridge(
     let fd = f.as_raw_fd();
 
     let iface = 0u32;
-    let mut dc = UsbDevFsDisconnectClaim {
-        interface: iface,
-        flags: USBDEVFS_DISCONNECT_CLAIM_EXCEPT_DRIVER,
-        driver: [0u8; 256],
-    };
-    dc.driver[..5].copy_from_slice(b"usbfs");
+    let mut claimed = false;
+    let mut last_err = std::io::Error::last_os_error();
 
-    let claim_res = unsafe { ioctl(fd, USBDEVFS_DISCONNECT_CLAIM, &mut dc) };
-    let claim_res = if claim_res < 0 {
-        unsafe { ioctl(fd, USBDEVFS_CLAIMINTERFACE, &iface) }
-    } else {
-        0
-    };
-    if claim_res < 0 {
-        return Err(format!(
-            "Failed to claim interface 0: {}",
-            std::io::Error::last_os_error()
-        ));
+    for attempt in 0..3 {
+        let mut dc = UsbDevFsDisconnectClaim {
+            interface: iface,
+            flags: 0,
+            driver: [0u8; 256],
+        };
+        let mut res = unsafe { ioctl(fd, USBDEVFS_DISCONNECT_CLAIM, &mut dc) };
+        if res < 0 {
+            res = unsafe { ioctl(fd, USBDEVFS_CLAIMINTERFACE, &iface) };
+        }
+        if res >= 0 {
+            claimed = true;
+            break;
+        }
+        last_err = std::io::Error::last_os_error();
+        if attempt < 2 {
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
+
+    if !claimed {
+        return Err(format!("Failed to claim interface 0: {}", last_err));
     }
 
     let (in_ep, out_ep) = detect_endpoints(&device.sysfs_path);
@@ -323,15 +329,22 @@ pub fn run_accessory_bridge(
         device.dev_node, in_ep, out_ep
     );
 
-    let (out_tx, out_rx) = std::sync::mpsc::channel::<Vec<u8>>();
+    let (prio_tx, prio_rx) = std::sync::mpsc::channel::<Vec<u8>>();
+    let (video_tx, video_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(8);
     let running_writer = running.clone();
     let fd_writer = fd;
     let writer_handle = std::thread::spawn(move || {
         while running_writer.load(Ordering::Relaxed) {
-            let chunk = match out_rx.recv_timeout(Duration::from_millis(200)) {
+            let chunk = match prio_rx.try_recv() {
                 Ok(c) => c,
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
-                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                Err(std::sync::mpsc::TryRecvError::Empty) => {
+                    match video_rx.recv_timeout(Duration::from_millis(50)) {
+                        Ok(c) => c,
+                        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
+                        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                    }
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
             };
 
             let mut offset = 0;
@@ -340,7 +353,7 @@ pub fn run_accessory_bridge(
                 let mut bulk = UsbDevFsBulkTransfer {
                     ep: out_ep,
                     len: to_write as u32,
-                    timeout: 2000,
+                    timeout: 100,
                     _pad: 0,
                     data: chunk[offset..].as_ptr() as *mut u8,
                 };
@@ -355,7 +368,7 @@ pub fn run_accessory_bridge(
         }
     });
 
-    type StreamEntry = (std::sync::mpsc::Sender<Vec<u8>>, TcpStream);
+    type StreamEntry = (std::sync::mpsc::Sender<Vec<u8>>, TcpStream, Arc<AtomicBool>);
     type StreamMap = Arc<Mutex<HashMap<u16, StreamEntry>>>;
 
     let tcp_streams: StreamMap = Arc::new(Mutex::new(HashMap::new()));
@@ -403,12 +416,14 @@ pub fn run_accessory_bridge(
                             let _ = tcp_stream.set_nodelay(true);
                             let _ = tcp_stream.set_read_timeout(Some(Duration::from_millis(1500)));
                             let (tcp_tx, tcp_rx) = std::sync::mpsc::channel::<Vec<u8>>();
+                            let is_video = Arc::new(AtomicBool::new(false));
                             if let Ok(stream_for_map) = tcp_stream.try_clone() {
                                 let mut map = tcp_streams.lock().unwrap();
-                                map.insert(stream_id, (tcp_tx, stream_for_map));
+                                map.insert(stream_id, (tcp_tx, stream_for_map, is_video.clone()));
                             }
 
-                            let out_tx_clone = out_tx.clone();
+                            let prio_tx_clone = prio_tx.clone();
+                            let video_tx_clone = video_tx.clone();
                             let running_tcp = running.clone();
                             let tcp_streams_reader = tcp_streams.clone();
                             let mut tcp_read_stream = match tcp_stream.try_clone() {
@@ -428,7 +443,9 @@ pub fn run_accessory_bridge(
                                             frame.push(FRAME_FLAG_DATA);
                                             frame.extend_from_slice(&(n as u16).to_be_bytes());
                                             frame.extend_from_slice(&buf[..n]);
-                                            if out_tx_clone.send(frame).is_err() {
+                                            if is_video.load(Ordering::Relaxed) {
+                                                let _ = video_tx_clone.try_send(frame);
+                                            } else if prio_tx_clone.send(frame).is_err() {
                                                 break;
                                             }
                                         }
@@ -447,7 +464,7 @@ pub fn run_accessory_bridge(
                                 close_frame.extend_from_slice(&stream_id.to_be_bytes());
                                 close_frame.push(FRAME_FLAG_CLOSE);
                                 close_frame.extend_from_slice(&0u16.to_be_bytes());
-                                let _ = out_tx_clone.send(close_frame);
+                                let _ = prio_tx_clone.send(close_frame);
                                 let mut map = tcp_streams_reader.lock().unwrap();
                                 map.remove(&stream_id);
                             });
@@ -475,17 +492,20 @@ pub fn run_accessory_bridge(
                             close_frame.extend_from_slice(&stream_id.to_be_bytes());
                             close_frame.push(FRAME_FLAG_CLOSE);
                             close_frame.extend_from_slice(&0u16.to_be_bytes());
-                            let _ = out_tx.send(close_frame);
+                            let _ = prio_tx.send(close_frame);
                         }
                     }
                 } else if (flags & FRAME_FLAG_DATA) != 0 {
                     let map = tcp_streams.lock().unwrap();
-                    if let Some((tx, _)) = map.get(&stream_id) {
+                    if let Some((tx, _, is_video)) = map.get(&stream_id) {
+                        if payload.windows(7).any(|w| w == b"/stream") {
+                            is_video.store(true, Ordering::Relaxed);
+                        }
                         let _ = tx.send(payload);
                     }
                 } else if (flags & FRAME_FLAG_CLOSE) != 0 {
                     let mut map = tcp_streams.lock().unwrap();
-                    if let Some((_, stream)) = map.remove(&stream_id) {
+                    if let Some((_, stream, _)) = map.remove(&stream_id) {
                         let _ = stream.shutdown(std::net::Shutdown::Both);
                     }
                 }
@@ -496,7 +516,7 @@ pub fn run_accessory_bridge(
     running.store(false, Ordering::Relaxed);
     {
         let mut map = tcp_streams.lock().unwrap();
-        for (_, (_, stream)) in map.drain() {
+        for (_, (_, stream, _)) in map.drain() {
             let _ = stream.shutdown(std::net::Shutdown::Both);
         }
     }

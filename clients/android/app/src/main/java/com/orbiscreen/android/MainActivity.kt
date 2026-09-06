@@ -88,6 +88,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private var isExplicitFinish = false
+
+    override fun finish() {
+        if (!isExplicitFinish && intent?.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
+            intent?.action = null
+            return
+        }
+        super.finish()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         try {

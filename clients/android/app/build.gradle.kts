@@ -17,8 +17,8 @@ android {
         applicationId = "com.orbiscreen.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 59
-        versionName = "0.22.9"
+        versionCode = 60
+        versionName = "0.23.0"
     }
 
     signingConfigs {

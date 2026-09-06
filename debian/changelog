@@ -1,3 +1,15 @@
+orbiscreen (0.23.0-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.23.0 for Ubuntu noble.
+  * Optimize USB and stream pipeline: configure 1-buffer drop=true appsink in mpegtsmux.
+  * Reduce bounded video frame channel and drop stale frames to eliminate accumulated latency.
+  * Implement dual-channel AOA USB writer separating high-priority control/input responses from video egress.
+  * Robust interface 0 claim with USBDEVFS_DISCONNECT_CLAIM (flags=0) and retry loop to detach kernel drivers cleanly.
+  * Tune Android ExoPlayer buffer down to 15-45ms and live target offset to 15ms.
+  * Prevent Android app termination on USB accessory detachment and pop gracefully to discovery screen.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 06:50:00 +0300
+
 orbiscreen (0.22.9-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.9 for Ubuntu noble.

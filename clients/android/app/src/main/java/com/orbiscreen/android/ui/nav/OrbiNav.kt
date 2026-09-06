@@ -9,6 +9,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -84,6 +86,12 @@ fun OrbiNav(prefs: PrefsStore) {
                     }
                 },
             )
+            val isAoaActive by com.orbiscreen.android.usb.UsbAccessoryManager.isAoaActiveFlow.collectAsState()
+            androidx.compose.runtime.LaunchedEffect(isAoaActive) {
+                if (host == "127.0.0.1" && !isAoaActive) {
+                    nav.popBackStack(Routes.DISCOVERY, inclusive = false)
+                }
+            }
             StreamScreen(
                 viewModel = vm,
                 onBack = { nav.popBackStack() },
