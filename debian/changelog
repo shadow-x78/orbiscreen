@@ -1,3 +1,12 @@
+orbiscreen (0.23.4-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.23.4 for Ubuntu noble.
+  * Confine trackpad pointer motion and clicks to the virtual display via virtual tablet routing.
+  * Eliminate duplicated mouse click injection during stylus drawing.
+  * Scale Android trackpad motion deltas proportionally to stream content dimensions.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 14:30:00 +0300
+
 orbiscreen (0.23.3-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.3 for Ubuntu noble.

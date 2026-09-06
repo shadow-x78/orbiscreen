@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.23.4] - 2026-09-06
+
+Confine trackpad pointer motion and clicks to the virtual display via virtual tablet routing; eliminate duplicated mouse click injection during stylus drawing; scale Android trackpad motion deltas proportionally to stream content dimensions.
+
+### 🐛 Fixed & Optimized
+- **Trackpad Display Confinement & Motion Pacing (`crates/orbiscreen-input/src/x11.rs`)**:
+  - Re-architected virtual pointer event routing (`Move`, `RelativeMove`, `Button`) from `mouse_keyboard` to `Orbiscreen Virtual Tablet`, which KWin strictly binds to `Virtual-ORBISCREEN` via `outputName`.
+  - Maintained virtual cursor coordinates centered at `(width/2, height/2)` and strictly clamped to `[0..width-1, 0..height-1]`.
+  - Reconfigured `mouse_keyboard` to standard relative axes (`Rel::X, Rel::Y, Rel::WHEEL`), removing `Abs::X` and `Abs::Y` to prevent KWin from mapping it as a desktop-wide absolute pointer across all monitors.
+  - Eliminated cursor teleporting, wild 2.55x velocity multipliers, and edge clamping drops ("دروبات وسرعة في تحرك الماوس") during trackpad use.
+- **Stylus Dual-Screen Cloning Elimination (`crates/orbiscreen-input/src/x11.rs`)**:
+  - Completely removed secondary synthetic `mouse_keyboard` click and absolute coordinate emission from `inject_stylus`.
+  - Ensured all stylus drawing and hovering events are routed exclusively to `Orbiscreen Virtual Tablet` on `Virtual-ORBISCREEN`.
+  - Retained tool proximity (`BTN_TOOL_PEN: PRESSED`) during zero-pressure hover states, restoring smooth in-air cursor preview without triggering phantom clicks on the host's primary monitor.
+- **Android Trackpad Motion Delta Scaling (`clients/android/app/src/main/java/com/orbiscreen/android/ui/stream/PlayerSurface.kt`)**:
+  - Scaled raw touch motion deltas (`dx, dy`) proportionally against `computeContentRect` and `streamWidth/Height`.
+  - Delivers natural, 1:1 proportional pointer speeds across high-density tablet displays.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.23.4.
+- **Android Client**: Incremented `versionCode` to 64; updated `versionName` to "0.23.4".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.4 with changelog entry.
+- **debian/changelog**: Added 0.23.4-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.23.4.
+
 ## [v0.23.3] - 2026-09-06
 
 Enable Gradle dependency caching in CI workflows to eliminate Cloudflare 403 Forbidden errors; enhance in-page Code of Conduct navigation anchors.
