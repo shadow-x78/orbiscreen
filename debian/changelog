@@ -1,3 +1,12 @@
+orbiscreen (0.23.7-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.23.7 for Ubuntu noble.
+  * Enable infinite GOP length using encoder maximum (key-int-max / gop-size).
+  * Enable periodic intra-refresh for software x264enc to keep P-frames small.
+  * Implement on-demand IDR recovery via POST /api/control (action=idr), new stream join, and client error handlers (PR #72 by @sentinelt).
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 02:30:00 +0300
+
 orbiscreen (0.23.6-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.6 for Ubuntu noble.

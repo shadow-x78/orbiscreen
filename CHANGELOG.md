@@ -2,13 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.23.7] - 2026-09-07
+
+Enable infinite GOP length, periodic intra-refresh for x264enc, and on-demand IDR keyframe recovery for seamless low-latency streaming without periodic network spikes.
 
 ### ⚡ Performance & Low Latency
-- **Infinite GOP + On-Demand IDR (`orbiscreen-encode`, `orbiscreen-transport`, Android, Web)**:
-  - Encoders no longer emit a keyframe every 60 frames. GOP length uses the encoder maximum (`key-int-max` / `gop-size`); `x264enc` also enables periodic intra-refresh.
-  - Clients request a recovery IDR via `POST /api/control` (`action: idr`). A new `/stream` client and a lagged muxer do the same.
-  - The encoder src pad receives an upstream `GstForceKeyUnit` (all-headers), debounced to 200 ms.
+- **Infinite GOP + On-Demand IDR Recovery (`orbiscreen-encode`, `orbiscreen-transport`, Android, Web - PR [#72](https://github.com/shadow-x78/orbiscreen/pull/72) by [@sentinelt](https://github.com/sentinelt))**:
+  - Encoders no longer emit forced keyframes every 60 frames. GOP length uses the encoder property maximum (`key-int-max` / `gop-size` / `keyframe-period`); `x264enc` also enables periodic intra-refresh to keep P-frames small and predictable.
+  - Recovery is on-demand: clients request an IDR keyframe via `POST /api/control` (`action: idr` / `action: keyframe`).
+  - Joining a `/stream` session and lagged muxer subscribers automatically request an IDR.
+  - Upstream `GstForceKeyUnit` event (all-headers) is sent through the encoder src pad with a 200ms debounce.
+  - Android client (`StreamViewModel`) and Web client (`app.js`) automatically dispatch `idr` control requests upon decoding or MPEG-TS playback errors.
+  - Added unit tests `infinite_gop_uses_property_maximum` and `request_keyframe_is_safe_before_playing`.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.23.7.
+- **Android Client**: Incremented `versionCode` to 67; updated `versionName` to "0.23.7".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.7 with changelog entry.
+- **debian/changelog**: Added 0.23.7-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.23.7.
+- **Documentation**: Removed extra `(Web Tab)` navigation links in `README.md` and `README_AR.md`.
 
 ## [v0.23.6] - 2026-09-07
 

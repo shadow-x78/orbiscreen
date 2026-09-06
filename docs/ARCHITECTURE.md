@@ -2,7 +2,7 @@
 
 # Architecture Specification - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.23.6-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.23.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -146,8 +146,8 @@ Every session generates a random 32-byte base64url token at startup:
 | `/` | GET | - | - | Redirects to `/client/index.html` (web client) |
 | `/stream` | GET | token | - | `video/mp2t` MPEG-TS live stream |
 | `/input` | POST | token | pointer/key/stylus JSON | `202 Accepted` |
-| `/api/control` | POST | token | `{"action":"lock"\|"blank"\|"unblank"\|"ctrl_alt_del"}` | `200 OK` / `501` when the host lacks the required tool / `400` for unknown actions |
-| `/api/info` | GET | - | - | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.23.6"}` |
+| `/api/control` | POST | token | `{"action":"lock"\|"blank"\|"unblank"\|"ctrl_alt_del"\|"idr"}` | `200 OK` / `501` when the host lacks the required tool / `400` for unknown actions |
+| `/api/info` | GET | - | - | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.23.7"}` |
 | `/health` | GET | - | - | `200 OK "ok"` |
 
 Input events (`/input`) accept the same payload schema as the web client: `{"Pointer":{"Move":{"x","y"}\|"Button":{"button","pressed"}\|"Wheel":{"delta_y"}}}`, `{"Key":{"code","pressed"}}` (Linux evdev keycodes), `{"Stylus":{"Tilt":{"x","y","pressure","tilt_x_deg","tilt_y_deg"}}}`.
@@ -157,7 +157,7 @@ Input events (`/input`) accept the same payload schema as the web client: `{"Poi
 ## 🔌 Transport Optimisations
 
 - **Per-client muxing:** every `/stream` request spawns an `appsrc → mpegtsmux → appsink` pipeline with `h264parse config-interval=1`, so SPS/PPS re-emit every keyframe and late-joining clients decode within one GOP.
-- **6-Frame Keyframe Interval (GOP):** High-frequency 100ms keyframe emission guarantees instantaneous stream catch-up even under 5GHz Wi-Fi packet drops.
+- **Infinite GOP + On-Demand IDR:** Hardware and software encoders maximize GOP length without periodic IDR bandwidth spikes; clients and lagged muxers trigger immediate upstream keyframe generation on join or packet loss.
 - **ChromeOS ARC++ ADB Routing:** Automatic internal ADB probing on `100.115.92.2:5555` bridges USB connections inside ChromeOS ARC++ container networking.
 - **OkHttpDataSource:** zero read-timeout, long-lived socket, custom `User-Agent: Orbiscreen-Android/1.0` for friendlier server logs.
 - **DefaultLoadControl + Ultra-Low Latency:** buffers 40ms minimally and 120ms maximally, ensuring near-instantaneous live edge playback.

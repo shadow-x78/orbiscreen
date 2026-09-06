@@ -10,7 +10,7 @@
 
 **شاشة افتراضية ثانية حقيقية ومستقلة وبزمن استجابة فائق السرعة لنظام Linux (Wayland و X11) تُبث إلى أجهزة وهواتف Android.**
 
-[![الإصدار](https://img.shields.io/badge/version-0.23.6-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.23.7-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=for-the-badge&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
@@ -396,7 +396,7 @@ orbiscreen/
 
 بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [سجل التغييرات](CHANGELOG.md) ·
-[ميثاق قواعد السلوك](CODE_OF_CONDUCT.md) ([تبويب الويب](https://github.com/shadow-x78/orbiscreen?tab=coc-ov-file#readme)) ·
+[ميثاق قواعد السلوك](CODE_OF_CONDUCT.md) ·
 [الأمان](SECURITY.md)
 
 <sub>&copy; 2026 Orbiscreen</sub>

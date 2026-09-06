@@ -2,7 +2,7 @@
 
 # مواصفات المعمارية - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.23.6-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.23.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -170,7 +170,7 @@ com.orbiscreen.android/
 | `/stream` | `GET` | توكن | بث فيديو &rlm;MPEG-TS (`video/mp2t`)&rlm; |
 | `/health` | `GET` | عامة | &rlm;`200 OK "ok"`&rlm; |
 | `/api/info` | `GET` | عامة | معلومات العرض والترميز والإصدار بصيغة &rlm;JSON&rlm; |
-| `/api/control` | `POST` | توكن | &rlm;`200 OK`&rlm;؛ الإجراءات: `lock`، `blank`، `unblank`، `ctrl_alt_del` |
+| `/api/control` | `POST` | توكن | &rlm;`200 OK`&rlm;؛ الإجراءات: `lock`، `blank`، `unblank`، `ctrl_alt_del`، `idr` |
 | `/client/config.json` | `GET` | عامة | إعدادات تمهيد العميل والتوكن |
 
 </div>

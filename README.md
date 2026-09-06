@@ -10,7 +10,7 @@
 
 **High-performance, ultra-low latency virtual secondary display for Linux (Wayland &amp; X11) streamed to Android tablets and phones.**
 
-[![Version](https://img.shields.io/badge/version-0.23.6-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.23.7-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=for-the-badge&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
@@ -361,7 +361,7 @@ Distributed under the [GPL-3.0 License](LICENSE).
 
 Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [Changelog](CHANGELOG.md) ·
-[Code of Conduct](CODE_OF_CONDUCT.md) ([Web Tab](https://github.com/shadow-x78/orbiscreen?tab=coc-ov-file#readme)) ·
+[Code of Conduct](CODE_OF_CONDUCT.md) ·
 [Security](SECURITY.md)
 
 <sub>&copy; 2026 Orbiscreen</sub>
