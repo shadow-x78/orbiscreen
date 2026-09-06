@@ -3,6 +3,7 @@
 # Troubleshooting - Orbiscreen
 
 [![Version](https://img.shields.io/badge/version-0.23.4-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.23.5-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -125,6 +126,7 @@ Source code does not adhere to standard Rust formatting (`rustfmt`).
 cargo fmt --all
 git add -A
 git commit -m "orbiscreen | v0.23.4 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.23.5 | style: cargo fmt --all"
 ```
 
 **Prevention:**
@@ -150,6 +152,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
 cargo clippy --workspace --all-targets --locked --fix
 git add -A
 git commit -m "orbiscreen | v0.23.4 | fix: resolve clippy warnings"
+git commit -m "orbiscreen | v0.23.5 | fix: resolve clippy warnings"
 ```
 
 **Prevention:**
@@ -171,6 +174,7 @@ cargo update -p gstreamer
 cargo build --workspace --locked
 git add Cargo.lock
 git commit -m "orbiscreen | v0.23.4 | chore: refresh Cargo.lock"
+git commit -m "orbiscreen | v0.23.5 | chore: refresh Cargo.lock"
 ```
 
 ---
@@ -602,6 +606,7 @@ Capture loop running without yielding or unbounded queue backlog.
 
 **Fix:**
 Update to the latest release (v0.23.4 or newer).
+Update to the latest release (v0.23.5 or newer).
 
 ---
 

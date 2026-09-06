@@ -2,14 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+<<<<<<< HEAD
+## [v0.23.5] - 2026-09-06
+
+Shrink HTTP MPEG-TS transport queues, backpressure on full queue, reduce Android live offset to 24 ms, and enable MediaCodec low-latency decoding for ultra-low latency streaming.
 
 ### ⚡ Performance & Low Latency
-- **HTTP MPEG-TS Transport Queue (`orbiscreen-transport`, Android, Web)**:
+- **HTTP MPEG-TS Transport Queue & Low Latency Decoding (`orbiscreen-transport`, Android, Web - PR [#70](https://github.com/shadow-x78/orbiscreen/pull/70) by [@sentinelt](https://github.com/sentinelt))**:
   - Per-client muxer keeps four sink buffers and a 16-slot HTTP queue instead of 512 / 1024 queued chunks.
-  - HTTP send no longer drops MPEG-TS packets on a full queue (that desynced the decoder). The muxer backpressures instead; a stalled `appsrc` push resyncs on the next keyframe.
+  - HTTP send no longer drops MPEG-TS packets on a full queue (which desynced the decoder). The muxer backpressures instead; a stalled `appsrc` push resyncs on the next keyframe.
   - Android ExoPlayer live offset cut to 24 ms (8–48 ms) with 32–64 ms load control, `FEATURE_LowLatency` decoder preference, and MediaCodec low-latency flags.
+  - Android player sets foreground mode to prevent playback throttling.
   - Web `mpegts.js` live sync target cut to 30 ms with a tighter latency chase.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.23.5.
+- **Android Client**: Incremented `versionCode` to 65; updated `versionName` to "0.23.5".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.5 with changelog entry.
+- **debian/changelog**: Added 0.23.5-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.23.5.
 
 ## [v0.23.4] - 2026-09-06
 
@@ -35,6 +46,16 @@ Confine trackpad pointer motion and clicks to the virtual display via virtual ta
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.4 with changelog entry.
 - **debian/changelog**: Added 0.23.4-1 release for Ubuntu noble.
 - **PKGBUILD**: Bumped `pkgver` to 0.23.4.
+=======
+## [Unreleased]
+
+### ⚡ Performance & Low Latency
+- **HTTP MPEG-TS Transport Queue (`orbiscreen-transport`, Android, Web)**:
+  - Per-client muxer keeps four sink buffers and a 16-slot HTTP queue instead of 512 / 1024 queued chunks.
+  - HTTP send no longer drops MPEG-TS packets on a full queue (that desynced the decoder). The muxer backpressures instead; a stalled `appsrc` push resyncs on the next keyframe.
+  - Android ExoPlayer live offset cut to 24 ms (8–48 ms) with 32–64 ms load control, `FEATURE_LowLatency` decoder preference, and MediaCodec low-latency flags.
+  - Web `mpegts.js` live sync target cut to 30 ms with a tighter latency chase.
+>>>>>>> a8c6964 (orbiscreen | fix: shrink HTTP MPEG-TS transport queues)
 
 ## [v0.23.3] - 2026-09-06
 

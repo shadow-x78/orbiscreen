@@ -1,3 +1,13 @@
+orbiscreen (0.23.5-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.23.5 for Ubuntu noble.
+  * Shrink HTTP MPEG-TS transport queues to 4 appsink buffers and 16-slot channel.
+  * Backpressure instead of dropping TS packets; resync stalled appsrc on next keyframe.
+  * Cut Android ExoPlayer live offset to 24ms and enable MediaCodec low-latency decoding (PR #70 by @sentinelt).
+  * Tighten web mpegts.js live sync target to 30ms.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 14:50:00 +0300
+
 orbiscreen (0.23.4-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.4 for Ubuntu noble.
