@@ -995,6 +995,7 @@ function startStream() {
 
     mpegtsPlayer.on(mpegts.Events.ERROR, (errorType, errorDetail, errorInfo) => {
         console.error("mpegts error:", errorType, errorDetail, errorInfo);
+        sendHostAction("idr");
         if (errorDetail === "NetworkError" && !authToken && tokenRow) {
             tokenRow.classList.remove("hidden");
         }

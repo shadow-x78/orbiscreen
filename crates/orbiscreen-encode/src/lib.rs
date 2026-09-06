@@ -1,6 +1,9 @@
 // Orbiscreen - lib.rs (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use gstreamer::glib;
 use gstreamer::prelude::*;
 use gstreamer::{ClockTime, ElementFactory, Pipeline};
 use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
@@ -130,6 +133,58 @@ fn make_element(name: &str) -> Result<gstreamer::Element, EncodeError> {
         .map_err(|e| EncodeError::Pipeline(format!("{name}: {e}")))
 }
 
+fn set_str_if_present(el: &gstreamer::Element, name: &str, value: &str) {
+    if el.find_property(name).is_some() {
+        el.set_property_from_str(name, value);
+    }
+}
+
+fn max_u32_property(el: &gstreamer::Element, name: &str) -> Option<u32> {
+    let spec = el.find_property(name)?;
+    spec.downcast_ref::<glib::ParamSpecUInt>()
+        .map(|p| p.maximum())
+        .or_else(|| {
+            spec.downcast_ref::<glib::ParamSpecInt>()
+                .map(|p| p.maximum() as u32)
+        })
+}
+
+fn configure_infinite_gop(encoder: &gstreamer::Element) {
+    set_str_if_present(encoder, "intra-refresh", "true");
+    if let Some(max) = max_u32_property(encoder, "key-int-max") {
+        let value = if max == 0 { 1024 } else { max };
+        encoder.set_property_from_str("key-int-max", &value.to_string());
+    }
+    if encoder.find_property("gop-size").is_some() {
+        if let Some(spec) = encoder.find_property("gop-size") {
+            if spec.downcast_ref::<glib::ParamSpecInt>().is_some() {
+                encoder.set_property_from_str("gop-size", "-1");
+            } else if let Some(max) = max_u32_property(encoder, "gop-size") {
+                let value = if max == 0 { 1024 } else { max };
+                encoder.set_property_from_str("gop-size", &value.to_string());
+            }
+        }
+    }
+    if let Some(max) = max_u32_property(encoder, "keyframe-period") {
+        let value = if max == 0 { 1024 } else { max };
+        encoder.set_property_from_str("keyframe-period", &value.to_string());
+    }
+    if encoder
+        .find_property("min-force-key-unit-interval")
+        .is_some()
+    {
+        encoder.set_property("min-force-key-unit-interval", 100_000_000u64);
+    }
+}
+
+fn force_key_unit_event() -> gstreamer::Event {
+    let structure = gstreamer::Structure::builder("GstForceKeyUnit")
+        .field("all-headers", true)
+        .field("count", 0u32)
+        .build();
+    gstreamer::event::CustomUpstream::new(structure)
+}
+
 #[derive(Debug, Clone)]
 pub struct EncodedChunk {
     pub bytes: Vec<u8>,
@@ -141,10 +196,12 @@ pub struct EncodedChunk {
 pub struct Encoder {
     pipeline: Pipeline,
     appsrc: AppSrc,
+    encoder: gstreamer::Element,
     kind: EncoderKind,
     width: u32,
     height: u32,
     rx: Option<mpsc::Receiver<EncodedChunk>>,
+    last_key_request_ns: AtomicU64,
 }
 
 impl Drop for Encoder {
@@ -231,9 +288,6 @@ impl Encoder {
             if encoder.find_property("repeat-sequence-header").is_some() {
                 encoder.set_property_from_str("repeat-sequence-header", "true");
             }
-            if encoder.find_property("gop-size").is_some() {
-                encoder.set_property_from_str("gop-size", "60");
-            }
             if encoder.find_property("b-frames").is_some() {
                 encoder.set_property_from_str("b-frames", "0");
             }
@@ -241,12 +295,6 @@ impl Encoder {
         if kind == EncoderKind::Vaapi {
             if encoder.find_property("rate-control").is_some() {
                 encoder.set_property_from_str("rate-control", "cbr");
-            }
-            if encoder.find_property("keyframe-period").is_some() {
-                encoder.set_property_from_str("keyframe-period", "60");
-            }
-            if encoder.find_property("key-int-max").is_some() {
-                encoder.set_property_from_str("key-int-max", "60");
             }
             if encoder.find_property("b-frames").is_some() {
                 encoder.set_property_from_str("b-frames", "0");
@@ -270,9 +318,6 @@ impl Encoder {
             if encoder.find_property("repeat-headers").is_some() {
                 encoder.set_property_from_str("repeat-headers", "true");
             }
-            if encoder.find_property("key-int-max").is_some() {
-                encoder.set_property_from_str("key-int-max", "60");
-            }
             if encoder.find_property("b-adapt").is_some() {
                 encoder.set_property_from_str("b-adapt", "0");
             }
@@ -280,6 +325,7 @@ impl Encoder {
                 encoder.set_property_from_str("bframes", "0");
             }
         }
+        configure_infinite_gop(&encoder);
 
         let h264parse = make_element("h264parse")?;
         h264parse.set_property_from_str("config-interval", "1");
@@ -359,11 +405,34 @@ impl Encoder {
         Ok(Self {
             pipeline,
             appsrc,
+            encoder,
             kind,
             width: params.width,
             height: params.height,
             rx: Some(rx),
+            last_key_request_ns: AtomicU64::new(0),
         })
+    }
+
+    pub fn request_keyframe(&self) {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos() as u64)
+            .unwrap_or(0);
+        let prev = self.last_key_request_ns.load(Ordering::Relaxed);
+        if now.saturating_sub(prev) < 200_000_000 {
+            return;
+        }
+        self.last_key_request_ns.store(now, Ordering::Relaxed);
+        let Some(pad) = self.encoder.static_pad("src") else {
+            warn!("encoder has no src pad; cannot request IDR");
+            return;
+        };
+        if pad.send_event(force_key_unit_event()) {
+            info!(kind = ?self.kind, "requested IDR from encoder");
+        } else {
+            warn!(kind = ?self.kind, "encoder rejected force-key-unit");
+        }
     }
 
     pub fn subscribe(&mut self) -> Option<mpsc::Receiver<EncodedChunk>> {
@@ -524,5 +593,30 @@ mod tests {
     fn frame_duration_ns_matches_framerate() {
         assert_eq!(Encoder::frame_duration_ns(60), 16_666_666);
         assert_eq!(Encoder::frame_duration_ns(30), 33_333_333);
+    }
+
+    #[test]
+    fn infinite_gop_uses_property_maximum() {
+        init().unwrap();
+        let encoder = make_element("x264enc").unwrap();
+        configure_infinite_gop(&encoder);
+        assert!(encoder.property::<bool>("intra-refresh"));
+        assert!(encoder.property::<u32>("key-int-max") > 60);
+    }
+
+    #[test]
+    fn request_keyframe_is_safe_before_playing() {
+        init().unwrap();
+        let encoder = Encoder::new(EncodeParams {
+            kind: EncoderKind::X264,
+            bitrate_kbps: 1000,
+            width: 64,
+            height: 64,
+            framerate: 30,
+        });
+        if let Ok(encoder) = encoder {
+            encoder.request_keyframe();
+            encoder.stop();
+        }
     }
 }

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### ⚡ Performance & Low Latency
+- **Infinite GOP + On-Demand IDR (`orbiscreen-encode`, `orbiscreen-transport`, Android, Web)**:
+  - Encoders no longer emit a keyframe every 60 frames. GOP length uses the encoder maximum (`key-int-max` / `gop-size`); `x264enc` also enables periodic intra-refresh.
+  - Clients request a recovery IDR via `POST /api/control` (`action: idr`). A new `/stream` client and a lagged muxer do the same.
+  - The encoder src pad receives an upstream `GstForceKeyUnit` (all-headers), debounced to 200 ms.
+
 ## [v0.23.6] - 2026-09-07
 
 Select GStreamer vah264enc hardware encoder, fallback through NVENC candidates, warn when falling back to software x264, and tune VA-API pipeline for low latency.
@@ -63,6 +71,7 @@ Confine trackpad pointer motion and clicks to the virtual display via virtual ta
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.4 with changelog entry.
 - **debian/changelog**: Added 0.23.4-1 release for Ubuntu noble.
 - **PKGBUILD**: Bumped `pkgver` to 0.23.4.
+
 
 ## [v0.23.3] - 2026-09-06
 
