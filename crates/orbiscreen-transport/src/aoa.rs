@@ -330,7 +330,7 @@ pub fn run_accessory_bridge(
     );
 
     let (prio_tx, prio_rx) = std::sync::mpsc::channel::<Vec<u8>>();
-    let (video_tx, video_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(8);
+    let (video_tx, video_rx) = std::sync::mpsc::channel::<Vec<u8>>();
     let running_writer = running.clone();
     let fd_writer = fd;
     let writer_handle = std::thread::spawn(move || {
@@ -444,7 +444,9 @@ pub fn run_accessory_bridge(
                                             frame.extend_from_slice(&(n as u16).to_be_bytes());
                                             frame.extend_from_slice(&buf[..n]);
                                             if is_video.load(Ordering::Relaxed) {
-                                                let _ = video_tx_clone.try_send(frame);
+                                                if video_tx_clone.send(frame).is_err() {
+                                                    break;
+                                                }
                                             } else if prio_tx_clone.send(frame).is_err() {
                                                 break;
                                             }

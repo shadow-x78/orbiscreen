@@ -176,7 +176,7 @@ impl Transport {
         mut shutdown_rx: tokio::sync::watch::Receiver<bool>,
     ) -> Result<(), TransportError> {
         let input_tx = self.input_tx;
-        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(512);
+        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(64);
         let state = AppState {
             config: self.cfg.clone(),
             input_tx,
@@ -632,7 +632,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                         ! video/x-h264,stream-format=byte-stream,alignment=au \
                         ! h264parse config-interval=1 \
                         ! mpegtsmux alignment=7 \
-                        ! appsink name=sink drop=true sync=false max-buffers=1 emit-signals=false";
+                        ! appsink name=sink drop=false sync=false max-buffers=64 emit-signals=false";
     let pipeline = match gstreamer::parse::launch(pipeline_str) {
         Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
             Ok(pipeline) => pipeline,
@@ -676,7 +676,7 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
         }
     };
 
-    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(32);
+    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(64);
     let tx_alive = tx.clone();
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
@@ -684,14 +684,8 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
                 Ok(sample) => {
                     if let Some(buffer) = sample.buffer() {
                         if let Ok(map) = buffer.map_readable() {
-                            match tx.try_send(map.to_vec()) {
-                                Ok(()) => {}
-                                Err(tokio::sync::mpsc::error::TrySendError::Closed(_)) => {
-                                    return Err(gstreamer::FlowError::Eos);
-                                }
-                                Err(tokio::sync::mpsc::error::TrySendError::Full(_)) => {
-                                    debug!("stream buffer overrun; dropping chunk to preserve real-time latency");
-                                }
+                            if tx.blocking_send(map.to_vec()).is_err() {
+                                return Err(gstreamer::FlowError::Eos);
                             }
                         }
                     }

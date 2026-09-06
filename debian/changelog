@@ -1,3 +1,13 @@
+orbiscreen (0.23.2-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.23.2 for Ubuntu noble.
+  * Fix black screen, video freezing, and visual glitches over USB AOA transport.
+  * Eliminate arbitrary TCP/MPEG-TS chunk dropping in GStreamer appsink and AOA bridge.
+  * Retain clean IDR keyframe skipping at the H.264 broadcast channel level.
+  * Tune Android ExoPlayer buffer thresholds to 40ms to prevent decoder starvation at 60 FPS.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 07:45:00 +0300
+
 orbiscreen (0.23.1-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.1 for Ubuntu noble.

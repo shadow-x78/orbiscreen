@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.23.2] - 2026-09-06
+
+Fix black screen, video freezing, and visual glitches over USB AOA transport by eliminating arbitrary TCP/MPEG-TS chunk dropping and stabilizing Android ExoPlayer buffer thresholds.
+
+### 🐛 Fixed
+- **Uncorrupted MPEG-TS Delivery & AOA TCP Stream Reliability (`crates/orbiscreen-transport`)**:
+  - In `v0.23.0`, attempts to drop laggy frames via `appsink drop=true max-buffers=1` and `video_tx.try_send()` in the AOA bridge caused arbitrary 8KB chunks to be discarded from the TCP byte stream after MPEG-TS muxing.
+  - Dropping data mid-stream corrupted the 188-byte MPEG-TS alignment and sliced H.264 NAL headers, causing constant decoder errors, visual artifacts ("تشويش"), and frozen video frames on Android.
+  - Video over TCP is now transferred 100% reliably: `video_tx` is an unbounded channel with blocking `.send()`, and `appsink` operates with `drop=false sync=false max-buffers=64` and clean backpressure.
+  - Real-time frame dropping is now strictly handled **before** MPEG-TS muxing at the H.264 packet boundary (`broadcast::channel::<H264Packet>(64)`), cleanly discarding stale GOPs and resuming on the next clean IDR keyframe without data corruption.
+- **ExoPlayer Buffer Stabilization (`PlayerHolder.kt`)**:
+  - Previous load control thresholds of 10-15ms were shorter than a single 60 FPS video frame (16.67ms), causing MediaCodec to starve and cycle repeatedly between `STATE_BUFFERING` and rendering a single frame (leading to black screens and permanent freeze).
+  - Configured `DefaultLoadControl` to `(40, 120, 25, 40)` ms and live target offset to `40ms` (min `25ms`, max `120ms`). This provides a stable ~2.5 frame buffer that prevents starvation while keeping end-to-end display latency imperceptible (< 50ms).
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.23.2.
+- **Android Client**: Incremented `versionCode` to 62; updated `versionName` to "0.23.2".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.2 with changelog entry.
+- **debian/changelog**: Added 0.23.2-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.23.2.
+
 ## [v0.23.1] - 2026-09-06
 
 Restore direct touch as a virtual multitouch device, injecting evdev type-B multitouch events on the virtual touchscreen instead of routing touch through the virtual mouse.
