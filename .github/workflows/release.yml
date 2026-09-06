@@ -153,6 +153,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: gradle
 
       - name: Build Android Release APK
         env:

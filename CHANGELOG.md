@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.23.3] - 2026-09-06
+
+Enable Gradle dependency caching in CI workflows to eliminate Cloudflare 403 Forbidden errors; enhance in-page Code of Conduct navigation anchors.
+
+### 🐛 Fixed & Optimized
+- **CI Workflow Gradle Caching (`.github/workflows/android.yml`, `.github/workflows/release.yml`)**:
+  - Added `cache: gradle` to `actions/setup-java` in Android CI and release workflows.
+  - Caches resolved Maven dependencies across runner invocations, permanently preventing Cloudflare WAF `403 Forbidden` rate-limiting on shared runner IPs and accelerating build times.
+- **Code of Conduct Navigation (`README.md`, `README_AR.md`, `CODE_OF_CONDUCT.md`)**:
+  - Added in-page `<span id="coc-ov-file"></span>` anchor to support GitHub's hash-based Code of Conduct links (`#coc-ov-file`).
+  - Added direct web tab hyperlinks (`?tab=coc-ov-file#readme`) for reliable one-click access.
+  - Bumped community standards version badge to `0.23.3`.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.23.3.
+- **Android Client**: Incremented `versionCode` to 63; updated `versionName` to "0.23.3".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.3 with changelog entry.
+- **debian/changelog**: Added 0.23.3-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.23.3.
+
 ## [v0.23.2] - 2026-09-06
 
 Fix black screen, video freezing, and visual glitches over USB AOA transport by eliminating arbitrary TCP/MPEG-TS chunk dropping and stabilizing Android ExoPlayer buffer thresholds.

@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.23.2
+Version:        0.23.3
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -103,6 +103,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.3-1
+- Release 0.23.3: Enable Gradle dependency caching in CI workflows to eliminate Cloudflare 403 Forbidden errors; enhance in-page Code of Conduct navigation anchors.
+
 * Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.2-1
 - Release 0.23.2: Fix video freezing, black screen, and distortion over USB; restore uncorrupted MPEG-TS stream delivery and stabilize ExoPlayer buffer thresholds.
 

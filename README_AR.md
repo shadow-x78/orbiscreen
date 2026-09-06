@@ -381,7 +381,7 @@ orbiscreen/
 4. ادفع إلى الفرع
 5. افتح Pull Request
 
-راجع [إرشادات المساهمة](CONTRIBUTING.md) و [ميثاق قواعد السلوك](CODE_OF_CONDUCT.md) لمعايير المجتمع وبيئة التطوير وعملية الإصدار.
+راجع [إرشادات المساهمة](CONTRIBUTING.md) و <span id="coc-ov-file"></span>[ميثاق قواعد السلوك](CODE_OF_CONDUCT.md) لمعايير المجتمع وبيئة التطوير وعملية الإصدار.
 
 ---
 
@@ -396,7 +396,7 @@ orbiscreen/
 
 بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [سجل التغييرات](CHANGELOG.md) ·
-[ميثاق قواعد السلوك](CODE_OF_CONDUCT.md) ·
+[ميثاق قواعد السلوك](CODE_OF_CONDUCT.md) ([تبويب الويب](https://github.com/shadow-x78/orbiscreen?tab=coc-ov-file#readme)) ·
 [الأمان](SECURITY.md)
 
 <sub>&copy; 2026 Orbiscreen</sub>

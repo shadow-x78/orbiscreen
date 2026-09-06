@@ -1,3 +1,12 @@
+orbiscreen (0.23.3-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.23.3 for Ubuntu noble.
+  * Enable Gradle dependency caching (cache: gradle) in CI workflows to eliminate Cloudflare 403 Forbidden errors.
+  * Add in-page HTML anchor and direct web tab links for Code of Conduct navigation.
+  * Refresh community standards badges and documentation links.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 08:35:00 +0300
+
 orbiscreen (0.23.2-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.2 for Ubuntu noble.
