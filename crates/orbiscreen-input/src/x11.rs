@@ -10,7 +10,7 @@ use evdevil::uinput::{AbsSetup, UinputDevice};
 use evdevil::{AbsInfo, Bus, InputId, InputProp};
 use tracing::info;
 
-use super::{InputError, PointerEvent, StylusEvent, VirtualTouchscreenSpec};
+use super::{InputError, PointerEvent, StylusEvent, TouchEvent, VirtualTouchscreenSpec};
 
 const PRESSURE_MAX: i32 = 1024;
 const TILT_MIN: i32 = -90;
@@ -25,13 +25,14 @@ impl From<io::Error> for InputError {
 #[allow(missing_debug_implementations)]
 pub struct UinputInjector {
     mouse_keyboard: UinputDevice,
-    #[allow(dead_code)]
     touchscreen: UinputDevice,
     tablet: UinputDevice,
     width: u32,
     height: u32,
     last_touch_x: i32,
     last_touch_y: i32,
+    touch_slot_active: [bool; crate::MAX_TOUCH_SLOTS],
+    touch_active_count: u8,
 }
 
 impl UinputInjector {
@@ -53,12 +54,18 @@ impl UinputInjector {
             .with_keys(mk_keys)?
             .build("Orbiscreen Virtual Mouse and Keyboard")?;
 
+        let slot_axis = AbsInfo::new(0, (crate::MAX_TOUCH_SLOTS as i32) - 1);
+        let tracking_axis = AbsInfo::new(-1, i32::MAX);
         let touchscreen = UinputDevice::builder()?
             .with_input_id(InputId::new(Bus::VIRTUAL, 0x0BEE, 0x0002, 0x0001))?
             .with_props([InputProp::DIRECT])?
             .with_abs_axes([
                 AbsSetup::new(Abs::X, width_axis),
                 AbsSetup::new(Abs::Y, height_axis),
+                AbsSetup::new(Abs::MT_SLOT, slot_axis),
+                AbsSetup::new(Abs::MT_TRACKING_ID, tracking_axis),
+                AbsSetup::new(Abs::MT_POSITION_X, width_axis),
+                AbsSetup::new(Abs::MT_POSITION_Y, height_axis),
             ])?
             .with_keys([Key::BTN_TOUCH])?
             .build("Orbiscreen Virtual Touchscreen")?;
@@ -97,6 +104,8 @@ impl UinputInjector {
             height: spec.height,
             last_touch_x: 0,
             last_touch_y: 0,
+            touch_slot_active: [false; crate::MAX_TOUCH_SLOTS],
+            touch_active_count: 0,
         })
     }
 
@@ -192,6 +201,53 @@ impl UinputInjector {
             SynEvent::new(Syn::REPORT).into(),
         ];
         self.mouse_keyboard.write_events(&events)?;
+        Ok(())
+    }
+
+    pub fn inject_touch(&mut self, event: TouchEvent) -> Result<(), InputError> {
+        let slot = (event.slot as usize).min(crate::MAX_TOUCH_SLOTS - 1);
+        let (xi, yi) = self.clamp_point(event.x, event.y);
+        if event.pressed {
+            self.last_touch_x = xi;
+            self.last_touch_y = yi;
+        }
+        let tracking_id = if event.id >= 0 { event.id } else { slot as i32 };
+        let becoming_active = event.pressed && !self.touch_slot_active[slot];
+        let becoming_idle = !event.pressed && self.touch_slot_active[slot];
+        if becoming_active {
+            self.touch_slot_active[slot] = true;
+            self.touch_active_count = self.touch_active_count.saturating_add(1);
+        } else if becoming_idle {
+            self.touch_slot_active[slot] = false;
+            self.touch_active_count = self.touch_active_count.saturating_sub(1);
+        } else if !event.pressed {
+            return Ok(());
+        }
+
+        let mut writer = self.touchscreen.writer();
+        let mut slot_writer = writer.slot(slot as u16)?;
+        if becoming_active {
+            slot_writer = slot_writer.set_tracking_id(tracking_id)?;
+        }
+        if event.pressed {
+            slot_writer = slot_writer.set_position(xi, yi)?;
+        }
+        if becoming_idle {
+            slot_writer = slot_writer.set_tracking_id(-1)?;
+        }
+        writer = slot_writer.finish_slot()?;
+        if event.pressed {
+            writer = writer.write_events(&[
+                AbsEvent::new(Abs::X, xi).into(),
+                AbsEvent::new(Abs::Y, yi).into(),
+            ])?;
+        }
+        if becoming_active && self.touch_active_count == 1 {
+            writer = writer.write_events(&[KEv::new(Key::BTN_TOUCH, KeyState::PRESSED).into()])?;
+        } else if becoming_idle && self.touch_active_count == 0 {
+            writer = writer.write_events(&[KEv::new(Key::BTN_TOUCH, KeyState::RELEASED).into()])?;
+        }
+        writer.finish()?;
         Ok(())
     }
 

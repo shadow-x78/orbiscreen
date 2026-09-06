@@ -34,13 +34,14 @@ pub enum TransportError {
     Http(String),
 }
 
-use orbiscreen_input::{KeyEvent, PointerEvent, StylusEvent};
+use orbiscreen_input::{KeyEvent, PointerEvent, StylusEvent, TouchEvent};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub enum IncomingInput {
     Pointer(PointerEvent),
     Key(KeyEvent),
     Stylus(StylusEvent),
+    Touch(TouchEvent),
     #[serde(untagged)]
     RawPointer {
         x: f64,
@@ -864,5 +865,23 @@ mod tests {
         stats.note_auth_failure();
         stats.note_auth_failure();
         assert_eq!(stats.auth_failures(), 2);
+    }
+
+    #[test]
+    fn incoming_input_parses_touch_payload() {
+        let json = serde_json::json!({
+            "Touch": {"slot": 2, "id": 7, "x": 100.0, "y": 200.0, "pressed": true}
+        });
+        let ev: IncomingInput = serde_json::from_value(json).expect("touch payload");
+        match ev {
+            IncomingInput::Touch(t) => {
+                assert_eq!(t.slot, 2);
+                assert_eq!(t.id, 7);
+                assert_eq!(t.x, 100.0);
+                assert_eq!(t.y, 200.0);
+                assert!(t.pressed);
+            }
+            other => panic!("expected Touch, got {other:?}"),
+        }
     }
 }

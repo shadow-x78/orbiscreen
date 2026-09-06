@@ -42,6 +42,7 @@ private class TouchCallbacksHolder(
     var isTouchMode: Boolean,
     var onMove: (Float, Float, Int, Int) -> Unit,
     var onPointer: (Float?, Float?, Int, Int, Int, Boolean) -> Unit,
+    var onTouch: (Int, Int, Float, Float, Int, Int, Boolean, Boolean) -> Unit,
     var onDeltaMove: (Float, Float) -> Unit,
     var onLeftClick: () -> Unit,
     var onRightClick: () -> Unit,
@@ -58,6 +59,7 @@ fun PlayerSurface(
     isTouchMode: Boolean,
     onMove: (Float, Float, Int, Int) -> Unit,
     onPointer: (Float?, Float?, Int, Int, Int, Boolean) -> Unit,
+    onTouch: (Int, Int, Float, Float, Int, Int, Boolean, Boolean) -> Unit,
     onDeltaMove: (Float, Float) -> Unit,
     onLeftClick: () -> Unit,
     onRightClick: () -> Unit,
@@ -74,6 +76,7 @@ fun PlayerSurface(
             isTouchMode = isTouchMode,
             onMove = onMove,
             onPointer = onPointer,
+            onTouch = onTouch,
             onDeltaMove = onDeltaMove,
             onLeftClick = onLeftClick,
             onRightClick = onRightClick,
@@ -87,6 +90,7 @@ fun PlayerSurface(
     holder.scaleMode = scaleMode
     holder.onMove = onMove
     holder.onPointer = onPointer
+    holder.onTouch = onTouch
     holder.onDeltaMove = onDeltaMove
     holder.onLeftClick = onLeftClick
     holder.onRightClick = onRightClick
@@ -162,39 +166,42 @@ fun PlayerSurface(
 
                     if (holder.isTouchMode) {
                         val cr = computeContentRect(w, hPx, streamWidth, streamHeight, holder.scaleMode)
-                        val cx = (ev.x - cr.offsetX).coerceIn(0f, cr.w)
-                        val cy = (ev.y - cr.offsetY).coerceIn(0f, cr.h)
                         val cw = cr.w.toInt().coerceAtLeast(1)
                         val ch = cr.h.toInt().coerceAtLeast(1)
+                        val mapped = { idx: Int ->
+                            val mx = (ev.getX(idx) - cr.offsetX).coerceIn(0f, cr.w)
+                            val my = (ev.getY(idx) - cr.offsetY).coerceIn(0f, cr.h)
+                            mx to my
+                        }
+                        val emitTouch = { idx: Int, pressed: Boolean, coalesce: Boolean ->
+                            val id = ev.getPointerId(idx)
+                            val slot = id.coerceIn(0, 9)
+                            val (tx, ty) = mapped(idx)
+                            holder.onTouch(slot, id, tx, ty, cw, ch, pressed, coalesce)
+                        }
 
                         when (ev.actionMasked) {
                             MotionEvent.ACTION_DOWN -> {
-                                holder.onPointer(cx, cy, cw, ch, 1, true)
+                                emitTouch(0, true, false)
                             }
                             MotionEvent.ACTION_POINTER_DOWN -> {
-                                val idx = ev.actionIndex
-                                val px = (ev.getX(idx) - cr.offsetX).coerceIn(0f, cr.w)
-                                val py = (ev.getY(idx) - cr.offsetY).coerceIn(0f, cr.h)
-                                holder.onPointer(px, py, cw, ch, 1, true)
+                                emitTouch(ev.actionIndex, true, false)
                             }
                             MotionEvent.ACTION_MOVE -> {
                                 for (i in 0 until ev.pointerCount) {
-                                    val mx = (ev.getX(i) - cr.offsetX).coerceIn(0f, cr.w)
-                                    val my = (ev.getY(i) - cr.offsetY).coerceIn(0f, cr.h)
-                                    holder.onMove(mx, my, cw, ch)
+                                    emitTouch(i, true, true)
                                 }
                             }
                             MotionEvent.ACTION_POINTER_UP -> {
-                                val idx = ev.actionIndex
-                                val px = (ev.getX(idx) - cr.offsetX).coerceIn(0f, cr.w)
-                                val py = (ev.getY(idx) - cr.offsetY).coerceIn(0f, cr.h)
-                                holder.onPointer(px, py, cw, ch, 1, false)
+                                emitTouch(ev.actionIndex, false, false)
                             }
                             MotionEvent.ACTION_UP -> {
-                                holder.onPointer(cx, cy, cw, ch, 1, false)
+                                emitTouch(0, false, false)
                             }
                             MotionEvent.ACTION_CANCEL -> {
-                                holder.onPointer(null, null, cw, ch, 1, false)
+                                for (i in 0 until ev.pointerCount) {
+                                    emitTouch(i, false, false)
+                                }
                             }
                         }
                     } else {

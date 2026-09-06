@@ -1,3 +1,13 @@
+orbiscreen (0.23.1-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.23.1 for Ubuntu noble.
+  * Restore direct touch as a virtual multitouch device on Orbiscreen Virtual Touchscreen.
+  * Inject evdev type-B multi-touch slots (ABS_MT_SLOT, ABS_MT_TRACKING_ID, ABS_MT_POSITION_X/Y, BTN_TOUCH).
+  * Send per-finger Touch payload from Android client with 60Hz motion coalescing.
+  * Retain dedicated touchpad mode for virtual mouse cursor navigation.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 06:58:00 +0300
+
 orbiscreen (0.23.0-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.0 for Ubuntu noble.

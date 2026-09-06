@@ -19,6 +19,15 @@ pub enum PointerEvent {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct TouchEvent {
+    pub slot: u32,
+    pub id: i32,
+    pub x: f64,
+    pub y: f64,
+    pub pressed: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum StylusEvent {
     Proximity {},
     Pressure {
@@ -77,6 +86,7 @@ pub enum InjectorKind {
 }
 
 pub(crate) const MAX_WHEEL_STEPS: i32 = 12;
+pub(crate) const MAX_TOUCH_SLOTS: usize = 10;
 
 #[allow(missing_debug_implementations)]
 enum InjectorInner {
@@ -89,6 +99,7 @@ enum InjectorInner {
 #[allow(missing_debug_implementations)]
 pub struct InputInjector {
     inner: InjectorInner,
+    fallback_touch_down: bool,
 }
 
 impl InputInjector {
@@ -101,6 +112,7 @@ impl InputInjector {
                         info!("input injection via XTEST (rootless)");
                         Ok(Self {
                             inner: InjectorInner::Xtest(Box::new(injector)),
+                            fallback_touch_down: false,
                         })
                     }
                     Err(e) => {
@@ -109,6 +121,7 @@ impl InputInjector {
                             inner: InjectorInner::Uinput(Box::new(x11::UinputInjector::open(
                                 spec_for_uinput,
                             )?)),
+                            fallback_touch_down: false,
                         })
                     }
                 }
@@ -121,6 +134,7 @@ impl InputInjector {
                     );
                     return Ok(Self {
                         inner: InjectorInner::Uinput(Box::new(injector)),
+                        fallback_touch_down: false,
                     });
                 }
 
@@ -134,6 +148,7 @@ impl InputInjector {
                     info!("input injection via wlroots virtual protocols");
                     return Ok(Self {
                         inner: InjectorInner::Wlroots(Box::new(injector)),
+                        fallback_touch_down: false,
                     });
                 }
 
@@ -146,6 +161,7 @@ impl InputInjector {
                 {
                     Ok(Ok(injector)) => Ok(Self {
                         inner: InjectorInner::Portal(Box::new(injector)),
+                        fallback_touch_down: false,
                     }),
                     Ok(Err(portal_error)) => {
                         warn!("portal RemoteDesktop failed: {portal_error}");
@@ -187,6 +203,38 @@ impl InputInjector {
             InjectorInner::Portal(injector) => injector.inject_key(event).await,
             InjectorInner::Wlroots(injector) => injector.inject_key(event).await,
         }
+    }
+
+    pub async fn inject_touch(&mut self, event: TouchEvent) -> Result<(), InputError> {
+        if let InjectorInner::Uinput(injector) = &mut self.inner {
+            return injector.inject_touch(event);
+        }
+        if event.slot != 0 {
+            return Ok(());
+        }
+        if event.pressed {
+            self.inject_pointer(PointerEvent::Move {
+                x: event.x,
+                y: event.y,
+            })
+            .await?;
+            if !self.fallback_touch_down {
+                self.fallback_touch_down = true;
+                self.inject_pointer(PointerEvent::Button {
+                    button: 1,
+                    pressed: true,
+                })
+                .await?;
+            }
+        } else if self.fallback_touch_down {
+            self.fallback_touch_down = false;
+            self.inject_pointer(PointerEvent::Button {
+                button: 1,
+                pressed: false,
+            })
+            .await?;
+        }
+        Ok(())
     }
 
     pub async fn inject_stylus(&mut self, event: StylusEvent) -> Result<(), InputError> {
@@ -297,6 +345,24 @@ mod tests {
                 "button {button} maps to {code:#x}, outside registered key range"
             );
         }
+    }
+
+    #[test]
+    fn touch_event_json_uses_snake_case_field_names() {
+        let json = serde_json::json!({
+            "Touch": {"slot": 1, "id": 4, "x": 10.0, "y": 20.0, "pressed": true}
+        });
+        #[derive(serde::Deserialize)]
+        struct W {
+            #[serde(rename = "Touch")]
+            touch: TouchEvent,
+        }
+        let w: W = serde_json::from_value(json).expect("touch payload");
+        assert_eq!(w.touch.slot, 1);
+        assert_eq!(w.touch.id, 4);
+        assert_eq!(w.touch.x, 10.0);
+        assert_eq!(w.touch.y, 20.0);
+        assert!(w.touch.pressed);
     }
 
     #[test]

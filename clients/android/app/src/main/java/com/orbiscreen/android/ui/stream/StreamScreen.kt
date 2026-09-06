@@ -243,6 +243,9 @@ fun StreamScreen(
                 onPointer = { x, y, w, h, btn, pressed ->
                     input.pointerAction(x, y, w, h, btn, pressed)
                 },
+                onTouch = { slot, id, x, y, w, h, pressed, coalesce ->
+                    input.touch(slot, id, x, y, w, h, pressed, coalesce)
+                },
                 onDeltaMove = { dx, dy -> input.moveDelta(dx, dy) },
                 onLeftClick = { input.leftClick() },
                 onRightClick = { input.rightClick() },

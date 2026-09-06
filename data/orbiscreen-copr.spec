@@ -5,7 +5,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.23.0
+Version:        0.23.1
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -103,6 +103,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.1-1
+- Release 0.23.1: Restore direct touch as a virtual multitouch device with evdev type-B multi-touch slots.
+
 * Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.0-1
 - Release 0.23.0: Ultra-low latency USB pipeline tuning, resilient interface claim, and graceful USB detach navigation.
 

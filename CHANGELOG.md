@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.23.1] - 2026-09-06
+
+Restore direct touch as a virtual multitouch device, injecting evdev type-B multitouch events on the virtual touchscreen instead of routing touch through the virtual mouse.
+
+### 🐛 Fixed
+- **Direct Touch Injected as Mouse (`orbiscreen-input`, Android Client)**:
+  - Previously, `Orbiscreen Virtual Touchscreen` was unused and Android touches in Direct Touch mode were routed through the virtual mouse as pointer moves and clicks, causing finger movements to hijack the host mouse cursor.
+  - Android Direct Touch mode now dispatches dedicated per-finger `Touch` events (`slot`, `id`, `x`, `y`, `pressed`) with 60Hz motion coalescing.
+  - The Linux daemon and input injector now inject these events via evdev type-B multitouch slots (`ABS_MT_SLOT`, `ABS_MT_TRACKING_ID`, `ABS_MT_POSITION_X`, `ABS_MT_POSITION_Y`, and `BTN_TOUCH`) onto `Orbiscreen Virtual Touchscreen`.
+  - Native touch gestures such as multi-finger scrolling, pinch-to-zoom, and direct screen tapping now function seamlessly on the virtual display.
+  - Touchpad mode remains dedicated to virtual mouse cursor control.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.23.1.
+- **Android Client**: Incremented `versionCode` to 61; updated `versionName` to "0.23.1".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.1 with changelog entry.
+- **debian/changelog**: Added 0.23.1-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.23.1.
+
 ## [v0.23.0] - 2026-09-06
 
 Eliminate USB and streaming latency by redesigning the pipeline with single-buffer appsink, non-blocking queue drops, and dual-channel USB egress; resolve USB interface claim collisions with kernel driver detachment retries; and prevent Android app exit when the Linux server disconnects.
