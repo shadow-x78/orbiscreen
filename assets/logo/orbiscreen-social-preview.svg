@@ -1,0 +1,215 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0d17"/>
+      <stop offset="50%" stop-color="#111425"/>
+      <stop offset="100%" stop-color="#161a32"/>
+    </linearGradient>
+
+    <!-- Brand Cyan/Blue Gradients -->
+    <linearGradient id="brandBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#89b4fa"/>
+      <stop offset="100%" stop-color="#74c7ec"/>
+    </linearGradient>
+
+    <linearGradient id="accentPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#cba6f7"/>
+      <stop offset="100%" stop-color="#b4befe"/>
+    </linearGradient>
+
+    <linearGradient id="glowGpu" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a6e3a1"/>
+      <stop offset="100%" stop-color="#94e2d5"/>
+    </linearGradient>
+
+    <!-- Outer Border Gradient -->
+    <linearGradient id="borderGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#89b4fa" stop-opacity="0.45"/>
+      <stop offset="40%" stop-color="#cba6f7" stop-opacity="0.25"/>
+      <stop offset="80%" stop-color="#89b4fa" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#74c7ec" stop-opacity="0.30"/>
+    </linearGradient>
+
+    <!-- Ambient Radial Glows -->
+    <radialGradient id="logoGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#89b4fa" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#89b4fa" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#0b0d17" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="topRightGlow" cx="80%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#cba6f7" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#111425" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Technical Grid Pattern -->
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.025"/>
+      <circle cx="48" cy="48" r="1" fill="#89b4fa" opacity="0.08"/>
+    </pattern>
+
+    <!-- Glow Filter for Satellite -->
+    <filter id="shadowGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#89b4fa" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1280" height="640" fill="url(#bgGradient)"/>
+  <rect width="1280" height="640" fill="url(#topRightGlow)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+
+  <!-- Ambient Light around Logo -->
+  <circle cx="280" cy="320" r="280" fill="url(#logoGlow)"/>
+
+  <!-- Frame Border -->
+  <rect x="24" y="24" width="1232" height="592" rx="24" fill="none" stroke="url(#borderGlow)" stroke-width="1.5"/>
+
+  <!-- ── Left Logo Section ── -->
+  <g transform="translate(130, 160)">
+    <!-- Outer Orbit Ring (Dashed) -->
+    <circle cx="160" cy="160" r="150" fill="none" stroke="#89b4fa" stroke-width="1.5" opacity="0.2" stroke-dasharray="8 8"/>
+    <circle cx="160" cy="160" r="150" fill="none" stroke="#cba6f7" stroke-width="2" opacity="0.3" stroke-dasharray="16 120"/>
+
+    <!-- Main Display Ring -->
+    <circle cx="160" cy="160" r="116" fill="none" stroke="url(#brandBlue)" stroke-width="34" filter="url(#shadowGlow)"/>
+
+    <!-- Inner Core Subtle Glow -->
+    <circle cx="160" cy="160" r="82" fill="#14182b" opacity="0.4"/>
+
+    <!-- Orbiting Satellite Display (Android Client Device) -->
+    <g transform="translate(242, 242)" filter="url(#shadowGlow)">
+      <circle cx="0" cy="0" r="44" fill="url(#brandBlue)"/>
+      <circle cx="0" cy="0" r="44" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.6"/>
+      <!-- Inner Mini Display Symbol -->
+      <rect x="-16" y="-12" width="32" height="24" rx="4" fill="#0b0d17" opacity="0.75"/>
+      <line x1="-8" y1="0" x2="8" y2="0" stroke="#74c7ec" stroke-width="2" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- ── Right Content Section ── -->
+  <g transform="translate(480, 100)">
+
+    <!-- Category Pill / Badge -->
+    <g transform="translate(0, 10)">
+      <rect width="360" height="30" rx="15" fill="#181c30" stroke="#89b4fa" stroke-width="1.2" opacity="0.85"/>
+      <circle cx="16" cy="15" r="4.5" fill="#a6e3a1"/>
+      <text x="32" y="19.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" fill="#cdd6f4" letter-spacing="1.2">
+        VIRTUAL SECONDARY DISPLAY · OPEN SOURCE
+      </text>
+    </g>
+
+    <!-- Main Title -->
+    <text x="0" y="96" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="74" font-weight="900" fill="#ffffff" letter-spacing="-2">
+      ORBI<tspan fill="url(#brandBlue)">SCREEN</tspan>
+    </text>
+
+    <!-- Main Tagline -->
+    <text x="0" y="146" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="25" font-weight="700" fill="#cdd6f4" letter-spacing="-0.3">
+      Turn Android into a Second Monitor for Linux
+    </text>
+
+    <!-- Secondary Subtitle -->
+    <text x="0" y="180" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="16.5" font-weight="400" fill="#a6adc8">
+      Hardware H.264 (NVENC / VA-API) · Virtual Outputs · Native Touch &amp; Stylus
+    </text>
+
+    <!-- Divider Line -->
+    <line x1="0" y1="206" x2="680" y2="206" stroke="#ffffff" stroke-width="1" opacity="0.08"/>
+
+    <!-- Feature Badges - Row 1 -->
+    <g transform="translate(0, 226)">
+      <!-- Badge 1: Ultra-Low Latency -->
+      <g transform="translate(0, 0)">
+        <rect width="186" height="42" rx="12" fill="#15192c" stroke="#89b4fa" stroke-width="1.2"/>
+        <svg x="16" y="13" width="16" height="16" viewBox="0 0 24 24" fill="#89b4fa">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        <text x="40" y="21.5" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="700" fill="#89b4fa">
+          Ultra-Low Latency
+        </text>
+      </g>
+
+      <!-- Badge 2: Wayland & X11 -->
+      <g transform="translate(198, 0)">
+        <rect width="168" height="42" rx="12" fill="#15192c" stroke="#a6e3a1" stroke-width="1.2"/>
+        <svg x="16" y="13" width="16" height="16" viewBox="0 0 24 24" fill="#a6e3a1">
+          <path d="M 20 3 L 4 3 C 2.9 3 2 3.9 2 5 L 2 15 C 2 16.1 2.9 17 4 17 L 10 17 L 10 19 L 7 19 C 6.4 19 6 19.4 6 20 C 6 20.6 6.4 21 7 21 L 17 21 C 17.6 21 18 20.6 18 20 C 18 19.4 17.6 19 17 19 L 14 19 L 14 17 L 20 17 C 21.1 17 22 16.1 22 15 L 22 5 C 22 3.9 21.1 3 20 3 Z M 20 15 L 4 15 L 4 5 L 20 5 L 20 15 Z"/>
+        </svg>
+        <text x="40" y="21.5" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="700" fill="#a6e3a1">
+          Wayland &amp; X11
+        </text>
+      </g>
+
+      <!-- Badge 3: Stylus & Touch -->
+      <g transform="translate(378, 0)">
+        <rect width="180" height="42" rx="12" fill="#15192c" stroke="#f9e2af" stroke-width="1.2"/>
+        <svg x="16" y="13" width="16" height="16" viewBox="0 0 24 24" fill="#f9e2af">
+          <path d="M 3 17.25 V 21 h 3.75 L 17.81 9.94 l -3.75 -3.75 L 3 17.25 Z M 20.71 7.04 c 0.39 -0.39 0.39 -1.02 0 -1.41 l -2.34 -2.34 c -0.39 -0.39 -1.02 -0.39 -1.41 0 l -1.83 1.83 3.75 3.75 1.83 -1.83 Z"/>
+        </svg>
+        <text x="40" y="21.5" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="700" fill="#f9e2af">
+          Stylus &amp; Touch
+        </text>
+      </g>
+    </g>
+
+    <!-- Feature Badges - Row 2 -->
+    <g transform="translate(0, 280)">
+      <!-- Badge 4: Hardware Accel -->
+      <g transform="translate(0, 0)">
+        <rect width="216" height="42" rx="12" fill="#15192c" stroke="#cba6f7" stroke-width="1.2"/>
+        <svg x="16" y="13" width="16" height="16" viewBox="0 0 24 24" fill="#cba6f7">
+          <path d="M 4 6 H 2 v 12 h 2 V 6 z m 16 0 h 2 v 12 h -2 V 6 z M 7 4 h 10 v 16 H 7 V 4 z m 2 2 v 12 h 6 V 6 H 9 z"/>
+        </svg>
+        <text x="40" y="21.5" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="700" fill="#cba6f7">
+          NVENC · VA-API · x264
+        </text>
+      </g>
+
+      <!-- Badge 5: Rust + Jetpack Compose -->
+      <g transform="translate(228, 0)">
+        <rect width="206" height="42" rx="12" fill="#15192c" stroke="#fab387" stroke-width="1.2"/>
+        <svg x="16" y="13" width="16" height="16" viewBox="0 0 24 24" fill="#fab387">
+          <path d="M 12 2 L 2 7 l 10 5 l 10 -5 L 12 2 z M 2 17 l 10 5 l 10 -5 M 2 12 l 10 5 l 10 -5"/>
+        </svg>
+        <text x="40" y="21.5" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="700" fill="#fab387">
+          Rust &amp; Android Native
+        </text>
+      </g>
+
+      <!-- Badge 6: GPL-3.0 -->
+      <g transform="translate(446, 0)">
+        <rect width="112" height="42" rx="12" fill="#15192c" stroke="#f38ba8" stroke-width="1.2"/>
+        <svg x="16" y="13" width="16" height="16" viewBox="0 0 24 24" fill="#f38ba8">
+          <path d="M 12 1 L 3 5 v 6 c 0 5.55 3.84 10.74 9 12 c 5.16 -1.26 9 -6.45 9 -12 V 5 L 12 1 z"/>
+        </svg>
+        <text x="40" y="21.5" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="700" fill="#f38ba8">
+          GPL-3.0
+        </text>
+      </g>
+    </g>
+
+    <!-- Bottom Metadata Bar -->
+    <g transform="translate(0, 360)">
+      <!-- GitHub Repo URL -->
+      <g transform="translate(0, 0)">
+        <svg x="0" y="-1" width="18" height="18" viewBox="0 0 24 24" fill="#a6adc8">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        <text x="26" y="14" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14.5" font-weight="600" fill="#a6adc8">
+          github.com/shadow-x78/orbiscreen
+        </text>
+      </g>
+
+      <!-- Version / Status Tag -->
+      <g transform="translate(480, -4)">
+        <rect width="84" height="26" rx="6" fill="#1e2238" stroke="#89b4fa" stroke-width="1"/>
+        <text x="42" y="13.5" dominant-baseline="central" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#89b4fa">
+          v0.23.7
+        </text>
+      </g>
+    </g>
+
+  </g>
+</svg>

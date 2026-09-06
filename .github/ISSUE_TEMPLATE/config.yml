@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Community Discussions & Questions
+    url: https://github.com/shadow-x78/orbiscreen/discussions
+    about: Ask questions, get help, or discuss features with the community.
+  - name: 📖 Documentation & Architecture
+    url: https://github.com/shadow-x78/orbiscreen/tree/main/docs
+    about: Explore multi-distro packaging guides, D-Bus specs, and system architecture.
+  - name: 🔧 Troubleshooting & Diagnostics
+    url: https://github.com/shadow-x78/orbiscreen/blob/main/docs/TROUBLESHOOTING.md
+    about: Review solutions for common capture, encoder, and Android connection problems.
+  - name: 🛡️ Security Vulnerability Reporting
+    url: https://github.com/shadow-x78/orbiscreen/security/policy
+    about: Privately disclose sensitive security vulnerabilities.
