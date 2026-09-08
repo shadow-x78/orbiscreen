@@ -1,8 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Orbiscreen",
-  "version": "0.25.5",
-  "identifier": "com.orbiscreen.gui",
+  "version": "0.25.6",
   "identifier": "orbiscreen-gui",
   "build": {
     "frontendDist": "./ui"
@@ -27,15 +26,8 @@
     "windows": [
       {
         "title": "Orbiscreen",
-        "width": 760,
-        "height": 580,
-        "minWidth": 620,
-        "minHeight": 460,
-        "width": 560,
         "width": 800,
         "height": 620,
-        "minWidth": 500,
-        "minHeight": 560,
         "minWidth": 680,
         "minHeight": 520,
         "resizable": true,
@@ -43,7 +35,6 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' ipc: http://127.0.0.1:*;"
       "csp": null
     }
   }
