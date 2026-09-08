@@ -13,6 +13,9 @@ const I18N = {
         btnRestoreToolbar: "Show Toolbar",
         btnCloseKeyboard: "Close",
         settingsTitle: "Settings",
+        themeTitle: "Theme",
+        themeDark: "Dark",
+        themeLight: "Light",
         language: "Language",
         fitMode: "Scaling",
         fitContain: "Fit",
@@ -26,6 +29,7 @@ const I18N = {
         actionResync: "Resync",
         statusConnecting: "Connecting",
         statusConnectingSub: "Connecting...",
+        statusConnectingSub: "Connecting to Linux host...",
         statusConnected: "Connected",
         statusDisconnected: "Disconnected",
         statusStreamError: "Stream Error",
@@ -45,18 +49,70 @@ const I18N = {
         toastCadSent: "Ctrl+Alt+Del sent",
         toastResynced: "Resynced",
         toastDisconnected: "Disconnected"
+    },
+    ar: {
+        btnInputMode: "وضع الإدخال",
+        btnKeyboard: "لوحة المفاتيح",
+        btnLock: "قفل الجلسة",
+        btnSettings: "الإعدادات",
+        btnHideControls: "إخفاء شريط الأدوات",
+        btnFullscreen: "ملء الشاشة",
+        btnDisconnect: "قطع الاتصال",
+        btnRestoreToolbar: "إظهار شريط الأدوات",
+        btnCloseKeyboard: "إغلاق",
+        settingsTitle: "الإعدادات",
+        themeTitle: "المظهر (الثيم)",
+        themeDark: "داكن",
+        themeLight: "فاتح",
+        language: "اللغة",
+        fitMode: "تنسيق العرض",
+        fitContain: "احتواء",
+        fitCover: "ملء الشاشة",
+        fitNone: "100%",
+        perfStats: "بيانات الأداء",
+        latency: "التأخير",
+        resolution: "الدقة",
+        encoder: "المرمّز",
+        hostActions: "إجراءات المضيف",
+        actionResync: "إعادة المزامنة",
+        statusConnecting: "جارِ الاتصال",
+        statusConnectingSub: "الاتصال بمضيف لينكس...",
+        statusConnected: "متصل",
+        statusDisconnected: "انقطع الاتصال",
+        statusStreamError: "خطأ في البث",
+        statusStreamErrorSub: "جارِ إعادة المحاولة...",
+        statusAuthFailed: "المصادقة مطلوبة",
+        statusAuthFailedSub: "أدخل رمز الجلسة للمتابعة",
+        tokenPlaceholder: "رمز الجلسة...",
+        btnConnect: "اتصال",
+        btnReconnect: "إعادة الاتصال",
+        vncActive: "المؤشر محصور · اضغط <kbd>Esc</kbd> للتحرير",
+        cursorReleased: "تم تحرير المؤشر",
+        modeTouch: "اللمس",
+        modeTouchpad: "لوحة اللمس",
+        controlsHidden: "تم إخفاء الشريط",
+        toastLocked: "تم القفل",
+        toastLockSent: "تم إرسال أمر القفل",
+        toastCadSent: "تم إرسال Ctrl+Alt+Del",
+        toastResynced: "تمت المزامنة",
+        toastDisconnected: "تم قطع الاتصال"
     }
 };
 
 const currentLang = "en";
+let currentLang = localStorage.getItem("orbiscreen_web_lang") || "en";
 
 function t(key) {
     return I18N.en[key] || key;
+    const dict = I18N[currentLang] || I18N.en;
+    return dict[key] || I18N.en[key] || key;
 }
 
 function applyTranslations() {
     document.documentElement.lang = "en";
     document.documentElement.dir = "ltr";
+    document.documentElement.lang = currentLang;
+    document.documentElement.dir = (currentLang === "ar") ? "rtl" : "ltr";
 
     document.querySelectorAll("[data-i18n]").forEach((el) => {
         const k = el.getAttribute("data-i18n");
@@ -73,6 +129,50 @@ function applyTranslations() {
     document.querySelectorAll("[data-i18n-html]").forEach((el) => {
         const k = el.getAttribute("data-i18n-html");
         if (k && t(k)) el.innerHTML = t(k);
+    });
+
+    const lblWebLang = document.getElementById("lblWebLang");
+    if (lblWebLang) {
+        lblWebLang.textContent = (currentLang === "ar") ? "EN" : "عربي";
+    }
+
+    document.querySelectorAll("#webLangChips .chipBtn").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-lang") === currentLang);
+    });
+}
+
+function setLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem("orbiscreen_web_lang", lang);
+    applyTranslations();
+}
+
+let currentTheme = localStorage.getItem("orbiscreen_web_theme") || "dark";
+
+function applyTheme(theme) {
+    currentTheme = theme;
+    localStorage.setItem("orbiscreen_web_theme", theme);
+
+    if (theme === "light") {
+        document.body.classList.add("theme-light");
+    } else {
+        document.body.classList.remove("theme-light");
+    }
+
+    const iconDark = document.getElementById("iconThemeDark");
+    const iconLight = document.getElementById("iconThemeLight");
+    if (iconDark && iconLight) {
+        if (theme === "light") {
+            iconDark.classList.add("hidden");
+            iconLight.classList.remove("hidden");
+        } else {
+            iconLight.classList.add("hidden");
+            iconDark.classList.remove("hidden");
+        }
+    }
+
+    document.querySelectorAll("#webThemeChips .chipBtn").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-theme") === theme);
     });
 }
 
@@ -123,6 +223,11 @@ const btnSettings = document.getElementById("btnSettings");
 const btnHideControls = document.getElementById("btnHideControls");
 const btnFullscreen = document.getElementById("btnFullscreen");
 const btnDisconnect = document.getElementById("btnDisconnect");
+const btnThemeToggle = document.getElementById("btnThemeToggle");
+const iconThemeDark = document.getElementById("iconThemeDark");
+const iconThemeLight = document.getElementById("iconThemeLight");
+const btnWebLang = document.getElementById("btnWebLang");
+const lblWebLang = document.getElementById("lblWebLang");
 const btnRestoreToolbar = document.getElementById("btnRestoreToolbar");
 
 const keyboardDrawer = document.getElementById("keyboardDrawer");
@@ -409,6 +514,34 @@ document.querySelectorAll(".chipBtn[data-fit]").forEach((btn) => {
         btn.classList.add("active");
         videoEl.style.objectFit = btn.dataset.fit;
         showToast(`Fit: ${btn.textContent}`);
+    });
+});
+
+if (btnThemeToggle) {
+    btnThemeToggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        applyTheme(currentTheme === "dark" ? "light" : "dark");
+    });
+}
+
+if (btnWebLang) {
+    btnWebLang.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setLanguage(currentLang === "en" ? "ar" : "en");
+    });
+}
+
+document.querySelectorAll("#webThemeChips .chipBtn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        const theme = btn.getAttribute("data-theme");
+        if (theme) applyTheme(theme);
+    });
+});
+
+document.querySelectorAll("#webLangChips .chipBtn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        const lang = btn.getAttribute("data-lang");
+        if (lang) setLanguage(lang);
     });
 });
 
@@ -946,6 +1079,7 @@ function startStream() {
 }
 
 async function start() {
+    applyTheme(currentTheme);
     applyTranslations();
     const info = await fetchClientConfig();
     if (info) {

@@ -1,6 +1,7 @@
 <!doctype html>
 <!-- Orbiscreen - Linux Desktop Control Center (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen -->
 <html lang="en">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,15 +17,19 @@
                         <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stop-color="#3b82f6"/>
                             <stop offset="100%" stop-color="#60a5fa"/>
+                            <stop offset="0%" stop-color="#89b4fa"/>
+                            <stop offset="100%" stop-color="#74c7ec"/>
                         </linearGradient>
                     </defs>
                     <circle cx="256" cy="256" r="220" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.25" stroke-dasharray="8 8"/>
+                    <circle cx="256" cy="256" r="220" fill="none" stroke="#89b4fa" stroke-width="2" opacity="0.25" stroke-dasharray="8 8"/>
                     <circle cx="256" cy="256" r="170" fill="none" stroke="url(#brandGrad)" stroke-width="48"/>
                     <circle cx="376" cy="376" r="62" fill="url(#brandGrad)"/>
                     <circle cx="376" cy="376" r="62" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.5"/>
                 </svg>
                 <div class="brandTitles">
                     <span class="brandName">Orbiscreen</span>
+                    <span class="brandName" data-i18n="brandName">Orbiscreen</span>
                     <span class="versionBadge">v0.25.5</span>
                 </div>
             </div>
@@ -33,8 +38,27 @@
                 <div class="statusPill ready" id="statusPill">
                     <span class="statusDot" id="statusDot"></span>
                     <span class="statusLabel" id="statusLabel">Ready</span>
+                    <span class="statusLabel" id="statusLabel" data-i18n="ready">Ready</span>
                 </div>
                 <button class="btnRestart" id="btnRestartService" title="Restart Host Daemon">
+
+                <div class="themeSegment" id="themeSegment" role="radiogroup" aria-label="Theme">
+                    <button class="themeBtn active" id="btnThemeAuto" data-theme="system" title="System Theme">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
+                    </button>
+                    <button class="themeBtn" id="btnThemeLight" data-theme="light" title="Light Theme">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>
+                    </button>
+                    <button class="themeBtn" id="btnThemeDark" data-theme="dark" title="Dark Theme">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+                    </button>
+                </div>
+
+                <button class="btnLang" id="btnLangToggle" title="Switch Language">
+                    <span id="lblLangText">عربي</span>
+                </button>
+
+                <button class="btnRestart" id="btnRestartService" title="Restart Host Daemon" data-i18n-title="restartTitle">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                     </svg>
@@ -48,18 +72,21 @@
                     <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
                 </svg>
                 <span>Connect</span>
+                <span data-i18n="tabConnect">Connect</span>
             </button>
             <button class="segmentBtn" data-tab="display">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M21 3H3c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/>
                 </svg>
                 <span>Display & Input</span>
+                <span data-i18n="tabDisplay">Display & Input</span>
             </button>
             <button class="segmentBtn" data-tab="doctor">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M19 3H5c-1.1 0-1.99.9-1.99 2L3 19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/>
                 </svg>
                 <span>Doctor</span>
+                <span data-i18n="tabDoctor">Doctor</span>
             </button>
         </nav>
 
@@ -75,6 +102,18 @@
                         <span>USB Cable (Zero Lag)</span>
                     </button>
                 </div>
+                <div class="connectGrid">
+                    <div class="connectCol cardPairing">
+                        <div class="modeSwitch">
+                            <button class="modeBtn active" data-sub="wifi">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98A16.88 16.88 0 0 0 12 4zm0 4.5c3.21 0 6.13 1.25 8.3 3.32L12 20.12 3.7 11.82C5.87 9.75 8.79 8.5 12 8.5z"/></svg>
+                                <span data-i18n="modeWifi">Wi-Fi Wireless</span>
+                            </button>
+                            <button class="modeBtn" data-sub="usb">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 7v4h1v2h-3V5h2l-3-4-3 4h2v8H8v-2.07c.7-.37 1.2-1.08 1.2-1.93 0-1.21-.99-2.2-2.2-2.2-1.21 0-2.2.99-2.2 2.2 0 .85.5 1.56 1.2 1.93V13c0 1.11.89 2 2 2h3v3.05c-.71.37-1.2 1.1-1.2 1.95a2.2 2.2 0 0 0 4.4 0c0-.85-.49-1.58-1.2-1.95V15h3c1.11 0 2-.89 2-2v-2h1V7h-4z"/></svg>
+                                <span data-i18n="modeUsb">USB Cable (Zero Lag)</span>
+                            </button>
+                        </div>
 
                 <div class="subPane active" id="sub-wifi">
                     <div class="specsBanner">
@@ -86,10 +125,22 @@
                             <span id="activeClientText">1 Device Connected</span>
                         </span>
                     </div>
+                        <div class="subPane active" id="sub-wifi">
+                            <div class="qrContainerFrame">
+                                <div class="qrSvgBox" id="qrContainer"></div>
+                            </div>
+                            <span class="qrPrompt" data-i18n="qrPrompt">Scan with Orbiscreen on your Android tablet or phone</span>
 
                     <div class="qrSection">
                         <div class="qrContainerFrame">
                             <div class="qrSvgBox" id="qrContainer"></div>
+                            <div class="urlRowCard">
+                                <div class="urlInputWrapper">
+                                    <input type="text" readonly id="inpSessionUrl" value="http://127.0.0.1:54321" />
+                                </div>
+                                <button class="btnAction" id="btnCopyUrl" title="Copy Stream URL" data-i18n="copy">Copy</button>
+                                <button class="btnAction secondary" id="btnOpenBrowser" title="Open in Browser" data-i18n="open">Open</button>
+                            </div>
                         </div>
                         <span class="qrPrompt">Scan with Orbiscreen on your Android tablet or phone</span>
                     </div>
@@ -97,6 +148,27 @@
                     <div class="urlRowCard">
                         <div class="urlInputWrapper">
                             <input type="text" readonly id="inpSessionUrl" value="http://127.0.0.1:54321" />
+                        <div class="subPane" id="sub-usb">
+                            <div class="usbContainer">
+                                <div class="usbHeroIcon">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M15 7v4h1v2h-3V5h2l-3-4-3 4h2v8H8v-2.07c.7-.37 1.2-1.08 1.2-1.93 0-1.21-.99-2.2-2.2-2.2-1.21 0-2.2.99-2.2 2.2 0 .85.5 1.56 1.2 1.93V13c0 1.11.89 2 2 2h3v3.05c-.71.37-1.2 1.1-1.2 1.95a2.2 2.2 0 0 0 4.4 0c0-.85-.49-1.58-1.2-1.95V15h3c1.11 0 2-.89 2-2v-2h1V7h-4z"/>
+                                    </svg>
+                                </div>
+                                <h3 data-i18n="usbTitle">USB Accessory Pipeline</h3>
+                                <p data-i18n="usbDesc">Stream directly over USB cable with hardware acceleration and zero network jitter.</p>
+                                <div class="usbStatusBadge">
+                                    <span class="usbDot"></span>
+                                    <span id="usbStatusTag" data-i18n="usbWaiting">Waiting for device...</span>
+                                </div>
+                                <div class="usbActionRow">
+                                    <button class="btnAction primary" id="btnOpenUsb" data-i18n="btnOpenUsb">Open USB Localhost Stream</button>
+                                </div>
+                                <div class="usbHints">
+                                    <span data-i18n="usbHint1">• Connect your phone or tablet via USB.</span>
+                                    <span data-i18n="usbHint2">• Select Always Allow when Android prompts for accessory permission.</span>
+                                </div>
+                            </div>
                         </div>
                         <button class="btnAction" id="btnCopyUrl" title="Copy Stream URL">Copy</button>
                         <button class="btnAction secondary" id="btnOpenBrowser" title="Open in Browser">Open</button>
@@ -117,6 +189,19 @@
                         </div>
                     </div>
                 </div>
+                    <div class="connectCol cardOverview">
+                        <div class="statusHeroCard">
+                            <div class="statusHeroHeader">
+                                <div class="statusHeroIconWrap">
+                                    <svg class="statusHeroIcon" viewBox="0 0 24 24" fill="currentColor" id="heroIcon">
+                                        <path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/>
+                                    </svg>
+                                </div>
+                                <div class="statusHeroText">
+                                    <h2 id="displayStateHeadline" data-i18n="statusReadyHeadline">Ready to Stream</h2>
+                                    <p id="displayStateSubtitle" data-i18n="statusReadySubtitle">Open Orbiscreen on your Android tablet or phone to connect as second display.</p>
+                                </div>
+                            </div>
 
                 <div class="subPane" id="sub-usb">
                     <div class="usbContainer">
@@ -124,6 +209,20 @@
                             <svg viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M15 7v4h1v2h-3V5h2l-3-4-3 4h2v8H8v-2.07c.7-.37 1.2-1.08 1.2-1.93 0-1.21-.99-2.2-2.2-2.2-1.21 0-2.2.99-2.2 2.2 0 .85.5 1.56 1.2 1.93V13c0 1.11.89 2 2 2h3v3.05c-.71.37-1.2 1.1-1.2 1.95a2.2 2.2 0 0 0 4.4 0c0-.85-.49-1.58-1.2-1.95V15h3c1.11 0 2-.89 2-2v-2h1V7h-4z"/>
                             </svg>
+                            <div class="specsGrid">
+                                <div class="specCard">
+                                    <span class="specLabel" data-i18n="resolution">Resolution</span>
+                                    <strong id="previewResolution">1920 × 1080 @ 60Hz</strong>
+                                </div>
+                                <div class="specCard">
+                                    <span class="specLabel">Transport</span>
+                                    <strong id="previewLatency">Low Latency UDP</strong>
+                                </div>
+                                <div class="specCard">
+                                    <span class="specLabel">Connected</span>
+                                    <strong id="activeClientText">0 Devices</strong>
+                                </div>
+                            </div>
                         </div>
                         <h3>USB Accessory Pipeline</h3>
                         <p>Stream directly over USB cable with hardware acceleration, bounded queues, and zero network jitter.</p>
@@ -135,11 +234,31 @@
 
                         <div class="usbActionRow">
                             <button class="btnAction primary" id="btnOpenUsb">Open USB Localhost Stream</button>
+                        <div class="quickGuide">
+                            <div class="guideCol">
+                                <span class="guideNum">1</span>
+                                <span data-i18n="guide1">Connect tablet & PC to Wi-Fi</span>
+                            </div>
+                            <div class="guideCol">
+                                <span class="guideNum">2</span>
+                                <span data-i18n="guide2">Open app & tap <strong>Scan</strong></span>
+                            </div>
+                            <div class="guideCol">
+                                <span class="guideNum">3</span>
+                                <span data-i18n="guide3">Enjoy smooth touch & stylus</span>
+                            </div>
                         </div>
 
                         <div class="usbHints">
                             <span>• Connect your phone or tablet via USB.</span>
                             <span>• Select <strong>Always Allow</strong> when Android prompts for accessory permission.</span>
+                        <div class="primaryActionBar">
+                            <button class="btnMasterAction" id="btnToggleService">
+                                <svg class="masterIcon" viewBox="0 0 24 24" fill="currentColor" id="toggleIcon">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                                <span id="toggleText" data-i18n="startDisplay">Start Extended Display</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -158,11 +277,14 @@
                 <div class="settingsStack">
                     <div class="settingsGroup">
                         <span class="groupTitle">Display Geometry</span>
+                        <span class="groupTitle" data-i18n="resGroup">Display Geometry</span>
 
                         <div class="settingRow">
                             <div class="settingMeta">
                                 <strong>Resolution</strong>
                                 <span>Extended desktop virtual canvas dimensions</span>
+                                <strong data-i18n="resolution">Resolution</strong>
+                                <span data-i18n="resDesc">Extended desktop virtual canvas dimensions</span>
                             </div>
                             <div class="chipsGroup" id="resChips">
                                 <button class="chip active" data-w="1920" data-h="1080">1080p</button>
@@ -176,6 +298,8 @@
                             <div class="settingMeta">
                                 <strong>Framerate</strong>
                                 <span>Target display refresh frequency</span>
+                                <strong data-i18n="framerate">Framerate</strong>
+                                <span data-i18n="fpsDesc">Target display refresh frequency</span>
                             </div>
                             <div class="chipsGroup" id="fpsChips">
                                 <button class="chip active" data-fps="60">60 Hz</button>
@@ -188,6 +312,8 @@
                             <div class="settingMeta">
                                 <strong>Hardware Encoder</strong>
                                 <span>Engine used for low-latency H.264 stream</span>
+                                <strong data-i18n="encoder">Hardware Encoder</strong>
+                                <span data-i18n="encDesc">Engine used for low-latency H.264 stream</span>
                             </div>
                             <div class="chipsGroup" id="encoderChips">
                                 <button class="chip active">Auto</button>
@@ -200,11 +326,14 @@
 
                     <div class="settingsGroup">
                         <span class="groupTitle">Touch & Input Injection</span>
+                        <span class="groupTitle" data-i18n="inputGroup">Touch & Input Injection</span>
 
                         <label class="settingRow clickable">
                             <div class="settingMeta">
                                 <strong>Direct Multitouch Screen</strong>
                                 <span>Inject Android touches via kernel uinput slots</span>
+                                <strong data-i18n="touchScreen">Direct Multitouch Screen</strong>
+                                <span data-i18n="touchDesc">Inject Android touches via kernel uinput slots</span>
                             </div>
                             <div class="toggleControl">
                                 <input type="checkbox" checked id="chkDirectTouch" />
@@ -216,6 +345,8 @@
                             <div class="settingMeta">
                                 <strong>Stylus Digitizer (Pressure & Tilt)</strong>
                                 <span>Support pressure sensitivity for Krita, GIMP & notes</span>
+                                <strong data-i18n="stylus">Stylus Digitizer (Pressure & Tilt)</strong>
+                                <span data-i18n="stylusDesc">Support pressure sensitivity for Krita, GIMP & notes</span>
                             </div>
                             <div class="toggleControl">
                                 <input type="checkbox" checked id="chkStylus" />
@@ -227,6 +358,8 @@
                             <div class="settingMeta">
                                 <strong>Confine Pointer to Display</strong>
                                 <span>Trap mouse cursor within virtual display area</span>
+                                <strong data-i18n="confine">Confine Pointer to Display</strong>
+                                <span data-i18n="confineDesc">Trap mouse cursor within virtual display area</span>
                             </div>
                             <div class="toggleControl">
                                 <input type="checkbox" checked id="chkConfine" />
@@ -237,11 +370,14 @@
 
                     <div class="settingsGroup">
                         <span class="groupTitle">System Integration</span>
+                        <span class="groupTitle" data-i18n="systemGroup">System Integration</span>
 
                         <label class="settingRow clickable">
                             <div class="settingMeta">
                                 <strong>Launch on Desktop Login</strong>
                                 <span>Start Orbiscreen daemon on system startup</span>
+                                <strong data-i18n="autostart">Launch on Desktop Login</strong>
+                                <span data-i18n="autostartDesc">Start Orbiscreen daemon on system startup</span>
                             </div>
                             <div class="toggleControl">
                                 <input type="checkbox" id="chkAutostart" />
@@ -258,10 +394,14 @@
                         <div class="doctorHeroText">
                             <strong>System Health & Diagnostics</strong>
                             <span>Check display server, hardware encoding & device permissions</span>
+                            <strong data-i18n="doctorTitle">System Health & Diagnostics</strong>
+                            <span data-i18n="doctorDesc">Check display server, hardware encoding & device permissions</span>
                         </div>
                         <div class="doctorHeroBtns">
                             <button class="btnSmall primary" id="btnRunDoctor">Scan</button>
                             <button class="btnSmall secondary" id="btnFixDoctor">Auto-Fix</button>
+                            <button class="btnSmall primary" id="btnRunDoctor" data-i18n="scan">Scan</button>
+                            <button class="btnSmall secondary" id="btnFixDoctor" data-i18n="autoFix">Auto-Fix</button>
                         </div>
                     </div>
 
@@ -270,6 +410,7 @@
                             <span class="checkIcon">✓</span>
                             <div class="checkInfo">
                                 <strong>Compositor & Display Server</strong>
+                                <strong data-i18n="docCompositor">Compositor & Display Server</strong>
                                 <span id="docCompositor">KDE Plasma Wayland (Supported)</span>
                             </div>
                         </div>
@@ -278,6 +419,7 @@
                             <span class="checkIcon">✓</span>
                             <div class="checkInfo">
                                 <strong>Virtual Screen Pipeline</strong>
+                                <strong data-i18n="docBackend">Virtual Screen Pipeline</strong>
                                 <span id="docBackend">zkde_screencast_unstable_v1 active</span>
                             </div>
                         </div>
@@ -286,6 +428,7 @@
                             <span class="checkIcon">✓</span>
                             <div class="checkInfo">
                                 <strong>Input Injection (/dev/uinput)</strong>
+                                <strong data-i18n="docUinput">Input Injection (/dev/uinput)</strong>
                                 <span id="docUinput">Writable permissions configured</span>
                             </div>
                         </div>
@@ -294,6 +437,7 @@
                             <span class="checkIcon">✓</span>
                             <div class="checkInfo">
                                 <strong>Video Hardware Acceleration</strong>
+                                <strong data-i18n="docEncoder">Video Hardware Acceleration</strong>
                                 <span id="docEncoder">NVIDIA NVENC (nvh264enc detected)</span>
                             </div>
                         </div>
@@ -303,6 +447,8 @@
                             <div class="checkInfo">
                                 <strong>Network Ports (54321 / 54322)</strong>
                                 <span>Signaling & UDP Annex-B transport ready</span>
+                                <strong data-i18n="docPorts">Network Ports (54321 / 54322)</strong>
+                                <span data-i18n="docPortsDesc">Signaling & UDP Annex-B transport ready</span>
                             </div>
                         </div>
                     </div>
@@ -314,6 +460,8 @@
                         <div class="tipContent">
                             <strong>Diagnostic Notes</strong>
                             <span>Ensure your tablet and host PC share the same Wi-Fi subnet, or use a high-speed USB cable for zero-latency direct streaming.</span>
+                            <strong data-i18n="docTipTitle">Diagnostic Notes</strong>
+                            <span data-i18n="docTipDesc">Ensure your tablet and host PC share the same Wi-Fi subnet, or use a high-speed USB cable for zero-latency direct streaming.</span>
                         </div>
                     </div>
                 </div>
@@ -337,6 +485,7 @@
     <div style="display:none;">
         <span id="displayStateHeadline"></span>
         <span id="displayStateSubtitle"></span>
+        <div id="toastContainer" class="toastContainer"></div>
     </div>
 
     <script src="qrcode.js"></script>

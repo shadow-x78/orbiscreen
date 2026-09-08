@@ -1,13 +1,18 @@
 /* Orbiscreen - web client styles (GPL-3.0-or-later)
    https://github.com/shadow-x78/orbiscreen */
+/* Orbiscreen - Web Client (GPL-3.0-or-later) */
+/* https://github.com/shadow-x78/orbiscreen */
 
 :root {
     color-scheme: dark;
     --bg: #11111b;
     --surface: #1e1e2e;
+    --surface: #181825;
+    --surface-variant: #1e1e2e;
     --glass-dark: rgba(24, 24, 37, 0.88);
     --glass-border: rgba(137, 180, 250, 0.22);
     --primary: #89b4fa;
+    --primary-on: #11111b;
     --primary-variant: rgba(137, 180, 250, 0.16);
     --sapphire: #74c7ec;
     --active-green: #a6e3a1;
@@ -21,6 +26,29 @@
 }
 
 * { box-sizing: border-box; }
+body.theme-light {
+    color-scheme: light;
+    --bg: #eff1f5;
+    --surface: #ffffff;
+    --surface-variant: #e6e9ef;
+    --glass-dark: rgba(255, 255, 255, 0.94);
+    --glass-border: rgba(30, 102, 245, 0.22);
+    --primary: #1e66f5;
+    --primary-on: #ffffff;
+    --primary-variant: rgba(30, 102, 245, 0.14);
+    --sapphire: #04a5e5;
+    --active-green: #40a02b;
+    --peach: #df8e1d;
+    --error-red: rgba(210, 15, 57, 0.88);
+    --text: #4c4f69;
+    --subtext: #5c5f77;
+    --btn-glass: rgba(0, 0, 0, 0.08);
+    --btn-glass-hover: rgba(0, 0, 0, 0.16);
+}
+
+* {
+    box-sizing: border-box;
+}
 
 html, body {
     margin: 0;
@@ -33,6 +61,7 @@ html, body {
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
+    transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 .stage {
@@ -68,13 +97,19 @@ html, body {
     align-items: center;
     gap: 12px;
     padding: 8px 14px;
+    padding: 8px 16px;
     background: var(--glass-dark);
     border: 1px solid var(--glass-border);
     border-radius: 28px;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+html[dir="rtl"] .controlToolbar {
+    flex-direction: row-reverse;
 }
 
 .controlToolbar.hidden {
@@ -88,6 +123,7 @@ html, body {
     align-items: center;
     gap: 10px;
     padding-right: 4px;
+    padding-inline-end: 4px;
 }
 
 .activeDot {
@@ -109,6 +145,8 @@ html, body {
     font-weight: 700;
     color: #ffffff;
     line-height: 1.15;
+    color: var(--text);
+    line-height: 1.2;
 }
 
 .hostInfo {
@@ -116,6 +154,9 @@ html, body {
     color: rgba(255, 255, 255, 0.7);
     line-height: 1.15;
     margin-top: 2px;
+    font-size: 0.72rem;
+    color: var(--subtext);
+    font-family: ui-monospace, monospace;
 }
 
 .toolbarActions {
@@ -127,25 +168,37 @@ html, body {
 .actionBtn {
     width: 34px;
     height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
+    border: 1px solid transparent;
     background: var(--btn-glass);
     border: none;
     color: #ffffff;
+    color: var(--text);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     padding: 0;
     transition: background-color 0.15s ease, transform 0.1s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
 
 .actionBtn:hover {
     background: var(--btn-glass-hover);
     transform: scale(1.05);
+    border-color: var(--glass-border);
+    transform: translateY(-1px);
 }
 
 .actionBtn:active {
     transform: scale(0.95);
+    transform: translateY(0);
 }
 
 .actionBtn.active {
@@ -156,10 +209,13 @@ html, body {
 .actionBtn.btnDanger {
     background: var(--error-red);
     color: #ffffff;
+    color: var(--error-red);
 }
 
 .actionBtn.btnDanger:hover {
     background: rgba(243, 139, 168, 1);
+    background: rgba(243, 139, 168, 0.2);
+    border-color: var(--error-red);
 }
 
 .svgIcon {
@@ -169,28 +225,54 @@ html, body {
 }
 
 .svgIcon.hidden { display: none; }
+.svgIconSmall {
+    width: 16px;
+    height: 16px;
+}
+
+.svgIconLarge {
+    width: 32px;
+    height: 32px;
+}
+
+.langBadge {
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--text);
+}
 
 .miniPill {
     position: fixed;
     top: 14px;
     right: 16px;
+    top: 12px;
+    right: 14px;
     z-index: 55;
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 5px 10px;
+    padding: 6px 12px;
     background: var(--glass-dark);
     border: 1px solid var(--glass-border);
     border-radius: 9999px;
+    border-radius: 20px;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
     transition: opacity 0.25s ease;
+    transition: all 0.25s ease;
+}
+
+html[dir="rtl"] .miniPill {
+    right: auto;
+    left: 14px;
 }
 
 .miniPill.hidden {
     opacity: 0;
     pointer-events: none;
+    transform: translateY(-10px);
 }
 
 .activeDotSmall {
@@ -198,27 +280,45 @@ html, body {
     height: 6px;
     border-radius: 50%;
     background: var(--active-green);
+    box-shadow: 0 0 8px var(--active-green);
 }
 
 .miniInfo {
     font-size: 0.74rem;
     color: rgba(255, 255, 255, 0.85);
     font-weight: 500;
+    font-size: 0.72rem;
+    color: var(--subtext);
+    font-family: ui-monospace, monospace;
 }
 
 .miniBtn {
     background: transparent;
     border: none;
     color: var(--primary);
+    color: var(--text);
     cursor: pointer;
     padding: 0;
     display: flex;
     align-items: center;
+    justify-content: center;
+    padding: 2px;
 }
 
 .svgIconSmall {
     width: 16px;
     height: 16px;
+.overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: opacity 0.3s ease;
 }
 
 .vncBanner {
@@ -230,14 +330,80 @@ html, body {
     padding: 7px 16px;
     font-size: 0.78rem;
     font-weight: 500;
+.overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+    padding: 36px 32px;
+    max-width: 400px;
+    width: 90%;
+}
+
+.brandLogo {
+    width: 64px;
+    height: 64px;
+}
+
+.streamSpinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--glass-border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.statusTitle {
+    font-size: 1.15rem;
+    font-weight: 700;
     color: var(--text);
     background: var(--glass-dark);
+}
+
+.statusSubtitle {
+    font-size: 0.82rem;
+    color: var(--subtext);
+    line-height: 1.4;
+    max-width: 280px;
+}
+
+.tokenRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.tokenRow input {
+    flex: 1;
+    height: 40px;
+    border-radius: 20px;
     border: 1px solid var(--glass-border);
     border-radius: 9999px;
     backdrop-filter: blur(12px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     transition: opacity 0.3s ease, transform 0.3s ease;
     pointer-events: none;
+    background: var(--surface-variant);
+    color: var(--text);
+    padding-inline: 14px;
+    font-size: 0.82rem;
+    outline: none;
 }
 
 .vncBanner kbd {
@@ -246,11 +412,28 @@ html, body {
     border-radius: 4px;
     font-size: 0.75rem;
     color: var(--primary);
+.tokenRow button, .btnReconnect {
+    height: 40px;
+    padding-inline: 20px;
+    border-radius: 20px;
+    border: none;
+    background: var(--primary);
+    color: var(--primary-on);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .vncBanner.hidden {
     opacity: 0;
     transform: translateX(-50%) translateY(10px);
+.tokenRow button:hover, .btnReconnect:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
 }
 
 .keyboardDrawer {
@@ -269,11 +452,26 @@ html, body {
     -webkit-backdrop-filter: blur(20px);
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 55;
+    background: var(--glass-dark);
+    border-top: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+    transition: transform 0.25s ease;
 }
 
 .keyboardDrawer.hidden {
     transform: translateX(-50%) translateY(40px);
     opacity: 0;
+    transform: translateY(100%);
     pointer-events: none;
 }
 
@@ -282,6 +480,7 @@ html, body {
     width: 1px;
     height: 1px;
     opacity: 0.001;
+    opacity: 0;
     pointer-events: none;
     border: none;
     outline: none;
@@ -294,6 +493,8 @@ html, body {
     display: flex;
     gap: 4px;
     margin-bottom: 4px;
+    justify-content: center;
+    gap: 6px;
 }
 
 .keyboardKeysRow:last-child {
@@ -306,12 +507,22 @@ html, body {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.08);
     color: #e0e0e0;
+    height: 38px;
+    min-width: 36px;
+    padding-inline: 8px;
     border-radius: 8px;
     padding: 0 4px;
     font-size: 0.72rem;
     font-weight: 500;
+    border: 1px solid var(--glass-border);
+    background: var(--btn-glass);
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 600;
     cursor: pointer;
     display: inline-flex;
+    transition: all 0.15s ease;
+    display: flex;
     align-items: center;
     justify-content: center;
     transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
@@ -332,6 +543,7 @@ html, body {
 
 .keyBtn.keyToggle.active {
     background: var(--primary);
+    background: var(--btn-glass-hover);
     border-color: var(--primary);
     color: #11111b;
     font-weight: 700;
@@ -348,8 +560,10 @@ html, body {
 }
 
 .keyBtn.keyPrimary:hover {
+.keyBtn:active, .keyBtn.active {
     background: var(--primary);
     color: #11111b;
+    color: var(--primary-on);
 }
 
 .keyBtn.btnBackspace {
@@ -358,6 +572,9 @@ html, body {
     border-color: rgba(243, 139, 168, 0.3);
     color: #f38ba8;
     font-size: 0.85rem;
+.keySpace {
+    flex: 2;
+    max-width: 140px;
 }
 
 .keyBtn.btnBackspace:hover {
@@ -393,27 +610,39 @@ html, body {
     position: fixed;
     inset: 0;
     z-index: 80;
+    z-index: 70;
     display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(8px);
     transition: opacity 0.25s ease;
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .settingsModal.hidden {
     opacity: 0;
     pointer-events: none;
+    display: none;
 }
 
 .settingsCard {
     background: #1e1e2e;
+    background: var(--surface);
     border: 1px solid var(--glass-border);
     border-radius: 24px;
+    border-radius: 20px;
+    padding: 24px;
+    max-width: 420px;
     width: 90%;
     max-width: 400px;
     padding: 22px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
 
 .settingsHeader {
@@ -428,18 +657,39 @@ html, body {
     font-size: 1.1rem;
     font-weight: 700;
     color: #ffffff;
+    color: var(--text);
+}
+
+.iconCloseBtn {
+    background: transparent;
+    border: none;
+    color: var(--subtext);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.iconCloseBtn:hover {
+    color: var(--text);
 }
 
 .settingsGroup {
     margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .settingsGroup label {
     display: block;
     font-size: 0.74rem;
     font-weight: 600;
+    font-size: 0.76rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    letter-spacing: 0.04em;
     color: var(--subtext);
     margin-bottom: 8px;
 }
@@ -447,6 +697,7 @@ html, body {
 .chipsRow {
     display: flex;
     gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 
@@ -456,18 +707,29 @@ html, body {
     color: var(--text);
     border-radius: 12px;
     padding: 7px 12px;
+    padding: 6px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    background: var(--surface-variant);
+    color: var(--subtext);
     font-size: 0.78rem;
     font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
+    transition: all 0.2s ease;
 }
 
 .chipBtn:hover {
     background: var(--btn-glass-hover);
+    color: var(--text);
+    border-color: var(--primary);
 }
 
 .chipBtn.active {
     background: var(--primary-variant);
+    background: var(--primary);
+    color: var(--primary-on);
     border-color: var(--primary);
     color: var(--primary);
     font-weight: 600;
@@ -485,11 +747,19 @@ html, body {
     border-radius: 10px;
     padding: 8px;
     text-align: center;
+    background: var(--surface-variant);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .statLabel {
     display: block;
     font-size: 0.65rem;
+    text-transform: uppercase;
     color: var(--subtext);
     margin-bottom: 4px;
 }
@@ -498,11 +768,14 @@ html, body {
     font-size: 0.8rem;
     font-weight: 700;
     color: var(--active-green);
+    color: var(--text);
 }
 
 .toast {
+.vncBanner {
     position: fixed;
     bottom: 24px;
+    top: 68px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 90;
@@ -510,6 +783,7 @@ html, body {
     font-size: 0.8rem;
     font-weight: 500;
     color: #ffffff;
+    z-index: 55;
     background: var(--glass-dark);
     border: 1px solid var(--glass-border);
     border-radius: 9999px;
@@ -604,6 +878,9 @@ html, body {
 .statusSubtitle {
     margin: 6px 0 1.2rem;
     font-size: 0.82rem;
+    border-radius: 16px;
+    padding: 6px 14px;
+    font-size: 0.75rem;
     color: var(--subtext);
 }
 
@@ -635,6 +912,7 @@ html, body {
 }
 
 .btnReconnect.hidden {
+.vncBanner.hidden {
     display: none;
 }
 
@@ -649,16 +927,30 @@ html, body {
 .tokenRow input {
     flex: 1;
     background: rgba(30, 30, 46, 0.8);
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 80;
+    background: var(--glass-dark);
     border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 0.8rem;
+    font-weight: 600;
     color: var(--text);
     padding: 8px 12px;
     border-radius: 10px;
     font-size: 0.8rem;
     outline: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .tokenRow input:focus {
     border-color: var(--primary);
+.toast.hidden {
+    display: none;
 }
 
 .tokenRow button {
@@ -676,17 +968,28 @@ html, body {
     position: fixed;
     width: 48px;
     height: 48px;
+    position: absolute;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: 2px solid rgba(137, 180, 250, 0.7);
     background: rgba(137, 180, 250, 0.15);
+    background: rgba(137, 180, 250, 0.45);
+    border: 2px solid var(--primary);
     pointer-events: none;
     transform: translate(-50%, -50%);
     transition: opacity 150ms ease;
     z-index: 100;
+    z-index: 45;
 }
 
 .touchIndicator.hidden { opacity: 0; }
+.touchIndicator.hidden {
+    display: none;
+}
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+.hidden {
+    display: none !important;
 }

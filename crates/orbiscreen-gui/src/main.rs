@@ -51,6 +51,11 @@ async fn main() {
             let menu = Menu::with_items(app, &[&toggle, &start, &stop, &quit])?;
 
             let icon = app.default_window_icon().cloned();
+            if let Some(window) = app.get_webview_window("main") {
+                if let Some(ref ic) = icon {
+                    let _ = window.set_icon(ic.clone());
+                }
+            }
             let mut tray_builder = TrayIconBuilder::new()
                 .menu(&menu)
                 .tooltip("Orbiscreen Host Control Center");

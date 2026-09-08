@@ -13,6 +13,7 @@ vendor/
 # ── Build artifacts ──
 /dist/
 /bin/
+crates/orbiscreen-gui/gen/
 debian/files
 *.deb
 *.rpm

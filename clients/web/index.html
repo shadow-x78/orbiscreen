@@ -1,6 +1,7 @@
 <!doctype html>
 <!-- Orbiscreen - Web Client (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen -->
 <html lang="en">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy"
@@ -36,6 +37,19 @@
                 <svg class="svgIcon" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>
                 </svg>
+            </button>
+
+            <button id="btnThemeToggle" class="actionBtn" title="Toggle Theme" data-i18n-title="themeTitle">
+                <svg id="iconThemeDark" class="svgIcon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
+                </svg>
+                <svg id="iconThemeLight" class="svgIcon hidden" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>
+                </svg>
+            </button>
+
+            <button id="btnWebLang" class="actionBtn" title="Language" data-i18n-title="language">
+                <span id="lblWebLang" class="langBadge">عربي</span>
             </button>
 
             <button id="btnLock" class="actionBtn" title="Lock Session" data-i18n-title="btnLock">
@@ -136,6 +150,20 @@
                 </button>
             </div>
             <div class="settingsGroup">
+                <label data-i18n="themeTitle">Theme</label>
+                <div class="chipsRow" id="webThemeChips">
+                    <button class="chipBtn active" data-theme="dark" data-i18n="themeDark">Dark</button>
+                    <button class="chipBtn" data-theme="light" data-i18n="themeLight">Light</button>
+                </div>
+            </div>
+            <div class="settingsGroup">
+                <label data-i18n="language">Language</label>
+                <div class="chipsRow" id="webLangChips">
+                    <button class="chipBtn active" data-lang="en">English</button>
+                    <button class="chipBtn" data-lang="ar">العربية</button>
+                </div>
+            </div>
+            <div class="settingsGroup">
                 <label data-i18n="fitMode">Scaling</label>
                 <div class="chipsRow">
                     <button class="chipBtn active" data-fit="contain" data-i18n="fitContain">Fit</button>
@@ -181,8 +209,10 @@
         <div id="overlay" class="overlay">
             <div class="loadingContainer">
                 <svg id="brandLogo" class="brandLogo hidden" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg id="brandLogo" class="brandLogo" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <linearGradient id="brandBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient id="webBrandBlue" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stop-color="#89b4fa"/>
                             <stop offset="100%" stop-color="#74c7ec"/>
                         </linearGradient>
@@ -191,6 +221,10 @@
                     <circle cx="256" cy="256" r="170" fill="none" stroke="url(#brandBlue)" stroke-width="50"/>
                     <circle cx="376" cy="376" r="62" fill="url(#brandBlue)"/>
                     <circle cx="376" cy="376" r="62" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.4"/>
+                    <circle cx="256" cy="256" r="220" fill="none" stroke="#89b4fa" stroke-width="2" opacity="0.25" stroke-dasharray="8 8"/>
+                    <circle cx="256" cy="256" r="170" fill="none" stroke="url(#webBrandBlue)" stroke-width="48"/>
+                    <circle cx="376" cy="376" r="62" fill="url(#webBrandBlue)"/>
+                    <circle cx="376" cy="376" r="62" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.5"/>
                 </svg>
                 <div id="statusSpinner" class="streamSpinner"></div>
                 <div id="statusIcon" class="statusIconContainer hidden">
@@ -200,6 +234,7 @@
                 </div>
                 <h3 id="statusTitle" class="statusTitle" data-i18n="statusConnecting">Connecting</h3>
                 <p id="statusSubtitle" class="statusSubtitle" data-i18n="statusConnectingSub">Connecting&hellip;</p>
+                <p id="statusSubtitle" class="statusSubtitle" data-i18n="statusConnectingSub">Connecting to Linux host...</p>
                 <div id="tokenRow" class="tokenRow hidden">
                     <input type="text" id="tokenInput" placeholder="Session token..." data-i18n-placeholder="tokenPlaceholder" />
                     <button id="btnConnect" data-i18n="btnConnect">Connect</button>
