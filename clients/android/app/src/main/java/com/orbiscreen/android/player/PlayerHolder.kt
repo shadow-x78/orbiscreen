@@ -198,7 +198,7 @@ class PlayerHolder(
                             MediaItem.LiveConfiguration.Builder()
                                 .setTargetOffsetMs(0)
                                 .setMinPlaybackSpeed(1.0f)
-                                .setMaxPlaybackSpeed(1.02f)
+                                .setMaxPlaybackSpeed(1.0f)
                                 .build()
                         )
                         .build()
@@ -436,7 +436,7 @@ private class LowLatencyVideoRenderer(
     }
 
     override fun shouldDropBuffersToKeyframe(earlyUs: Long, elapsedRealtimeUs: Long, isLastBuffer: Boolean): Boolean {
-        if (earlyUs < -120_000) {
+        if (earlyUs < -100_000) {
             onLagDetected()
             return true
         }
@@ -444,6 +444,6 @@ private class LowLatencyVideoRenderer(
     }
 
     override fun shouldDropOutputBuffer(earlyUs: Long, elapsedRealtimeUs: Long, isLastBuffer: Boolean): Boolean {
-        return earlyUs < -150_000
+        return earlyUs < -30_000
     }
 }

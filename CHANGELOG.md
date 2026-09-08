@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.25.6] - 2026-09-09
+
+Hotfix for rubberbanding regression introduced in v0.25.5 ([#75](https://github.com/shadow-x78/orbiscreen/issues/75)). Two ExoPlayer rendering thresholds were tuned too conservatively, causing the renderer to hold stale frames up to 150ms and a catch-up oscillation loop via `setMaxPlaybackSpeed(1.02f)`. Both changes are reverted. The proactive IDR request (`onLagDetected → requestIdr()`) added in v0.25.5 is kept as it genuinely improves recovery.
+
+### 🐛 Bug Fixes
+- **Revert `shouldDropOutputBuffer` 150ms → 30ms (`PlayerHolder.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
+  - The 150ms threshold introduced in v0.25.5 caused ExoPlayer to render frames that were up to 150ms stale, producing the rubber-band / temporal warping effect visible in the video from @MolagBals. Reverted to the original 30ms threshold that was stable in v0.25.3.
+- **Revert `setMaxPlaybackSpeed` 1.02f → 1.0f (`PlayerHolder.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
+  - The 2% catch-up speed created an oscillation loop on USB AOA (already near-zero latency): buffer grows → ExoPlayer speeds up → catches up → slows down → buffer grows again. Reverted to fixed 1.0x playback speed.
+- **Revert `shouldDropBuffersToKeyframe` -120ms → -100ms (`PlayerHolder.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
+  - Minor threshold creep reverted for consistency. The `onLagDetected()` callback at this threshold is kept — it correctly triggers a proactive IDR from the host on deep lag.
+
+### 📦 Packaging & Versions
+- **Cargo Workspace**: Bumped workspace package version to 0.25.6.
+- **Android Client**: Incremented `versionCode` to 78; updated `versionName` to "0.25.6".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.6 with changelog entry.
+- **debian/changelog**: Added 0.25.6-1 release entry for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.25.6.
+
 ## [v0.25.5] - 2026-09-08
 
 Fix 30-minute latency drift and rubberbanding on Android USB AOA connections ([#75](https://github.com/shadow-x78/orbiscreen/issues/75)), add micro-catchup speed compensation for physical quartz oscillator clock drift, enable proactive on-demand IDR keyframe recovery, tighten accessory proxy buffers, and configure periodic recovery keyframes in encoder pipelines.

@@ -1,3 +1,11 @@
+orbiscreen (0.25.6-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.25.6 for Ubuntu noble.
+  * Revert ExoPlayer threshold regression from v0.25.5 that caused worse rubberbanding (#75).
+  * Restore shouldDropOutputBuffer threshold to 30ms; revert setMaxPlaybackSpeed to 1.0f.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 09 Sep 2026 00:00:00 +0300
+
 orbiscreen (0.25.5-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.5 for Ubuntu noble.
