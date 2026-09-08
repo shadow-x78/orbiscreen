@@ -9,62 +9,32 @@
 </head>
 <body>
     <div class="windowContainer">
-        <!-- Top Navigation HeaderBar -->
         <header class="headerBar">
             <div class="brandSection">
                 <svg class="brandLogo" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#89b4fa"/>
-                            <stop offset="100%" stop-color="#74c7ec"/>
+                            <stop offset="0%" stop-color="#3b82f6"/>
+                            <stop offset="100%" stop-color="#60a5fa"/>
                         </linearGradient>
                     </defs>
-                    <circle cx="256" cy="256" r="220" fill="none" stroke="#89b4fa" stroke-width="2" opacity="0.2" stroke-dasharray="10 10"/>
+                    <circle cx="256" cy="256" r="220" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.25" stroke-dasharray="8 8"/>
                     <circle cx="256" cy="256" r="170" fill="none" stroke="url(#brandGrad)" stroke-width="48"/>
                     <circle cx="376" cy="376" r="62" fill="url(#brandGrad)"/>
                     <circle cx="376" cy="376" r="62" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.5"/>
                 </svg>
                 <div class="brandTitles">
                     <span class="brandName">Orbiscreen</span>
-                    <span class="versionBadge">v0.25.3</span>
+                    <span class="versionBadge">v0.25.4</span>
                 </div>
             </div>
 
-            <!-- Segmented View Tabs -->
-            <nav class="navSegments">
-                <button class="segmentBtn active" data-tab="connect">
-                    <svg class="navIcon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
-                    </svg>
-                    <span>Connect</span>
-                </button>
-                <button class="segmentBtn" data-tab="display">
-                    <svg class="navIcon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M21 3H3c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.11-.9-2-2-2zm0 14H3V5h18v12z"/>
-                    </svg>
-                    <span>Display & Input</span>
-                </button>
-                <button class="segmentBtn" data-tab="doctor">
-                    <svg class="navIcon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 3H5c-1.1 0-1.99.9-1.99 2L3 19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/>
-                    </svg>
-                    <span>Doctor</span>
-                </button>
-            </nav>
-
-            <!-- Master Power & State Actions -->
             <div class="headerActions">
-                <div class="statusPill" id="statusPill">
+                <div class="statusPill ready" id="statusPill">
                     <span class="statusDot" id="statusDot"></span>
                     <span class="statusLabel" id="statusLabel">Ready</span>
                 </div>
-                <button class="btnPrimary" id="btnToggleService">
-                    <svg class="btnIcon" viewBox="0 0 24 24" fill="currentColor" id="toggleIcon">
-                        <path d="M8 5v14l11-7z"/>
-                    </svg>
-                    <span id="toggleText">Start Display</span>
-                </button>
-                <button class="btnIconOnly" id="btnRestartService" title="Restart Service">
+                <button class="btnRestart" id="btnRestartService" title="Restart Host Daemon">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                     </svg>
@@ -72,292 +42,303 @@
             </div>
         </header>
 
-        <!-- Main Content Area -->
+        <nav class="navSegments">
+            <button class="segmentBtn active" data-tab="connect">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+                </svg>
+                <span>Connect</span>
+            </button>
+            <button class="segmentBtn" data-tab="display">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21 3H3c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/>
+                </svg>
+                <span>Display & Input</span>
+            </button>
+            <button class="segmentBtn" data-tab="doctor">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3H5c-1.1 0-1.99.9-1.99 2L3 19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/>
+                </svg>
+                <span>Doctor</span>
+            </button>
+        </nav>
+
         <main class="contentScroll">
-            <!-- ══════════════════════════════════════════════════
-                 VIEW 1: CONNECT (Device Connection & Screen Preview)
-                 ══════════════════════════════════════════════════ -->
             <section class="tabPane active" id="tab-connect">
-                <!-- Virtual Screen Preview Box -->
-                <div class="screenPreviewCard">
-                    <div class="monitorFrame">
-                        <div class="monitorHeader">
-                            <div class="monitorDots">
-                                <span class="dot red"></span>
-                                <span class="dot yellow"></span>
-                                <span class="dot green"></span>
-                            </div>
-                            <span class="monitorTitle">Virtual Extended Monitor</span>
-                            <div class="monitorSpecs">
-                                <span class="specPill" id="previewResolution">1920 × 1080 @ 60Hz</span>
-                                <span class="specPill accent" id="previewLatency">UDP ~3ms</span>
-                            </div>
+                <div class="modeSwitch">
+                    <button class="modeBtn active" data-sub="wifi">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98A16.88 16.88 0 0 0 12 4zm0 4.5c3.21 0 6.13 1.25 8.3 3.32L12 20.12 3.7 11.82C5.87 9.75 8.79 8.5 12 8.5z"/></svg>
+                        <span>Wi-Fi Wireless</span>
+                    </button>
+                    <button class="modeBtn" data-sub="usb">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 7v4h1v2h-3V5h2l-3-4-3 4h2v8H8v-2.07c.7-.37 1.2-1.08 1.2-1.93 0-1.21-.99-2.2-2.2-2.2-1.21 0-2.2.99-2.2 2.2 0 .85.5 1.56 1.2 1.93V13c0 1.11.89 2 2 2h3v3.05c-.71.37-1.2 1.1-1.2 1.95a2.2 2.2 0 0 0 4.4 0c0-.85-.49-1.58-1.2-1.95V15h3c1.11 0 2-.89 2-2v-2h1V7h-4z"/></svg>
+                        <span>USB Cable (Zero Lag)</span>
+                    </button>
+                </div>
+
+                <div class="subPane active" id="sub-wifi">
+                    <div class="specsBanner">
+                        <span class="specItem" id="previewResolution">1920 × 1080 @ 60Hz</span>
+                        <span class="specDot">•</span>
+                        <span class="specItem" id="previewLatency">Low Latency UDP</span>
+                        <span class="activeClientBadge hidden" id="activeClientPill">
+                            <span class="clientDot"></span>
+                            <span id="activeClientText">1 Device Connected</span>
+                        </span>
+                    </div>
+
+                    <div class="qrSection">
+                        <div class="qrContainerFrame">
+                            <div class="qrSvgBox" id="qrContainer"></div>
                         </div>
-                        <div class="monitorDisplayArea" id="monitorDisplayArea">
-                            <div class="displayStatusBox" id="displayStatusBox">
-                                <div class="pulseRing"></div>
-                                <svg class="displayIcon" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/>
-                                </svg>
-                                <h3 id="displayStateHeadline">Ready to Stream</h3>
-                                <p id="displayStateSubtitle">Open Orbiscreen on your Android tablet or phone to connect as second display.</p>
-                                <div class="activeClientPill hidden" id="activeClientPill">
-                                    <span class="clientDot"></span>
-                                    <span id="activeClientText">1 Device Connected (Android Tablet)</span>
-                                </div>
-                            </div>
+                        <span class="qrPrompt">Scan with Orbiscreen on your Android tablet or phone</span>
+                    </div>
+
+                    <div class="urlRowCard">
+                        <div class="urlInputWrapper">
+                            <input type="text" readonly id="inpSessionUrl" value="http://127.0.0.1:54321" />
+                        </div>
+                        <button class="btnAction" id="btnCopyUrl" title="Copy Stream URL">Copy</button>
+                        <button class="btnAction secondary" id="btnOpenBrowser" title="Open in Browser">Open</button>
+                    </div>
+
+                    <div class="quickGuide">
+                        <div class="guideCol">
+                            <span class="guideNum">1</span>
+                            <span>Connect tablet & PC to Wi-Fi</span>
+                        </div>
+                        <div class="guideCol">
+                            <span class="guideNum">2</span>
+                            <span>Open app & tap <strong>Scan</strong></span>
+                        </div>
+                        <div class="guideCol">
+                            <span class="guideNum">3</span>
+                            <span>Enjoy smooth touch & stylus</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Connect Device Hub -->
-                <div class="connectHubCard">
-                    <!-- Sub Tabs: Wi-Fi vs USB -->
-                    <div class="subTabs">
-                        <button class="subTabBtn active" data-sub="wifi">
-                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98A16.88 16.88 0 0 0 12 4zm0 4.5c3.21 0 6.13 1.25 8.3 3.32L12 20.12 3.7 11.82C5.87 9.75 8.79 8.5 12 8.5z"/></svg>
-                            <span>Wi-Fi Wireless</span>
-                        </button>
-                        <button class="subTabBtn" data-sub="usb">
-                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 7v4h1v2h-3V5h2l-3-4-3 4h2v8H8v-2.07c.7-.37 1.2-1.08 1.2-1.93 0-1.21-.99-2.2-2.2-2.2-1.21 0-2.2.99-2.2 2.2 0 .85.5 1.56 1.2 1.93V13c0 1.11.89 2 2 2h3v3.05c-.71.37-1.2 1.1-1.2 1.95a2.2 2.2 0 0 0 4.4 0c0-.85-.49-1.58-1.2-1.95V15h3c1.11 0 2-.89 2-2v-2h1V7h-4z"/></svg>
-                            <span>USB Cable (Zero Lag)</span>
-                        </button>
-                    </div>
+                <div class="subPane" id="sub-usb">
+                    <div class="usbContainer">
+                        <div class="usbHeroIcon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M15 7v4h1v2h-3V5h2l-3-4-3 4h2v8H8v-2.07c.7-.37 1.2-1.08 1.2-1.93 0-1.21-.99-2.2-2.2-2.2-1.21 0-2.2.99-2.2 2.2 0 .85.5 1.56 1.2 1.93V13c0 1.11.89 2 2 2h3v3.05c-.71.37-1.2 1.1-1.2 1.95a2.2 2.2 0 0 0 4.4 0c0-.85-.49-1.58-1.2-1.95V15h3c1.11 0 2-.89 2-2v-2h1V7h-4z"/>
+                            </svg>
+                        </div>
+                        <h3>USB Accessory Pipeline</h3>
+                        <p>Stream directly over USB cable with hardware acceleration, bounded queues, and zero network jitter.</p>
+                        
+                        <div class="usbStatusBadge">
+                            <span class="usbDot"></span>
+                            <span id="usbStatusTag">Waiting for device...</span>
+                        </div>
 
-                    <!-- SubPane 1: Wi-Fi -->
-                    <div class="subPane active" id="sub-wifi">
-                        <div class="wifiLayout">
-                            <div class="qrWrapper">
-                                <div class="qrCard" id="qrCard">
-                                    <div class="qrSvgBox" id="qrContainer"></div>
-                                </div>
-                                <span class="qrLabel">Scan with Orbiscreen App</span>
-                            </div>
+                        <div class="usbActionRow">
+                            <button class="btnAction primary" id="btnOpenUsb">Open USB Localhost Stream</button>
+                        </div>
 
-                            <div class="wifiDetails">
-                                <div class="urlCard">
-                                    <span class="urlLabel">Network Stream URL</span>
-                                    <div class="urlInputRow">
-                                        <input type="text" readonly id="inpSessionUrl" value="http://127.0.0.1:54321" />
-                                        <button class="btnAccent" id="btnCopyUrl" title="Copy URL">Copy</button>
-                                        <button class="btnGhost" id="btnOpenBrowser" title="Open in Web Browser">Open</button>
-                                    </div>
-                                </div>
-
-                                <div class="guideSteps">
-                                    <div class="stepItem">
-                                        <span class="stepNum">1</span>
-                                        <span>Connect tablet & PC to the same Wi-Fi network.</span>
-                                    </div>
-                                    <div class="stepItem">
-                                        <span class="stepNum">2</span>
-                                        <span>Open the <strong>Orbiscreen</strong> app and tap <strong>Scan</strong>.</span>
-                                    </div>
-                                    <div class="stepItem">
-                                        <span class="stepNum">3</span>
-                                        <span>Instant low-latency display with touch & pen control!</span>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="usbHints">
+                            <span>• Connect your phone or tablet via USB.</span>
+                            <span>• Select <strong>Always Allow</strong> when Android prompts for accessory permission.</span>
                         </div>
                     </div>
+                </div>
 
-                    <!-- SubPane 2: USB -->
-                    <div class="subPane" id="sub-usb">
-                        <div class="usbLayout">
-                            <div class="usbIconBlock">
-                                <svg class="usbGraphic" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M15 7v4h1v2h-3V5h2l-3-4-3 4h2v8H8v-2.07c.7-.37 1.2-1.08 1.2-1.93 0-1.21-.99-2.2-2.2-2.2-1.21 0-2.2.99-2.2 2.2 0 .85.5 1.56 1.2 1.93V13c0 1.11.89 2 2 2h3v3.05c-.71.37-1.2 1.1-1.2 1.95a2.2 2.2 0 0 0 4.4 0c0-.85-.49-1.58-1.2-1.95V15h3c1.11 0 2-.89 2-2v-2h1V7h-4z"/>
-                                </svg>
-                            </div>
-                            <div class="usbDetails">
-                                <h3>USB Tethered Pipeline</h3>
-                                <p>Stream directly over USB cable with hardware acceleration and zero Wi-Fi interference.</p>
-                                <div class="usbStatusRow">
-                                    <span class="usbTag" id="usbStatusTag">Waiting for device...</span>
-                                    <button class="btnAccent" id="btnOpenUsb">Open USB Stream (localhost)</button>
-                                </div>
-                                <span class="usbNote">Tip: Ensure <strong>USB Debugging</strong> is enabled in Android Developer Options.</span>
-                            </div>
-                        </div>
-                    </div>
+                <div class="primaryActionBar">
+                    <button class="btnMasterAction" id="btnToggleService">
+                        <svg class="masterIcon" viewBox="0 0 24 24" fill="currentColor" id="toggleIcon">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        <span id="toggleText">Start Extended Display</span>
+                    </button>
                 </div>
             </section>
 
-            <!-- ══════════════════════════════════════════════════
-                 VIEW 2: DISPLAY & INPUT (Native Settings)
-                 ══════════════════════════════════════════════════ -->
             <section class="tabPane" id="tab-display">
-                <div class="settingsGrid">
-                    <!-- Resolution & Aspect Ratio -->
-                    <div class="settingsCard">
-                        <div class="cardHeader">
-                            <h3>Virtual Display Resolution</h3>
-                            <span class="cardSub">Choose preferred extended canvas geometry</span>
+                <div class="settingsStack">
+                    <div class="settingsGroup">
+                        <span class="groupTitle">Display Geometry</span>
+
+                        <div class="settingRow">
+                            <div class="settingMeta">
+                                <strong>Resolution</strong>
+                                <span>Extended desktop virtual canvas dimensions</span>
+                            </div>
+                            <div class="chipsGroup" id="resChips">
+                                <button class="chip active" data-w="1920" data-h="1080">1080p</button>
+                                <button class="chip" data-w="2560" data-h="1600">1600p</button>
+                                <button class="chip" data-w="2880" data-h="1800">1800p</button>
+                                <button class="chip" data-w="1280" data-h="800">800p</button>
+                            </div>
                         </div>
-                        <div class="chipsList" id="resChips">
-                            <button class="chip active" data-w="1920" data-h="1080">1920 × 1080 (16:9 Standard)</button>
-                            <button class="chip" data-w="2560" data-h="1600">2560 × 1600 (16:10 Tablet)</button>
-                            <button class="chip" data-w="2880" data-h="1800">2880 × 1800 (16:10 HiDPI)</button>
-                            <button class="chip" data-w="1280" data-h="800">1280 × 800 (Compact)</button>
+
+                        <div class="settingRow">
+                            <div class="settingMeta">
+                                <strong>Framerate</strong>
+                                <span>Target display refresh frequency</span>
+                            </div>
+                            <div class="chipsGroup" id="fpsChips">
+                                <button class="chip active" data-fps="60">60 Hz</button>
+                                <button class="chip" data-fps="90">90 Hz</button>
+                                <button class="chip" data-fps="120">120 Hz</button>
+                            </div>
+                        </div>
+
+                        <div class="settingRow">
+                            <div class="settingMeta">
+                                <strong>Hardware Encoder</strong>
+                                <span>Engine used for low-latency H.264 stream</span>
+                            </div>
+                            <div class="chipsGroup" id="encoderChips">
+                                <button class="chip active">Auto</button>
+                                <button class="chip">NVENC</button>
+                                <button class="chip">VA-API</button>
+                                <button class="chip">x264</button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Framerate -->
-                    <div class="settingsCard">
-                        <div class="cardHeader">
-                            <h3>Target Refresh Rate</h3>
-                            <span class="cardSub">Higher rates deliver smoother stylus & touch feedback</span>
-                        </div>
-                        <div class="chipsList" id="fpsChips">
-                            <button class="chip active" data-fps="60">60 Hz (Standard)</button>
-                            <button class="chip" data-fps="90">90 Hz (Balanced)</button>
-                            <button class="chip" data-fps="120">120 Hz (High Refresh)</button>
-                        </div>
-                    </div>
+                    <div class="settingsGroup">
+                        <span class="groupTitle">Touch & Input Injection</span>
 
-                    <!-- Touch & Stylus Controls -->
-                    <div class="settingsCard">
-                        <div class="cardHeader">
-                            <h3>Reverse Touch & Stylus Input</h3>
-                            <span class="cardSub">Inject Android input events directly into Linux desktop</span>
-                        </div>
-                        <div class="toggleList">
-                            <label class="toggleRow">
-                                <div class="toggleMeta">
-                                    <strong>Direct Multitouch Screen</strong>
-                                    <span>Emulate native multi-touch screen via evdev Type-B slots</span>
-                                </div>
+                        <label class="settingRow clickable">
+                            <div class="settingMeta">
+                                <strong>Direct Multitouch Screen</strong>
+                                <span>Inject Android touches via kernel uinput slots</span>
+                            </div>
+                            <div class="toggleControl">
                                 <input type="checkbox" checked id="chkDirectTouch" />
-                                <span class="toggleSlider"></span>
-                            </label>
+                                <span class="toggleSwitch"></span>
+                            </div>
+                        </label>
 
-                            <label class="toggleRow">
-                                <div class="toggleMeta">
-                                    <strong>Stylus Digitizer (Pressure & Tilt)</strong>
-                                    <span>Pressure sensitivity and tilt support for Krita, GIMP, and drawing tools</span>
-                                </div>
+                        <label class="settingRow clickable">
+                            <div class="settingMeta">
+                                <strong>Stylus Digitizer (Pressure & Tilt)</strong>
+                                <span>Support pressure sensitivity for Krita, GIMP & notes</span>
+                            </div>
+                            <div class="toggleControl">
                                 <input type="checkbox" checked id="chkStylus" />
-                                <span class="toggleSlider"></span>
-                            </label>
+                                <span class="toggleSwitch"></span>
+                            </div>
+                        </label>
 
-                            <label class="toggleRow">
-                                <div class="toggleMeta">
-                                    <strong>Confine Pointer to Display</strong>
-                                    <span>Keep mouse pointer bounded inside virtual screen boundaries</span>
-                                </div>
+                        <label class="settingRow clickable">
+                            <div class="settingMeta">
+                                <strong>Confine Pointer to Display</strong>
+                                <span>Trap mouse cursor within virtual display area</span>
+                            </div>
+                            <div class="toggleControl">
                                 <input type="checkbox" checked id="chkConfine" />
-                                <span class="toggleSlider"></span>
-                            </label>
-                        </div>
+                                <span class="toggleSwitch"></span>
+                            </div>
+                        </label>
                     </div>
 
-                    <!-- Hardware Video Encoder -->
-                    <div class="settingsCard">
-                        <div class="cardHeader">
-                            <h3>Hardware Video Encoder</h3>
-                            <span class="cardSub">Low-latency H.264 video encoding engine</span>
-                        </div>
-                        <div class="chipsList" id="encoderChips">
-                            <button class="chip active">Auto (Hardware Preferred)</button>
-                            <button class="chip">NVIDIA NVENC (nvh264enc)</button>
-                            <button class="chip">Intel/AMD VA-API (vah264enc)</button>
-                            <button class="chip">Software x264 (x264enc)</button>
-                        </div>
-                    </div>
+                    <div class="settingsGroup">
+                        <span class="groupTitle">System Integration</span>
 
-                    <!-- System Startup -->
-                    <div class="settingsCard">
-                        <div class="cardHeader">
-                            <h3>System Integration</h3>
-                        </div>
-                        <div class="toggleList">
-                            <label class="toggleRow">
-                                <div class="toggleMeta">
-                                    <strong>Autostart on Login</strong>
-                                    <span>Automatically start Orbiscreen host daemon when logging into Linux</span>
-                                </div>
+                        <label class="settingRow clickable">
+                            <div class="settingMeta">
+                                <strong>Launch on Desktop Login</strong>
+                                <span>Start Orbiscreen daemon on system startup</span>
+                            </div>
+                            <div class="toggleControl">
                                 <input type="checkbox" id="chkAutostart" />
-                                <span class="toggleSlider"></span>
-                            </label>
-                        </div>
+                                <span class="toggleSwitch"></span>
+                            </div>
+                        </label>
                     </div>
                 </div>
             </section>
 
-            <!-- ══════════════════════════════════════════════════
-                 VIEW 3: DOCTOR (Diagnostics & Health)
-                 ══════════════════════════════════════════════════ -->
             <section class="tabPane" id="tab-doctor">
-                <div class="doctorContainer">
-                    <div class="doctorHeaderCard">
-                        <div>
-                            <h3>System Health & Compatibility</h3>
-                            <p>Verify Linux display server capabilities, input permissions, and video acceleration.</p>
+                <div class="doctorStack">
+                    <div class="doctorHero">
+                        <div class="doctorHeroText">
+                            <strong>System Health & Diagnostics</strong>
+                            <span>Check display server, hardware encoding & device permissions</span>
                         </div>
-                        <div class="doctorActions">
-                            <button class="btnPrimary" id="btnRunDoctor">Run Diagnostics</button>
-                            <button class="btnGhost" id="btnFixDoctor">Auto-Fix</button>
+                        <div class="doctorHeroBtns">
+                            <button class="btnSmall primary" id="btnRunDoctor">Scan</button>
+                            <button class="btnSmall secondary" id="btnFixDoctor">Auto-Fix</button>
                         </div>
                     </div>
 
-                    <div class="doctorCardsList" id="doctorItemsList">
-                        <div class="doctorCheckItem ok">
-                            <span class="checkBadge">✓</span>
-                            <div class="checkDetails">
-                                <strong>Display Server & Compositor</strong>
+                    <div class="doctorCheckList" id="doctorItemsList">
+                        <div class="checkRow ok">
+                            <span class="checkIcon">✓</span>
+                            <div class="checkInfo">
+                                <strong>Compositor & Display Server</strong>
                                 <span id="docCompositor">KDE Plasma Wayland (Supported)</span>
                             </div>
                         </div>
-                        <div class="doctorCheckItem ok">
-                            <span class="checkBadge">✓</span>
-                            <div class="checkDetails">
-                                <strong>Virtual Output Backend</strong>
+
+                        <div class="checkRow ok">
+                            <span class="checkIcon">✓</span>
+                            <div class="checkInfo">
+                                <strong>Virtual Screen Pipeline</strong>
                                 <span id="docBackend">zkde_screencast_unstable_v1 active</span>
                             </div>
                         </div>
-                        <div class="doctorCheckItem ok">
-                            <span class="checkBadge">✓</span>
-                            <div class="checkDetails">
-                                <strong>Input Injection Permissions</strong>
-                                <span id="docUinput">/dev/uinput writable (evdev ready)</span>
+
+                        <div class="checkRow ok">
+                            <span class="checkIcon">✓</span>
+                            <div class="checkInfo">
+                                <strong>Input Injection (/dev/uinput)</strong>
+                                <span id="docUinput">Writable permissions configured</span>
                             </div>
                         </div>
-                        <div class="doctorCheckItem ok">
-                            <span class="checkBadge">✓</span>
-                            <div class="checkDetails">
-                                <strong>Hardware Encoder Engine</strong>
+
+                        <div class="checkRow ok">
+                            <span class="checkIcon">✓</span>
+                            <div class="checkInfo">
+                                <strong>Video Hardware Acceleration</strong>
                                 <span id="docEncoder">NVIDIA NVENC (nvh264enc detected)</span>
                             </div>
                         </div>
-                        <div class="doctorCheckItem ok">
-                            <span class="checkBadge">✓</span>
-                            <div class="checkDetails">
-                                <strong>Network Ports (54321 HTTP / 54322 UDP)</strong>
-                                <span>Ports open and ready for signaling & Annex-B transport</span>
+
+                        <div class="checkRow ok">
+                            <span class="checkIcon">✓</span>
+                            <div class="checkInfo">
+                                <strong>Network Ports (54321 / 54322)</strong>
+                                <span>Signaling & UDP Annex-B transport ready</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="doctorTipCard">
+                        <svg class="tipIcon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                        </svg>
+                        <div class="tipContent">
+                            <strong>Diagnostic Notes</strong>
+                            <span>Ensure your tablet and host PC share the same Wi-Fi subnet, or use a high-speed USB cable for zero-latency direct streaming.</span>
                         </div>
                     </div>
                 </div>
             </section>
         </main>
 
-        <!-- Subtle Footer -->
         <footer class="appFooter">
-            <div class="footerLeft">
-                <span class="footerItem" id="lblHostIp">Host: 127.0.0.1</span>
-                <span class="footerDot">•</span>
-                <span class="footerItem" id="lblBackend">KWin Wayland</span>
-                <span class="footerDot">•</span>
-                <span class="footerItem" id="lblEncoder">NVENC</span>
+            <div class="footerInfo">
+                <span id="lblHostIp">127.0.0.1</span>
+                <span class="footerSep">/</span>
+                <span id="lblBackend">KWin Wayland</span>
+                <span class="footerSep">/</span>
+                <span id="lblEncoder">NVENC</span>
             </div>
-            <div class="footerRight">
-                <span class="footerText">Orbiscreen Linux Host</span>
+            <div class="footerBrand">
+                <span>Orbiscreen Linux</span>
             </div>
         </footer>
     </div>
 
-    <!-- Scripts -->
+    <div style="display:none;">
+        <span id="displayStateHeadline"></span>
+        <span id="displayStateSubtitle"></span>
+    </div>
+
     <script src="qrcode.js"></script>
     <script src="app.js"></script>
 </body>

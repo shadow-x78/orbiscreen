@@ -1,3 +1,13 @@
+orbiscreen (0.25.4-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.25.4 for Ubuntu noble.
+  * Desktop GUI native Control Center redesign (560x620) with live virtual monitor card.
+  * Zero-inline-comments enforcement across Rust, Kotlin, JS, HTML, and CSS codebases.
+  * Configuration files comment standardization with standard banners and section dividers.
+  * Clean up dead code, deduplicate variables, and fix vector QR code generation.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 20:00:00 +0300
+
 orbiscreen (0.25.3-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.3 for Ubuntu noble.

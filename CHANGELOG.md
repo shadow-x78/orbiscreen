@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.25.4] - 2026-09-08
+
+Linux Desktop GUI native Control Center redesign (compact 560 × 620 dimensions), zero-inline-comments code audit across all languages, configuration comment standardization, dead code elimination, and mathematical vector QR code rendering.
+
+### 🖥 Linux Desktop GUI & System Integration
+- **Native Utility Dimensions & Layout Refinement (`orbiscreen-gui`)**:
+  - Restructured window dimensions to standard Linux utility proportions (`560 × 620 px`, minimum `500 × 540 px`) with flexible scroll area to eliminate empty space and fit any desktop display or fractional scaling.
+  - Redesigned visual hierarchy with unified Deep Slate / Neutral Dark tokens, integrated system status header, quick navigation segments (`Connect`, `Display & Input`, `Doctor`), and streamlined action buttons.
+  - Replaced raster canvas QR generation with an offline, mathematically valid vector SVG QR generator producing crisp scannable pairing codes at any resolution.
+  - Deduplicated UI event listeners and JavaScript variables (`subTabBtns`, `usbBtn`, and `renderQrCode`).
+
+### 🛡 Code Quality, Audit & Comment Standardization
+- **Zero-Inline-Comments Policy**:
+  - Audited and stripped all inline, mid-code, and block comments across Rust (`crates/**/*.rs`), Kotlin (`clients/android/**/*.kt`), JavaScript (`app.js`), HTML (`index.html`), and CSS (`style.css`), strictly preserving 1-2 line author credit/license headers at the file tops.
+  - Preserved configuration and environment comments formatted with standard `# ─────────────────────────────────────────────` banners and `# ── <Section> ──` section dividers (`data/99-orbiscreen-usb.rules`, `.env.example`, `data/orbiscreen.service`).
+- **Dead Code & Asset Cleanup**:
+  - Audited dependencies and build artifacts, cleared stale cached build files, and ensured clean clippy checks across all targets with `-D warnings`.
+
+### 📦 Packaging & Versions
+- **Cargo Workspace**: Bumped workspace package version to 0.25.4.
+- **Android Client**: Incremented `versionCode` to 76; updated `versionName` to "0.25.4".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.4 with changelog entry.
+- **debian/changelog**: Added 0.25.4-1 release entry for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.25.4.
+
 ## [v0.25.3] - 2026-09-08
 
 Eliminate USB AOA buffer bloat and rubberbanding latency spikes on Android devices, lock ExoPlayer playback rate, and enforce backpressure across host and client transport pipelines.

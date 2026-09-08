@@ -31,7 +31,6 @@ async function invoke(cmd, args = {}) {
     return null;
 }
 
-// ── Top Navigation Segments ──
 const segmentBtns = document.querySelectorAll(".segmentBtn");
 const tabPanes = document.querySelectorAll(".tabPane");
 
@@ -47,8 +46,7 @@ segmentBtns.forEach(btn => {
     });
 });
 
-// ── Connection Sub-Tabs (Wi-Fi vs USB) ──
-const subTabBtns = document.querySelectorAll(".subTabBtn");
+const subTabBtns = document.querySelectorAll(".modeBtn, .subTabBtn");
 const subPanes = document.querySelectorAll(".subPane");
 
 subTabBtns.forEach(btn => {
@@ -63,7 +61,6 @@ subTabBtns.forEach(btn => {
     });
 });
 
-// ── DOM Elements ──
 const statusPill = document.getElementById("statusPill");
 const statusLabel = document.getElementById("statusLabel");
 const btnToggleService = document.getElementById("btnToggleService");
@@ -95,7 +92,6 @@ const btnFixDoctor = document.getElementById("btnFixDoctor");
 let isRunning = false;
 let currentUrl = "http://127.0.0.1:54321";
 
-// ── Vector QR Code Generator ──
 function renderQrCode(text) {
     const container = document.getElementById("qrContainer");
     if (!container || typeof qrcode === "undefined") return;
@@ -109,7 +105,6 @@ function renderQrCode(text) {
     }
 }
 
-// ── Status & Telemetry Refresh ──
 async function refreshStatus() {
     try {
         const status = await invoke("get_status");
@@ -122,58 +117,59 @@ async function refreshStatus() {
         currentUrl = `http://${ip}:${port}`;
         inpSessionUrl.value = currentUrl;
 
-        // Header and Status
         if (isRunning) {
             if (status.active_clients > 0) {
                 statusPill.className = "statusPill online";
                 statusLabel.textContent = "Streaming";
-                displayStateHeadline.textContent = "Extended Screen Streaming";
-                displayStateSubtitle.textContent = `Streaming to ${status.active_clients} connected device with ultra-low latency hardware encoding.`;
-                activeClientPill.classList.remove("hidden");
-                activeClientText.textContent = `${status.active_clients} Device Connected (Android Tablet)`;
+                if (displayStateHeadline) displayStateHeadline.textContent = "Extended Screen Streaming";
+                if (displayStateSubtitle) displayStateSubtitle.textContent = `Streaming to ${status.active_clients} connected device with ultra-low latency hardware encoding.`;
+                if (activeClientPill) activeClientPill.classList.remove("hidden");
+                if (activeClientText) activeClientText.textContent = `${status.active_clients} Device Connected (Android Tablet)`;
             } else {
                 statusPill.className = "statusPill ready";
                 statusLabel.textContent = "Ready";
-                displayStateHeadline.textContent = "Ready to Stream";
-                displayStateSubtitle.textContent = "Open Orbiscreen on your Android tablet or phone to connect as second display.";
-                activeClientPill.classList.add("hidden");
+                if (displayStateHeadline) displayStateHeadline.textContent = "Ready to Stream";
+                if (displayStateSubtitle) displayStateSubtitle.textContent = "Open Orbiscreen on your Android tablet or phone to connect as second display.";
+                if (activeClientPill) activeClientPill.classList.add("hidden");
             }
-            btnToggleService.className = "btnPrimary danger";
-            toggleText.textContent = "Stop Display";
-            toggleIcon.innerHTML = `<path d="M6 6h12v12H6z"/>`;
+            if (btnToggleService) {
+                btnToggleService.className = "btnMasterAction danger";
+                if (toggleText) toggleText.textContent = "Stop Display";
+                if (toggleIcon) toggleIcon.innerHTML = `<path d="M6 6h12v12H6z"/>`;
+            }
         } else {
             statusPill.className = "statusPill offline";
             statusLabel.textContent = "Stopped";
-            displayStateHeadline.textContent = "Virtual Display Offline";
-            displayStateSubtitle.textContent = "Click Start Display above to activate your extended desktop workspace.";
-            activeClientPill.classList.add("hidden");
-            btnToggleService.className = "btnPrimary";
-            toggleText.textContent = "Start Display";
-            toggleIcon.innerHTML = `<path d="M8 5v14l11-7z"/>`;
+            if (displayStateHeadline) displayStateHeadline.textContent = "Virtual Display Offline";
+            if (displayStateSubtitle) displayStateSubtitle.textContent = "Click Start Display above to activate your extended desktop workspace.";
+            if (activeClientPill) activeClientPill.classList.add("hidden");
+            if (btnToggleService) {
+                btnToggleService.className = "btnMasterAction";
+                if (toggleText) toggleText.textContent = "Start Display";
+                if (toggleIcon) toggleIcon.innerHTML = `<path d="M8 5v14l11-7z"/>`;
+            }
         }
 
-        // Display Mockup
         const width = status.display_width || 1920;
         const height = status.display_height || 1080;
         const fps = status.display_fps || 60;
-        previewResolution.textContent = `${width} × ${height} @ ${fps}Hz`;
-        previewLatency.textContent = (status.udp_port) ? "UDP ~3ms" : "HTTP Transport";
+        if (previewResolution) previewResolution.textContent = `${width} × ${height} @ ${fps}Hz`;
+        if (previewLatency) previewLatency.textContent = (status.udp_port) ? "UDP ~3ms" : "HTTP Transport";
 
-        // Footer labels
-        lblHostIp.textContent = `Host: ${ip}`;
-        lblBackend.textContent = status.capture_backend || "KWin Wayland";
-        lblEncoder.textContent = status.encoder || "NVENC";
+        if (lblHostIp) lblHostIp.textContent = `Host: ${ip}`;
+        if (lblBackend) lblBackend.textContent = status.capture_backend || "KWin Wayland";
+        if (lblEncoder) lblEncoder.textContent = status.encoder || "NVENC";
 
-        // USB status
-        if (status.usb_devices > 0) {
-            usbStatusTag.className = "usbTag ready";
-            usbStatusTag.textContent = `${status.usb_devices} USB Device Ready`;
-        } else {
-            usbStatusTag.className = "usbTag";
-            usbStatusTag.textContent = "Waiting for device...";
+        if (usbStatusTag) {
+            if (status.usb_devices > 0) {
+                usbStatusTag.className = "usbTag ready";
+                usbStatusTag.textContent = `${status.usb_devices} USB Device Ready`;
+            } else {
+                usbStatusTag.className = "usbTag";
+                usbStatusTag.textContent = "Waiting for device...";
+            }
         }
 
-        // Render real vector QR code
         renderQrCode(currentUrl);
 
     } catch (e) {
@@ -181,60 +177,67 @@ async function refreshStatus() {
     }
 }
 
-// ── Master Service Toggle ──
-btnToggleService.addEventListener("click", async () => {
-    btnToggleService.disabled = true;
-    try {
-        if (isRunning) {
-            await invoke("stop_service");
-        } else {
-            await invoke("start_service");
+if (btnToggleService) {
+    btnToggleService.addEventListener("click", async () => {
+        btnToggleService.disabled = true;
+        try {
+            if (isRunning) {
+                await invoke("stop_service");
+            } else {
+                await invoke("start_service");
+            }
+        } catch (e) {
+            console.error("Service toggle failed:", e);
         }
-    } catch (e) {
-        console.error("Service toggle failed:", e);
-    }
-    setTimeout(async () => {
-        await refreshStatus();
-        btnToggleService.disabled = false;
-    }, 800);
-});
+        setTimeout(async () => {
+            await refreshStatus();
+            btnToggleService.disabled = false;
+        }, 800);
+    });
+}
 
-btnRestartService.addEventListener("click", async () => {
-    btnRestartService.disabled = true;
-    try {
-        await invoke("restart_service");
-    } catch (e) {
-        console.error("Service restart failed:", e);
-    }
-    setTimeout(async () => {
-        await refreshStatus();
-        btnRestartService.disabled = false;
-    }, 1000);
-});
+if (btnRestartService) {
+    btnRestartService.addEventListener("click", async () => {
+        btnRestartService.disabled = true;
+        try {
+            await invoke("restart_service");
+        } catch (e) {
+            console.error("Service restart failed:", e);
+        }
+        setTimeout(async () => {
+            await refreshStatus();
+            btnRestartService.disabled = false;
+        }, 1000);
+    });
+}
 
-// ── Copy & Browser Actions ──
-btnCopyUrl.addEventListener("click", async () => {
-    try {
-        await navigator.clipboard.writeText(currentUrl);
-        btnCopyUrl.textContent = "Copied!";
-        setTimeout(() => { btnCopyUrl.textContent = "Copy"; }, 1500);
-    } catch (e) {
-        inpSessionUrl.select();
-        document.execCommand("copy");
-        btnCopyUrl.textContent = "Copied!";
-        setTimeout(() => { btnCopyUrl.textContent = "Copy"; }, 1500);
-    }
-});
+if (btnCopyUrl) {
+    btnCopyUrl.addEventListener("click", async () => {
+        try {
+            await navigator.clipboard.writeText(currentUrl);
+            btnCopyUrl.textContent = "Copied!";
+            setTimeout(() => { btnCopyUrl.textContent = "Copy"; }, 1500);
+        } catch (e) {
+            inpSessionUrl.select();
+            document.execCommand("copy");
+            btnCopyUrl.textContent = "Copied!";
+            setTimeout(() => { btnCopyUrl.textContent = "Copy"; }, 1500);
+        }
+    });
+}
 
-btnOpenBrowser.addEventListener("click", async () => {
-    await invoke("open_browser", { url: currentUrl });
-});
+if (btnOpenBrowser) {
+    btnOpenBrowser.addEventListener("click", async () => {
+        await invoke("open_browser", { url: currentUrl });
+    });
+}
 
-btnOpenUsb.addEventListener("click", async () => {
-    await invoke("open_browser", { url: "http://localhost:54321" });
-});
+if (btnOpenUsb) {
+    btnOpenUsb.addEventListener("click", async () => {
+        await invoke("open_browser", { url: "http://localhost:54321" });
+    });
+}
 
-// ── Autostart Toggle ──
 if (chkAutostart) {
     (async () => {
         const enabled = await invoke("get_autostart");
@@ -246,7 +249,6 @@ if (chkAutostart) {
     });
 }
 
-// ── Resolution & FPS Chip Selectors ──
 document.querySelectorAll("#resChips .chip").forEach(chip => {
     chip.addEventListener("click", () => {
         document.querySelectorAll("#resChips .chip").forEach(c => c.classList.remove("active"));
@@ -268,52 +270,53 @@ document.querySelectorAll("#encoderChips .chip").forEach(chip => {
     });
 });
 
-// ── Doctor Diagnostics ──
-btnRunDoctor.addEventListener("click", async () => {
-    btnRunDoctor.disabled = true;
-    btnRunDoctor.textContent = "Checking...";
-    try {
-        const jsonStr = await invoke("run_doctor_check");
-        if (jsonStr) {
-            const data = JSON.parse(jsonStr);
-            const docCompositor = document.getElementById("docCompositor");
-            const docBackend = document.getElementById("docBackend");
-            const docUinput = document.getElementById("docUinput");
-            const docEncoder = document.getElementById("docEncoder");
+if (btnRunDoctor) {
+    btnRunDoctor.addEventListener("click", async () => {
+        btnRunDoctor.disabled = true;
+        btnRunDoctor.textContent = "Checking...";
+        try {
+            const jsonStr = await invoke("run_doctor_check");
+            if (jsonStr) {
+                const data = JSON.parse(jsonStr);
+                const docCompositor = document.getElementById("docCompositor");
+                const docBackend = document.getElementById("docBackend");
+                const docUinput = document.getElementById("docUinput");
 
-            if (docCompositor && data.compositor) {
-                docCompositor.textContent = `${data.compositor} (${data.session || "Wayland"})`;
+                if (docCompositor && data.compositor) {
+                    docCompositor.textContent = `${data.compositor} (${data.session || "Wayland"})`;
+                }
+                if (docBackend && data.display_backend) {
+                    docBackend.textContent = data.display_backend;
+                }
+                if (docUinput) {
+                    docUinput.textContent = data.uinput_writable ? "/dev/uinput writable (evdev ready)" : "Permission denied (needs udev fix)";
+                }
             }
-            if (docBackend && data.display_backend) {
-                docBackend.textContent = data.display_backend;
-            }
-            if (docUinput) {
-                docUinput.textContent = data.uinput_writable ? "/dev/uinput writable (evdev ready)" : "Permission denied (needs udev fix)";
-            }
+        } catch (e) {
+            console.warn("Doctor check error:", e);
         }
-    } catch (e) {
-        console.warn("Doctor check error:", e);
-    }
-    btnRunDoctor.disabled = false;
-    btnRunDoctor.textContent = "Run Diagnostics";
-});
+        btnRunDoctor.disabled = false;
+        btnRunDoctor.textContent = "Scan";
+    });
+}
 
-btnFixDoctor.addEventListener("click", async () => {
-    btnFixDoctor.disabled = true;
-    btnFixDoctor.textContent = "Fixing...";
-    try {
-        await invoke("run_doctor_fix");
-    } catch (e) {
-        console.warn("Doctor fix error:", e);
-    }
-    setTimeout(() => {
-        btnFixDoctor.disabled = false;
-        btnFixDoctor.textContent = "Auto-Fix";
-        btnRunDoctor.click();
-    }, 1200);
-});
+if (btnFixDoctor) {
+    btnFixDoctor.addEventListener("click", async () => {
+        btnFixDoctor.disabled = true;
+        btnFixDoctor.textContent = "Fixing...";
+        try {
+            await invoke("run_doctor_fix");
+        } catch (e) {
+            console.warn("Doctor fix error:", e);
+        }
+        setTimeout(() => {
+            btnFixDoctor.disabled = false;
+            btnFixDoctor.textContent = "Auto-Fix";
+            if (btnRunDoctor) btnRunDoctor.click();
+        }, 1200);
+    });
+}
 
-// ── Init & Periodic Refresh ──
 refreshStatus();
 setInterval(refreshStatus, 2500);
 
@@ -324,6 +327,6 @@ if (window.location.hash) {
 }
 
 if (window.location.hash === "#usb") {
-    const usbBtn = document.querySelector(`.subTabBtn[data-sub="usb"]`);
+    const usbBtn = document.querySelector(`.modeBtn[data-sub="usb"], .subTabBtn[data-sub="usb"]`);
     if (usbBtn) usbBtn.click();
 }

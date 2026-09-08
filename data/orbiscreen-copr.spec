@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.25.3
+Version:        0.25.4
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -142,6 +142,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.4-1
+- Release 0.25.4: Native Linux desktop GUI redesign (560x620), zero-inline-comments code audit, configuration comment standardization, and vector QR code fix.
+
 * Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.3-1
 - Release 0.25.3: Eliminate USB AOA buffer bloat, lock ExoPlayer playback rate, configure low-latency backpressure, and fix rubberbanding on Android devices (#75).
 

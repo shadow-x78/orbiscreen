@@ -434,7 +434,6 @@ class UdpPlayer {
         }
 
         fun prepareReceive(pkt: DatagramPacket, buf: ByteArray) {
-            // length is both "bytes received" and "next receive cap".
             pkt.length = buf.size
         }
         fun encodeHello(token: String): ByteArray {

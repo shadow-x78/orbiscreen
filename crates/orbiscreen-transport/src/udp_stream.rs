@@ -134,8 +134,6 @@ impl PmtuSearch {
             return;
         };
         if recv < probe {
-            // Receiver did not see the full datagram (truncation or a stale
-            // smaller packet). That size is not usable.
             self.raise(recv);
             self.fail();
             return;
