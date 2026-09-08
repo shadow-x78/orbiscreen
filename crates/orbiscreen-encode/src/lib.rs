@@ -152,21 +152,21 @@ fn max_u32_property(el: &gstreamer::Element, name: &str) -> Option<u32> {
 fn configure_infinite_gop(encoder: &gstreamer::Element) {
     set_str_if_present(encoder, "intra-refresh", "true");
     if let Some(max) = max_u32_property(encoder, "key-int-max") {
-        let value = if max == 0 { 1024 } else { max };
+        let value = if max == 0 { 600 } else { max.min(600) };
         encoder.set_property_from_str("key-int-max", &value.to_string());
     }
     if encoder.find_property("gop-size").is_some() {
         if let Some(spec) = encoder.find_property("gop-size") {
             if spec.downcast_ref::<glib::ParamSpecInt>().is_some() {
-                encoder.set_property_from_str("gop-size", "-1");
+                encoder.set_property_from_str("gop-size", "600");
             } else if let Some(max) = max_u32_property(encoder, "gop-size") {
-                let value = if max == 0 { 1024 } else { max };
+                let value = if max == 0 { 600 } else { max.min(600) };
                 encoder.set_property_from_str("gop-size", &value.to_string());
             }
         }
     }
     if let Some(max) = max_u32_property(encoder, "keyframe-period") {
-        let value = if max == 0 { 1024 } else { max };
+        let value = if max == 0 { 600 } else { max.min(600) };
         encoder.set_property_from_str("keyframe-period", &value.to_string());
     }
     if encoder

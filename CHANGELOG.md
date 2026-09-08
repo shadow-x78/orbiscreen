@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.25.5] - 2026-09-08
+
+Fix 30-minute latency drift and rubberbanding on Android USB AOA connections ([#75](https://github.com/shadow-x78/orbiscreen/issues/75)), add micro-catchup speed compensation for physical quartz oscillator clock drift, enable proactive on-demand IDR keyframe recovery, tighten accessory proxy buffers, and configure periodic recovery keyframes in encoder pipelines.
+
+### ⚡ Performance & Low Latency
+- **Quartz Clock Drift Absorption & Live Catch-up (`PlayerHolder.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
+  - Reconfigured `MediaItem.LiveConfiguration` playback speed limits to `minPlaybackSpeed = 1.0f` and `maxPlaybackSpeed = 1.02f`. This micro-catchup range (+2%) is completely imperceptible to human vision but absorbs up to 20 ms of accumulated latency per second, continuously neutralizing physical quartz oscillator clock drift (~100 ms per 30 minutes at ~55 PPM) without rubberbanding or speed wobble.
+  - Relaxed `shouldDropOutputBuffer` threshold to -150 ms to prevent dropping late frames that corrupt downstream hardware H.264 P-frame reference chains during transient system delays.
+  - Implemented `requestIdr()` to trigger an on-demand keyframe from the host daemon via `/api/control {"action":"idr"}` whenever rendering falls behind by >120 ms (`shouldDropBuffersToKeyframe`), ensuring sub-second visual recovery.
+- **USB AOA Proxy Buffer Sizing (`UsbAccessoryManager.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
+  - Reduced accepted local proxy TCP socket `sendBufferSize` and `receiveBufferSize` from 64 KB to 16 KB, preventing stale frame queue buildup in kernel buffers.
+  - Capped maximum `accBuf` expansion to 128 KB (down from 512 KB) to prevent stale video data retention during bursts.
+- **Encoder Self-Healing Periodic Keyframes (`orbiscreen-encode` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
+  - Replaced infinite GOP (`key-int-max = 2147483647`, `gop-size = -1`) with a safe periodic recovery keyframe interval of 600 frames (every 10 seconds at 60 fps). This incurs negligible bandwidth overhead while guaranteeing automatic client resynchronization without requiring USB cable reconnections.
+- **USB Accessory Bridge Transfer Timeout (`orbiscreen-transport` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
+  - Tuned `UsbDevFsBulkTransfer` write timeout to 250 ms to prevent holding the writer thread during transient USB bus contention.
+
+### 📦 Packaging & Versions
+- **Cargo Workspace**: Bumped workspace package version to 0.25.5.
+- **Android Client**: Incremented `versionCode` to 77; updated `versionName` to "0.25.5".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.5 with changelog entry.
+- **debian/changelog**: Added 0.25.5-1 release entry for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.25.5.
+
 ## [v0.25.4] - 2026-09-08
 
 Linux Desktop GUI native Control Center redesign (compact 560 × 620 dimensions), zero-inline-comments code audit across all languages, configuration comment standardization, dead code elimination, and mathematical vector QR code rendering.

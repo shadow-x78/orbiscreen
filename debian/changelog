@@ -1,3 +1,14 @@
+orbiscreen (0.25.5-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.25.5 for Ubuntu noble.
+  * Fix 30-minute latency drift and rubberbanding on USB AOA on Android devices (#75).
+  * Configure micro-catchup playback speed (1.00x-1.02x) to absorb quartz oscillator clock drift.
+  * Add proactive on-demand IDR keyframe recovery when lag exceeds 120ms.
+  * Tighten Android USB proxy socket buffers to 16KB and cap accessory buffer expansion to 128KB.
+  * Enable periodic encoder recovery keyframes every 10 seconds (600 frames at 60fps).
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 21:00:00 +0300
+
 orbiscreen (0.25.4-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.4 for Ubuntu noble.

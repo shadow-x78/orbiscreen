@@ -353,7 +353,7 @@ pub fn run_accessory_bridge(
                 let mut bulk = UsbDevFsBulkTransfer {
                     ep: out_ep,
                     len: to_write as u32,
-                    timeout: 500,
+                    timeout: 250,
                     _pad: 0,
                     data: chunk[offset..].as_ptr() as *mut u8,
                 };

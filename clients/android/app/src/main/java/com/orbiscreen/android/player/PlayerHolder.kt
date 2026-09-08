@@ -42,7 +42,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
 sealed interface StreamEvent {
@@ -80,6 +83,27 @@ class PlayerHolder(
     private var retryCount = 0
     private val maxRetries = 3
     private var lastTarget: StreamTarget? = null
+
+    private val lastIdrAtMs = java.util.concurrent.atomic.AtomicLong(0L)
+
+    fun requestIdr() {
+        val target = lastTarget ?: return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastIdrAtMs.get() < 500L) return
+        lastIdrAtMs.set(now)
+        scope.launch(Dispatchers.IO) {
+            try {
+                val token = target.tokenProvider()
+                val body = """{"action":"idr"}""".toRequestBody("application/json".toMediaType())
+                val req = Request.Builder()
+                    .url("http://${target.host}:${target.port}/api/control")
+                    .header("Authorization", "Bearer $token")
+                    .post(body)
+                    .build()
+                okHttp.newCall(req).execute().close()
+            } catch (_: Exception) {}
+        }
+    }
 
     private val okHttp: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -174,7 +198,7 @@ class PlayerHolder(
                             MediaItem.LiveConfiguration.Builder()
                                 .setTargetOffsetMs(0)
                                 .setMinPlaybackSpeed(1.0f)
-                                .setMaxPlaybackSpeed(1.0f)
+                                .setMaxPlaybackSpeed(1.02f)
                                 .build()
                         )
                         .build()
@@ -308,7 +332,7 @@ class PlayerHolder(
                         enableDecoderFallback,
                         eventHandler,
                         eventListener,
-                    ),
+                    ) { requestIdr() },
                 )
             }
         }
@@ -380,6 +404,7 @@ private class LowLatencyVideoRenderer(
     enableDecoderFallback: Boolean,
     eventHandler: Handler,
     eventListener: VideoRendererEventListener,
+    private val onLagDetected: () -> Unit,
 ) : MediaCodecVideoRenderer(
     context,
     mediaCodecSelector,
@@ -411,10 +436,14 @@ private class LowLatencyVideoRenderer(
     }
 
     override fun shouldDropBuffersToKeyframe(earlyUs: Long, elapsedRealtimeUs: Long, isLastBuffer: Boolean): Boolean {
-        return earlyUs < -100_000
+        if (earlyUs < -120_000) {
+            onLagDetected()
+            return true
+        }
+        return false
     }
 
     override fun shouldDropOutputBuffer(earlyUs: Long, elapsedRealtimeUs: Long, isLastBuffer: Boolean): Boolean {
-        return earlyUs < -30_000
+        return earlyUs < -150_000
     }
 }

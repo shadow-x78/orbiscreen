@@ -2,7 +2,7 @@
 
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.25.4-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.25.5-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -73,24 +73,21 @@
 ---
 
 <a id="ci-fmt"></a>
-## 🧪 إجراء CI: `Check formatting` ‏(`cargo fmt --all -- --check`)
+## 🧪 إجراء CI: `Format (cargo fmt)`
 
-**العرَض:**
+**العَرَض:**
 ```
-Diff in /path/to/file.rs:
-   println!("x");
--  println!("y");
-+  println!("z");
+Diff in /home/runner/work/orbiscreen/orbiscreen/crates/...:
 ```
 
 **السبب:**
-ملفات مصدر Rust لا تطابق تنسيق `cargo fmt`.
+الكود البرمجي غير مطابق لمعايير تنسيق Rust القياسية (`rustfmt`).
 
-**الإصلاح:**
+**الحل:**
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.25.4 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.25.5 | style: cargo fmt --all"
 ```
 
 **الوقاية:**
@@ -115,7 +112,7 @@ error: this operation is not supported for derived errors
 cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
 cargo clippy --workspace --all-targets --locked --fix
 git add -A
-git commit -m "orbiscreen | v0.25.4 | fix: resolve clippy warnings"
+git commit -m "orbiscreen | v0.25.5 | fix: resolve clippy warnings"
 ```
 
 **الوقاية:**
@@ -136,7 +133,7 @@ error[E0463]: can't find crate for `gstreamer`
 cargo update -p gstreamer
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.25.4 | chore: refresh Cargo.lock"
+git commit -m "orbiscreen | v0.25.5 | chore: refresh Cargo.lock"
 ```
 
 ---
@@ -566,7 +563,7 @@ gst-inspect-1.0 x264enc
 كانت حلقة الالتقاط تعمل دون إخلاء للمعالج أو تراكم غير محدود في الطابور.
 
 **الإصلاح:**
-حدّث إلى الإصدار الأخير (v0.25.4 أو أحدث).
+حدّث إلى الإصدار الأخير (v0.25.5 أو أحدث).
 
 ---
 

@@ -130,8 +130,8 @@ object UsbAccessoryManager {
             val clientSocket = try {
                 server.accept().apply {
                     tcpNoDelay = true
-                    sendBufferSize = 65536
-                    receiveBufferSize = 65536
+                    sendBufferSize = 16384
+                    receiveBufferSize = 16384
                 }
             } catch (_: Exception) {
                 break
@@ -176,7 +176,7 @@ object UsbAccessoryManager {
             if (bytesRead <= 0) break
 
             if (accLen + bytesRead > accBuf.size) {
-                val newCap = minOf(524288, maxOf(accBuf.size * 2, accLen + bytesRead))
+                val newCap = minOf(131072, maxOf(accBuf.size * 2, accLen + bytesRead))
                 if (newCap > accBuf.size) {
                     val expanded = ByteArray(newCap)
                     System.arraycopy(accBuf, 0, expanded, 0, accLen)

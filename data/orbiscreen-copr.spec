@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.25.4
+Version:        0.25.5
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -142,6 +142,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.5-1
+- Release 0.25.5: Fix 30-minute latency drift and rubberbanding on USB AOA, quartz clock drift micro-catchup, on-demand IDR keyframe recovery, and periodic recovery keyframes (#75).
+
 * Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.4-1
 - Release 0.25.4: Native Linux desktop GUI redesign (560x620), zero-inline-comments code audit, configuration comment standardization, and vector QR code fix.
 
