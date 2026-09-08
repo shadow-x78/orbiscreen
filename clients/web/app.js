@@ -99,18 +99,14 @@ const I18N = {
     }
 };
 
-const currentLang = "en";
 let currentLang = localStorage.getItem("orbiscreen_web_lang") || "en";
 
 function t(key) {
-    return I18N.en[key] || key;
     const dict = I18N[currentLang] || I18N.en;
     return dict[key] || I18N.en[key] || key;
 }
 
 function applyTranslations() {
-    document.documentElement.lang = "en";
-    document.documentElement.dir = "ltr";
     document.documentElement.lang = currentLang;
     document.documentElement.dir = (currentLang === "ar") ? "rtl" : "ltr";
 

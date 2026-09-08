@@ -1,6 +1,5 @@
 <!doctype html>
 <!-- Orbiscreen - Web Client (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen -->
-<html lang="en">
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8" />
@@ -13,13 +12,12 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    
     <header id="controlToolbar" class="controlToolbar hidden">
         <div class="toolbarHost">
             <span class="activeDot"></span>
             <div class="hostDetails">
                 <span id="hostName" class="hostName">Orbiscreen</span>
-                <span id="hostInfo" class="hostInfo">1920×1080  NVENC</span>
+                <span id="hostInfo" class="hostInfo">1920×1080 · NVENC</span>
             </div>
         </div>
 
@@ -208,19 +206,13 @@
 
         <div id="overlay" class="overlay">
             <div class="loadingContainer">
-                <svg id="brandLogo" class="brandLogo hidden" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <svg id="brandLogo" class="brandLogo" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
-                        <linearGradient id="brandBlue" x1="0%" y1="0%" x2="100%" y2="100%">
                         <linearGradient id="webBrandBlue" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stop-color="#89b4fa"/>
                             <stop offset="100%" stop-color="#74c7ec"/>
                         </linearGradient>
                     </defs>
-                    <circle cx="256" cy="256" r="220" fill="none" stroke="#89b4fa" stroke-width="2" opacity="0.18" stroke-dasharray="10 10"/>
-                    <circle cx="256" cy="256" r="170" fill="none" stroke="url(#brandBlue)" stroke-width="50"/>
-                    <circle cx="376" cy="376" r="62" fill="url(#brandBlue)"/>
-                    <circle cx="376" cy="376" r="62" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.4"/>
                     <circle cx="256" cy="256" r="220" fill="none" stroke="#89b4fa" stroke-width="2" opacity="0.25" stroke-dasharray="8 8"/>
                     <circle cx="256" cy="256" r="170" fill="none" stroke="url(#webBrandBlue)" stroke-width="48"/>
                     <circle cx="376" cy="376" r="62" fill="url(#webBrandBlue)"/>
@@ -233,7 +225,6 @@
                     </svg>
                 </div>
                 <h3 id="statusTitle" class="statusTitle" data-i18n="statusConnecting">Connecting</h3>
-                <p id="statusSubtitle" class="statusSubtitle" data-i18n="statusConnectingSub">Connecting&hellip;</p>
                 <p id="statusSubtitle" class="statusSubtitle" data-i18n="statusConnectingSub">Connecting to Linux host...</p>
                 <div id="tokenRow" class="tokenRow hidden">
                     <input type="text" id="tokenInput" placeholder="Session token..." data-i18n-placeholder="tokenPlaceholder" />

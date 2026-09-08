@@ -56,6 +56,25 @@ RestartSec=3
 WantedBy=default.target
 EOF
 
+# ── Desktop & Icon Integration ──
+mkdir -p "${HOME}/.local/share/applications" "${HOME}/.local/share/icons/hicolor/scalable/apps"
+cp -f data/orbiscreen.desktop "${HOME}/.local/share/applications/"
+cp -f data/orbiscreen.svg "${HOME}/.local/share/icons/hicolor/scalable/apps/"
+ln -sf orbiscreen.svg "${HOME}/.local/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg"
+for size in 16 24 32 48 64 128 256 512; do
+    if [ -f "crates/orbiscreen-gui/icons/${size}x${size}.png" ]; then
+        mkdir -p "${HOME}/.local/share/icons/hicolor/${size}x${size}/apps"
+        cp -f "crates/orbiscreen-gui/icons/${size}x${size}.png" "${HOME}/.local/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
+        ln -sf orbiscreen.png "${HOME}/.local/share/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"
+    fi
+done
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database "${HOME}/.local/share/applications" >/dev/null 2>&1 || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache "${HOME}/.local/share/icons/hicolor" >/dev/null 2>&1 || true
+fi
+
 # ── Final Instructions ──
 echo "[Orbiscreen] Installed systemd user unit to ${SYSTEMD_USER_DIR}/orbiscreen.service"
 echo ""
