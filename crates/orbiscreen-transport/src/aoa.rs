@@ -330,7 +330,7 @@ pub fn run_accessory_bridge(
     );
 
     let (prio_tx, prio_rx) = std::sync::mpsc::channel::<Vec<u8>>();
-    let (video_tx, video_rx) = std::sync::mpsc::channel::<Vec<u8>>();
+    let (video_tx, video_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(4);
     let running_writer = running.clone();
     let fd_writer = fd;
     let writer_handle = std::thread::spawn(move || {
@@ -353,7 +353,7 @@ pub fn run_accessory_bridge(
                 let mut bulk = UsbDevFsBulkTransfer {
                     ep: out_ep,
                     len: to_write as u32,
-                    timeout: 100,
+                    timeout: 500,
                     _pad: 0,
                     data: chunk[offset..].as_ptr() as *mut u8,
                 };
@@ -361,6 +361,13 @@ pub fn run_accessory_bridge(
                 if written < 0 {
                     let err = std::io::Error::last_os_error();
                     debug!("USB bulk write error: {err}");
+                    if matches!(
+                        err.raw_os_error(),
+                        Some(110) | Some(libc::EINTR) | Some(libc::EAGAIN)
+                    ) {
+                        std::thread::sleep(Duration::from_millis(5));
+                        continue;
+                    }
                     break;
                 }
                 offset += written as usize;
@@ -415,6 +422,24 @@ pub fn run_accessory_bridge(
                         Ok(mut tcp_stream) => {
                             let _ = tcp_stream.set_nodelay(true);
                             let _ = tcp_stream.set_read_timeout(Some(Duration::from_millis(1500)));
+                            let raw_sock_fd = tcp_stream.as_raw_fd();
+                            let sock_buf_size: libc::c_int = 32768;
+                            unsafe {
+                                libc::setsockopt(
+                                    raw_sock_fd,
+                                    libc::SOL_SOCKET,
+                                    libc::SO_RCVBUF,
+                                    &sock_buf_size as *const _ as *const libc::c_void,
+                                    std::mem::size_of_val(&sock_buf_size) as libc::socklen_t,
+                                );
+                                libc::setsockopt(
+                                    raw_sock_fd,
+                                    libc::SOL_SOCKET,
+                                    libc::SO_SNDBUF,
+                                    &sock_buf_size as *const _ as *const libc::c_void,
+                                    std::mem::size_of_val(&sock_buf_size) as libc::socklen_t,
+                                );
+                            }
                             let (tcp_tx, tcp_rx) = std::sync::mpsc::channel::<Vec<u8>>();
                             let is_video = Arc::new(AtomicBool::new(false));
                             if let Ok(stream_for_map) = tcp_stream.try_clone() {

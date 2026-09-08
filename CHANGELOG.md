@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.25.3] - 2026-09-08
+
+Eliminate USB AOA buffer bloat and rubberbanding latency spikes on Android devices, lock ExoPlayer playback rate, and enforce backpressure across host and client transport pipelines.
+
+### ⚡ Performance & Low Latency
+- **USB AOA Backpressure & Buffer Bloat Elimination (`orbiscreen-transport`, Android Client - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
+  - Replaced the unbounded MPSC video transmission queue in `run_accessory_bridge()` with a bounded synchronous channel (`sync_channel(4)`), exerting immediate upstream backpressure whenever USB bulk writes throttle.
+  - Upstream backpressure now triggers Axum's broadcast receiver lagging detection, dropping queued non-keyframe packets and requesting a clean IDR keyframe rather than buffering megabytes of stale video in host memory.
+  - Sized local loopback TCP socket buffers (`SO_RCVBUF` and `SO_SNDBUF` to 32 KB) to prevent the Linux kernel from silently buffering stale frames between the daemon and AOA bridge.
+  - Increased USB bulk write timeout to 500 ms and handled recoverable errors (`ETIMEDOUT`, `EINTR`, `EAGAIN`) with retries, preventing partial frame writes and framing desync in the AOA protocol.
+- **Android ExoPlayer Rubberbanding & Stutter Resolution (`PlayerHolder.kt`, `UsbAccessoryManager.kt`)**:
+  - Locked `LiveConfiguration` min and max playback speeds to `1.0f`, completely eliminating the 0.95x–1.08x playback speed oscillation (rubberbanding) when dragging desktop windows.
+  - Reconfigured `DefaultLoadControl` buffer durations to `(100, 1000, 32, 64)`, eliminating artificial TCP zero-window read pauses every 2–3 frames.
+  - Overrode `shouldDropOutputBuffer` (threshold -30 ms) and `shouldDropBuffersToKeyframe` (threshold -100 ms) in `LowLatencyVideoRenderer` to immediately snap back to live edge upon any delay spike.
+  - Enabled `tcpNoDelay = true` and socket buffer sizing on accepted local proxy sockets in `UsbAccessoryManager`, removed redundant per-packet `flush()` calls, and capped `accBuf` expansion to 512 KB.
+
+### 📦 Packaging & Versions
+- **Cargo Workspace**: Bumped workspace package version to 0.25.3.
+- **Android Client**: Incremented `versionCode` to 75; updated `versionName` to "0.25.3".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.3 with changelog entry.
+- **debian/changelog**: Added 0.25.3-1 release entry for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.25.3.
+
 ## [v0.25.2] - 2026-09-08
 
 Linux Desktop GUI redesign into a native Control Center, fix missing system tray and taskbar icons on Wayland, automate NVIDIA explicit sync compatibility, and add complete raster/vector icon packaging.

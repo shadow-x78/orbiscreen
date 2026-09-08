@@ -128,7 +128,11 @@ object UsbAccessoryManager {
     private fun handleServerAccept(server: ServerSocket, outStream: OutputStream) {
         while (isRunning.get() && !server.isClosed) {
             val clientSocket = try {
-                server.accept()
+                server.accept().apply {
+                    tcpNoDelay = true
+                    sendBufferSize = 65536
+                    receiveBufferSize = 65536
+                }
             } catch (_: Exception) {
                 break
             }
@@ -172,10 +176,15 @@ object UsbAccessoryManager {
             if (bytesRead <= 0) break
 
             if (accLen + bytesRead > accBuf.size) {
-                val newCap = maxOf(accBuf.size * 2, accLen + bytesRead)
-                val expanded = ByteArray(newCap)
-                System.arraycopy(accBuf, 0, expanded, 0, accLen)
-                accBuf = expanded
+                val newCap = minOf(524288, maxOf(accBuf.size * 2, accLen + bytesRead))
+                if (newCap > accBuf.size) {
+                    val expanded = ByteArray(newCap)
+                    System.arraycopy(accBuf, 0, expanded, 0, accLen)
+                    accBuf = expanded
+                } else {
+                    accLen = 0
+                    continue
+                }
             }
             System.arraycopy(rxBuf, 0, accBuf, accLen, bytesRead)
             accLen += bytesRead
@@ -194,7 +203,6 @@ object UsbAccessoryManager {
                     if (sock != null && !sock.isClosed) {
                         try {
                             sock.getOutputStream().write(accBuf, offset + FRAME_HEADER_LEN, payloadLen)
-                            sock.getOutputStream().flush()
                         } catch (_: Exception) {
                             activeStreams.remove(streamId)
                             try { sock.close() } catch (_: Exception) {}

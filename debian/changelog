@@ -1,3 +1,14 @@
+orbiscreen (0.25.3-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.25.3 for Ubuntu noble.
+  * Eliminate USB AOA buffer bloat with bounded sync channel and TCP buffer limits (#75).
+  * Lock ExoPlayer live playback rate to 1.0f to eliminate rubberbanding during window drags.
+  * Reconfigure loadControl buffer durations to prevent zero-window TCP read stalls.
+  * Add aggressive late frame dropping in LowLatencyVideoRenderer to stay on live edge.
+  * Optimize Android UsbAccessoryManager socket options and buffer bounds.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 19:10:00 +0300
+
 orbiscreen (0.25.2-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.2 for Ubuntu noble.
