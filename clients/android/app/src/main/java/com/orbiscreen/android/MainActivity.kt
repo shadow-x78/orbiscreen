@@ -40,6 +40,18 @@ class MainActivity : ComponentActivity() {
             when (intent.action) {
                 UsbManager.ACTION_USB_ACCESSORY_ATTACHED -> handleAccessoryIntent(intent)
                 UsbManager.ACTION_USB_ACCESSORY_DETACHED -> UsbAccessoryManager.onAccessoryDetached()
+                UsbAccessoryManager.ACTION_USB_PERMISSION -> {
+                    val accessory = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY, UsbAccessory::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY)
+                    }
+                    val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
+                    if (granted && accessory != null) {
+                        UsbAccessoryManager.startAccessory(context, accessory)
+                    }
+                }
             }
         }
     }
@@ -52,6 +64,7 @@ class MainActivity : ComponentActivity() {
         val filter = IntentFilter().apply {
             addAction(UsbManager.ACTION_USB_ACCESSORY_ATTACHED)
             addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED)
+            addAction(UsbAccessoryManager.ACTION_USB_PERMISSION)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(usbReceiver, filter, Context.RECEIVER_NOT_EXPORTED)

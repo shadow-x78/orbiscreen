@@ -13,6 +13,10 @@ pub struct DaemonStatus {
     pub total_clients: u64,
     pub auth_failures: u64,
     pub usb_devices: u32,
+    #[serde(default)]
+    pub usb_connected_devices: Vec<String>,
+    #[serde(default)]
+    pub usb_aoa_ready: bool,
     pub encoder: String,
     pub capture_backend: String,
     pub display_width: u32,
@@ -33,13 +37,15 @@ impl Default for DaemonStatus {
             total_clients: 0,
             auth_failures: 0,
             usb_devices: 0,
+            usb_connected_devices: Vec::new(),
+            usb_aoa_ready: false,
             encoder: "Unknown".to_string(),
             capture_backend: "Unknown".to_string(),
             display_width: 1920,
             display_height: 1080,
             display_fps: 60,
-            signaling_port: 54321,
-            udp_port: 54322,
+            signaling_port: 8788,
+            udp_port: 8789,
             local_ips: Vec::new(),
             session_token: None,
         }

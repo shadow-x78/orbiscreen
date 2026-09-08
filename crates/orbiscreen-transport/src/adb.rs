@@ -187,6 +187,29 @@ pub fn default_adb_path() -> &'static Path {
     Path::new("adb")
 }
 
+pub async fn supervisor(
+    host_port: u16,
+    udp_port: u16,
+    mut shutdown: tokio::sync::watch::Receiver<bool>,
+) {
+    let adb = default_adb_path();
+    loop {
+        let _ = tokio::task::spawn_blocking(move || {
+            if let Ok(serials) = setup_reverse_for_all(adb, host_port) {
+                for serial in &serials {
+                    let _ = reverse_port(adb, serial, udp_port);
+                }
+            }
+        })
+        .await;
+
+        tokio::select! {
+            _ = tokio::time::sleep(std::time::Duration::from_secs(3)) => {}
+            _ = shutdown.changed() => break,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

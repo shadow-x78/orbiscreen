@@ -8,8 +8,8 @@ pub mod udp_stream;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, RwLock};
 
 use axum::extract::State;
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
@@ -63,6 +63,8 @@ pub struct Stats {
     total_clients: AtomicU64,
     auth_failures: AtomicU64,
     usb_devices: AtomicUsize,
+    usb_connected_names: RwLock<Vec<String>>,
+    usb_aoa_ready: AtomicBool,
     presence: tokio::sync::watch::Sender<bool>,
 }
 
@@ -75,6 +77,8 @@ impl Default for Stats {
             total_clients: AtomicU64::new(0),
             auth_failures: AtomicU64::new(0),
             usb_devices: AtomicUsize::new(0),
+            usb_connected_names: RwLock::new(Vec::new()),
+            usb_aoa_ready: AtomicBool::new(false),
             presence,
         }
     }
@@ -99,6 +103,22 @@ impl Stats {
 
     pub fn usb_devices(&self) -> usize {
         self.usb_devices.load(Ordering::Relaxed)
+    }
+
+    pub fn usb_connected_names(&self) -> Vec<String> {
+        self.usb_connected_names.read().unwrap().clone()
+    }
+
+    pub fn is_usb_aoa_ready(&self) -> bool {
+        self.usb_aoa_ready.load(Ordering::Relaxed)
+    }
+
+    pub fn note_usb_state(&self, count: usize, names: Vec<String>, aoa_ready: bool) {
+        self.usb_devices.store(count, Ordering::Relaxed);
+        self.usb_aoa_ready.store(aoa_ready, Ordering::Relaxed);
+        if let Ok(mut lock) = self.usb_connected_names.write() {
+            *lock = names;
+        }
     }
 
     fn note_frame(&self) {
@@ -265,18 +285,28 @@ impl Transport {
             aoa::supervisor(aoa_port, aoa_active_for_sup, aoa_shutdown).await;
         });
 
+        let adb_port = self.cfg.signaling_port;
+        let adb_udp_port = udp_port;
+        let adb_shutdown = shutdown_rx.clone();
+        tokio::spawn(async move {
+            adb::supervisor(adb_port, adb_udp_port, adb_shutdown).await;
+        });
+
         let usb_stats = state.stats.clone();
         let mut usb_shutdown = shutdown_rx.clone();
         let aoa_active_for_stats = aoa_active.clone();
         let usb_stats_task = tokio::spawn(async move {
             loop {
-                usb_stats.note_usb_devices(aoa_active_for_stats.load(Ordering::Relaxed));
+                let is_aoa = aoa_active_for_stats.load(Ordering::Relaxed) > 0;
+                let names = aoa::get_connected_candidate_names();
+                let count = if is_aoa { 1 } else { names.len() };
+                usb_stats.note_usb_state(count, names, is_aoa);
                 tokio::select! {
                     _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {}
                     _ = usb_shutdown.changed() => break,
                 }
             }
-            usb_stats.note_usb_devices(0);
+            usb_stats.note_usb_state(0, Vec::new(), false);
         });
 
         let stats_pump = state.stats.clone();

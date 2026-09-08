@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 object UsbAccessoryManager {
+    const val ACTION_USB_PERMISSION = "com.orbiscreen.android.USB_PERMISSION"
     private const val TAG = "UsbAccessoryManager"
     private const val FRAME_FLAG_DATA: Byte = 0x01
     private const val FRAME_FLAG_OPEN: Byte = 0x02
@@ -53,14 +54,42 @@ object UsbAccessoryManager {
         val accessories = usbManager.accessoryList ?: return
         for (acc in accessories) {
             if (acc.manufacturer == "shadow-x78" || acc.model == "Orbiscreen") {
-                startAccessory(context, acc)
+                if (usbManager.hasPermission(acc)) {
+                    startAccessory(context, acc)
+                } else {
+                    requestPermission(context, acc)
+                }
                 break
             }
         }
     }
 
+    fun requestPermission(context: Context, accessory: UsbAccessory) {
+        val usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager ?: return
+        val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            android.app.PendingIntent.FLAG_MUTABLE
+        } else {
+            0
+        }
+        val intent = android.content.Intent(ACTION_USB_PERMISSION).apply {
+            `package` = context.packageName
+        }
+        val permissionIntent = android.app.PendingIntent.getBroadcast(
+            context,
+            0,
+            intent,
+            flags
+        )
+        usbManager.requestPermission(accessory, permissionIntent)
+    }
+
     fun onAccessoryAttached(context: Context, accessory: UsbAccessory) {
-        startAccessory(context, accessory)
+        val usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager ?: return
+        if (usbManager.hasPermission(accessory)) {
+            startAccessory(context, accessory)
+        } else {
+            requestPermission(context, accessory)
+        }
     }
 
     fun onAccessoryDetached() {
@@ -71,6 +100,10 @@ object UsbAccessoryManager {
     fun startAccessory(context: Context, accessory: UsbAccessory) {
         if (isRunning.get()) return
         val usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager ?: return
+        if (!usbManager.hasPermission(accessory)) {
+            requestPermission(context, accessory)
+            return
+        }
         val pfd = try {
             usbManager.openAccessory(accessory)
         } catch (e: Exception) {

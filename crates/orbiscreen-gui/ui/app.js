@@ -91,10 +91,11 @@ const I18N = {
         docBackend: "Virtual Screen Pipeline",
         docUinput: "Input Injection (/dev/uinput)",
         docEncoder: "Video Hardware Acceleration",
-        docPorts: "Network Ports (54321 / 54322)",
+        docPorts: "Network Ports (8788 / 8789)",
         docPortsDesc: "Signaling & UDP Annex-B transport ready",
         docTipTitle: "Diagnostic Notes",
         docTipDesc: "Ensure your tablet and host PC share the same Wi-Fi subnet, or use a high-speed USB cable for zero-latency direct streaming.",
+        connected: "Connected",
         restartTitle: "Restart Host Daemon",
         toastRestart: "Restarting host daemon...",
         toastRestartDone: "Daemon restarted successfully",
@@ -162,10 +163,11 @@ const I18N = {
         docBackend: "مسار الشاشة الافتراضية",
         docUinput: "وحدة حقن الإدخال (/dev/uinput)",
         docEncoder: "تسريع الفيديو العتادي",
-        docPorts: "منافذ الشبكة (54321 / 54322)",
-        docPortsDesc: "مسارات الإشارة وUDP جاهزة",
-        docTipTitle: "إرشادات التشخيص",
+        docPorts: "منافذ الشبكة (8788 / 8789)",
+        docPortsDesc: "بروتوكول الإشارات ونقل UDP المباشر جاهز",
+        docTipTitle: "ملاحظات الفحص",
         docTipDesc: "تأكد من وجود جهازك والكمبيوتر على نفس الشبكة المحلية، أو استخدم كابل USB مباشر لأقل زمن استجابة ممكن.",
+        connected: "متصل",
         restartTitle: "إعادة تشغيل الخدمة",
         toastRestart: "جارِ إعادة تشغيل الخدمة...",
         toastRestartDone: "تمت إعادة تشغيل الخدمة بنجاح",
@@ -296,7 +298,8 @@ const btnFixDoctor = document.getElementById("btnFixDoctor");
 const btnLangToggle = document.getElementById("btnLangToggle");
 
 let isRunning = false;
-let currentUrl = "http://127.0.0.1:54321";
+let currentUrl = "http://127.0.0.1:8788";
+let lastStatus = null;
 
 function renderQr(url) {
     const container = document.getElementById("qrContainer");
@@ -317,10 +320,11 @@ async function refreshStatus() {
         const status = await invoke("get_status");
         if (!status) return;
 
+        lastStatus = status;
         isRunning = status.running;
 
         const ip = (status.local_ips && status.local_ips.length > 0) ? status.local_ips[0] : "127.0.0.1";
-        const port = status.signaling_port || 54321;
+        const port = status.signaling_port || 8788;
         const tokenPart = status.session_token ? `#token=${status.session_token}` : "";
         currentUrl = `http://${ip}:${port}/${tokenPart}`;
 
@@ -385,8 +389,15 @@ async function refreshStatus() {
         if (usbStatusTag) {
             const usbPane = document.getElementById("sub-usb");
             const badge = usbPane ? usbPane.querySelector(".usbStatusBadge") : null;
-            if (status.usb_devices > 0) {
-                usbStatusTag.textContent = t("usbReady");
+            const devList = (status.usb_connected_devices && status.usb_connected_devices.length > 0)
+                ? status.usb_connected_devices.join(", ")
+                : "";
+
+            if (status.usb_aoa_ready) {
+                usbStatusTag.textContent = devList ? `${devList} (${t("usbReady")})` : t("usbReady");
+                if (badge) badge.classList.add("ready");
+            } else if (status.usb_devices > 0 || devList) {
+                usbStatusTag.textContent = devList ? `${devList} (${t("connected")})` : t("usbReady");
                 if (badge) badge.classList.add("ready");
             } else {
                 usbStatusTag.textContent = t("usbWaiting");
@@ -452,7 +463,8 @@ if (btnOpenBrowser && inpSessionUrl) {
 
 if (btnOpenUsb) {
     btnOpenUsb.addEventListener("click", async () => {
-        await invoke("open_browser", { url: "http://127.0.0.1:54321/" });
+        const port = lastStatus && lastStatus.signaling_port ? lastStatus.signaling_port : 8788;
+        await invoke("open_browser", { url: `http://127.0.0.1:${port}/` });
     });
 }
 

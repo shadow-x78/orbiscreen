@@ -104,21 +104,21 @@ class HostApi {
             val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
             while (interfaces != null && interfaces.hasMoreElements()) {
                 val iface = interfaces.nextElement()
-                val name = iface.name.lowercase()
-                if (name.startsWith("rndis") || name.startsWith("usb") || name.startsWith("ncm") || name.startsWith("eth") || name.startsWith("arc") || name.startsWith("tun")) {
-                    val addrs = iface.inetAddresses
-                    while (addrs.hasMoreElements()) {
-                        val addr = addrs.nextElement()
-                        if (addr is java.net.Inet4Address && !addr.isLoopbackAddress) {
-                            val ip = addr.hostAddress ?: continue
-                            val parts = ip.split(".")
-                            if (parts.size == 4) {
-                                val prefix = "${parts[0]}.${parts[1]}.${parts[2]}"
-                                val c1 = "$prefix.1"
-                                val c2 = "$prefix.2"
-                                if (!candidates.contains(c1)) candidates.add(c1)
-                                if (!candidates.contains(c2)) candidates.add(c2)
-                            }
+                if (!iface.isUp || iface.isLoopback) continue
+                val addrs = iface.inetAddresses
+                while (addrs.hasMoreElements()) {
+                    val addr = addrs.nextElement()
+                    if (addr is java.net.Inet4Address && !addr.isLoopbackAddress) {
+                        val ip = addr.hostAddress ?: continue
+                        val parts = ip.split(".")
+                        if (parts.size == 4) {
+                            val prefix = "${parts[0]}.${parts[1]}.${parts[2]}"
+                            val c1 = "$prefix.1"
+                            val c2 = "$prefix.2"
+                            val c100 = "$prefix.100"
+                            if (!candidates.contains(c1)) candidates.add(c1)
+                            if (!candidates.contains(c2)) candidates.add(c2)
+                            if (!candidates.contains(c100)) candidates.add(c100)
                         }
                     }
                 }

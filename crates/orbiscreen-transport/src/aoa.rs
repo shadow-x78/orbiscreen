@@ -553,12 +553,48 @@ pub fn run_accessory_bridge(
     Ok(())
 }
 
+pub fn get_connected_candidate_names() -> Vec<String> {
+    let mut names = Vec::new();
+    let devices = scan_usb_devices();
+    for dev in &devices {
+        if dev.vendor_id == 0x1d6b {
+            continue;
+        }
+        let is_acc = is_google_accessory(dev.vendor_id, dev.product_id);
+        let is_cand = is_android_candidate(dev);
+        if !is_acc && !is_cand {
+            continue;
+        }
+        if is_acc {
+            names.push("Google Accessory".to_string());
+        } else {
+            let prod = std::fs::read_to_string(dev.sysfs_path.join("product"))
+                .unwrap_or_default()
+                .trim()
+                .to_owned();
+            let mfg = std::fs::read_to_string(dev.sysfs_path.join("manufacturer"))
+                .unwrap_or_default()
+                .trim()
+                .to_owned();
+            let name = if !mfg.is_empty() && !prod.is_empty() {
+                format!("{mfg} {prod}")
+            } else if !prod.is_empty() {
+                prod
+            } else {
+                format!("{:04x}:{:04x}", dev.vendor_id, dev.product_id)
+            };
+            names.push(name);
+        }
+    }
+    names
+}
+
 pub async fn supervisor(
     daemon_port: u16,
     active_count: Arc<AtomicUsize>,
     mut shutdown: tokio::sync::watch::Receiver<bool>,
 ) {
-    let mut tried_devices: Vec<(u16, u16)> = Vec::new();
+    let mut tried_devices: HashMap<(u16, u16), std::time::Instant> = HashMap::new();
 
     loop {
         let devices = scan_usb_devices();
@@ -608,13 +644,16 @@ pub async fn supervisor(
             };
             tokio::time::sleep(sleep_duration).await;
         } else {
+            let now = std::time::Instant::now();
             for dev in &devices {
                 if dev.vendor_id == 0x1d6b || !is_android_candidate(dev) {
                     continue;
                 }
                 let pair = (dev.vendor_id, dev.product_id);
-                if tried_devices.contains(&pair) {
-                    continue;
+                if let Some(last_time) = tried_devices.get(&pair) {
+                    if now.duration_since(*last_time) < Duration::from_secs(4) {
+                        continue;
+                    }
                 }
 
                 let dev_clone = dev.clone();
@@ -623,7 +662,7 @@ pub async fn supervisor(
                         .await
                         .unwrap_or(false);
 
-                tried_devices.push(pair);
+                tried_devices.insert(pair, now);
                 if switched {
                     tokio::time::sleep(Duration::from_millis(800)).await;
                     break;

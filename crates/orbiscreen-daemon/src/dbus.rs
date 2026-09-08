@@ -39,6 +39,8 @@ impl OrbiscreenDbusServer {
             "total_clients": self.handles.stats.total_clients(),
             "auth_failures": self.handles.stats.auth_failures(),
             "usb_devices": self.handles.stats.usb_devices(),
+            "usb_connected_devices": self.handles.stats.usb_connected_names(),
+            "usb_aoa_ready": self.handles.stats.is_usb_aoa_ready(),
             "encoder": self.handles.encoder,
             "capture_backend": self.handles.capture_backend,
             "display_width": self.handles.config.display.width,
