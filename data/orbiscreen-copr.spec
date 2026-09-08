@@ -3,6 +3,9 @@
 # https://github.com/shadow-x78/orbiscreen
 # ─────────────────────────────────────────────
 
+%global debug_package %{nil}
+%global __brp_mangle_shebangs %{nil}
+
 # ── Metadata ──
 Name:           orbiscreen
 Version:        0.25.0

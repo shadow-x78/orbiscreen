@@ -23,8 +23,9 @@ mkdir -p target/rpmbuild/RPMS
 mkdir -p target/rpmbuild/SOURCES
 mkdir -p target/rpmbuild/SPECS
 mkdir -p target/rpmbuild/SRPMS
+mkdir -p target/tmp
 
-if [ ! -f target/release/orbiscreen ]; then
+if [ ! -f target/release/orbiscreen ] || [ ! -f target/release/orbiscreen-gui ]; then
     echo "[Orbiscreen] Building release binaries for RPM..."
     cargo build --release --workspace
 fi
@@ -39,6 +40,7 @@ if command -v rpmbuild >/dev/null 2>&1; then
     rpmbuild -bb \
         --buildroot "$(pwd)/${BUILD_ROOT}" \
         --define "_topdir $(pwd)/target/rpmbuild" \
+        --define "_tmppath $(pwd)/target/tmp" \
         --define "_projectroot $(pwd)" \
         --define "_version ${VERSION}" \
         scripts/orbiscreen-local.spec

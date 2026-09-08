@@ -5,6 +5,8 @@
 
 # ── Macros ──
 %define _builddir %{_topdir}/../..
+%global debug_package %{nil}
+%global __brp_mangle_shebangs %{nil}
 
 # ── Package Metadata ──
 Name:           orbiscreen
@@ -33,16 +35,22 @@ touch and mouse control, and Wi-Fi or USB tunneling.
 mkdir -p %{buildroot}/usr/bin
 mkdir -p %{buildroot}/usr/lib/systemd/user
 mkdir -p %{buildroot}/usr/share/orbiscreen/client
+mkdir -p %{buildroot}/usr/share/icons/hicolor/scalable/apps
+mkdir -p %{buildroot}/usr/share/applications
+mkdir -p %{buildroot}/usr/lib/udev/rules.d
 
 install -m 0755 %{_projectroot}/target/release/orbiscreen %{buildroot}/usr/bin/orbiscreen
+if [ -f %{_projectroot}/target/release/orbiscreen-gui ]; then
+    install -m 0755 %{_projectroot}/target/release/orbiscreen-gui %{buildroot}/usr/bin/orbiscreen-gui
+fi
+install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
+install -m 0644 %{_projectroot}/data/orbiscreen.desktop %{buildroot}/usr/share/applications/orbiscreen.desktop
+install -m 0644 %{_projectroot}/data/99-orbiscreen-usb.rules %{buildroot}/usr/lib/udev/rules.d/99-orbiscreen-usb.rules
 install -m 0755 %{_projectroot}/scripts/install-evdi-module.sh %{buildroot}/usr/share/orbiscreen/install-evdi-module.sh
 
-install -m 0644 %{_projectroot}/clients/web/index.html %{buildroot}/usr/share/orbiscreen/client/index.html
-install -m 0644 %{_projectroot}/clients/web/style.css %{buildroot}/usr/share/orbiscreen/client/style.css
-install -m 0644 %{_projectroot}/clients/web/app.js %{buildroot}/usr/share/orbiscreen/client/app.js
-install -m 0644 %{_projectroot}/clients/web/favicon.svg %{buildroot}/usr/share/orbiscreen/client/favicon.svg
-install -m 0644 %{_projectroot}/clients/web/favicon.png %{buildroot}/usr/share/orbiscreen/client/favicon.png
-install -m 0644 %{_projectroot}/clients/web/apple-touch-icon.png %{buildroot}/usr/share/orbiscreen/client/apple-touch-icon.png
+for f in index.html style.css app.js favicon.svg favicon.png apple-touch-icon.png; do
+    install -m 0644 "%{_projectroot}/clients/web/$f" "%{buildroot}/usr/share/orbiscreen/client/$f"
+done
 mkdir -p %{buildroot}/usr/share/orbiscreen/client/vendor
 install -m 0644 %{_projectroot}/clients/web/vendor/mpegts.js %{buildroot}/usr/share/orbiscreen/client/vendor/mpegts.js
 
@@ -81,6 +89,10 @@ fi
 # ── Packaged Files ──
 %files
 /usr/bin/orbiscreen
+/usr/bin/orbiscreen-gui
+/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
+/usr/share/applications/orbiscreen.desktop
+/usr/lib/udev/rules.d/99-orbiscreen-usb.rules
 /usr/lib/systemd/user/orbiscreen.service
 /usr/share/orbiscreen/client/index.html
 /usr/share/orbiscreen/client/style.css
