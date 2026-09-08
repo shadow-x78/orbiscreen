@@ -1,3 +1,13 @@
+orbiscreen (0.25.2-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.25.2 for Ubuntu noble.
+  * Complete desktop GUI redesign with CSD header bar and virtual display mockup.
+  * System tray icon integration with app.default_window_icon().
+  * Wayland StartupWMClass alignment and full hicolor icon theme set.
+  * Automated NVIDIA explicit sync workarounds in GUI and desktop entry.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 18:20:00 +0300
+
 orbiscreen (0.25.1-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.1 for Ubuntu noble.

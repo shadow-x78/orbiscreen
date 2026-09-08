@@ -44,6 +44,13 @@ if [ -f %{_projectroot}/target/release/orbiscreen-gui ]; then
     install -m 0755 %{_projectroot}/target/release/orbiscreen-gui %{buildroot}/usr/bin/orbiscreen-gui
 fi
 install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
+ln -sf orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg
+for size in 16 24 32 48 64 128 256 512; do
+    if [ -f "%{_projectroot}/crates/orbiscreen-gui/icons/${size}x${size}.png" ]; then
+        install -Dm 0644 "%{_projectroot}/crates/orbiscreen-gui/icons/${size}x${size}.png" "%{buildroot}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
+        ln -sf orbiscreen.png "%{buildroot}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"
+    fi
+done
 install -m 0644 %{_projectroot}/data/orbiscreen.desktop %{buildroot}/usr/share/applications/orbiscreen.desktop
 install -m 0644 %{_projectroot}/data/99-orbiscreen-usb.rules %{buildroot}/usr/lib/udev/rules.d/99-orbiscreen-usb.rules
 install -m 0755 %{_projectroot}/scripts/install-evdi-module.sh %{buildroot}/usr/share/orbiscreen/install-evdi-module.sh
@@ -71,6 +78,16 @@ RestartSec=3s
 WantedBy=graphical-session.target
 EOF
 
+# ── Post-Install Script ──
+%post
+/bin/touch --no-create /usr/share/icons/hicolor &>/dev/null || :
+if [ -x /usr/bin/gtk-update-icon-cache ]; then
+    /usr/bin/gtk-update-icon-cache /usr/share/icons/hicolor &>/dev/null || :
+fi
+if [ -x /usr/bin/update-desktop-database ]; then
+    /usr/bin/update-desktop-database /usr/share/applications &>/dev/null || :
+fi
+
 # ── Uninstall Script ──
 %preun
 if [ $1 -eq 0 ]; then
@@ -81,6 +98,13 @@ fi
 
 %postun
 if [ $1 -eq 0 ]; then
+    /bin/touch --no-create /usr/share/icons/hicolor &>/dev/null || :
+    if [ -x /usr/bin/gtk-update-icon-cache ]; then
+        /usr/bin/gtk-update-icon-cache /usr/share/icons/hicolor &>/dev/null || :
+    fi
+    if [ -x /usr/bin/update-desktop-database ]; then
+        /usr/bin/update-desktop-database /usr/share/applications &>/dev/null || :
+    fi
     echo "Orbiscreen has been removed."
 fi
 
@@ -90,7 +114,7 @@ fi
 %files
 /usr/bin/orbiscreen
 /usr/bin/orbiscreen-gui
-/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
+/usr/share/icons/hicolor/*/apps/orbiscreen*.*
 /usr/share/applications/orbiscreen.desktop
 /usr/lib/udev/rules.d/99-orbiscreen-usb.rules
 /usr/lib/systemd/user/orbiscreen.service

@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.25.2] - 2026-09-08
+
+Linux Desktop GUI redesign into a native Control Center, fix missing system tray and taskbar icons on Wayland, automate NVIDIA explicit sync compatibility, and add complete raster/vector icon packaging.
+
+### 🖥 Linux Desktop GUI & System Integration
+- **Native Control Center Redesign (`orbiscreen-gui`)**:
+  - Replaced the 240px dashboard sidebar with a streamlined CSD-style top navigation header bar (`Connect`, `Display & Input`, `Doctor`).
+  - Standardized desktop window dimensions to `760 × 580` (min: `620 × 460`) to eliminate oversized layouts, clipped cards, and fit standard desktop displays and Wayland fractional scaling.
+  - Replaced raw KPI telemetry numeric boxes with an illustrated **Virtual Extended Monitor Frame** displaying live resolution, framerate, transport latency, and connection state.
+  - Added tabbed connection selectors: **Wi-Fi Wireless** (featuring sharp, mathematically valid offline vector SVG QR pairing code) and **USB Cable** (zero-lag direct tethering mode).
+  - Modernized settings with segmented chip selectors for resolutions/refresh rates and toggle switches for multi-touch, stylus digitizer, and pointer confinement.
+- **System Tray Icon Fix**:
+  - Bound `app.default_window_icon()` directly to `TrayIconBuilder` in `crates/orbiscreen-gui/src/main.rs`, eliminating invisible/empty status notifier items on Linux.
+- **Wayland Taskbar & Window Icon Alignment**:
+  - Updated `StartupWMClass=orbiscreen-gui` in `data/orbiscreen.desktop` to align with the Wayland window `app_id`, ensuring KWin and KDE Plasma correctly associate the window with its launcher and display the icon in the taskbar.
+  - Generated and packaged complete standard hicolor icons across all raster dimensions (`16x16`, `24x24`, `32x32`, `48x48`, `64x64`, `128x128`, `256x256`, `512x512`) and scalable SVG for both `orbiscreen` and `orbiscreen-gui`.
+- **Automated NVIDIA Explicit Sync Stability**:
+  - Injected `__NV_DISABLE_EXPLICIT_SYNC=1` and `WEBKIT_DISABLE_DMABUF_RENDERER=1` directly into GUI startup in `main.rs`, daemon `orbiscreen gui` subcommand, and `orbiscreen.desktop` to eliminate Wayland protocol crashes on NVIDIA 555+ drivers.
+  - Added automated cleanup of legacy user-level `~/.local/share/applications/orbiscreen.desktop` entries.
+
+### 📦 Packaging & Versions
+- **Cargo Workspace**: Bumped workspace package version to 0.25.2.
+- **Android Client**: Incremented `versionCode` to 74; updated `versionName` to "0.25.2".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.2 with icon symlinks and changelog entry.
+- **debian/changelog**: Added 0.25.2-1 release entry for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.25.2 with full icon installation.
+
 ## [v0.25.1] - 2026-09-08
 
 Measure UDP PMTU without truncated ACKs or fragment stalls, expand Android receive buffer to full datagram size, and reject unsendable probe packets immediately without waiting for timeouts.

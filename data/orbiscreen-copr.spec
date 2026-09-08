@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.25.1
+Version:        0.25.2
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -61,6 +61,13 @@ if [ -f target/release/orbiscreen-gui ]; then
     install -Dm0755 target/release/orbiscreen-gui %{buildroot}%{_bindir}/orbiscreen-gui
 fi
 install -Dm0644 data/orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen.svg
+ln -sf orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen-gui.svg
+for size in 16 24 32 48 64 128 256 512; do
+    if [ -f "crates/orbiscreen-gui/icons/${size}x${size}.png" ]; then
+        install -Dm0644 "crates/orbiscreen-gui/icons/${size}x${size}.png" "%{buildroot}%{_datadir}/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
+        ln -sf orbiscreen.png "%{buildroot}%{_datadir}/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"
+    fi
+done
 install -Dm0644 data/orbiscreen.desktop %{buildroot}%{_datadir}/applications/orbiscreen.desktop
 install -Dm0755 scripts/install-evdi-module.sh %{buildroot}%{_datadir}/orbiscreen/install-evdi-module.sh
 install -Dm0644 data/99-orbiscreen-usb.rules %{buildroot}%{_udevrulesdir}/99-orbiscreen-usb.rules
@@ -91,6 +98,15 @@ EOF
 %check
 cargo test --workspace --locked --offline || true
 
+%post
+/bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
+if [ -x %{_bindir}/gtk-update-icon-cache ]; then
+    %{_bindir}/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
+fi
+if [ -x %{_bindir}/update-desktop-database ]; then
+    %{_bindir}/update-desktop-database %{_datadir}/applications &>/dev/null || :
+fi
+
 %preun
 if [ $1 -eq 0 ]; then
     for u in $(users); do
@@ -98,10 +114,21 @@ if [ $1 -eq 0 ]; then
     done
 fi
 
+%postun
+if [ $1 -eq 0 ]; then
+    /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
+    if [ -x %{_bindir}/gtk-update-icon-cache ]; then
+        %{_bindir}/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
+    fi
+    if [ -x %{_bindir}/update-desktop-database ]; then
+        %{_bindir}/update-desktop-database %{_datadir}/applications &>/dev/null || :
+    fi
+fi
+
 %files
 %{_bindir}/orbiscreen
 %{_bindir}/orbiscreen-gui
-%{_datadir}/icons/hicolor/scalable/apps/orbiscreen.svg
+%{_datadir}/icons/hicolor/*/apps/orbiscreen*.*
 %{_datadir}/applications/orbiscreen.desktop
 %{_userunitdir}/orbiscreen.service
 %{_datadir}/orbiscreen/client/index.html
@@ -115,6 +142,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.2-1
+- Release 0.25.2: Linux Desktop GUI Control Center redesign, system tray icon integration, Wayland StartupWMClass alignment, automated NVIDIA explicit sync stability, and complete raster PNG icon packaging.
+
 * Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.1-1
 - Release 0.25.1: UDP PMTU measurement without truncated ACKs or fragments, immediate unsendable reject, and full datagram Android receive buffer (PR #74 by @sentinelt).
 

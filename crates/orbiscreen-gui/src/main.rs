@@ -10,8 +10,30 @@ use tauri::{
     Manager, WindowEvent,
 };
 
+fn cleanup_legacy_desktop_file() {
+    if let Some(home) = std::env::var_os("HOME") {
+        let legacy_path =
+            std::path::PathBuf::from(home).join(".local/share/applications/orbiscreen.desktop");
+        if legacy_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&legacy_path) {
+                if content.contains("Exec=orbiscreen start") {
+                    let _ = std::fs::remove_file(&legacy_path);
+                }
+            }
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
+    if std::env::var_os("__NV_DISABLE_EXPLICIT_SYNC").is_none() {
+        std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
+    }
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+    cleanup_legacy_desktop_file();
+
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -28,9 +50,16 @@ async fn main() {
 
             let menu = Menu::with_items(app, &[&toggle, &start, &stop, &quit])?;
 
-            let _tray = TrayIconBuilder::new()
+            let icon = app.default_window_icon().cloned();
+            let mut tray_builder = TrayIconBuilder::new()
                 .menu(&menu)
-                .tooltip("Orbiscreen Host Control Center")
+                .tooltip("Orbiscreen Host Control Center");
+
+            if let Some(icon) = icon {
+                tray_builder = tray_builder.icon(icon);
+            }
+
+            let _tray = tray_builder
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "toggle" => {
                         if let Some(window) = app.get_webview_window("main") {

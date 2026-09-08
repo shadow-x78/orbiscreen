@@ -1,16 +1,22 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Orbiscreen",
-  "version": "0.25.1",
+  "version": "0.25.2",
   "identifier": "com.orbiscreen.gui",
   "build": {
     "frontendDist": "./ui"
   },
   "bundle": {
     "icon": [
+      "icons/16x16.png",
+      "icons/24x24.png",
       "icons/32x32.png",
+      "icons/48x48.png",
+      "icons/64x64.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
+      "icons/256x256.png",
+      "icons/512x512.png",
       "icons/icon.ico",
       "icons/icon.png"
     ]
@@ -19,11 +25,11 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Orbiscreen Dashboard",
-        "width": 880,
-        "height": 640,
-        "minWidth": 720,
-        "minHeight": 520,
+        "title": "Orbiscreen",
+        "width": 760,
+        "height": 580,
+        "minWidth": 620,
+        "minHeight": 460,
         "resizable": true,
         "fullscreen": false
       }

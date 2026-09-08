@@ -35,6 +35,14 @@ fi
 mkdir -p "${BUILD_DIR}/usr/share/applications" "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps"
 cp -f data/orbiscreen.desktop "${BUILD_DIR}/usr/share/applications/"
 cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/"
+ln -sf orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg"
+for size in 16 24 32 48 64 128 256 512; do
+    if [ -f "crates/orbiscreen-gui/icons/${size}x${size}.png" ]; then
+        mkdir -p "${BUILD_DIR}/usr/share/icons/hicolor/${size}x${size}/apps"
+        cp -f "crates/orbiscreen-gui/icons/${size}x${size}.png" "${BUILD_DIR}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
+        ln -sf orbiscreen.png "${BUILD_DIR}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"
+    fi
+done
 
 cp -f clients/web/index.html "${BUILD_DIR}/usr/share/orbiscreen/client/"
 cp -f clients/web/style.css "${BUILD_DIR}/usr/share/orbiscreen/client/"
@@ -80,6 +88,19 @@ Description: Turn any Android tablet or phone into a second monitor for Linux
  auto-orientation, and hardware encoding (NVENC/VAAPI).
 EOF
 
+# ── Post-Install Script ──
+cat <<'EOF' > "${BUILD_DIR}/DEBIAN/postinst"
+set -e
+if [ -x /usr/bin/gtk-update-icon-cache ]; then
+    /usr/bin/gtk-update-icon-cache /usr/share/icons/hicolor >/dev/null 2>&1 || true
+fi
+if [ -x /usr/bin/update-desktop-database ]; then
+    /usr/bin/update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+fi
+exit 0
+EOF
+chmod +x "${BUILD_DIR}/DEBIAN/postinst"
+
 # ── Pre-Removal Script ──
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/prerm"
 set -e
@@ -96,6 +117,12 @@ chmod +x "${BUILD_DIR}/DEBIAN/prerm"
 cat <<'EOF' > "${BUILD_DIR}/DEBIAN/postrm"
 set -e
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    if [ -x /usr/bin/gtk-update-icon-cache ]; then
+        /usr/bin/gtk-update-icon-cache /usr/share/icons/hicolor >/dev/null 2>&1 || true
+    fi
+    if [ -x /usr/bin/update-desktop-database ]; then
+        /usr/bin/update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+    fi
     echo "[Orbiscreen] Orbiscreen has been removed."
 fi
 exit 0

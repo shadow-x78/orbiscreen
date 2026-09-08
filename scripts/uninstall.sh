@@ -25,25 +25,41 @@ systemctl --user daemon-reload || true
 # ── Remove User Files ──
 echo "[Orbiscreen] Removing binary and service files..."
 rm -f "$HOME/.local/bin/orbiscreen"
+rm -f "$HOME/.local/bin/orbiscreen-gui"
 rm -f "$HOME/.local/bin/orbiscreen-gtk"
 rm -f "$HOME/.config/systemd/user/orbiscreen.service"
 
 rm -f "$HOME/.local/share/applications/orbiscreen.desktop"
 rm -f "$HOME/.local/share/applications/com.orbiscreen.OrbiscreenGtk.desktop"
-rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/orbiscreen.svg"
+rm -f "$HOME/.local/share/icons/hicolor/"*/apps/orbiscreen*.*
 rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"
 rm -rf "$HOME/.local/share/orbiscreen"
+
+if [ -x /usr/bin/gtk-update-icon-cache ]; then
+    gtk-update-icon-cache "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
+fi
+if [ -x /usr/bin/update-desktop-database ]; then
+    update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
+fi
 
 # ── Remove System Files (if root) ──
 if [ "$EUID" -eq 0 ]; then
     echo "[Orbiscreen] Removing system-wide files..."
     rm -f /usr/bin/orbiscreen
+    rm -f /usr/bin/orbiscreen-gui
     rm -f /usr/bin/orbiscreen-gtk
     rm -f /usr/share/applications/orbiscreen.desktop
     rm -f /usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop
-    rm -f /usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
+    rm -f /usr/share/icons/hicolor/*/apps/orbiscreen*.*
     rm -f /usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg
     rm -rf /usr/share/orbiscreen
+
+    if [ -x /usr/bin/gtk-update-icon-cache ]; then
+        gtk-update-icon-cache /usr/share/icons/hicolor >/dev/null 2>&1 || true
+    fi
+    if [ -x /usr/bin/update-desktop-database ]; then
+        update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+    fi
 fi
 
 echo "[Orbiscreen] Uninstallation complete."

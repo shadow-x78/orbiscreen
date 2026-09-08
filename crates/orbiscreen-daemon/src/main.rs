@@ -425,7 +425,25 @@ async fn main() -> ExitCode {
             } else {
                 std::path::Path::new("orbiscreen-gui")
             };
-            match std::process::Command::new(target).spawn() {
+            let mut cmd = std::process::Command::new(target);
+            if std::env::var_os("__NV_DISABLE_EXPLICIT_SYNC").is_none() {
+                cmd.env("__NV_DISABLE_EXPLICIT_SYNC", "1");
+            }
+            if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+                cmd.env("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+            }
+            if let Some(home) = std::env::var_os("HOME") {
+                let legacy_path = std::path::PathBuf::from(home)
+                    .join(".local/share/applications/orbiscreen.desktop");
+                if legacy_path.exists() {
+                    if let Ok(content) = std::fs::read_to_string(&legacy_path) {
+                        if content.contains("Exec=orbiscreen start") {
+                            let _ = std::fs::remove_file(&legacy_path);
+                        }
+                    }
+                }
+            }
+            match cmd.spawn() {
                 Ok(_) => ExitCode::SUCCESS,
                 Err(e) => {
                     eprintln!(

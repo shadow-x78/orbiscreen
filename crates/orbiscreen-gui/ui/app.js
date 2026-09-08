@@ -1,4 +1,4 @@
-// Orbiscreen - Desktop Dashboard Frontend (GPL-3.0-or-later)
+// Orbiscreen - Linux Desktop Control Center Frontend (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
 const isTauri = typeof window.__TAURI__ !== "undefined";
@@ -10,71 +10,106 @@ async function invoke(cmd, args = {}) {
     console.log(`[Mock/Web] invoke: ${cmd}`, args);
     if (cmd === "get_status") {
         return {
-            running: true,
-            frames_forwarded: 1420,
-            active_clients: 1,
-            total_clients: 3,
+            running: false,
+            frames_forwarded: 0,
+            active_clients: 0,
+            total_clients: 0,
             auth_failures: 0,
-            usb_devices: 1,
+            usb_devices: 0,
             encoder: "NVENC (nvh264enc)",
             capture_backend: "KWin Wayland",
-            display_width: 2560,
-            display_height: 1600,
+            display_width: 1920,
+            display_height: 1080,
             display_fps: 60,
             signaling_port: 54321,
             udp_port: 54322,
             local_ips: ["192.168.1.145"],
-            session_token: "orb_test_token"
+            session_token: "orb_token"
         };
     }
+    if (cmd === "get_autostart") return false;
     return null;
 }
 
-// ── Tab Navigation ──
-const navItems = document.querySelectorAll(".navItem");
-const tabContents = document.querySelectorAll(".tabContent");
-const pageTitle = document.getElementById("pageTitle");
+// ── Top Navigation Segments ──
+const segmentBtns = document.querySelectorAll(".segmentBtn");
+const tabPanes = document.querySelectorAll(".tabPane");
 
-const titles = {
-    dashboard: "Dashboard",
-    display: "Display & Stream Settings",
-    doctor: "System Doctor Diagnostics",
-    about: "About Orbiscreen"
-};
+segmentBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        const tab = btn.getAttribute("data-tab");
+        segmentBtns.forEach(b => b.classList.remove("active"));
+        tabPanes.forEach(p => p.classList.remove("active"));
 
-navItems.forEach(item => {
-    item.addEventListener("click", () => {
-        const tab = item.getAttribute("data-tab");
-        navItems.forEach(n => n.classList.remove("active"));
-        tabContents.forEach(t => t.classList.remove("active"));
-
-        item.classList.add("active");
+        btn.classList.add("active");
         const target = document.getElementById(`tab-${tab}`);
         if (target) target.classList.add("active");
-        pageTitle.textContent = titles[tab] || "Dashboard";
     });
 });
 
-// ── Status & Telemetry Refresh ──
+// ── Connection Sub-Tabs (Wi-Fi vs USB) ──
+const subTabBtns = document.querySelectorAll(".subTabBtn");
+const subPanes = document.querySelectorAll(".subPane");
+
+subTabBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        const sub = btn.getAttribute("data-sub");
+        subTabBtns.forEach(b => b.classList.remove("active"));
+        subPanes.forEach(p => p.classList.remove("active"));
+
+        btn.classList.add("active");
+        const target = document.getElementById(`sub-${sub}`);
+        if (target) target.classList.add("active");
+    });
+});
+
+// ── DOM Elements ──
 const statusPill = document.getElementById("statusPill");
-const statusDot = document.getElementById("statusDot");
-const statusText = document.getElementById("statusText");
+const statusLabel = document.getElementById("statusLabel");
 const btnToggleService = document.getElementById("btnToggleService");
+const toggleText = document.getElementById("toggleText");
+const toggleIcon = document.getElementById("toggleIcon");
 const btnRestartService = document.getElementById("btnRestartService");
 
-const valHostIp = document.getElementById("valHostIp");
-const valPort = document.getElementById("valPort");
-const valUdpPort = document.getElementById("valUdpPort");
+const previewResolution = document.getElementById("previewResolution");
+const previewLatency = document.getElementById("previewLatency");
+const displayStateHeadline = document.getElementById("displayStateHeadline");
+const displayStateSubtitle = document.getElementById("displayStateSubtitle");
+const activeClientPill = document.getElementById("activeClientPill");
+const activeClientText = document.getElementById("activeClientText");
+
 const inpSessionUrl = document.getElementById("inpSessionUrl");
-const statClients = document.getElementById("statClients");
-const statUsb = document.getElementById("statUsb");
-const statFrames = document.getElementById("statFrames");
-const statEncoder = document.getElementById("statEncoder");
-const statResolution = document.getElementById("statResolution");
-const statBackend = document.getElementById("statBackend");
+const btnCopyUrl = document.getElementById("btnCopyUrl");
+const btnOpenBrowser = document.getElementById("btnOpenBrowser");
+const btnOpenUsb = document.getElementById("btnOpenUsb");
+const usbStatusTag = document.getElementById("usbStatusTag");
+
+const lblHostIp = document.getElementById("lblHostIp");
+const lblBackend = document.getElementById("lblBackend");
+const lblEncoder = document.getElementById("lblEncoder");
+
+const chkAutostart = document.getElementById("chkAutostart");
+const btnRunDoctor = document.getElementById("btnRunDoctor");
+const btnFixDoctor = document.getElementById("btnFixDoctor");
 
 let isRunning = false;
+let currentUrl = "http://127.0.0.1:54321";
 
+// ── Vector QR Code Generator ──
+function renderQrCode(text) {
+    const container = document.getElementById("qrContainer");
+    if (!container || typeof qrcode === "undefined") return;
+    try {
+        const qr = qrcode(0, "M");
+        qr.addData(text);
+        qr.make();
+        container.innerHTML = qr.createSvgTag(4, 2);
+    } catch (e) {
+        console.warn("QR code render failed:", e);
+    }
+}
+
+// ── Status & Telemetry Refresh ──
 async function refreshStatus() {
     try {
         const status = await invoke("get_status");
@@ -82,153 +117,213 @@ async function refreshStatus() {
 
         isRunning = status.running;
 
+        const ip = (status.local_ips && status.local_ips.length > 0) ? status.local_ips[0] : "127.0.0.1";
+        const port = status.signaling_port || 54321;
+        currentUrl = `http://${ip}:${port}`;
+        inpSessionUrl.value = currentUrl;
+
+        // Header and Status
         if (isRunning) {
-            statusPill.className = "statusPill online";
-            statusText.textContent = "Service Running";
-            btnToggleService.textContent = "Stop Service";
+            if (status.active_clients > 0) {
+                statusPill.className = "statusPill online";
+                statusLabel.textContent = "Streaming";
+                displayStateHeadline.textContent = "Extended Screen Streaming";
+                displayStateSubtitle.textContent = `Streaming to ${status.active_clients} connected device with ultra-low latency hardware encoding.`;
+                activeClientPill.classList.remove("hidden");
+                activeClientText.textContent = `${status.active_clients} Device Connected (Android Tablet)`;
+            } else {
+                statusPill.className = "statusPill ready";
+                statusLabel.textContent = "Ready";
+                displayStateHeadline.textContent = "Ready to Stream";
+                displayStateSubtitle.textContent = "Open Orbiscreen on your Android tablet or phone to connect as second display.";
+                activeClientPill.classList.add("hidden");
+            }
             btnToggleService.className = "btnPrimary danger";
+            toggleText.textContent = "Stop Display";
+            toggleIcon.innerHTML = `<path d="M6 6h12v12H6z"/>`;
         } else {
             statusPill.className = "statusPill offline";
-            statusText.textContent = "Service Stopped";
-            btnToggleService.textContent = "Start Service";
+            statusLabel.textContent = "Stopped";
+            displayStateHeadline.textContent = "Virtual Display Offline";
+            displayStateSubtitle.textContent = "Click Start Display above to activate your extended desktop workspace.";
+            activeClientPill.classList.add("hidden");
             btnToggleService.className = "btnPrimary";
+            toggleText.textContent = "Start Display";
+            toggleIcon.innerHTML = `<path d="M8 5v14l11-7z"/>`;
         }
 
-        const ip = (status.local_ips && status.local_ips.length > 0) ? status.local_ips[0] : "127.0.0.1";
-        valHostIp.textContent = ip;
-        valPort.textContent = status.signaling_port || "54321";
-        valUdpPort.textContent = status.udp_port || "54322";
+        // Display Mockup
+        const width = status.display_width || 1920;
+        const height = status.display_height || 1080;
+        const fps = status.display_fps || 60;
+        previewResolution.textContent = `${width} × ${height} @ ${fps}Hz`;
+        previewLatency.textContent = (status.udp_port) ? "UDP ~3ms" : "HTTP Transport";
 
-        const url = `http://${ip}:${status.signaling_port || 54321}`;
-        inpSessionUrl.value = url;
+        // Footer labels
+        lblHostIp.textContent = `Host: ${ip}`;
+        lblBackend.textContent = status.capture_backend || "KWin Wayland";
+        lblEncoder.textContent = status.encoder || "NVENC";
 
-        statClients.textContent = status.active_clients || "0";
-        statUsb.textContent = status.usb_devices || "0";
-        statFrames.textContent = (status.frames_forwarded || 0).toLocaleString();
-        statEncoder.textContent = status.encoder || "Auto";
-        statBackend.textContent = status.capture_backend || "KWin Wayland";
-        statResolution.textContent = `${status.display_width || 1920}×${status.display_height || 1080} @ ${status.display_fps || 60}Hz`;
+        // USB status
+        if (status.usb_devices > 0) {
+            usbStatusTag.className = "usbTag ready";
+            usbStatusTag.textContent = `${status.usb_devices} USB Device Ready`;
+        } else {
+            usbStatusTag.className = "usbTag";
+            usbStatusTag.textContent = "Waiting for device...";
+        }
 
-        drawQr(url);
+        // Render real vector QR code
+        renderQrCode(currentUrl);
+
     } catch (e) {
         console.warn("Status refresh error:", e);
     }
 }
 
-// ── Simple Visual QR Renderer ──
-function drawQr(text) {
-    const canvas = document.getElementById("qrCanvas");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const size = canvas.width;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, size, size);
-
-    ctx.fillStyle = "#11111b";
-    // Draw QR-like corner markers
-    function drawFinder(x, y) {
-        ctx.fillRect(x, y, 32, 32);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(x + 4, y + 4, 24, 24);
-        ctx.fillStyle = "#11111b";
-        ctx.fillRect(x + 8, y + 8, 16, 16);
-    }
-    drawFinder(8, 8);
-    drawFinder(size - 40, 8);
-    drawFinder(8, size - 40);
-
-    // Simple pseudo-random pattern based on text hash
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-        hash = ((hash << 5) - hash) + text.charCodeAt(i);
-        hash |= 0;
-    }
-
-    const step = 6;
-    for (let y = 8; y < size - 8; y += step) {
-        for (let x = 8; x < size - 8; x += step) {
-            if ((x < 46 && y < 46) || (x > size - 46 && y < 46) || (x < 46 && y > size - 46)) {
-                continue;
-            }
-            if (((x * y + hash) % 3) === 0) {
-                ctx.fillRect(x, y, step - 1, step - 1);
-            }
-        }
-    }
-}
-
-// ── Service Controls ──
+// ── Master Service Toggle ──
 btnToggleService.addEventListener("click", async () => {
     btnToggleService.disabled = true;
-    if (isRunning) {
-        await invoke("stop_service");
-    } else {
-        await invoke("start_service");
+    try {
+        if (isRunning) {
+            await invoke("stop_service");
+        } else {
+            await invoke("start_service");
+        }
+    } catch (e) {
+        console.error("Service toggle failed:", e);
     }
     setTimeout(async () => {
         await refreshStatus();
         btnToggleService.disabled = false;
-    }, 1000);
+    }, 800);
 });
 
 btnRestartService.addEventListener("click", async () => {
     btnRestartService.disabled = true;
-    await invoke("restart_service");
+    try {
+        await invoke("restart_service");
+    } catch (e) {
+        console.error("Service restart failed:", e);
+    }
     setTimeout(async () => {
         await refreshStatus();
         btnRestartService.disabled = false;
+    }, 1000);
+});
+
+// ── Copy & Browser Actions ──
+btnCopyUrl.addEventListener("click", async () => {
+    try {
+        await navigator.clipboard.writeText(currentUrl);
+        btnCopyUrl.textContent = "Copied!";
+        setTimeout(() => { btnCopyUrl.textContent = "Copy"; }, 1500);
+    } catch (e) {
+        inpSessionUrl.select();
+        document.execCommand("copy");
+        btnCopyUrl.textContent = "Copied!";
+        setTimeout(() => { btnCopyUrl.textContent = "Copy"; }, 1500);
+    }
+});
+
+btnOpenBrowser.addEventListener("click", async () => {
+    await invoke("open_browser", { url: currentUrl });
+});
+
+btnOpenUsb.addEventListener("click", async () => {
+    await invoke("open_browser", { url: "http://localhost:54321" });
+});
+
+// ── Autostart Toggle ──
+if (chkAutostart) {
+    (async () => {
+        const enabled = await invoke("get_autostart");
+        chkAutostart.checked = !!enabled;
+    })();
+
+    chkAutostart.addEventListener("change", async () => {
+        await invoke("set_autostart", { enabled: chkAutostart.checked });
+    });
+}
+
+// ── Resolution & FPS Chip Selectors ──
+document.querySelectorAll("#resChips .chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+        document.querySelectorAll("#resChips .chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+    });
+});
+
+document.querySelectorAll("#fpsChips .chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+        document.querySelectorAll("#fpsChips .chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+    });
+});
+
+document.querySelectorAll("#encoderChips .chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+        document.querySelectorAll("#encoderChips .chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+    });
+});
+
+// ── Doctor Diagnostics ──
+btnRunDoctor.addEventListener("click", async () => {
+    btnRunDoctor.disabled = true;
+    btnRunDoctor.textContent = "Checking...";
+    try {
+        const jsonStr = await invoke("run_doctor_check");
+        if (jsonStr) {
+            const data = JSON.parse(jsonStr);
+            const docCompositor = document.getElementById("docCompositor");
+            const docBackend = document.getElementById("docBackend");
+            const docUinput = document.getElementById("docUinput");
+            const docEncoder = document.getElementById("docEncoder");
+
+            if (docCompositor && data.compositor) {
+                docCompositor.textContent = `${data.compositor} (${data.session || "Wayland"})`;
+            }
+            if (docBackend && data.display_backend) {
+                docBackend.textContent = data.display_backend;
+            }
+            if (docUinput) {
+                docUinput.textContent = data.uinput_writable ? "/dev/uinput writable (evdev ready)" : "Permission denied (needs udev fix)";
+            }
+        }
+    } catch (e) {
+        console.warn("Doctor check error:", e);
+    }
+    btnRunDoctor.disabled = false;
+    btnRunDoctor.textContent = "Run Diagnostics";
+});
+
+btnFixDoctor.addEventListener("click", async () => {
+    btnFixDoctor.disabled = true;
+    btnFixDoctor.textContent = "Fixing...";
+    try {
+        await invoke("run_doctor_fix");
+    } catch (e) {
+        console.warn("Doctor fix error:", e);
+    }
+    setTimeout(() => {
+        btnFixDoctor.disabled = false;
+        btnFixDoctor.textContent = "Auto-Fix";
+        btnRunDoctor.click();
     }, 1200);
 });
 
-// ── Copy URL ──
-const btnCopyUrl = document.getElementById("btnCopyUrl");
-btnCopyUrl.addEventListener("click", () => {
-    navigator.clipboard.writeText(inpSessionUrl.value);
-    btnCopyUrl.textContent = "Copied!";
-    setTimeout(() => { btnCopyUrl.textContent = "Copy"; }, 1500);
-});
-
-// ── Doctor Actions ──
-const btnRunDoctor = document.getElementById("btnRunDoctor");
-const btnFixDoctor = document.getElementById("btnFixDoctor");
-if (btnRunDoctor) {
-    btnRunDoctor.addEventListener("click", async () => {
-        btnRunDoctor.textContent = "Scanning...";
-        const res = await invoke("run_doctor_check");
-        console.log("Doctor check:", res);
-        btnRunDoctor.textContent = "Run Diagnostics";
-    });
-}
-if (btnFixDoctor) {
-    btnFixDoctor.addEventListener("click", async () => {
-        btnFixDoctor.textContent = "Applying Fixes...";
-        const res = await invoke("run_doctor_fix");
-        console.log("Doctor fix:", res);
-        btnFixDoctor.textContent = "Auto-Fix Missing Permissions & Rules";
-    });
-}
-
-// ── Autostart Toggle ──
-const chkAutostart = document.getElementById("chkAutostart");
-if (chkAutostart) {
-    invoke("get_autostart").then(enabled => {
-        chkAutostart.checked = !!enabled;
-    });
-    chkAutostart.addEventListener("change", () => {
-        invoke("set_autostart", { enabled: chkAutostart.checked });
-    });
-}
-
-// ── External Links ──
-document.querySelectorAll(".linkBtn").forEach(btn => {
-    btn.addEventListener("click", () => {
-        const url = btn.getAttribute("data-url");
-        if (url) {
-            invoke("open_browser", { url });
-        }
-    });
-});
-
-// ── Init & Interval ──
+// ── Init & Periodic Refresh ──
 refreshStatus();
 setInterval(refreshStatus, 2500);
+
+if (window.location.hash) {
+    const hashTab = window.location.hash.replace("#", "");
+    const targetBtn = document.querySelector(`.segmentBtn[data-tab="${hashTab}"]`);
+    if (targetBtn) targetBtn.click();
+}
+
+if (window.location.hash === "#usb") {
+    const usbBtn = document.querySelector(`.subTabBtn[data-sub="usb"]`);
+    if (usbBtn) usbBtn.click();
+}

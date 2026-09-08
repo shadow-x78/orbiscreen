@@ -1,11 +1,11 @@
 [Desktop Entry]
 Name=Orbiscreen
 Comment=Turn Android devices into high-performance secondary monitors for Linux
-Exec=orbiscreen-gui
+Exec=env __NV_DISABLE_EXPLICIT_SYNC=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 orbiscreen-gui
 Icon=orbiscreen
 Terminal=false
 Type=Application
 Categories=Utility;HardwareSettings;
 Keywords=monitor;display;virtual;screen;second;android;
 StartupNotify=true
-StartupWMClass=orbiscreen
+StartupWMClass=orbiscreen-gui

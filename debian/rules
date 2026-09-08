@@ -15,7 +15,19 @@ override_dh_auto_build:
 override_dh_auto_install:
 	@mkdir -p debian/orbiscreen/usr/bin
 	install -Dm0755 target/release/orbiscreen debian/orbiscreen/usr/bin/orbiscreen || install -Dm0755 bin/orbiscreen debian/orbiscreen/usr/bin/orbiscreen
+	if [ -f target/release/orbiscreen-gui ]; then \
+		install -Dm0755 target/release/orbiscreen-gui debian/orbiscreen/usr/bin/orbiscreen-gui; \
+	elif [ -f bin/orbiscreen-gui ]; then \
+		install -Dm0755 bin/orbiscreen-gui debian/orbiscreen/usr/bin/orbiscreen-gui; \
+	fi
 	install -Dm0644 data/orbiscreen.svg debian/orbiscreen/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
+	ln -sf orbiscreen.svg debian/orbiscreen/usr/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg
+	for size in 16 24 32 48 64 128 256 512; do \
+		if [ -f crates/orbiscreen-gui/icons/$${size}x$${size}.png ]; then \
+			install -Dm0644 crates/orbiscreen-gui/icons/$${size}x$${size}.png debian/orbiscreen/usr/share/icons/hicolor/$${size}x$${size}/apps/orbiscreen.png; \
+			ln -sf orbiscreen.png debian/orbiscreen/usr/share/icons/hicolor/$${size}x$${size}/apps/orbiscreen-gui.png; \
+		fi \
+	done
 	install -Dm0644 data/orbiscreen.desktop debian/orbiscreen/usr/share/applications/orbiscreen.desktop
 	install -Dm0755 scripts/install-evdi-module.sh debian/orbiscreen/usr/share/orbiscreen/install-evdi-module.sh
 	install -Dm0644 clients/web/index.html debian/orbiscreen/usr/share/orbiscreen/client/index.html
