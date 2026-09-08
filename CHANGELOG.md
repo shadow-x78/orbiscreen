@@ -2,16 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
-
 ## [v0.25.1] - 2026-09-08
 
-### ⚡ Performance & Reliability
-- **UDP PMTU Measurement & Probe Rejection (`orbiscreen-transport`, Android Client)** (PR #74 by @sentinelt):
-  - Fixed an issue where Android reused a `DatagramPacket` without resetting its `length`, causing probe ACKs to report the previous packet's size (often a 21-byte pong), stalling DPLPMTUD discovery or locking it onto a tiny datagram. The receive cap is now explicitly reset before every `receive`.
+Measure UDP PMTU without truncated ACKs or fragment stalls, expand Android receive buffer to full datagram size, and reject unsendable probe packets immediately without waiting for timeouts.
+
+### ⚡ Performance & Low Latency
+- **UDP PMTU Measurement & Probe Rejection (`orbiscreen-transport`, Android Client - PR [#74](https://github.com/shadow-x78/orbiscreen/pull/74) by [@sentinelt](https://github.com/sentinelt))**:
+  - Android reused a `DatagramPacket` without resetting its `length`, which caused probe ACKs to report the previous packet's size (often a 21-byte pong), stalling DPLPMTUD discovery or locking it onto a tiny datagram. The receive cap is now explicitly reset before every `receive`.
   - Android UDP receive buffer enlarged to full datagram capacity (`65,507` bytes).
   - Truncated ACKs now reject the in-flight probe size rather than corrupting the search floor.
   - Immediate fail on unsendable datagrams: local `EMSGSIZE` and `ORBISCREEN_UDP_DROP_ABOVE` reject that probe size immediately on the host instead of waiting for a timeout (saving up to 750 ms of probe discovery time).
+  - Added unit tests `truncated_ack_rejects_probe_size`, `unsendable_probe_narrows_search`, `default_max_is_ipv4_ethernet_udp_payload`, and Android test `reusedPacketReportsFullSizeAfterPrepareReceive`.
+
+### 🧹 Packaging & Maintenance
+- **Cargo Workspace**: Bumped workspace package version to 0.25.1.
+- **Android Client**: Incremented `versionCode` to 73; updated `versionName` to "0.25.1".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.1 with changelog entry.
+- **debian/changelog**: Added 0.25.1-1 release for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.25.1.
 
 ## [v0.25.0] - 2026-09-08
 
