@@ -1340,13 +1340,18 @@ async fn run_idle_virtual_output(
     idr_tx: tokio::sync::mpsc::Sender<()>,
     mut shutdown: tokio::sync::watch::Receiver<bool>,
 ) {
-    const IDLE: std::time::Duration = std::time::Duration::from_secs(2);
+    if std::env::var_os("ORBISCREEN_NO_PARK").is_some() {
+        return;
+    }
+    const IDLE: std::time::Duration = std::time::Duration::from_secs(30);
     let mut display_up = true;
+    let mut had_client = false;
     loop {
         if *shutdown.borrow() {
             break;
         }
         if *presence.borrow_and_update() {
+            had_client = true;
             if !display_up {
                 display_up =
                     restore_virtual_output(&lease, &idr_tx, &mut presence, &mut shutdown).await;
@@ -1363,6 +1368,17 @@ async fn run_idle_virtual_output(
                 }
                 continue;
             }
+            tokio::select! {
+                _ = shutdown.changed() => break,
+                res = presence.changed() => {
+                    if res.is_err() {
+                        break;
+                    }
+                }
+            }
+            continue;
+        }
+        if !had_client {
             tokio::select! {
                 _ = shutdown.changed() => break,
                 res = presence.changed() => {
@@ -1408,7 +1424,7 @@ async fn restore_virtual_output(
         match lease.unpark().await {
             Ok(true) => {
                 if let Some(name) = lease.connector_name().await {
-                    bind_kwin_virtual_inputs(name).await;
+                    tokio::spawn(bind_kwin_virtual_inputs(name));
                 }
                 let _ = idr_tx.try_send(());
                 return true;
