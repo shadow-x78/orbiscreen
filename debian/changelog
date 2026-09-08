@@ -1,3 +1,12 @@
+orbiscreen (0.25.1-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.25.1 for Ubuntu noble.
+  * Measure UDP PMTU without truncated ACKs or fragments (PR #74 by @sentinelt).
+  * Immediate fail on unsendable datagrams (EMSGSIZE, drop_above) instead of timeout.
+  * Reset Android DatagramPacket receive cap and expand buffer to 65507 bytes.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 15:20:00 +0300
+
 orbiscreen (0.25.0-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.0 for Ubuntu noble.

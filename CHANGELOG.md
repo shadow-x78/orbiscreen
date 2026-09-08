@@ -4,10 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### 🐛 Fixed
-- **UDP PMTU Measurement (`orbiscreen-transport`, Android)**:
-  - Android reused a `DatagramPacket` without resetting `length`, so probe ACKs could report the previous packet's size (often a 21-byte pong) and the search stalled or locked onto a too-small datagram. Reset the receive cap before every `receive`.
-  - Truncated ACKs reject the in-flight probe size. Local `EMSGSIZE` / `drop_above` rejects fail that size immediately instead of waiting for a timeout.
+## [v0.25.1] - 2026-09-08
+
+### ⚡ Performance & Reliability
+- **UDP PMTU Measurement & Probe Rejection (`orbiscreen-transport`, Android Client)** (PR #74 by @sentinelt):
+  - Fixed an issue where Android reused a `DatagramPacket` without resetting its `length`, causing probe ACKs to report the previous packet's size (often a 21-byte pong), stalling DPLPMTUD discovery or locking it onto a tiny datagram. The receive cap is now explicitly reset before every `receive`.
+  - Android UDP receive buffer enlarged to full datagram capacity (`65,507` bytes).
+  - Truncated ACKs now reject the in-flight probe size rather than corrupting the search floor.
+  - Immediate fail on unsendable datagrams: local `EMSGSIZE` and `ORBISCREEN_UDP_DROP_ABOVE` reject that probe size immediately on the host instead of waiting for a timeout (saving up to 750 ms of probe discovery time).
 
 ## [v0.25.0] - 2026-09-08
 

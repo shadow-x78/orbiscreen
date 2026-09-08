@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.25.0
+Version:        0.25.1
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -115,6 +115,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.1-1
+- Release 0.25.1: UDP PMTU measurement without truncated ACKs or fragments, immediate unsendable reject, and full datagram Android receive buffer (PR #74 by @sentinelt).
+
 * Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.0-1
 - Release 0.25.0: Linux Desktop GUI Control Center (orbiscreen-gui) with System Tray, streamlined English interface, and orbiscreen gui CLI integration.
 
