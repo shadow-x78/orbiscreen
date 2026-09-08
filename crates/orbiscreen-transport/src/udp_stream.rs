@@ -134,7 +134,10 @@ impl PmtuSearch {
             return;
         };
         if recv < probe {
+            // Receiver did not see the full datagram (truncation or a stale
+            // smaller packet). That size is not usable.
             self.raise(recv);
+            self.fail();
             return;
         }
         self.low = probe;
@@ -150,6 +153,10 @@ impl PmtuSearch {
         if self.attempts >= MAX_PROBE_ATTEMPTS {
             self.fail();
         }
+    }
+
+    pub fn on_unsendable(&mut self) {
+        self.fail();
     }
 
     fn fail(&mut self) {
@@ -436,34 +443,81 @@ fn should_lose(loss_pct: u8) -> bool {
     loss_pct > 0 && rand::rng().random_range(0u8..100) < loss_pct
 }
 
-async fn send_datagram(sock: &UdpSocket, buf: &[u8], addr: SocketAddr, limits: UdpLimits) -> bool {
-    if would_drop(buf.len(), limits.drop_above) || should_lose(limits.loss_pct) {
-        return false;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SendOutcome {
+    Sent,
+    TooBig,
+    Failed,
+}
+
+fn is_msg_too_big(err: &std::io::Error) -> bool {
+    err.raw_os_error() == Some(libc::EMSGSIZE)
+}
+
+async fn send_datagram(
+    sock: &UdpSocket,
+    buf: &[u8],
+    addr: SocketAddr,
+    limits: UdpLimits,
+) -> SendOutcome {
+    if would_drop(buf.len(), limits.drop_above) {
+        return SendOutcome::TooBig;
     }
-    if let Err(e) = sock.send_to(buf, addr).await {
-        debug!(%addr, "UDP send failed: {e}");
-        return false;
+    if should_lose(limits.loss_pct) {
+        return SendOutcome::Failed;
     }
-    true
+    match sock.send_to(buf, addr).await {
+        Ok(_) => SendOutcome::Sent,
+        Err(e) if is_msg_too_big(&e) => {
+            debug!(%addr, len = buf.len(), "UDP datagram too big: {e}");
+            SendOutcome::TooBig
+        }
+        Err(e) => {
+            debug!(%addr, "UDP send failed: {e}");
+            SendOutcome::Failed
+        }
+    }
 }
 
 async fn send_probe(sock: &UdpSocket, addr: SocketAddr, client: &mut UdpClient, limits: UdpLimits) {
-    let Some(size) = client.pmtu.current_probe() else {
-        return;
-    };
-    if client.probe_id == 0 {
-        client.probe_id = 1;
+    loop {
+        let Some(size) = client.pmtu.current_probe() else {
+            return;
+        };
+        if client.probe_id == 0 {
+            client.probe_id = 1;
+        }
+        let pkt = encode_probe(client.probe_id, size);
+        match send_datagram(sock, &pkt, addr, limits).await {
+            SendOutcome::Sent => {
+                client.probe_deadline = Some(Instant::now() + PROBE_TIMEOUT);
+                debug!(%addr, size, id = client.probe_id, "UDP PMTU probe");
+                return;
+            }
+            SendOutcome::TooBig => {
+                debug!(
+                    %addr,
+                    size,
+                    id = client.probe_id,
+                    "UDP PMTU probe rejected locally"
+                );
+                client.probe_deadline = None;
+                client.pmtu.on_unsendable();
+                bump_probe_id(client);
+            }
+            SendOutcome::Failed => {
+                client.probe_deadline = Some(Instant::now() + PROBE_TIMEOUT);
+                debug!(
+                    %addr,
+                    size,
+                    id = client.probe_id,
+                    sent = false,
+                    "UDP PMTU probe"
+                );
+                return;
+            }
+        }
     }
-    client.probe_deadline = Some(Instant::now() + PROBE_TIMEOUT);
-    let pkt = encode_probe(client.probe_id, size);
-    let sent = send_datagram(sock, &pkt, addr, limits).await;
-    debug!(
-        %addr,
-        size,
-        id = client.probe_id,
-        sent,
-        "UDP PMTU probe"
-    );
 }
 
 async fn announce_pmtu(
@@ -628,11 +682,12 @@ pub async fn run_udp_hub(
                         if client.pmtu.current_probe() != before {
                             bump_probe_id(client);
                         }
+                        if client.pmtu.current_probe().is_some() {
+                            send_probe(&sock, *addr, client, limits).await;
+                        }
                         if client.pmtu.is_complete() {
                             announce_pmtu(&sock, *addr, client, limits).await;
                             request_idr_sender(idr_tx.as_ref());
-                        } else if client.pmtu.current_probe().is_some() {
-                            send_probe(&sock, *addr, client, limits).await;
                         }
                     }
                 }
@@ -658,7 +713,7 @@ pub async fn run_udp_hub(
                 for (addr, payload) in targets {
                     let frames = fragment_video(seq, &pkt, sent_ns, payload);
                     for frame in &frames {
-                        if !send_datagram(&sock, frame, addr, limits).await {
+                        if send_datagram(&sock, frame, addr, limits).await != SendOutcome::Sent {
                             break;
                         }
                     }
@@ -702,10 +757,11 @@ async fn handle_incoming(buf: &[u8], addr: SocketAddr, ctx: &IncomingCtx<'_>) {
             }
             let _ = send_datagram(ctx.sock, &encode_hello_ack(), addr, ctx.limits).await;
             if joining {
+                if client.pmtu.current_probe().is_some() {
+                    send_probe(ctx.sock, addr, client, ctx.limits).await;
+                }
                 if client.pmtu.is_complete() {
                     announce_pmtu(ctx.sock, addr, client, ctx.limits).await;
-                } else {
-                    send_probe(ctx.sock, addr, client, ctx.limits).await;
                 }
             }
         }
@@ -728,24 +784,20 @@ async fn handle_incoming(buf: &[u8], addr: SocketAddr, ctx: &IncomingCtx<'_>) {
             let recv = recv as usize;
             match apply_probe_ack(client, id, recv) {
                 AckEffect::Ignored => {}
-                AckEffect::Completed => {
+                AckEffect::Completed | AckEffect::Continue => {
                     debug!(
                         %addr,
                         recv,
                         confirmed = client.pmtu.confirmed(),
                         "UDP PMTU ack"
                     );
-                    announce_pmtu(ctx.sock, addr, client, ctx.limits).await;
-                    request_idr_sender(ctx.idr_tx);
-                }
-                AckEffect::Continue => {
-                    debug!(
-                        %addr,
-                        recv,
-                        confirmed = client.pmtu.confirmed(),
-                        "UDP PMTU ack"
-                    );
-                    send_probe(ctx.sock, addr, client, ctx.limits).await;
+                    if client.pmtu.current_probe().is_some() {
+                        send_probe(ctx.sock, addr, client, ctx.limits).await;
+                    }
+                    if client.pmtu.is_complete() {
+                        announce_pmtu(ctx.sock, addr, client, ctx.limits).await;
+                        request_idr_sender(ctx.idr_tx);
+                    }
                 }
             }
         }
@@ -936,6 +988,33 @@ mod tests {
         assert_eq!(search.confirmed(), BASE_DATAGRAM);
         assert_eq!(search.video_payload(), BASE_DATAGRAM - VIDEO_HEADER_LEN);
         assert!(!search.is_complete());
+    }
+
+    #[test]
+    fn default_max_is_ipv4_ethernet_udp_payload() {
+        assert_eq!(DEFAULT_MAX_DATAGRAM, 1500 - 20 - 8);
+    }
+
+    #[test]
+    fn truncated_ack_rejects_probe_size() {
+        let mut search = PmtuSearch::from_min(DEFAULT_MAX_DATAGRAM);
+        let probe = search.current_probe().expect("armed");
+        let floor = search.confirmed();
+        search.on_ack(probe / 2);
+        assert_ne!(search.current_probe(), Some(probe));
+        assert_eq!(search.confirmed(), floor);
+    }
+
+    #[test]
+    fn unsendable_probe_narrows_search() {
+        let mut search = PmtuSearch::from_min(DEFAULT_MAX_DATAGRAM);
+        let probe = search.current_probe().expect("armed");
+        search.on_unsendable();
+        assert!(search.confirmed() < probe);
+        assert!(
+            search.is_complete() || search.current_probe().is_some_and(|next| next < probe),
+            "next probe should be smaller than the rejected size"
+        );
     }
 
     #[tokio::test]

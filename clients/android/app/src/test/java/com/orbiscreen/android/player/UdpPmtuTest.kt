@@ -4,6 +4,9 @@ package com.orbiscreen.android.player
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
 
 class UdpPmtuTest {
 
@@ -39,5 +42,27 @@ class UdpPmtuTest {
         UdpPlayer.putLe16(buf, 2, 1472)
         assertEquals(0x1234, UdpPlayer.le16(buf, 0))
         assertEquals(1472, UdpPlayer.le16(buf, 2))
+    }
+
+    @Test
+    fun reusedPacketReportsFullSizeAfterPrepareReceive() {
+        val server = DatagramSocket()
+        val client = DatagramSocket()
+        try {
+            val buf = ByteArray(2048)
+            val pkt = DatagramPacket(buf, buf.size)
+            val addr = InetAddress.getByName("127.0.0.1")
+            server.soTimeout = 2000
+            client.send(DatagramPacket(ByteArray(21), 21, addr, server.localPort))
+            server.receive(pkt)
+            assertEquals(21, pkt.length)
+            client.send(DatagramPacket(ByteArray(1400), 1400, addr, server.localPort))
+            UdpPlayer.prepareReceive(pkt, buf)
+            server.receive(pkt)
+            assertEquals(1400, pkt.length)
+        } finally {
+            server.close()
+            client.close()
+        }
     }
 }

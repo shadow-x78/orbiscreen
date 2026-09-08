@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+### 🐛 Fixed
+- **UDP PMTU Measurement (`orbiscreen-transport`, Android)**:
+  - Android reused a `DatagramPacket` without resetting `length`, so probe ACKs could report the previous packet's size (often a 21-byte pong) and the search stalled or locked onto a too-small datagram. Reset the receive cap before every `receive`.
+  - Truncated ACKs reject the in-flight probe size. Local `EMSGSIZE` / `drop_above` rejects fail that size immediately instead of waiting for a timeout.
+
 ## [v0.25.0] - 2026-09-08
 
 ### 🖥 Linux Desktop GUI Control Center

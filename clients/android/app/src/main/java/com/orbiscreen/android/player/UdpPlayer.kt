@@ -39,7 +39,7 @@ private const val TYPE_IDR: Byte = 6
 private const val TYPE_PROBE: Byte = 7
 private const val TYPE_PROBE_ACK: Byte = 8
 private const val TYPE_PMTU: Byte = 9
-private const val RECV_BUF: Int = 4096
+private const val RECV_BUF: Int = 65_507
 
 enum class HandshakeAction { Ack, Control, Ignore }
 
@@ -109,6 +109,7 @@ class UdpPlayer {
             var acked = false
             while (!acked && System.currentTimeMillis() < deadline) {
                 try {
+                    prepareReceive(pkt, buf)
                     sock.receive(pkt)
                     val data = buf.copyOf(pkt.length)
                     when (handshakeAction(data)) {
@@ -204,6 +205,7 @@ class UdpPlayer {
         val pkt = DatagramPacket(buf, buf.size)
         while (running) {
             try {
+                prepareReceive(pkt, buf)
                 socket?.receive(pkt) ?: break
                 handle(buf.copyOf(pkt.length))
             } catch (e: Exception) {
@@ -431,6 +433,10 @@ class UdpPlayer {
             }
         }
 
+        fun prepareReceive(pkt: DatagramPacket, buf: ByteArray) {
+            // length is both "bytes received" and "next receive cap".
+            pkt.length = buf.size
+        }
         fun encodeHello(token: String): ByteArray {
             val t = token.toByteArray(Charsets.UTF_8)
             return byteArrayOf('O'.code.toByte(), 'R'.code.toByte(), 'B'.code.toByte(), '1'.code.toByte(), TYPE_HELLO) + t
