@@ -84,9 +84,14 @@ pub async fn call_stop(conn: &zbus::Connection) -> zbus::Result<String> {
         "com.orbiscreen.Daemon",
     )
     .await?;
-    match proxy.call("Stop", &()).await {
-        Ok(res) => Ok(res),
-        Err(_) => {
+    match tokio::time::timeout(
+        std::time::Duration::from_millis(1000),
+        proxy.call::<_, _, String>("Stop", &()),
+    )
+    .await
+    {
+        Ok(Ok(res)) => Ok(res),
+        _ => {
             let fallback = zbus::Proxy::new(
                 conn,
                 "com.orbiscreen.Daemon",
@@ -94,7 +99,15 @@ pub async fn call_stop(conn: &zbus::Connection) -> zbus::Result<String> {
                 "com.orbiscreen.Daemon",
             )
             .await?;
-            fallback.call("Stop", &()).await
+            match tokio::time::timeout(
+                std::time::Duration::from_millis(1000),
+                fallback.call::<_, _, String>("Stop", &()),
+            )
+            .await
+            {
+                Ok(res) => res,
+                Err(_) => Err(zbus::Error::Failure("D-Bus request timed out".to_string())),
+            }
         }
     }
 }
@@ -112,9 +125,14 @@ pub async fn call_status(conn: &zbus::Connection) -> zbus::Result<String> {
         "com.orbiscreen.Daemon",
     )
     .await?;
-    match proxy.call("GetStatus", &()).await {
-        Ok(res) => Ok(res),
-        Err(_) => {
+    match tokio::time::timeout(
+        std::time::Duration::from_millis(800),
+        proxy.call::<_, _, String>("GetStatus", &()),
+    )
+    .await
+    {
+        Ok(Ok(res)) => Ok(res),
+        _ => {
             let fallback = zbus::Proxy::new(
                 conn,
                 "com.orbiscreen.Daemon",
@@ -122,7 +140,15 @@ pub async fn call_status(conn: &zbus::Connection) -> zbus::Result<String> {
                 "com.orbiscreen.Daemon",
             )
             .await?;
-            fallback.call("GetStatus", &()).await
+            match tokio::time::timeout(
+                std::time::Duration::from_millis(800),
+                fallback.call::<_, _, String>("GetStatus", &()),
+            )
+            .await
+            {
+                Ok(res) => res,
+                Err(_) => Err(zbus::Error::Failure("D-Bus request timed out".to_string())),
+            }
         }
     }
 }

@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.25.7] - 2026-09-09
+
+Dual USB pipeline restoration with automatic ADB reverse supervisor, runtime Android USB accessory permissions via PendingIntent, D-Bus query timeout protection preventing CLI hangs on zombie or suspended daemon processes, and Linux Desktop GUI real-time device identification.
+
+### 🚀 Features & Enhancements
+- **Dual USB Transport Pipeline (`orbiscreen-transport`)**:
+  - Implemented automatic ADB reverse supervisor in `adb.rs` that detects connected devices via `adb devices -l` and continuously manages reverse port forwarding (`tcp:8788` and `tcp:8789`).
+  - Integrated dual transport fallback: AOA (Android Open Accessory) with 4-second cooldown retry logic instead of permanent blacklisting, coupled with instant ADB reverse TCP fallback.
+- **Android Runtime USB Accessory Permissions (`UsbAccessoryManager.kt` & `MainActivity.kt`)**:
+  - Added explicit runtime USB accessory permission dialog via `PendingIntent` with `ACTION_USB_PERMISSION` for Android 12+ compatibility (`FLAG_MUTABLE`).
+  - Registered `UsbPermissionReceiver` to automatically initialize the accessory stream immediately upon user authorization without requiring physical replugging.
+- **Desktop GUI Real-Time Device Status (`crates/orbiscreen-gui`)**:
+  - Connected USB device card now queries and displays actual hardware models (e.g. `Lenovo TB336FU متصل`, `OnePlus 6T متصل`) with instant refresh upon connection or disconnection.
+  - Aligned GUI USB open button and port indicators to standard video port `8788`.
+- **D-Bus Call Timeout Protection (`orbiscreen-daemon`)**:
+  - Guarded all CLI D-Bus IPC calls (`GetStatus`, `Stop`) with non-blocking timeouts (`tokio::time::timeout`) to ensure the CLI never hangs indefinitely when stale or suspended (`SIGTSTP` / Ctrl+Z) daemon processes hold the D-Bus bus.
+
+### 📦 Packaging & Versions
+- **Cargo Workspace**: Bumped workspace package version to 0.25.7.
+- **Android Client**: Incremented `versionCode` to 79; updated `versionName` to "0.25.7".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.7 with changelog entry.
+- **debian/changelog**: Added 0.25.7-1 release entry for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.25.7.
+
 ## [v0.25.6] - 2026-09-09
 
 Hotfix for rubberbanding regression introduced in v0.25.5 ([#75](https://github.com/shadow-x78/orbiscreen/issues/75)). Two ExoPlayer rendering thresholds were tuned too conservatively, causing the renderer to hold stale frames up to 150ms and a catch-up oscillation loop via `setMaxPlaybackSpeed(1.02f)`. Both changes are reverted. The proactive IDR request (`onLagDetected → requestIdr()`) added in v0.25.5 is kept as it genuinely improves recovery.
