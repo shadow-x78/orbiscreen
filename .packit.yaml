@@ -28,6 +28,14 @@ actions:
 # ── Build & Publishing Jobs ──
 jobs:
   - job: copr_build
+    trigger: commit
+    branch: main
+    targets:
+      - fedora-stable
+    owner: shadow-x78
+    project: orbiscreen
+
+  - job: copr_build
     trigger: pull_request
     targets:
       - fedora-stable
