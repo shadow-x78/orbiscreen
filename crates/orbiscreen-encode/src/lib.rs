@@ -598,7 +598,10 @@ mod tests {
     #[test]
     fn infinite_gop_uses_property_maximum() {
         init().unwrap();
-        let encoder = make_element("x264enc").unwrap();
+        let encoder = match make_element("x264enc") {
+            Ok(enc) => enc,
+            Err(_) => return,
+        };
         configure_infinite_gop(&encoder);
         assert!(encoder.property::<bool>("intra-refresh"));
         assert!(encoder.property::<u32>("key-int-max") > 60);

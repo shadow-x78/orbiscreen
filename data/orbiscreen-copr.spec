@@ -148,7 +148,7 @@ fi
 * Wed Sep 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.7-1
 - Release 0.25.7: Restore dual USB pipeline with resilient AOA USB permissions and automatic ADB reverse port forwarding, protect D-Bus CLI queries against zombie or suspended process hangs, and update GUI device status display.
 
-* Tue Sep 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.6-1
+* Wed Sep 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.6-1
 - Release 0.25.6: Revert ExoPlayer threshold regression that caused worse rubberbanding in v0.25.5 (#75). Restore shouldDropOutputBuffer to 30ms, revert setMaxPlaybackSpeed to 1.0f, revert shouldDropBuffersToKeyframe to 100ms. Keep proactive IDR request on lag.
 
 * Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.5-1
