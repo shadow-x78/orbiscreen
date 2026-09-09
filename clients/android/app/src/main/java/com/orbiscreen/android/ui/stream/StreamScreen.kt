@@ -178,6 +178,16 @@ fun StreamScreen(
         }
     }
 
+    DisposableEffect(prefs.keepScreenAwake) {
+        val window = (context as? Activity)?.window
+        if (prefs.keepScreenAwake) {
+            window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
     LaunchedEffect(showControls) {
         if (showControls) {
             delay(12_000)
@@ -500,12 +510,30 @@ private fun ConnectionSettingsSheet(
     var pointerSpeedState by remember { mutableFloatStateOf(currentPointerSpeed) }
 
     val screenPixelW = remember {
-        val dm = context.resources.displayMetrics
-        maxOf(dm.widthPixels, dm.heightPixels)
+        val wm = context.getSystemService(android.content.Context.WINDOW_SERVICE) as? android.view.WindowManager
+        val display = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            try { context.display ?: wm?.defaultDisplay } catch (_: Exception) { wm?.defaultDisplay }
+        } else {
+            @Suppress("DEPRECATION")
+            wm?.defaultDisplay
+        }
+        val mode = display?.mode
+        val pw = mode?.physicalWidth ?: context.resources.displayMetrics.widthPixels
+        val ph = mode?.physicalHeight ?: context.resources.displayMetrics.heightPixels
+        maxOf(pw, ph)
     }
     val screenPixelH = remember {
-        val dm = context.resources.displayMetrics
-        minOf(dm.widthPixels, dm.heightPixels)
+        val wm = context.getSystemService(android.content.Context.WINDOW_SERVICE) as? android.view.WindowManager
+        val display = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            try { context.display ?: wm?.defaultDisplay } catch (_: Exception) { wm?.defaultDisplay }
+        } else {
+            @Suppress("DEPRECATION")
+            wm?.defaultDisplay
+        }
+        val mode = display?.mode
+        val pw = mode?.physicalWidth ?: context.resources.displayMetrics.widthPixels
+        val ph = mode?.physicalHeight ?: context.resources.displayMetrics.heightPixels
+        minOf(pw, ph)
     }
 
     var customW by remember { mutableStateOf(currentWidth.toString()) }

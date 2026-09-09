@@ -115,4 +115,24 @@
     <string name="key_undo">Undo</string>
     <string name="key_copy">Copy</string>
     <string name="key_paste">Paste</string>
+    <string name="usb_disconnected_toast">USB cable disconnected</string>
+    <string name="settings_general">General</string>
+    <string name="settings_display_session">Display &amp; Session</string>
+    <string name="settings_audio_connection">Audio &amp; Connection</string>
+    <string name="settings_language">Language</string>
+    <string name="language_system">System Default</string>
+    <string name="language_ar">العربية</string>
+    <string name="language_en">English</string>
+    <string name="keep_screen_awake">Keep Screen Awake</string>
+    <string name="keep_screen_awake_desc">Prevent screen from sleeping while streaming</string>
+    <string name="default_input_mode">Default Input Mode</string>
+    <string name="default_input_mode_desc">Initial input method when session starts</string>
+    <string name="usb_audio_title">USB Audio Output</string>
+    <string name="usb_audio_desc">Stream PC desktop audio to device speakers or headphones</string>
+    <string name="auto_connect_usb_title">Auto-connect on USB</string>
+    <string name="auto_connect_usb_desc">Instantly start session when USB cable is attached</string>
+    <string name="clear_history">Clear Recent Hosts</string>
+    <string name="clear_history_desc">Remove saved connections and history</string>
+    <string name="restore_controls_hint">Controls minimized · Tap handle to restore</string>
+    <string name="show_controls">Show Toolbar</string>
 </resources>

@@ -628,15 +628,33 @@ async fn api_control(
                 .and_then(|v| v.as_u64())
                 .unwrap_or(1080)
                 .clamp(240, 4320) as u32;
-            info!("host control: requested resolution change to {width}x{height}");
-            let mode_str = format!("output.Virtual-ORBISCREEN.mode.{width}x{height}@60");
-            let _ = tokio::process::Command::new("kscreen-doctor")
+            let fps = payload
+                .get("fps")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(60)
+                .clamp(30, 240) as u32;
+            info!("host control: requested resolution change to {width}x{height}@{fps}Hz");
+            let mode_str = format!("output.Virtual-ORBISCREEN.mode.{width}x{height}@{fps}");
+            let res = tokio::process::Command::new("kscreen-doctor")
                 .arg(&mode_str)
                 .status()
                 .await;
+            let ok = match res {
+                Ok(s) if s.success() => true,
+                _ => {
+                    let fallback_str =
+                        format!("output.Virtual-ORBISCREEN.mode.{width}x{height}@60");
+                    tokio::process::Command::new("kscreen-doctor")
+                        .arg(&fallback_str)
+                        .status()
+                        .await
+                        .map(|s| s.success())
+                        .unwrap_or(false)
+                }
+            };
             (
                 StatusCode::OK,
-                Json(serde_json::json!({"ok": true, "width": width, "height": height})),
+                Json(serde_json::json!({"ok": ok, "width": width, "height": height, "fps": fps})),
             )
         }
         Some("open") => (
@@ -717,7 +735,83 @@ async fn stream_head_handler() -> impl IntoResponse {
     ([("content-type", "video/mp2t")], StatusCode::OK)
 }
 
-async fn stream_handler(State(state): State<AppState>) -> axum::response::Response {
+#[derive(serde::Deserialize, Debug, Default)]
+struct StreamQuery {
+    audio: Option<String>,
+}
+
+fn element_available(name: &str) -> bool {
+    gstreamer::ElementFactory::find(name).is_some()
+}
+
+fn build_video_pipeline() -> Result<
+    (
+        gstreamer::Pipeline,
+        gstreamer_app::AppSrc,
+        gstreamer_app::AppSink,
+    ),
+    (),
+> {
+    use gstreamer::prelude::*;
+    use gstreamer_app::{AppSink, AppSrc};
+    let pipeline_str = "appsrc name=src format=time is-live=false block=false \
+                        ! video/x-h264,stream-format=byte-stream,alignment=au \
+                        ! h264parse config-interval=1 \
+                        ! mpegtsmux alignment=7 \
+                        ! appsink name=sink drop=true sync=false max-buffers=2 emit-signals=false";
+    let p = gstreamer::parse::launch(pipeline_str).map_err(|_| ())?;
+    let pipeline = p.downcast::<gstreamer::Pipeline>().map_err(|_| ())?;
+    let appsrc = pipeline
+        .by_name("src")
+        .and_then(|e| e.downcast::<AppSrc>().ok())
+        .ok_or(())?;
+    let appsink = pipeline
+        .by_name("sink")
+        .and_then(|e| e.downcast::<AppSink>().ok())
+        .ok_or(())?;
+    Ok((pipeline, appsrc, appsink))
+}
+
+fn build_audio_video_pipeline() -> Result<
+    (
+        gstreamer::Pipeline,
+        gstreamer_app::AppSrc,
+        gstreamer_app::AppSink,
+    ),
+    (),
+> {
+    use gstreamer::prelude::*;
+    use gstreamer_app::{AppSink, AppSrc};
+    let pipeline_str = "mpegtsmux name=mux alignment=7 \
+                        ! appsink name=sink drop=true sync=false max-buffers=2 emit-signals=false \
+                        appsrc name=src format=time is-live=false block=false \
+                        ! video/x-h264,stream-format=byte-stream,alignment=au \
+                        ! h264parse config-interval=1 \
+                        ! mux. \
+                        pulsesrc device=\"@DEFAULT_MONITOR@\" do-timestamp=true buffer-time=20000 latency-time=10000 \
+                        ! queue max-size-buffers=2 max-size-time=20000000 max-size-bytes=0 leaky=downstream \
+                        ! audioconvert \
+                        ! audioresample \
+                        ! avenc_aac bitrate=128000 \
+                        ! aacparse \
+                        ! mux.";
+    let p = gstreamer::parse::launch(pipeline_str).map_err(|_| ())?;
+    let pipeline = p.downcast::<gstreamer::Pipeline>().map_err(|_| ())?;
+    let appsrc = pipeline
+        .by_name("src")
+        .and_then(|e| e.downcast::<AppSrc>().ok())
+        .ok_or(())?;
+    let appsink = pipeline
+        .by_name("sink")
+        .and_then(|e| e.downcast::<AppSink>().ok())
+        .ok_or(())?;
+    Ok((pipeline, appsrc, appsink))
+}
+
+async fn stream_handler(
+    State(state): State<AppState>,
+    axum::extract::Query(query): axum::extract::Query<StreamQuery>,
+) -> axum::response::Response {
     use gstreamer::prelude::*;
     use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
     use tokio_stream::StreamExt;
@@ -729,104 +823,100 @@ async fn stream_handler(State(state): State<AppState>) -> axum::response::Respon
 
     gstreamer::init().ok();
 
-    let pipeline_str = "appsrc name=src format=time is-live=false block=false \
-                        ! video/x-h264,stream-format=byte-stream,alignment=au \
-                        ! h264parse config-interval=1 \
-                        ! mpegtsmux alignment=7 \
-                        ! appsink name=sink drop=false sync=false max-buffers=4 emit-signals=false";
-    let pipeline = match gstreamer::parse::launch(pipeline_str) {
-        Ok(p) => match p.downcast::<gstreamer::Pipeline>() {
-            Ok(pipeline) => pipeline,
-            Err(_) => {
-                warn!("stream pipeline did not downcast to Pipeline");
-                return StatusCode::SERVICE_UNAVAILABLE.into_response();
-            }
-        },
-        Err(e) => {
-            warn!("failed to build stream pipeline: {e}");
-            return StatusCode::SERVICE_UNAVAILABLE.into_response();
-        }
-    };
-
-    let appsrc = match pipeline
-        .by_name("src")
-        .and_then(|e| e.downcast::<AppSrc>().ok())
-    {
-        Some(s) => s,
-        None => {
-            warn!("stream pipeline missing appsrc element");
-            return StatusCode::SERVICE_UNAVAILABLE.into_response();
-        }
-    };
-
-    let caps = gstreamer::Caps::builder("video/x-h264")
-        .field("stream-format", "byte-stream")
-        .field("alignment", "au")
-        .build();
-    appsrc.set_caps(Some(&caps));
-    appsrc.set_format(gstreamer::Format::Time);
-    appsrc.set_max_bytes(512 * 1024);
-    appsrc.set_block(false);
-
-    let appsink = match pipeline
-        .by_name("sink")
-        .and_then(|e| e.downcast::<AppSink>().ok())
-    {
-        Some(s) => s,
-        None => {
-            warn!("stream pipeline missing appsink element");
-            return StatusCode::SERVICE_UNAVAILABLE.into_response();
-        }
-    };
+    let try_audio = query.audio.as_deref() != Some("0")
+        && element_available("pulsesrc")
+        && element_available("avenc_aac");
 
     let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(16);
     let tx_alive = tx.clone();
-    appsink.set_callbacks(
-        AppSinkCallbacks::builder()
-            .new_sample(move |sink| match sink.pull_sample() {
-                Ok(sample) => {
-                    if let Some(buffer) = sample.buffer() {
-                        if let Ok(map) = buffer.map_readable() {
-                            if tx.blocking_send(map.to_vec()).is_err() {
-                                return Err(gstreamer::FlowError::Eos);
+
+    let setup_pipeline = |pipeline: &gstreamer::Pipeline,
+                          appsrc: &AppSrc,
+                          appsink: &AppSink,
+                          tx: tokio::sync::mpsc::Sender<Vec<u8>>| {
+        let caps = gstreamer::Caps::builder("video/x-h264")
+            .field("stream-format", "byte-stream")
+            .field("alignment", "au")
+            .build();
+        appsrc.set_caps(Some(&caps));
+        appsrc.set_format(gstreamer::Format::Time);
+        appsrc.set_max_bytes(512 * 1024);
+        appsrc.set_block(false);
+
+        appsink.set_callbacks(
+            AppSinkCallbacks::builder()
+                .new_sample(move |sink| match sink.pull_sample() {
+                    Ok(sample) => {
+                        if let Some(buffer) = sample.buffer() {
+                            if let Ok(map) = buffer.map_readable() {
+                                if tx.blocking_send(map.to_vec()).is_err() {
+                                    return Err(gstreamer::FlowError::Eos);
+                                }
                             }
                         }
+                        Ok(gstreamer::FlowSuccess::Ok)
                     }
-                    Ok(gstreamer::FlowSuccess::Ok)
-                }
-                Err(e) => {
-                    debug!("pull_sample EOS/err: {e}");
-                    Err(gstreamer::FlowError::Eos)
-                }
-            })
-            .build(),
-    );
+                    Err(e) => {
+                        debug!("pull_sample EOS/err: {e}");
+                        Err(gstreamer::FlowError::Eos)
+                    }
+                })
+                .build(),
+        );
 
-    if let Some(bus) = pipeline.bus() {
-        bus.set_sync_handler(|_bus, msg| {
-            match msg.view() {
-                gstreamer::MessageView::Error(err) => tracing::error!(
-                    target: "orbiscreen_transport",
-                    "stream pipeline error: {} (debug: {})",
-                    err.error(),
-                    err.debug().unwrap_or_default()
-                ),
-                gstreamer::MessageView::Warning(warn) => tracing::warn!(
-                    target: "orbiscreen_transport",
-                    "stream pipeline warning: {} (debug: {})",
-                    warn.error(),
-                    warn.debug().unwrap_or_default()
-                ),
-                _ => {}
+        if let Some(bus) = pipeline.bus() {
+            bus.set_sync_handler(|_bus, msg| {
+                match msg.view() {
+                    gstreamer::MessageView::Error(err) => tracing::error!(
+                        target: "orbiscreen_transport",
+                        "stream pipeline error: {} (debug: {})",
+                        err.error(),
+                        err.debug().unwrap_or_default()
+                    ),
+                    gstreamer::MessageView::Warning(warn) => tracing::warn!(
+                        target: "orbiscreen_transport",
+                        "stream pipeline warning: {} (debug: {})",
+                        warn.error(),
+                        warn.debug().unwrap_or_default()
+                    ),
+                    _ => {}
+                }
+                gstreamer::BusSyncReply::Drop
+            });
+        }
+    };
+
+    let mut launched = None;
+
+    if try_audio {
+        if let Ok((p, src, sink)) = build_audio_video_pipeline() {
+            setup_pipeline(&p, &src, &sink, tx.clone());
+            if p.set_state(gstreamer::State::Playing).is_ok() {
+                launched = Some((p, src, sink));
+            } else {
+                let _ = p.set_state(gstreamer::State::Null);
             }
-            gstreamer::BusSyncReply::Drop
-        });
+        }
     }
 
-    if let Err(e) = pipeline.set_state(gstreamer::State::Playing) {
-        warn!("stream pipeline failed to reach playing state: {e}");
-        return StatusCode::SERVICE_UNAVAILABLE.into_response();
-    }
+    let (pipeline, appsrc, _appsink) = match launched {
+        Some(triplet) => triplet,
+        None => {
+            let (p, src, sink) = match build_video_pipeline() {
+                Ok(res) => res,
+                Err(_) => {
+                    warn!("failed to build fallback video pipeline");
+                    return StatusCode::SERVICE_UNAVAILABLE.into_response();
+                }
+            };
+            setup_pipeline(&p, &src, &sink, tx.clone());
+            if let Err(e) = p.set_state(gstreamer::State::Playing) {
+                warn!("stream pipeline failed to reach playing state: {e}");
+                return StatusCode::SERVICE_UNAVAILABLE.into_response();
+            }
+            (p, src, sink)
+        }
+    };
 
     state.stats.client_started();
     request_idr(&state);

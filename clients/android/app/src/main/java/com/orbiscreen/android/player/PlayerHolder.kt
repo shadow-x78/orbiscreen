@@ -117,12 +117,14 @@ class PlayerHolder(
         host: String,
         port: Int,
         tokenProvider: suspend () -> String = { "" },
-    ): ExoPlayer? = buildInternal(host, port, tokenProvider, fromReconnect = false)
+        audio: Boolean = true,
+    ): ExoPlayer? = buildInternal(host, port, tokenProvider, audio, fromReconnect = false)
 
     private suspend fun buildInternal(
         host: String,
         port: Int,
         tokenProvider: suspend () -> String,
+        audio: Boolean = true,
         fromReconnect: Boolean,
     ): ExoPlayer? {
         releaseInternal()
@@ -141,7 +143,7 @@ class PlayerHolder(
         } catch (_: Exception) {
             ""
         }
-        val uri = StreamUrl.build(host, port, token)
+        val uri = StreamUrl.build(host, port, token, audio)
         android.util.Log.i("OrbiPlayer", "connecting to stream: $uri")
         _event.value = StreamEvent.Connecting(uri)
 
@@ -182,7 +184,7 @@ class PlayerHolder(
             val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
 
             val loadControl = DefaultLoadControl.Builder()
-                .setBufferDurationsMs(100, 1000, 32, 64)
+                .setBufferDurationsMs(32, 200, 16, 32)
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
 
@@ -197,15 +199,15 @@ class PlayerHolder(
                         .setLiveConfiguration(
                             MediaItem.LiveConfiguration.Builder()
                                 .setTargetOffsetMs(0)
-                                .setMinPlaybackSpeed(1.0f)
-                                .setMaxPlaybackSpeed(1.0f)
+                                .setMinPlaybackSpeed(0.98f)
+                                .setMaxPlaybackSpeed(1.04f)
                                 .build()
                         )
                         .build()
                     setMediaItem(media)
                     repeatMode = Player.REPEAT_MODE_OFF
                     playWhenReady = true
-                    volume = 0f
+                    volume = if (audio) 1.0f else 0f
                     setForegroundMode(true)
                     addListener(object : Player.Listener {
                         override fun onPlaybackStateChanged(state: Int) {

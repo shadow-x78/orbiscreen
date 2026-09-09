@@ -59,9 +59,30 @@ class PrefsStore(context: Context) {
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }.distinctUntilChanged()
 
-    var enableSubnetScanner: Boolean
-        get() = prefs.getBoolean(KEY_SUBNET, false)
-        set(value) { prefs.edit { putBoolean(KEY_SUBNET, value) } }
+    var appLanguage: String
+        get() = prefs.getString(KEY_LANGUAGE, "system") ?: "system"
+        set(value) { prefs.edit { putString(KEY_LANGUAGE, value) } }
+
+    val appLanguageFlow: Flow<String> = callbackFlow {
+        trySend(appLanguage)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_LANGUAGE) trySend(appLanguage)
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.distinctUntilChanged()
+
+    var keepScreenAwake: Boolean
+        get() = prefs.getBoolean(KEY_KEEP_SCREEN_AWAKE, true)
+        set(value) { prefs.edit { putBoolean(KEY_KEEP_SCREEN_AWAKE, value) } }
+
+    var usbAudioEnabled: Boolean
+        get() = prefs.getBoolean(KEY_USB_AUDIO, true)
+        set(value) { prefs.edit { putBoolean(KEY_USB_AUDIO, value) } }
+
+    var autoConnectUsb: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_CONNECT_USB, true)
+        set(value) { prefs.edit { putBoolean(KEY_AUTO_CONNECT_USB, value) } }
 
     var forceSoftwareDecoder: Boolean
         get() = prefs.getBoolean(KEY_SW_DECODER, false)
@@ -91,7 +112,10 @@ class PrefsStore(context: Context) {
         private const val KEY_RECENT_PORT = "recent_port"
         private const val KEY_RECENT_TS = "recent_ts"
         private const val KEY_THEME = "theme_pref"
-        private const val KEY_SUBNET = "enable_subnet"
+        private const val KEY_LANGUAGE = "app_language"
+        private const val KEY_KEEP_SCREEN_AWAKE = "keep_screen_awake"
+        private const val KEY_USB_AUDIO = "usb_audio_enabled"
+        private const val KEY_AUTO_CONNECT_USB = "auto_connect_usb"
         private const val KEY_SW_DECODER = "sw_decoder"
         private const val KEY_USB_PORT = "usb_port"
         private const val KEY_POINTER_SPEED = "pointer_speed"

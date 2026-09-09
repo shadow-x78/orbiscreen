@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.25.8] - 2026-09-09
+
+USB desktop audio output streaming, native hardware display resolution and high refresh rate auto-matching, USB low-latency pipeline optimization, instant USB auto-connection and graceful detach handling, complete native Arabic localization with bundled NotoKufiArabic typography, draggable floating edge pill toolbar handle, and streamlined practical settings overhaul.
+
+### 🚀 Features & Enhancements
+- **USB Audio Speaker Output (`orbiscreen-transport` & Android)**:
+  - Added real-time desktop audio streaming over USB to Android device speakers or headphones using a low-latency GStreamer pipeline (`pulsesrc` -> `audioconvert` -> `audioresample` -> `avenc_aac` -> `mpegtsmux`).
+  - Added in-app setting and query parameter support (`?audio=0`) allowing clients to selectively enable or disable audio output.
+- **Physical Screen Resolution & Refresh Rate Auto-Detection (`StreamViewModel.kt` & `orbiscreen-transport`)**:
+  - Automatically queries Android physical display hardware mode (`Display.Mode.physicalWidth`, `physicalHeight`, `refreshRate`) upon session connect and adjusts the Linux virtual display to exact pixel-perfect dimensions and high refresh rate (e.g. 60Hz, 90Hz, 120Hz) via `kscreen-doctor`.
+  - Updated in-stream display settings sheet with true native physical panel dimensions.
+- **Low-Latency USB Pipeline Tuning (`PlayerHolder.kt` & `orbiscreen-transport`)**:
+  - Reduced ExoPlayer `DefaultLoadControl` initial buffer durations from 100ms down to 32ms, cutting initial presentation latency by over 70ms.
+  - Reduced PulseAudio capture buffer from default 200ms to 20ms (`buffer-time=20000 latency-time=10000`) and audio queue from 100ms down to 20ms.
+  - Enabled dynamic zero-latency playback catch-up (`1.04f`) to eliminate cumulative delay.
+- **USB Auto-Connect & Clean Disconnect Behavior (`UsbAccessoryManager.kt` & `OrbiNav.kt`)**:
+  - Automatically launches the stream session immediately when USB cable is attached and system accessory permission prompt is confirmed.
+  - Gracefully terminates session and returns to Discovery screen with user toast notification when USB cable is unplugged.
+  - Hid USB "Connect" button when USB cable is detached to eliminate invalid connection attempts.
+- **Full Arabic Localization & Typography (`values-ar/strings.xml` & `Type.kt`)**:
+  - Added comprehensive Arabic translations for all application strings, dialogs, controls, and error states.
+  - Bundled `NotoKufiArabic` font family (Regular & Bold) for native, high-legibility Arabic typography across all UI components.
+  - Implemented dynamic in-app language switcher (System Default, English, العربية) with instantaneous RTL/LTR layout direction adaptation without requiring activity recreation.
+- **Draggable Floating Edge Pill Controls (`StreamScreen.kt`)**:
+  - Replaced ambiguous double-tap gesture with an intuitive floating edge pill handle that smoothly minimizes and restores toolbar on single tap.
+  - Edge pill supports free dragging to any screen corner to stay out of the way of primary workspace tasks.
+- **Streamlined Practical Settings Redesign (`SettingsScreen.kt`)**:
+  - Completely reorganized settings into 4 clean, purposeful sections: General (Appearance & Language), Display & Session (Keep Screen Awake & Input Mode), Audio & Connection (USB Audio Output & Auto-Connect), and About & Data (Update Checker, History, Repository & License).
+  - Implemented `FLAG_KEEP_SCREEN_ON` toggle to prevent device screen sleep while streaming.
+
+### 📦 Packaging & Versions
+- **Cargo Workspace**: Bumped workspace package version to 0.25.8.
+- **Android Client**: Incremented `versionCode` to 80; updated `versionName` to "0.25.8".
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.8 with changelog entry.
+- **debian/changelog**: Added 0.25.8-1 release entry for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to 0.25.8.
+
 ## [v0.25.7] - 2026-09-09
 
 Dual USB pipeline restoration with automatic ADB reverse supervisor, runtime Android USB accessory permissions via PendingIntent, D-Bus query timeout protection preventing CLI hangs on zombie or suspended daemon processes, and Linux Desktop GUI real-time device identification.

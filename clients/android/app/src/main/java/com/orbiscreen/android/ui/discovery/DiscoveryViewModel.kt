@@ -70,18 +70,12 @@ class DiscoveryViewModel(
             delay(3500)
             _state.value = _state.value.copy(isScanning = false)
         }
-        if (prefs.enableSubnetScanner) {
-            startSubnetSweep()
-        }
     }
 
     fun refresh() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isScanning = true)
             discovery.restart()
-            if (prefs.enableSubnetScanner) {
-                startSubnetSweep()
-            }
             _scanTick.value++
             delay(3000)
             _state.value = _state.value.copy(isScanning = false)

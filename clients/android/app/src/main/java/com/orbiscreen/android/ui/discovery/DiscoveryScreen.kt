@@ -357,16 +357,17 @@ private fun UsbHeroCard(usbPort: Int, onConnect: (String, Int) -> Unit) {
                     maxLines = 2,
                 )
             }
-            Spacer(Modifier.width(10.dp))
-            Button(
-                onClick = { readyResult?.let { onConnect(it.host, it.port) } },
-                enabled = isReady,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                ),
-            ) {
-                Text(stringResource(R.string.connect), fontWeight = FontWeight.Medium)
+            if (isReady) {
+                Spacer(Modifier.width(10.dp))
+                Button(
+                    onClick = { readyResult?.let { onConnect(it.host, it.port) } },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                    ),
+                ) {
+                    Text(stringResource(R.string.connect), fontWeight = FontWeight.Medium)
+                }
             }
         }
     }

@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.25.7
+Version:        0.25.8
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -142,6 +142,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Wed Sep 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.8-1
+- Release 0.25.8: USB audio streaming to device speaker/headphones, auto-detection of native screen resolution and high refresh rate, USB latency pipeline optimization, auto-connect and disconnect behavior, full Arabic localization with NotoKufiArabic typography, draggable edge pill toolbar controls, and practical settings redesign.
+
 * Wed Sep 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.7-1
 - Release 0.25.7: Restore dual USB pipeline with resilient AOA USB permissions and automatic ADB reverse port forwarding, protect D-Bus CLI queries against zombie or suspended process hangs, and update GUI device status display.
 

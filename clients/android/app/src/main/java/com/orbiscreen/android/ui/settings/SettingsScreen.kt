@@ -3,11 +3,9 @@
 
 package com.orbiscreen.android.ui.settings
 
-
-import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -16,12 +14,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,25 +23,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.HeadsetMic
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.Memory
-import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Policy
-import androidx.compose.material.icons.rounded.Radar
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Update
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.rounded.Usb
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
@@ -65,6 +61,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,7 +69,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -89,7 +90,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 
@@ -103,6 +103,7 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     var isCheckingUpdates by remember { mutableStateOf(false) }
     var availableUpdate by remember { mutableStateOf<ReleaseInfo?>(null) }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -138,7 +139,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             PreferenceSection(
-                title = stringResource(R.string.settings_appearance),
+                title = stringResource(R.string.settings_general),
                 icon = Icons.Rounded.Palette,
             ) {
                 Row(
@@ -169,88 +170,107 @@ fun SettingsScreen(
                         onClick = { prefs.themePref = PrefsStore.ThemePref.Dark },
                     )
                 }
-            }
 
-            PreferenceSection(
-                title = stringResource(R.string.settings_streaming),
-                icon = Icons.Rounded.Speed,
-            ) {
-                var forceSw by remember { mutableStateOf(prefs.forceSoftwareDecoder) }
-                SwitchPreferenceRow(
-                    title = stringResource(R.string.force_sw_decoder),
-                    subtitle = stringResource(R.string.force_sw_decoder_summary),
-                    checked = forceSw,
-                    icon = Icons.Rounded.Memory,
-                    onCheckedChange = {
-                        forceSw = it
-                        prefs.forceSoftwareDecoder = it
-                    },
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
                 )
-            }
 
-            PreferenceSection(
-                title = "Network & Discovery",
-                icon = Icons.Rounded.Radar,
-            ) {
-                var subnetScan by remember { mutableStateOf(prefs.enableSubnetScanner) }
-                SwitchPreferenceRow(
-                    title = stringResource(R.string.enable_subnet_scanner),
-                    subtitle = stringResource(R.string.subnet_scanner_summary),
-                    checked = subnetScan,
-                    icon = Icons.Rounded.Radar,
-                    onCheckedChange = {
-                        subnetScan = it
-                        prefs.enableSubnetScanner = it
-                    },
-                )
-                var recentHost by remember { mutableStateOf(prefs.recentHost) }
-                if (recentHost != null) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                var currentLang by remember { mutableStateOf(prefs.appLanguage) }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    LangSegmentChip(
+                        label = stringResource(R.string.language_system),
+                        selected = currentLang == "system",
+                        modifier = Modifier.weight(1f),
+                        onClick = { currentLang = "system"; prefs.appLanguage = "system" },
                     )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                prefs.recentHost = null
-                                recentHost = null
-                                Toast.makeText(context, "Recent host cleared", Toast.LENGTH_SHORT).show()
-                            }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f),
-                            modifier = Modifier.size(38.dp),
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    Icons.Rounded.Delete,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                        }
-                        Spacer(Modifier.width(16.dp))
-                        Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                            Text(
-                                text = stringResource(R.string.clear_recent),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = "${recentHost?.host}:${recentHost?.port}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                    LangSegmentChip(
+                        label = stringResource(R.string.language_en),
+                        selected = currentLang == "en",
+                        modifier = Modifier.weight(1f),
+                        onClick = { currentLang = "en"; prefs.appLanguage = "en" },
+                    )
+                    LangSegmentChip(
+                        label = stringResource(R.string.language_ar),
+                        selected = currentLang == "ar",
+                        modifier = Modifier.weight(1f),
+                        onClick = { currentLang = "ar"; prefs.appLanguage = "ar" },
+                    )
                 }
+                Spacer(Modifier.height(8.dp))
+            }
+
+            PreferenceSection(
+                title = stringResource(R.string.settings_display_session),
+                icon = Icons.Rounded.Visibility,
+            ) {
+                var keepScreen by remember { mutableStateOf(prefs.keepScreenAwake) }
+                SwitchPreferenceRow(
+                    title = stringResource(R.string.keep_screen_awake),
+                    subtitle = stringResource(R.string.keep_screen_awake_desc),
+                    checked = keepScreen,
+                    icon = Icons.Rounded.BatteryFull,
+                    onCheckedChange = {
+                        keepScreen = it
+                        prefs.keepScreenAwake = it
+                    },
+                )
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                )
+
+                var touchMode by remember { mutableStateOf(prefs.touchMode) }
+                SwitchPreferenceRow(
+                    title = stringResource(R.string.default_input_mode),
+                    subtitle = if (touchMode) stringResource(R.string.mode_touch) else stringResource(R.string.mode_trackpad),
+                    checked = touchMode,
+                    icon = Icons.Rounded.TouchApp,
+                    onCheckedChange = {
+                        touchMode = it
+                        prefs.touchMode = it
+                    },
+                )
+            }
+
+            PreferenceSection(
+                title = stringResource(R.string.settings_audio_connection),
+                icon = Icons.Rounded.HeadsetMic,
+            ) {
+                var usbAudio by remember { mutableStateOf(prefs.usbAudioEnabled) }
+                SwitchPreferenceRow(
+                    title = stringResource(R.string.usb_audio_title),
+                    subtitle = stringResource(R.string.usb_audio_desc),
+                    checked = usbAudio,
+                    icon = Icons.Rounded.HeadsetMic,
+                    onCheckedChange = {
+                        usbAudio = it
+                        prefs.usbAudioEnabled = it
+                    },
+                )
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                )
+
+                var autoConnect by remember { mutableStateOf(prefs.autoConnectUsb) }
+                SwitchPreferenceRow(
+                    title = stringResource(R.string.auto_connect_usb_title),
+                    subtitle = stringResource(R.string.auto_connect_usb_desc),
+                    checked = autoConnect,
+                    icon = Icons.Rounded.Usb,
+                    onCheckedChange = {
+                        autoConnect = it
+                        prefs.autoConnectUsb = it
+                    },
+                )
             }
 
             PreferenceSection(
@@ -288,6 +308,55 @@ fun SettingsScreen(
                         context.startActivity(intent)
                     },
                 )
+
+                var recentHost by remember { mutableStateOf(prefs.recentHost) }
+                if (recentHost != null) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                prefs.recentHost = null
+                                recentHost = null
+                                Toast.makeText(context, context.getString(R.string.clear_history), Toast.LENGTH_SHORT).show()
+                            }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f),
+                            modifier = Modifier.size(38.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Rounded.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                            Text(
+                                text = stringResource(R.string.clear_history),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = stringResource(R.string.clear_history_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
             }
 
             DeveloperCard(
@@ -359,7 +428,7 @@ private fun ThemeSegmentChip(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = if (selected) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+        border = if (selected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
         modifier = modifier.height(48.dp),
     ) {
         Row(
@@ -381,6 +450,32 @@ private fun ThemeSegmentChip(
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LangSegmentChip(
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = if (selected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+        modifier = modifier.height(40.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 6.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
             )
         }
     }
@@ -437,71 +532,6 @@ private fun SwitchPreferenceRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
         )
-    }
-}
-
-@Composable
-private fun ActionPreferenceRow(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    trailingIcon: ImageVector? = null,
-    isLoading: Boolean = false,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !isLoading, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-            modifier = Modifier.size(38.dp),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-        Spacer(Modifier.width(16.dp))
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(end = 12.dp),
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        } else if (trailingIcon != null) {
-            Icon(
-                imageVector = trailingIcon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.size(18.dp),
-            )
-        }
     }
 }
 
@@ -750,20 +780,3 @@ private fun ProjectCardContent(
         }
     }
 }
-
-private fun isNewerVersion(remoteTag: String, currentVersion: String): Boolean {
-    val cleanRemote = remoteTag.removePrefix("v").trim()
-    val cleanCurrent = currentVersion.removePrefix("v").trim()
-    val remoteParts = cleanRemote.split('.').mapNotNull { it.toIntOrNull() }
-    val currentParts = cleanCurrent.split('.').mapNotNull { it.toIntOrNull() }
-    val maxLen = maxOf(remoteParts.size, currentParts.size)
-    for (i in 0 until maxLen) {
-        val r = remoteParts.getOrElse(i) { 0 }
-        val c = currentParts.getOrElse(i) { 0 }
-        if (r > c) return true
-        if (r < c) return false
-    }
-    return false
-}
-
-

@@ -43,6 +43,12 @@ object UsbAccessoryManager {
     private val _localProxyPort = MutableStateFlow(8789)
     val localProxyPort: Int get() = _localProxyPort.value
 
+    private val _accessoryDetachedEvent = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val accessoryDetachedEvent: kotlinx.coroutines.flow.SharedFlow<Unit> = _accessoryDetachedEvent
+
+    private val _autoConnectEvent = kotlinx.coroutines.flow.MutableSharedFlow<Int>(extraBufferCapacity = 1)
+    val autoConnectEvent: kotlinx.coroutines.flow.SharedFlow<Int> = _autoConnectEvent
+
     private var activePfd: ParcelFileDescriptor? = null
     private var activeServer: ServerSocket? = null
     private val isRunning = AtomicBoolean(false)
@@ -92,8 +98,15 @@ object UsbAccessoryManager {
         }
     }
 
+    fun isAccessoryConnected(context: Context): Boolean {
+        val usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager ?: return false
+        val list = usbManager.accessoryList ?: return false
+        return list.any { it.manufacturer == "shadow-x78" || it.model == "Orbiscreen" }
+    }
+
     fun onAccessoryDetached() {
         stopAccessory()
+        _accessoryDetachedEvent.tryEmit(Unit)
     }
 
     @Synchronized
@@ -137,6 +150,8 @@ object UsbAccessoryManager {
         scope.launch {
             handleServerAccept(server, outStream)
         }
+
+        _autoConnectEvent.tryEmit(server.localPort)
     }
 
     @Synchronized

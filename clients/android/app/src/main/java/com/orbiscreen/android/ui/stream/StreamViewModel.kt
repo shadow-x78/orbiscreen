@@ -36,10 +36,10 @@ data class StreamState(
 )
 
 class StreamViewModel(
-    context: Context,
+    private val context: Context,
     private val prefs: PrefsStore,
-    private val host: String,
-    private val port: Int,
+    val host: String,
+    val port: Int,
 ) : ViewModel() {
 
     private val hostApi = HostApi()
@@ -59,6 +59,27 @@ class StreamViewModel(
 
     val player get() = playerHolder.player
     val udpPlayer get() = playerHolder.udpPlayer
+
+    fun detectNativeDisplay(): Triple<Int, Int, Int> {
+        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as? android.view.WindowManager
+        val display = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            try {
+                context.display ?: windowManager?.defaultDisplay
+            } catch (_: Exception) {
+                windowManager?.defaultDisplay
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager?.defaultDisplay
+        }
+        val mode = display?.mode
+        val physW = mode?.physicalWidth ?: context.resources.displayMetrics.widthPixels
+        val physH = mode?.physicalHeight ?: context.resources.displayMetrics.heightPixels
+        val nativeW = maxOf(physW, physH)
+        val nativeH = minOf(physW, physH)
+        val refreshRate = mode?.refreshRate?.toInt()?.coerceIn(30, 240) ?: 60
+        return Triple(nativeW, nativeH, refreshRate)
+    }
 
     private suspend fun freshToken(forceRefresh: Boolean = false): String {
         return withContext(Dispatchers.IO) {
@@ -103,7 +124,24 @@ class StreamViewModel(
             sessionToken = info.first
             info.first?.let { inputDispatcher?.updateToken(it) }
             val hostInfo = info.second
-            if (hostInfo != null) {
+            val (nativeW, nativeH, nativeFps) = detectNativeDisplay()
+            val isPortrait = context.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+            val targetW = if (isPortrait) nativeH else nativeW
+            val targetH = if (isPortrait) nativeW else nativeH
+            if (targetW > 0 && targetH > 0 && (hostInfo == null || hostInfo.width != targetW || hostInfo.height != targetH)) {
+                _state.value = _state.value.copy(
+                    displayWidth = targetW,
+                    displayHeight = targetH,
+                    resolutionLabel = "${targetW}x${targetH}",
+                    encoder = hostInfo?.encoder.orEmpty(),
+                    version = hostInfo?.version.orEmpty(),
+                )
+                ensureInput().control("set_resolution", org.json.JSONObject().apply {
+                    put("width", targetW)
+                    put("height", targetH)
+                    put("fps", nativeFps)
+                })
+            } else if (hostInfo != null) {
                 _state.value = _state.value.copy(
                     displayWidth = hostInfo.width,
                     displayHeight = hostInfo.height,
@@ -115,7 +153,7 @@ class StreamViewModel(
                 _state.value.displayWidth,
                 _state.value.displayHeight,
             )
-            playerHolder.build(host, port) { freshToken() }
+            playerHolder.build(host, port, tokenProvider = { freshToken() }, audio = prefs.usbAudioEnabled)
         }
         viewModelScope.launch {
             _state.collect { s ->
@@ -187,7 +225,7 @@ class StreamViewModel(
         _state.value = _state.value.copy(scaleMode = mode)
     }
 
-    fun updateDimensions(w: Int, h: Int, label: String = "${w}x${h}") {
+    fun updateDimensions(w: Int, h: Int, label: String = "${w}x${h}", fps: Int = 60) {
         if (w > 0 && h > 0) {
             _state.value = _state.value.copy(
                 displayWidth = w,
@@ -198,6 +236,7 @@ class StreamViewModel(
             ensureInput().control("set_resolution", org.json.JSONObject().apply {
                 put("width", w)
                 put("height", h)
+                put("fps", fps)
             })
         }
     }

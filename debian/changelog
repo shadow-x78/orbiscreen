@@ -1,3 +1,16 @@
+orbiscreen (0.25.8-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.25.8 for Ubuntu noble.
+  * USB audio streaming to device speaker or headphones.
+  * Native physical screen resolution and high refresh rate auto-detection.
+  * Low-latency USB pipeline optimization with reduced buffer queues.
+  * Auto-connect on USB accessory attachment and instant disconnect on detachment.
+  * Full Arabic localization with bundled NotoKufiArabic typography.
+  * Draggable floating edge pill toolbar controls.
+  * Streamlined practical settings redesign.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 09 Sep 2026 15:45:00 +0300
+
 orbiscreen (0.25.7-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.7 for Ubuntu noble.
