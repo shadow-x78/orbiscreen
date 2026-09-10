@@ -100,6 +100,10 @@ class PrefsStore(context: Context) {
         get() = prefs.getBoolean(KEY_TOUCH_MODE, true)
         set(value) { prefs.edit { putBoolean(KEY_TOUCH_MODE, value) } }
 
+    var scaleMode: String
+        get() = prefs.getString(KEY_SCALE_MODE, "fit") ?: "fit"
+        set(value) { prefs.edit { putString(KEY_SCALE_MODE, value) } }
+
     fun clearRecent() {
         prefs.edit {
             remove(KEY_RECENT_HOST); remove(KEY_RECENT_PORT); remove(KEY_RECENT_TS)
@@ -120,5 +124,6 @@ class PrefsStore(context: Context) {
         private const val KEY_USB_PORT = "usb_port"
         private const val KEY_POINTER_SPEED = "pointer_speed"
         private const val KEY_TOUCH_MODE = "touch_mode"
+        private const val KEY_SCALE_MODE = "scale_mode"
     }
 }

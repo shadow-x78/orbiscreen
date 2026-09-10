@@ -736,12 +736,9 @@ async fn stream_head_handler() -> impl IntoResponse {
 }
 
 #[derive(serde::Deserialize, Debug, Default)]
+#[allow(dead_code)]
 struct StreamQuery {
     audio: Option<String>,
-}
-
-fn element_available(name: &str) -> bool {
-    gstreamer::ElementFactory::find(name).is_some()
 }
 
 fn build_video_pipeline() -> Result<
@@ -810,7 +807,7 @@ fn build_audio_video_pipeline() -> Result<
 
 async fn stream_handler(
     State(state): State<AppState>,
-    axum::extract::Query(query): axum::extract::Query<StreamQuery>,
+    axum::extract::Query(_query): axum::extract::Query<StreamQuery>,
 ) -> axum::response::Response {
     use gstreamer::prelude::*;
     use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
