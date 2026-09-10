@@ -356,7 +356,7 @@ impl Encoder {
         ])
         .map_err(|e| EncodeError::Pipeline(format!("link parse: {e}")))?;
 
-        let (tx, rx) = mpsc::channel::<EncodedChunk>(4);
+        let (tx, rx) = mpsc::channel::<EncodedChunk>(64);
         appsink.set_callbacks(
             AppSinkCallbacks::builder()
                 .new_sample(move |sink| {
