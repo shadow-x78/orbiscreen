@@ -184,7 +184,7 @@ class PlayerHolder(
             val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
 
             val loadControl = DefaultLoadControl.Builder()
-                .setBufferDurationsMs(32, 200, 16, 32)
+                .setBufferDurationsMs(100, 1000, 32, 64)
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
 
@@ -199,8 +199,8 @@ class PlayerHolder(
                         .setLiveConfiguration(
                             MediaItem.LiveConfiguration.Builder()
                                 .setTargetOffsetMs(0)
-                                .setMinPlaybackSpeed(0.98f)
-                                .setMaxPlaybackSpeed(1.04f)
+                                .setMinPlaybackSpeed(1.0f)
+                                .setMaxPlaybackSpeed(1.0f)
                                 .build()
                         )
                         .build()

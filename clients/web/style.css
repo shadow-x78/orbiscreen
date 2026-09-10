@@ -38,6 +38,8 @@ body.theme-light {
     --error-red: rgba(210, 15, 57, 0.88);
     --text: #4c4f69;
     --subtext: #5c5f77;
+    --text: #1e1e2e;
+    --subtext: #313244;
     --btn-glass: rgba(0, 0, 0, 0.08);
     --btn-glass-hover: rgba(0, 0, 0, 0.16);
 }

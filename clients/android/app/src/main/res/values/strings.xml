@@ -135,4 +135,7 @@
     <string name="clear_history_desc">Remove saved connections and history</string>
     <string name="restore_controls_hint">Controls minimized · Tap handle to restore</string>
     <string name="show_controls">Show Toolbar</string>
+    <string name="disconnect_confirm_title">End Session?</string>
+    <string name="scale_mode_title">Fit Mode</string>
+    <string name="scale_100">100%</string>
 </resources>

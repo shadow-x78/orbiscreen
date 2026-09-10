@@ -1,11 +1,10 @@
 // Orbiscreen - Linux Desktop Control Center Frontend (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
-const isTauri = typeof window.__TAURI__ !== "undefined";
-
 async function invoke(cmd, args = {}) {
-    if (isTauri && window.__TAURI__.core && window.__TAURI__.core.invoke) {
-        return await window.__TAURI__.core.invoke(cmd, args);
+    const tauriInvoke = window.__TAURI__?.core?.invoke;
+    if (typeof tauriInvoke === "function") {
+        return await tauriInvoke(cmd, args);
     }
     if (cmd === "get_status") {
         return {

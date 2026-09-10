@@ -136,11 +136,6 @@ class StreamViewModel(
                     encoder = hostInfo?.encoder.orEmpty(),
                     version = hostInfo?.version.orEmpty(),
                 )
-                ensureInput().control("set_resolution", org.json.JSONObject().apply {
-                    put("width", targetW)
-                    put("height", targetH)
-                    put("fps", nativeFps)
-                })
             } else if (hostInfo != null) {
                 _state.value = _state.value.copy(
                     displayWidth = hostInfo.width,

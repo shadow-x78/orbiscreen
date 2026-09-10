@@ -56,24 +56,26 @@ pub struct DaemonClient;
 
 impl DaemonClient {
     pub async fn get_status() -> DaemonStatus {
-        if let Ok(conn) = zbus::Connection::session().await {
-            let proxy_res = zbus::Proxy::new(
+        let dbus_result = tokio::time::timeout(std::time::Duration::from_millis(500), async {
+            let conn = zbus::Connection::session().await?;
+            let proxy = zbus::Proxy::new(
                 &conn,
                 "org.shadow-x78.Orbiscreen",
                 "/com/orbiscreen/Daemon",
                 "com.orbiscreen.Daemon",
             )
-            .await;
+            .await?;
+            let json_str = proxy.call::<_, _, String>("GetStatus", &()).await?;
+            let mut status = serde_json::from_str::<DaemonStatus>(&json_str)
+                .map_err(|e| zbus::Error::Failure(e.to_string()))?;
+            status.udp_port = status.signaling_port.saturating_add(1);
+            status.local_ips = Self::detect_local_ips();
+            Ok::<DaemonStatus, zbus::Error>(status)
+        })
+        .await;
 
-            if let Ok(proxy) = proxy_res {
-                if let Ok(json_str) = proxy.call::<_, _, String>("GetStatus", &()).await {
-                    if let Ok(mut status) = serde_json::from_str::<DaemonStatus>(&json_str) {
-                        status.udp_port = status.signaling_port.saturating_add(1);
-                        status.local_ips = Self::detect_local_ips();
-                        return status;
-                    }
-                }
-            }
+        if let Ok(Ok(status)) = dbus_result {
+            return status;
         }
 
         let is_running = Self::check_process_running().await;

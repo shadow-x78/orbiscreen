@@ -2,7 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.25.9] - 2026-09-10
+
+Comprehensive stability and UX overhaul: black screen on USB connect fixed, rubberbanding eliminated, single-tap pill handle, redesigned in-session settings, M3 preference rows for theme/language, full color contrast audit for light and dark modes, desktop GUI D-Bus timeout fix and dynamic Tauri invoke, Arabic translation cleanup.
+
+### 🐛 Bug Fixes
+- **Black Screen on USB / Connect**: Disabled `mpegtsmux` audio-video mux pipeline as default — always uses pure `build_video_pipeline`. Eliminates the blocking behavior where missing audio samples caused the muxer to stall video output entirely.
+- **Rubberbanding on USB Reconnect & Clock Drift (Issue #75)**: Restored `DefaultLoadControl` buffer durations to stable `(100ms, 1000ms, 32ms, 64ms)` and locked ExoPlayer playback speed to exactly `1.0f` / `1.0f` — removes the 0.98x–1.04x catch-up algorithm that caused aggressive frame-rate fluctuations and rubberbanding after long sessions (#75).
+- **Auto set_resolution on Connect**: Removed automatic `set_resolution` D-Bus call on session start — resolves the display flash and layout glitch triggered immediately after connecting.
+- **Single-Tap Pill Handle**: Removed `isControlsPermanentlyHidden` state entirely; floating pill is now always visible when toolbar is hidden and restores on single tap without requiring double-tap on stream surface.
+- **Exit Dialog Light Mode**: Replaced hardcoded `Color(0xF51E1E2E)` and `Color.White` in exit confirm dialog with `MaterialTheme.colorScheme` tokens — fully readable in both light and dark modes.
+- **Desktop GUI Static Screen**: Fixed `isTauri` evaluated at module parse time (before `window.__TAURI__` is injected by WebKitGTK) — now checks dynamically inside each `invoke()` call.
+- **Desktop GUI D-Bus Freeze**: Added `tokio::time::timeout(500ms)` around D-Bus `GetStatus` call — prevents indefinite UI freeze when daemon is not running.
+- **AOA USB Direct ADB Endpoint Collision (Issue #76)**: Restricted `detect_endpoints` in `aoa.rs` to scan only Interface 0 (the standard AOA accessory interface). Prevents scanning Interface 1 (ADB) when USB debugging is enabled, resolving the `Device or resource busy (os error 16)` error and silence/black screen on AOA connect (#76).
+
+### ✨ Improvements
+- **In-Session Settings Sheet Redesign**: Rebuilt `ConnectionSettingsSheet` — removed all resolution fields (presets, native, custom W/H). Sheet now contains only: Scale Mode (Fit / Fill / 100%), Touch/Trackpad toggle, Pointer Speed slider with presets, Keep Screen Awake toggle. Uses `MaterialTheme` colors throughout.
+- **Settings Page M3 Preference Rows**: Replaced Theme and Language chip rows with `ClickPreferenceRow` items that open `AlertDialog` radio pickers — matches Android M3 settings pattern with proper spacing and icon containers.
+- **Color Contrast Audit**: Increased `LightOnBackground` and `LightOnSurface` from `#4C4F69` to `#1E1E2E` and `LightOnSurfaceVariant` from `#5C5F77` to `#313244` for full WCAG AA compliance in light mode.
+- **Arabic Translations Cleanup**: Removed em dash `—` from `delay` display in `ControlToolbar.kt`. Removed marketing phrases: `فائق السرعة`, `عالي السرعة`. Simplified `force_sw_decoder_summary`. Added missing strings: `disconnect_confirm_title`, `scale_mode_title`, `scale_100`.
+- **Desktop GUI Window**: Resized to compact `540×680` (min `480×580`) in `tauri.conf.json`.
+
+### 📦 Packaging & Versions
+- **Cargo Workspace**: Bumped workspace package version to `0.25.9`.
+- **Android Client**: Incremented `versionCode` to `81`; updated `versionName` to `"0.25.9"`.
+- **Tauri GUI**: Updated `tauri.conf.json` version to `0.25.9`.
+- **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version `0.25.9` with changelog entry.
+- **debian/changelog**: Added `0.25.9-1` release entry for Ubuntu noble.
+- **PKGBUILD**: Bumped `pkgver` to `0.25.9`.
+
+---
+
 ## [v0.25.8] - 2026-09-09
+
 
 USB desktop audio output streaming, native hardware display resolution and high refresh rate auto-matching, USB low-latency pipeline optimization, instant USB auto-connection and graceful detach handling, complete native Arabic localization with bundled NotoKufiArabic typography, draggable floating edge pill toolbar handle, and streamlined practical settings overhaul.
 

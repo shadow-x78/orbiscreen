@@ -4,7 +4,6 @@
 package com.orbiscreen.android.ui.stream
 
 import android.app.Activity
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -15,16 +14,18 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material.icons.rounded.BatteryFull
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,16 +42,17 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
-import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.Mouse
 import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.WifiOff
@@ -61,21 +63,18 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import android.content.res.Configuration
@@ -137,7 +136,6 @@ fun StreamScreen(
     var showControls by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showExitConfirmDialog by remember { mutableStateOf(false) }
-    var isControlsPermanentlyHidden by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val prefs = remember { com.orbiscreen.android.data.PrefsStore(context) }
     var isTouchMode by remember { mutableStateOf(prefs.touchMode) }
@@ -267,12 +265,7 @@ fun StreamScreen(
                     input.stylus(x, y, w, h, pressure, tiltX, tiltY)
                 },
                 scaleMode = state.scaleMode,
-                onDoubleTap = if (isControlsPermanentlyHidden) {
-                    {
-                        isControlsPermanentlyHidden = false
-                        showControls = true
-                    }
-                } else null,
+                onDoubleTap = null,
             )
         }
         if (state.event !is StreamEvent.Playing && state.event !is StreamEvent.Buffering) {
@@ -304,15 +297,13 @@ fun StreamScreen(
                 onLock = viewModel::lock,
                 onHideControls = {
                     showControls = false
-                    isControlsPermanentlyHidden = true
-                    Toast.makeText(context, context.getString(R.string.controls_hidden_hint), Toast.LENGTH_SHORT).show()
                 },
                 onDisconnect = { showExitConfirmDialog = true },
             )
         }
 
         AnimatedVisibility(
-            visible = !showControls && !isControlsPermanentlyHidden,
+            visible = !showControls,
             enter = fadeIn(),
             exit = fadeOut(),
         ) {
@@ -409,8 +400,7 @@ fun StreamScreen(
             ) {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
-                    color = Color(0xF51E1E2E),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                    color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 16.dp,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -438,10 +428,9 @@ fun StreamScreen(
                         Spacer(Modifier.height(14.dp))
 
                         Text(
-                            text = "End Session?",
+                            text = stringResource(R.string.disconnect_confirm_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
                         )
 
                         Spacer(Modifier.height(6.dp))
@@ -449,7 +438,7 @@ fun StreamScreen(
                         Text(
                             text = stringResource(R.string.disconnect_confirm_message),
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                             lineHeight = 18.sp,
                         )
@@ -463,10 +452,6 @@ fun StreamScreen(
                             FilledTonalButton(
                                 onClick = { showExitConfirmDialog = false },
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = Color.White.copy(alpha = 0.1f),
-                                    contentColor = Color.White,
-                                ),
                                 modifier = Modifier.weight(1f).height(42.dp),
                             ) {
                                 Text(stringResource(R.string.cancel), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
@@ -479,7 +464,6 @@ fun StreamScreen(
                                 },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.error,
-                                    contentColor = Color.White,
                                 ),
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.weight(1f).height(42.dp),
@@ -506,44 +490,18 @@ private fun ConnectionSettingsSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
+    val prefs = remember { com.orbiscreen.android.data.PrefsStore(context) }
 
     var pointerSpeedState by remember { mutableFloatStateOf(currentPointerSpeed) }
-
-    val screenPixelW = remember {
-        val wm = context.getSystemService(android.content.Context.WINDOW_SERVICE) as? android.view.WindowManager
-        val display = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            try { context.display ?: wm?.defaultDisplay } catch (_: Exception) { wm?.defaultDisplay }
-        } else {
-            @Suppress("DEPRECATION")
-            wm?.defaultDisplay
-        }
-        val mode = display?.mode
-        val pw = mode?.physicalWidth ?: context.resources.displayMetrics.widthPixels
-        val ph = mode?.physicalHeight ?: context.resources.displayMetrics.heightPixels
-        maxOf(pw, ph)
-    }
-    val screenPixelH = remember {
-        val wm = context.getSystemService(android.content.Context.WINDOW_SERVICE) as? android.view.WindowManager
-        val display = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            try { context.display ?: wm?.defaultDisplay } catch (_: Exception) { wm?.defaultDisplay }
-        } else {
-            @Suppress("DEPRECATION")
-            wm?.defaultDisplay
-        }
-        val mode = display?.mode
-        val pw = mode?.physicalWidth ?: context.resources.displayMetrics.widthPixels
-        val ph = mode?.physicalHeight ?: context.resources.displayMetrics.heightPixels
-        minOf(pw, ph)
-    }
-
-    var customW by remember { mutableStateOf(currentWidth.toString()) }
-    var customH by remember { mutableStateOf(currentHeight.toString()) }
+    var scaleMode by remember { mutableStateOf(prefs.scaleMode) }
+    var isTouchMode by remember { mutableStateOf(prefs.touchMode) }
+    var keepAwake by remember { mutableStateOf(prefs.keepScreenAwake) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xF8161622),
-        contentColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         dragHandle = {
             Box(
@@ -551,7 +509,7 @@ private fun ConnectionSettingsSheet(
                     .padding(top = 10.dp, bottom = 4.dp)
                     .size(width = 38.dp, height = 4.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.2f))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
             )
         },
     ) {
@@ -560,7 +518,7 @@ private fun ConnectionSettingsSheet(
                 .fillMaxWidth()
                 .padding(horizontal = 18.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -568,12 +526,12 @@ private fun ConnectionSettingsSheet(
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(36.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            Icons.Rounded.AspectRatio,
+                            Icons.Rounded.Settings,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp),
@@ -581,118 +539,60 @@ private fun ConnectionSettingsSheet(
                     }
                 }
                 Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.display_settings_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                    Text(
-                        text = stringResource(R.string.display_settings_sub),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 11.sp,
-                    )
-                }
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(32.dp),
-                ) {
+                Text(
+                    text = stringResource(R.string.display_settings_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
                     Icon(
                         Icons.Rounded.Close,
                         contentDescription = stringResource(R.string.cancel),
-                        tint = Color.White.copy(alpha = 0.7f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
                     )
                 }
             }
 
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = Color(0xFF1E1E2E),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+            ElevatedCard(
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
+                    modifier = Modifier.fillMaxWidth().padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Rounded.Speed,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.pointer_speed_title),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = Color.White,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                        Text(
-                            text = "%.1fx".format(pointerSpeedState),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-
-                    Slider(
-                        value = pointerSpeedState,
-                        onValueChange = {
-                            pointerSpeedState = it
-                            onPointerSpeedChange(it)
-                        },
-                        valueRange = 0.4f..2.2f,
-                        colors = SliderDefaults.colors(
-                            thumbColor = MaterialTheme.colorScheme.primary,
-                            activeTrackColor = MaterialTheme.colorScheme.primary,
-                            inactiveTrackColor = Color(0xFF2E2E42),
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
+                    Text(
+                        text = stringResource(R.string.scale_mode_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
                     )
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        val presets = listOf(
-                            0.7f to R.string.pointer_speed_slow,
-                            1.0f to R.string.pointer_speed_normal,
-                            1.4f to R.string.pointer_speed_fast,
-                        )
-                        presets.forEach { (spd, labelRes) ->
-                            val isSel = kotlin.math.abs(pointerSpeedState - spd) < 0.08f
+                        val modes = listOf("fit" to R.string.scale_fit, "fill" to R.string.scale_fill, "100" to R.string.scale_100)
+                        modes.forEach { (key, labelRes) ->
+                            val isSel = scaleMode == key
                             Surface(
                                 onClick = {
-                                    pointerSpeedState = spd
-                                    onPointerSpeedChange(spd)
+                                    scaleMode = key
+                                    prefs.scaleMode = key
+                                    onApplyDimensions(currentWidth, currentHeight, key)
                                 },
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isSel) MaterialTheme.colorScheme.primary else Color(0xFF262638),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (isSel) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.10f)
-                                ),
-                                modifier = Modifier.weight(1f).height(32.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                                border = if (isSel) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
+                                modifier = Modifier.weight(1f).height(40.dp),
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(
                                         text = stringResource(labelRes),
-                                        fontSize = 11.sp,
+                                        style = MaterialTheme.typography.labelMedium,
                                         fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSel) MaterialTheme.colorScheme.onPrimary else Color.White.copy(alpha = 0.85f),
+                                        color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -701,239 +601,130 @@ private fun ConnectionSettingsSheet(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = stringResource(R.string.res_section_standard),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-
-                val row1 = listOf(
-                    Triple(1920, 1080, "1080p (1920 × 1080)"),
-                    Triple(1280, 720, "720p (1280 × 720)"),
-                )
-                val row2 = listOf(
-                    Triple(2560, 1440, "1440p (2560 × 1440)"),
-                    Triple(1920, 1200, "1200p (1920 × 1200)"),
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    row1.forEach { (w, h, label) ->
-                        val isSelected = currentWidth == w && currentHeight == h
-                        Surface(
-                            onClick = { onApplyDimensions(w, h, label.substringBefore(" ")) },
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color(0xFF222233),
-                            border = BorderStroke(
-                                if (isSelected) 1.5.dp else 1.dp,
-                                if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.10f)
-                            ),
-                            modifier = Modifier.weight(1f).height(44.dp),
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp)) {
-                                Text(
-                                    text = label,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.9f),
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    row2.forEach { (w, h, label) ->
-                        val isSelected = currentWidth == w && currentHeight == h
-                        Surface(
-                            onClick = { onApplyDimensions(w, h, label.substringBefore(" ")) },
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color(0xFF222233),
-                            border = BorderStroke(
-                                if (isSelected) 1.5.dp else 1.dp,
-                                if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.10f)
-                            ),
-                            modifier = Modifier.weight(1f).height(44.dp),
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp)) {
-                                Text(
-                                    text = label,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.9f),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = stringResource(R.string.res_section_phone),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF202032),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
+            ElevatedCard(
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                            .clickable {
+                                isTouchMode = !isTouchMode
+                                prefs.touchMode = isTouchMode
+                            }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                            modifier = Modifier.size(32.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isTouchMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.size(36.dp),
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    Icons.Rounded.PhoneAndroid,
+                                    if (isTouchMode) Icons.Rounded.TouchApp else Icons.Rounded.Mouse,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isTouchMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                         }
-                        Spacer(Modifier.width(10.dp))
+                        Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                stringResource(R.string.res_native_label),
-                                style = MaterialTheme.typography.bodySmall,
+                                text = stringResource(R.string.default_input_mode),
+                                style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color.White,
-                                fontSize = 12.sp,
                             )
                             Text(
-                                "$screenPixelW × $screenPixelH",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontSize = 11.sp,
+                                text = if (isTouchMode) stringResource(R.string.mode_touch) else stringResource(R.string.mode_trackpad),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Button(
-                            onClick = {
-                                onApplyDimensions(screenPixelW, screenPixelH, "${screenPixelW}x${screenPixelH}")
+                        Switch(checked = isTouchMode, onCheckedChange = {
+                            isTouchMode = it
+                            prefs.touchMode = it
+                        })
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.Speed, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(text = stringResource(R.string.pointer_speed_title), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            }
+                            Text(text = "%.1fx".format(pointerSpeedState), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        }
+                        Slider(
+                            value = pointerSpeedState,
+                            onValueChange = {
+                                pointerSpeedState = it
+                                onPointerSpeedChange(it)
                             },
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.height(34.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                        ) {
-                            Text(stringResource(R.string.res_match), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            valueRange = 0.4f..2.2f,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val presets = listOf(0.7f to R.string.pointer_speed_slow, 1.0f to R.string.pointer_speed_normal, 1.4f to R.string.pointer_speed_fast)
+                            presets.forEach { (spd, labelRes) ->
+                                val isSel = kotlin.math.abs(pointerSpeedState - spd) < 0.08f
+                                Surface(
+                                    onClick = { pointerSpeedState = spd; onPointerSpeedChange(spd) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isSel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                                    border = if (isSel) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                                    modifier = Modifier.weight(1f).height(32.dp),
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = stringResource(labelRes),
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
-                }
-            }
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = stringResource(R.string.res_section_custom),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF202032),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                            .clickable {
+                                keepAwake = !keepAwake
+                                prefs.keepScreenAwake = keepAwake
+                            }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(38.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF2C2C40))
-                                .padding(horizontal = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (keepAwake) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.size(36.dp),
                         ) {
-                            Text(
-                                text = "W",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            BasicTextField(
-                                value = customW,
-                                onValueChange = { customW = it.filter { ch -> ch.isDigit() } },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                textStyle = androidx.compose.ui.text.TextStyle(
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White,
-                                ),
-                                modifier = Modifier.fillMaxWidth(),
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Rounded.BatteryFull,
+                                    contentDescription = null,
+                                    tint = if (keepAwake) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
                         }
-
-                        Text("×", color = Color.White.copy(alpha = 0.5f), fontWeight = FontWeight.Normal, fontSize = 14.sp)
-
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(38.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF2C2C40))
-                                .padding(horizontal = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "H",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            BasicTextField(
-                                value = customH,
-                                onValueChange = { customH = it.filter { ch -> ch.isDigit() } },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                textStyle = androidx.compose.ui.text.TextStyle(
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White,
-                                ),
-                                modifier = Modifier.fillMaxWidth(),
-                            )
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(text = stringResource(R.string.keep_screen_awake), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(text = stringResource(R.string.keep_screen_awake_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-
-                        Button(
-                            onClick = {
-                                val w = customW.toIntOrNull() ?: 1920
-                                val h = customH.toIntOrNull() ?: 1080
-                                onApplyDimensions(w, h, "${w}x${h}")
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.height(38.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                        ) {
-                            Text(stringResource(R.string.res_apply), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        }
+                        Switch(checked = keepAwake, onCheckedChange = { keepAwake = it; prefs.keepScreenAwake = it })
                     }
                 }
             }

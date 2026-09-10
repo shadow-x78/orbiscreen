@@ -823,9 +823,7 @@ async fn stream_handler(
 
     gstreamer::init().ok();
 
-    let try_audio = query.audio.as_deref() != Some("0")
-        && element_available("pulsesrc")
-        && element_available("avenc_aac");
+    let try_audio = false;
 
     let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(16);
     let tx_alive = tx.clone();

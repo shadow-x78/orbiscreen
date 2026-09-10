@@ -6,10 +6,10 @@
     <string name="host_label">عنوان الجهاز</string>
     <string name="connect">اتصال</string>
     <string name="usb_connect">USB</string>
-    <string name="usb_mode_desc">اتصال مباشر فائق السرعة عبر كابل USB</string>
+    <string name="usb_mode_desc">اتصال مباشر عبر كابل USB</string>
     <string name="usb_status_ready">USB متصل وجاهز</string>
     <string name="usb_status_aoa_ready">USB مباشر (AOA)</string>
-    <string name="usb_desc_aoa_connected">بث مباشر عالي السرعة عبر منفذ USB</string>
+    <string name="usb_desc_aoa_connected">بث مباشر عبر منفذ USB</string>
     <string name="usb_status_tunnel_down">قم بتوصيل كابل USB بجهاز الكمبيوتر</string>
     <string name="usb_badge">USB</string>
     <string name="refresh">تحديث</string>
@@ -40,7 +40,7 @@
     <string name="settings_appearance">المظهر</string>
     <string name="settings_streaming">البث والعرض</string>
     <string name="force_sw_decoder">فك الترميز البرمجي</string>
-    <string name="force_sw_decoder_summary">استخدام المعالج الرئيسي CPU كبديل عند التعثر</string>
+    <string name="force_sw_decoder_summary">فك الترميز بالمعالج الرئيسي عند الحاجة</string>
     <string name="enable_subnet_scanner">فحص الشبكة الفرعية</string>
     <string name="subnet_scanner_summary">اكتشاف أجهزة الكمبيوتر على الشبكة المحلية تلقائياً</string>
     <string name="settings_recent_host">آخر جهاز</string>
@@ -135,4 +135,7 @@
     <string name="clear_history_desc">حذف الجلسات والأجهزة المحفوظة من القائمة</string>
     <string name="restore_controls_hint">تم تصغير القائمة · اضغط على المقبض العائم لإظهارها</string>
     <string name="show_controls">إظهار شريط الأدوات</string>
+    <string name="disconnect_confirm_title">إنهاء الجلسة؟</string>
+    <string name="scale_mode_title">وضع الملاءمة</string>
+    <string name="scale_100">100%</string>
 </resources>

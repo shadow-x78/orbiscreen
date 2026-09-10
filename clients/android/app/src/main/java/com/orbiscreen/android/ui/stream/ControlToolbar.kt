@@ -100,7 +100,7 @@ fun ControlToolbar(
                 val delayText = if (delayMs != null && delayMs >= 0) {
                     "delay ${delayMs}ms"
                 } else {
-                    "delay —"
+                    ""
                 }
                 val info = listOfNotNull(
                     resolution.takeIf { it.isNotBlank() && !isPortrait },

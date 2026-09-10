@@ -255,12 +255,24 @@ fn detect_endpoints(sysfs_path: &Path) -> (u32, u32) {
     if let Ok(entries) = std::fs::read_dir(sysfs_path) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_dir() && entry.file_name().to_string_lossy().contains(':') {
+            let name = entry.file_name();
+            let name_str = name.to_string_lossy();
+            if path.is_dir() && name_str.contains(':') {
+                let is_iface_0 =
+                    if let Ok(num) = std::fs::read_to_string(path.join("bInterfaceNumber")) {
+                        num.trim() == "0" || num.trim() == "00"
+                    } else {
+                        name_str.ends_with(".0")
+                    };
+                if !is_iface_0 {
+                    continue;
+                }
+
                 if let Ok(ep_entries) = std::fs::read_dir(&path) {
                     for ep_entry in ep_entries.flatten() {
-                        let name = ep_entry.file_name();
-                        let name_str = name.to_string_lossy();
-                        if let Some(hex_str) = name_str.strip_prefix("ep_") {
+                        let ep_name = ep_entry.file_name();
+                        let ep_name_str = ep_name.to_string_lossy();
+                        if let Some(hex_str) = ep_name_str.strip_prefix("ep_") {
                             if let Ok(ep_val) = u32::from_str_radix(hex_str, 16) {
                                 if ep_val >= 0x80 {
                                     in_ep = ep_val;

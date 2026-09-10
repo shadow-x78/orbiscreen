@@ -30,7 +30,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.BatteryFull
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.HeadsetMic
@@ -43,9 +45,11 @@ import androidx.compose.material.icons.rounded.Policy
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.Update
 import androidx.compose.material.icons.rounded.Usb
 import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
@@ -54,10 +58,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -142,68 +148,125 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_general),
                 icon = Icons.Rounded.Palette,
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    ThemeSegmentChip(
-                        title = stringResource(R.string.theme_system),
-                        icon = Icons.Rounded.Smartphone,
-                        selected = prefs.themePref == PrefsStore.ThemePref.System,
-                        modifier = Modifier.weight(1f),
-                        onClick = { prefs.themePref = PrefsStore.ThemePref.System },
-                    )
-                    ThemeSegmentChip(
-                        title = stringResource(R.string.theme_light),
-                        icon = Icons.Rounded.LightMode,
-                        selected = prefs.themePref == PrefsStore.ThemePref.Light,
-                        modifier = Modifier.weight(1f),
-                        onClick = { prefs.themePref = PrefsStore.ThemePref.Light },
-                    )
-                    ThemeSegmentChip(
-                        title = stringResource(R.string.theme_dark),
-                        icon = Icons.Rounded.DarkMode,
-                        selected = prefs.themePref == PrefsStore.ThemePref.Dark,
-                        modifier = Modifier.weight(1f),
-                        onClick = { prefs.themePref = PrefsStore.ThemePref.Dark },
-                    )
+                var showThemeDialog by remember { mutableStateOf(false) }
+                var showLangDialog by remember { mutableStateOf(false) }
+                var currentLang by remember { mutableStateOf(prefs.appLanguage) }
+
+                val themeLabel = when (prefs.themePref) {
+                    PrefsStore.ThemePref.Light -> stringResource(R.string.theme_light)
+                    PrefsStore.ThemePref.Dark -> stringResource(R.string.theme_dark)
+                    else -> stringResource(R.string.theme_system)
                 }
+                val langLabel = when (currentLang) {
+                    "en" -> stringResource(R.string.language_en)
+                    "ar" -> stringResource(R.string.language_ar)
+                    else -> stringResource(R.string.language_system)
+                }
+
+                ClickPreferenceRow(
+                    title = stringResource(R.string.settings_appearance),
+                    subtitle = themeLabel,
+                    icon = Icons.Rounded.Contrast,
+                    onClick = { showThemeDialog = true },
+                )
 
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
                 )
 
-                var currentLang by remember { mutableStateOf(prefs.appLanguage) }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    LangSegmentChip(
-                        label = stringResource(R.string.language_system),
-                        selected = currentLang == "system",
-                        modifier = Modifier.weight(1f),
-                        onClick = { currentLang = "system"; prefs.appLanguage = "system" },
+                ClickPreferenceRow(
+                    title = stringResource(R.string.settings_language),
+                    subtitle = langLabel,
+                    icon = Icons.Rounded.Translate,
+                    onClick = { showLangDialog = true },
+                )
+
+                if (showThemeDialog) {
+                    val options = listOf(
+                        PrefsStore.ThemePref.System to stringResource(R.string.theme_system),
+                        PrefsStore.ThemePref.Light to stringResource(R.string.theme_light),
+                        PrefsStore.ThemePref.Dark to stringResource(R.string.theme_dark),
                     )
-                    LangSegmentChip(
-                        label = stringResource(R.string.language_en),
-                        selected = currentLang == "en",
-                        modifier = Modifier.weight(1f),
-                        onClick = { currentLang = "en"; prefs.appLanguage = "en" },
-                    )
-                    LangSegmentChip(
-                        label = stringResource(R.string.language_ar),
-                        selected = currentLang == "ar",
-                        modifier = Modifier.weight(1f),
-                        onClick = { currentLang = "ar"; prefs.appLanguage = "ar" },
+                    AlertDialog(
+                        onDismissRequest = { showThemeDialog = false },
+                        title = { Text(stringResource(R.string.settings_appearance)) },
+                        text = {
+                            Column {
+                                options.forEach { (pref, label) ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                prefs.themePref = pref
+                                                showThemeDialog = false
+                                            }
+                                            .padding(vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        RadioButton(selected = prefs.themePref == pref, onClick = {
+                                            prefs.themePref = pref
+                                            showThemeDialog = false
+                                        })
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {
+                            TextButton(onClick = { showThemeDialog = false }) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                        },
                     )
                 }
-                Spacer(Modifier.height(8.dp))
+
+                if (showLangDialog) {
+                    val langOptions = listOf(
+                        "system" to stringResource(R.string.language_system),
+                        "en" to stringResource(R.string.language_en),
+                        "ar" to stringResource(R.string.language_ar),
+                    )
+                    AlertDialog(
+                        onDismissRequest = { showLangDialog = false },
+                        title = { Text(stringResource(R.string.settings_language)) },
+                        text = {
+                            Column {
+                                langOptions.forEach { (key, label) ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                currentLang = key
+                                                prefs.appLanguage = key
+                                                showLangDialog = false
+                                            }
+                                            .padding(vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        RadioButton(selected = currentLang == key, onClick = {
+                                            currentLang = key
+                                            prefs.appLanguage = key
+                                            showLangDialog = false
+                                        })
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {
+                            TextButton(onClick = { showLangDialog = false }) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                        },
+                    )
+                }
             }
+
 
             PreferenceSection(
                 title = stringResource(R.string.settings_display_session),
@@ -417,67 +480,57 @@ private fun PreferenceSection(
 }
 
 @Composable
-private fun ThemeSegmentChip(
+private fun ClickPreferenceRow(
     title: String,
+    subtitle: String,
     icon: ImageVector,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = if (selected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
-        modifier = modifier.height(48.dp),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 15.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(38.dp),
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(6.dp))
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+        Spacer(Modifier.width(16.dp))
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 12.dp),
+        ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
             )
-        }
-    }
-}
-
-@Composable
-private fun LangSegmentChip(
-    label: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = if (selected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
-        modifier = modifier.height(40.dp),
-    ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 6.dp)) {
+            Spacer(Modifier.height(2.dp))
             Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Icon(
+            imageVector = Icons.Rounded.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 

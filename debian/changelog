@@ -1,3 +1,18 @@
+orbiscreen (0.25.9-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.25.9 for Ubuntu noble.
+  * Fix USB AOA black screen and ADB endpoint collision (Closes: #76).
+  * Eliminate rubberbanding on USB reconnect and long session clock drift (Closes: #75).
+  * Remove automatic set_resolution D-Bus call on session start.
+  * Single-tap floating pill toolbar restore without double-tap requirement.
+  * Compact in-session display settings sheet with Fit/Fill/100% and touch modes.
+  * Android M3 preference rows with Dialog radio pickers for Theme and Language.
+  * Full light mode and dark mode WCAG AA color contrast audit.
+  * Desktop GUI 500ms D-Bus timeout protection and dynamic WebKitGTK Tauri invoke.
+  * Clean Arabic localization with natural phrasing and typography.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 10 Sep 2026 18:15:00 +0300
+
 orbiscreen (0.25.8-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.8 for Ubuntu noble.
