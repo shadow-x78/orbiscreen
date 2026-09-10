@@ -140,4 +140,3 @@
     <string name="scale_100">100%</string>
     <string name="usb_audio_warning">Experimental: may cause a black screen on some hardware. Report issues on GitHub if audio fails.</string>
 </resources>
-
