@@ -138,4 +138,6 @@
     <string name="disconnect_confirm_title">End Session?</string>
     <string name="scale_mode_title">Fit Mode</string>
     <string name="scale_100">100%</string>
+    <string name="usb_audio_warning">Experimental: may cause a black screen on some hardware. Report issues on GitHub if audio fails.</string>
 </resources>
+

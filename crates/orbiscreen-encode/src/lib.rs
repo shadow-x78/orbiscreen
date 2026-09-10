@@ -117,7 +117,7 @@ fn detect_available(preferred: EncoderKind) -> (EncoderKind, &'static str) {
         if let Some(element) = first_available_element(kind) {
             if kind == EncoderKind::X264 && preferred != EncoderKind::X264 {
                 warn!(
-                    "hardware H.264 encoder not found (tried nvh264enc, nvcudah264enc, vah264enc, vaapih264enc); falling back to software x264 — expect high encode latency at 1440p+"
+                    "hardware H.264 encoder not found (tried nvh264enc, nvcudah264enc, vah264enc, vaapih264enc); falling back to software x264, expect high encode latency at 1440p+"
                 );
             }
             return (kind, element);
@@ -152,21 +152,21 @@ fn max_u32_property(el: &gstreamer::Element, name: &str) -> Option<u32> {
 fn configure_infinite_gop(encoder: &gstreamer::Element) {
     set_str_if_present(encoder, "intra-refresh", "true");
     if let Some(max) = max_u32_property(encoder, "key-int-max") {
-        let value = if max == 0 { 600 } else { max.min(600) };
+        let value = if max == 0 { 120 } else { max.min(120) };
         encoder.set_property_from_str("key-int-max", &value.to_string());
     }
     if encoder.find_property("gop-size").is_some() {
         if let Some(spec) = encoder.find_property("gop-size") {
             if spec.downcast_ref::<glib::ParamSpecInt>().is_some() {
-                encoder.set_property_from_str("gop-size", "600");
+                encoder.set_property_from_str("gop-size", "120");
             } else if let Some(max) = max_u32_property(encoder, "gop-size") {
-                let value = if max == 0 { 600 } else { max.min(600) };
+                let value = if max == 0 { 120 } else { max.min(120) };
                 encoder.set_property_from_str("gop-size", &value.to_string());
             }
         }
     }
     if let Some(max) = max_u32_property(encoder, "keyframe-period") {
-        let value = if max == 0 { 600 } else { max.min(600) };
+        let value = if max == 0 { 120 } else { max.min(120) };
         encoder.set_property_from_str("keyframe-period", &value.to_string());
     }
     if encoder
@@ -356,7 +356,7 @@ impl Encoder {
         ])
         .map_err(|e| EncodeError::Pipeline(format!("link parse: {e}")))?;
 
-        let (tx, rx) = mpsc::channel::<EncodedChunk>(64);
+        let (tx, rx) = mpsc::channel::<EncodedChunk>(4);
         appsink.set_callbacks(
             AppSinkCallbacks::builder()
                 .new_sample(move |sink| {

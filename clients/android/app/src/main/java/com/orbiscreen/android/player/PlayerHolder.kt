@@ -89,7 +89,7 @@ class PlayerHolder(
     fun requestIdr() {
         val target = lastTarget ?: return
         val now = android.os.SystemClock.elapsedRealtime()
-        if (now - lastIdrAtMs.get() < 500L) return
+        if (now - lastIdrAtMs.get() < 1_500L) return
         lastIdrAtMs.set(now)
         scope.launch(Dispatchers.IO) {
             try {
@@ -143,7 +143,7 @@ class PlayerHolder(
         } catch (_: Exception) {
             ""
         }
-        val uri = StreamUrl.build(host, port, token, audio)
+        val uri = StreamUrl.build(host, port, token, prefs.usbAudioEnabled)
         android.util.Log.i("OrbiPlayer", "connecting to stream: $uri")
         _event.value = StreamEvent.Connecting(uri)
 
@@ -184,7 +184,7 @@ class PlayerHolder(
             val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
 
             val loadControl = DefaultLoadControl.Builder()
-                .setBufferDurationsMs(100, 1000, 32, 64)
+                .setBufferDurationsMs(50, 150, 20, 40)
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
 
@@ -438,7 +438,7 @@ private class LowLatencyVideoRenderer(
     }
 
     override fun shouldDropBuffersToKeyframe(earlyUs: Long, elapsedRealtimeUs: Long, isLastBuffer: Boolean): Boolean {
-        if (earlyUs < -100_000) {
+        if (earlyUs < -70_000) {
             onLagDetected()
             return true
         }

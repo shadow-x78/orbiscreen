@@ -2161,7 +2161,7 @@ async fn run_start(
     });
     info!("D-Bus session service registered: com.orbiscreen.Daemon");
 
-    let (video_tx, video_rx) = mpsc::channel::<H264Packet>(64);
+    let (video_tx, video_rx) = mpsc::channel::<H264Packet>(4);
     let encoder_dump = match std::env::var("ORBISCREEN_ENCODER_DUMP") {
         Ok(path) => match std::fs::OpenOptions::new()
             .create(true)

@@ -30,8 +30,8 @@ object StreamUrl {
         if (cleanToken.isNotBlank()) {
             httpUrlBuilder.addQueryParameter("token", cleanToken)
         }
-        if (!audio) {
-            httpUrlBuilder.addQueryParameter("audio", "0")
+        if (audio) {
+            httpUrlBuilder.addQueryParameter("audio", "1")
         }
 
         return Uri.parse(httpUrlBuilder.build().toString())

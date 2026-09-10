@@ -494,7 +494,6 @@ private fun ConnectionSettingsSheet(
 
     var pointerSpeedState by remember { mutableFloatStateOf(currentPointerSpeed) }
     var scaleMode by remember { mutableStateOf(prefs.scaleMode) }
-    var isTouchMode by remember { mutableStateOf(prefs.touchMode) }
     var keepAwake by remember { mutableStateOf(prefs.keepScreenAwake) }
 
     ModalBottomSheet(
@@ -606,51 +605,6 @@ private fun ConnectionSettingsSheet(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                isTouchMode = !isTouchMode
-                                prefs.touchMode = isTouchMode
-                            }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isTouchMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.size(36.dp),
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    if (isTouchMode) Icons.Rounded.TouchApp else Icons.Rounded.Mouse,
-                                    contentDescription = null,
-                                    tint = if (isTouchMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                        }
-                        Spacer(Modifier.width(14.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.default_input_mode),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                text = if (isTouchMode) stringResource(R.string.mode_touch) else stringResource(R.string.mode_trackpad),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(checked = isTouchMode, onCheckedChange = {
-                            isTouchMode = it
-                            prefs.touchMode = it
-                        })
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-
                     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Row(verticalAlignment = Alignment.CenterVertically) {

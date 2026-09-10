@@ -233,7 +233,7 @@ impl Transport {
         idr_tx: Option<mpsc::Sender<()>>,
     ) -> Result<(), TransportError> {
         let input_tx = self.input_tx;
-        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(64);
+        let (video_tx, _video_rx) = tokio::sync::broadcast::channel::<H264Packet>(8);
         let state = AppState {
             config: self.cfg.clone(),
             input_tx,
@@ -807,7 +807,7 @@ fn build_audio_video_pipeline() -> Result<
 
 async fn stream_handler(
     State(state): State<AppState>,
-    axum::extract::Query(_query): axum::extract::Query<StreamQuery>,
+    axum::extract::Query(query): axum::extract::Query<StreamQuery>,
 ) -> axum::response::Response {
     use gstreamer::prelude::*;
     use gstreamer_app::{AppSink, AppSinkCallbacks, AppSrc};
@@ -820,7 +820,7 @@ async fn stream_handler(
 
     gstreamer::init().ok();
 
-    let try_audio = false;
+    let try_audio = query.audio.as_deref() == Some("1");
 
     let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(16);
     let tx_alive = tx.clone();
@@ -835,7 +835,7 @@ async fn stream_handler(
             .build();
         appsrc.set_caps(Some(&caps));
         appsrc.set_format(gstreamer::Format::Time);
-        appsrc.set_max_bytes(512 * 1024);
+        appsrc.set_max_bytes(128 * 1024);
         appsrc.set_block(false);
 
         appsink.set_callbacks(

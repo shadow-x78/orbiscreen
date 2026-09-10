@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.25.9
+Version:        0.26.0
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -142,6 +142,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Thu Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.26.0-1
+- Release 0.26.0: Fix video stream latency accumulation on Wi-Fi and USB/AOA with stale frame drop at 75 ms (#77), aggressively reduce all pipeline buffers to eliminate rubberbanding (#75), reduce GOP from 600 to 120 frames for fast IDR recovery, wire USB audio to server via audio=1 query parameter with BETA badge, replace Input Mode switch with Segmented Button in settings only (#76 referenced).
+
 * Thu Sep 10 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.9-1
 - Release 0.25.9: Fix USB AOA black screen and ADB endpoint collision (#76), eliminate rubberbanding on USB reconnect and clock drift (#75), remove auto set_resolution display flash, single-tap floating pill handle, in-session settings overhaul, Android M3 settings rows, full light/dark color contrast audit, and desktop GUI D-Bus timeout protection.
 

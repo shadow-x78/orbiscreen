@@ -60,6 +60,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -85,6 +88,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.orbiscreen.android.BuildConfig
 import com.orbiscreen.android.R
 import com.orbiscreen.android.data.PrefsStore
@@ -290,21 +294,63 @@ fun SettingsScreen(
                 )
 
                 var touchMode by remember { mutableStateOf(prefs.touchMode) }
-                SwitchPreferenceRow(
-                    title = stringResource(R.string.default_input_mode),
-                    subtitle = if (touchMode) stringResource(R.string.mode_touch) else stringResource(R.string.mode_trackpad),
-                    checked = touchMode,
-                    icon = Icons.Rounded.TouchApp,
-                    onCheckedChange = {
-                        touchMode = it
-                        prefs.touchMode = it
-                    },
+                val inputOptions = listOf(
+                    stringResource(R.string.mode_touch),
+                    stringResource(R.string.mode_trackpad),
                 )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(38.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Rounded.TouchApp,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.default_input_mode),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                            inputOptions.forEachIndexed { index, label ->
+                                SegmentedButton(
+                                    selected = if (index == 0) touchMode else !touchMode,
+                                    onClick = {
+                                        touchMode = index == 0
+                                        prefs.touchMode = index == 0
+                                    },
+                                    shape = SegmentedButtonDefaults.itemShape(
+                                        index = index,
+                                        count = inputOptions.size,
+                                    ),
+                                ) {
+                                    Text(label, style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             PreferenceSection(
                 title = stringResource(R.string.settings_audio_connection),
                 icon = Icons.Rounded.HeadsetMic,
+                betaBadge = true,
             ) {
                 var usbAudio by remember { mutableStateOf(prefs.usbAudioEnabled) }
                 SwitchPreferenceRow(
@@ -317,6 +363,35 @@ fun SettingsScreen(
                         prefs.usbAudioEnabled = it
                     },
                 )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Rounded.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = stringResource(R.string.usb_audio_warning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
 
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -335,6 +410,7 @@ fun SettingsScreen(
                     },
                 )
             }
+
 
             PreferenceSection(
                 title = stringResource(R.string.about),
@@ -443,6 +519,7 @@ fun SettingsScreen(
 private fun PreferenceSection(
     title: String,
     icon: ImageVector,
+    betaBadge: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -463,6 +540,22 @@ private fun PreferenceSection(
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
             )
+            if (betaBadge) {
+                Spacer(Modifier.width(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                ) {
+                    Text(
+                        text = "BETA",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+                }
+            }
         }
         ElevatedCard(
             modifier = Modifier.fillMaxWidth(),

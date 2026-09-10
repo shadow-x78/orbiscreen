@@ -2,25 +2,50 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.26.0] - 2026-09-11
+
+Latency elimination, audio wiring, and UX polish: stale frame drop on Wi-Fi and USB/AOA eliminates seconds of accumulated latency (#77), aggressive pipeline buffer reduction removes rubberbanding (#75), GOP reduced from 10 s to 2 s for fast IDR recovery, USB Audio is now fully connected to the server pipeline with a BETA badge, Input Mode moved to a Segmented Button in main settings only.
+
+### 🐛 Bug Fixes
+- **Video Stream Latency Accumulation (Wi-Fi and USB/AOA) (Issue #77)**: Full dual-side fix. Host side: encode channel reduced from 64 -> 4 slots, daemon video_tx channel reduced from 64 -> 4, broadcast channel reduced from 64 -> 8, transport appsrc max_bytes reduced from 512 KB -> 128 KB, preventing seconds of H.264 frames accumulating in memory before the client even receives them. Android side: UDP socket receive buffer reduced from 2 MB -> 128 KB; stale frame drop logic added: any frame with measured one-way latency > 75 ms is discarded immediately, pending fragments are cleared, and an IDR is requested. Closes #77.
+- **Rubberbanding on Long Sessions (Issue #75)**: ExoPlayer buffer reduced from (100ms, 1000ms) to (50ms, 150ms). LowLatencyVideoRenderer drop-to-keyframe threshold tightened from 100 ms -> 70 ms earlyUs. IDR guard raised from 500 ms -> 1500 ms to prevent request spam. Closes #75.
+- **AOA USB ADB Endpoint Collision (Issue #76)**: Already fixed in v0.25.9: `detect_endpoints` restricted to Interface 0. Referenced here for completeness. #76.
+
+### ✨ Improvements
+- **GOP / Keyframe Interval**: Reduced `key-int-max`, `gop-size`, and `keyframe-period` from 600 frames (10 s) to 120 frames (~2 s at 60 fps): decoder recovers from a dropped frame in at most 2 s instead of 10 s.
+- **USB Audio wired to server**: `try_audio` in `stream_handler` now reads `query.audio == Some("1")` instead of being hardcoded to `false`. `StreamUrl.kt` sends `audio=1` when `prefs.usbAudioEnabled` is `true`.
+- **Audio BETA Badge**: `PreferenceSection` accepts `betaBadge = true`: a tertiaryContainer pill labeled "BETA" appears next to the section title. Applied to the Audio & Connection section.
+- **Audio Warning Card**: An informational card under the USB Audio toggle warns that the feature is experimental and may cause a black screen on some hardware.
+- **Input Mode: Segmented Button**: Replaced the `SwitchPreferenceRow` for Input Mode in Settings with a `SingleChoiceSegmentedButtonRow` (Touch / Trackpad). Removed the Input Mode toggle entirely from the session settings sheet.
+
+### 📦 Version Bumps
+- **Cargo Workspace**: Bumped workspace package version to `0.26.0`.
+- **Android Client**: Incremented `versionCode` to `82`; updated `versionName` to `"0.26.0"`.
+- **Tauri GUI**: Updated `tauri.conf.json` version to `0.26.0`.
+- **PKGBUILD**: Bumped `pkgver` to `0.26.0`.
+- **debian/changelog**: Added `0.26.0-1` release entry for Ubuntu noble.
+
+---
+
 ## [v0.25.9] - 2026-09-10
 
 Comprehensive stability and UX overhaul: black screen on USB connect fixed, rubberbanding eliminated, single-tap pill handle, redesigned in-session settings, M3 preference rows for theme/language, full color contrast audit for light and dark modes, desktop GUI D-Bus timeout fix and dynamic Tauri invoke, Arabic translation cleanup.
 
 ### 🐛 Bug Fixes
-- **Black Screen on USB / Connect**: Disabled `mpegtsmux` audio-video mux pipeline as default — always uses pure `build_video_pipeline`. Eliminates the blocking behavior where missing audio samples caused the muxer to stall video output entirely.
-- **Rubberbanding on USB Reconnect & Clock Drift (Issue #75)**: Restored `DefaultLoadControl` buffer durations to stable `(100ms, 1000ms, 32ms, 64ms)` and locked ExoPlayer playback speed to exactly `1.0f` / `1.0f` — removes the 0.98x–1.04x catch-up algorithm that caused aggressive frame-rate fluctuations and rubberbanding after long sessions (#75).
-- **Auto set_resolution on Connect**: Removed automatic `set_resolution` D-Bus call on session start — resolves the display flash and layout glitch triggered immediately after connecting.
+- **Black Screen on USB / Connect**: Disabled `mpegtsmux` audio-video mux pipeline as default: always uses pure `build_video_pipeline`. Eliminates the blocking behavior where missing audio samples caused the muxer to stall video output entirely.
+- **Rubberbanding on USB Reconnect & Clock Drift (Issue #75)**: Restored `DefaultLoadControl` buffer durations to stable `(100ms, 1000ms, 32ms, 64ms)` and locked ExoPlayer playback speed to exactly `1.0f` / `1.0f`: removes the 0.98x-1.04x catch-up algorithm that caused aggressive frame-rate fluctuations and rubberbanding after long sessions (#75).
+- **Auto set_resolution on Connect**: Removed automatic `set_resolution` D-Bus call on session start: resolves the display flash and layout glitch triggered immediately after connecting.
 - **Single-Tap Pill Handle**: Removed `isControlsPermanentlyHidden` state entirely; floating pill is now always visible when toolbar is hidden and restores on single tap without requiring double-tap on stream surface.
-- **Exit Dialog Light Mode**: Replaced hardcoded `Color(0xF51E1E2E)` and `Color.White` in exit confirm dialog with `MaterialTheme.colorScheme` tokens — fully readable in both light and dark modes.
-- **Desktop GUI Static Screen**: Fixed `isTauri` evaluated at module parse time (before `window.__TAURI__` is injected by WebKitGTK) — now checks dynamically inside each `invoke()` call.
-- **Desktop GUI D-Bus Freeze**: Added `tokio::time::timeout(500ms)` around D-Bus `GetStatus` call — prevents indefinite UI freeze when daemon is not running.
+- **Exit Dialog Light Mode**: Replaced hardcoded `Color(0xF51E1E2E)` and `Color.White` in exit confirm dialog with `MaterialTheme.colorScheme` tokens: fully readable in both light and dark modes.
+- **Desktop GUI Static Screen**: Fixed `isTauri` evaluated at module parse time (before `window.__TAURI__` is injected by WebKitGTK): now checks dynamically inside each `invoke()` call.
+- **Desktop GUI D-Bus Freeze**: Added `tokio::time::timeout(500ms)` around D-Bus `GetStatus` call: prevents indefinite UI freeze when daemon is not running.
 - **AOA USB Direct ADB Endpoint Collision (Issue #76)**: Restricted `detect_endpoints` in `aoa.rs` to scan only Interface 0 (the standard AOA accessory interface). Prevents scanning Interface 1 (ADB) when USB debugging is enabled, resolving the `Device or resource busy (os error 16)` error and silence/black screen on AOA connect (#76).
 
 ### ✨ Improvements
-- **In-Session Settings Sheet Redesign**: Rebuilt `ConnectionSettingsSheet` — removed all resolution fields (presets, native, custom W/H). Sheet now contains only: Scale Mode (Fit / Fill / 100%), Touch/Trackpad toggle, Pointer Speed slider with presets, Keep Screen Awake toggle. Uses `MaterialTheme` colors throughout.
-- **Settings Page M3 Preference Rows**: Replaced Theme and Language chip rows with `ClickPreferenceRow` items that open `AlertDialog` radio pickers — matches Android M3 settings pattern with proper spacing and icon containers.
+- **In-Session Settings Sheet Redesign**: Rebuilt `ConnectionSettingsSheet`: removed all resolution fields (presets, native, custom W/H). Sheet now contains only: Scale Mode (Fit / Fill / 100%), Touch/Trackpad toggle, Pointer Speed slider with presets, Keep Screen Awake toggle. Uses `MaterialTheme` colors throughout.
+- **Settings Page M3 Preference Rows**: Replaced Theme and Language chip rows with `ClickPreferenceRow` items that open `AlertDialog` radio pickers: matches Android M3 settings pattern with proper spacing and icon containers.
 - **Color Contrast Audit**: Increased `LightOnBackground` and `LightOnSurface` from `#4C4F69` to `#1E1E2E` and `LightOnSurfaceVariant` from `#5C5F77` to `#313244` for full WCAG AA compliance in light mode.
-- **Arabic Translations Cleanup**: Removed em dash `—` from `delay` display in `ControlToolbar.kt`. Removed marketing phrases: `فائق السرعة`, `عالي السرعة`. Simplified `force_sw_decoder_summary`. Added missing strings: `disconnect_confirm_title`, `scale_mode_title`, `scale_100`.
+- **Arabic Translations Cleanup**: Removed em dash from `delay` display in `ControlToolbar.kt`. Removed marketing phrases: `فائق السرعة`, `عالي السرعة`. Simplified `force_sw_decoder_summary`. Added missing strings: `disconnect_confirm_title`, `scale_mode_title`, `scale_100`.
 - **Desktop GUI Window**: Resized to compact `540×680` (min `480×580`) in `tauri.conf.json`.
 
 ### 📦 Packaging & Versions
@@ -105,7 +130,7 @@ Hotfix for rubberbanding regression introduced in v0.25.5 ([#75](https://github.
 - **Revert `setMaxPlaybackSpeed` 1.02f → 1.0f (`PlayerHolder.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
   - The 2% catch-up speed created an oscillation loop on USB AOA (already near-zero latency): buffer grows → ExoPlayer speeds up → catches up → slows down → buffer grows again. Reverted to fixed 1.0x playback speed.
 - **Revert `shouldDropBuffersToKeyframe` -120ms → -100ms (`PlayerHolder.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
-  - Minor threshold creep reverted for consistency. The `onLagDetected()` callback at this threshold is kept — it correctly triggers a proactive IDR from the host on deep lag.
+  - Minor threshold creep reverted for consistency. The `onLagDetected()` callback at this threshold is kept: it correctly triggers a proactive IDR from the host on deep lag.
 
 ### 📦 Packaging & Versions
 - **Cargo Workspace**: Bumped workspace package version to 0.25.6.

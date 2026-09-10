@@ -96,7 +96,7 @@ class UdpPlayer {
             hostAddr = addr
             hostPort = port
             val sock = DatagramSocket()
-            sock.receiveBufferSize = 2 * 1024 * 1024
+            sock.receiveBufferSize = 128 * 1024
             sock.sendBufferSize = 256 * 1024
             sock.soTimeout = 200
             socket = sock
@@ -271,6 +271,12 @@ class UdpPlayer {
         if (glass in 0..5_000) _latencyMs.value = glass
         val gap = lastEmittedSeq >= 0 && seqDelta(seq, lastEmittedSeq) != 1
         lastEmittedSeq = seq
+        if (glass in 75..5_000) {
+            pending.keys.toList().forEach { pending.remove(it) }
+            waitKey = true
+            requestIdr()
+            return
+        }
         if (gap && !key) {
             waitKey = true
             requestIdr()
