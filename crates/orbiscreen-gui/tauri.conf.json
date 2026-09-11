@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Orbiscreen",
-  "version": "0.27.6",
   "version": "0.27.7",
   "identifier": "orbiscreen-gui",
   "build": {
