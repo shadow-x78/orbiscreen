@@ -44,10 +44,7 @@ impl UinputInjector {
         let width_axis = AbsInfo::new(0, spec.width.saturating_sub(1) as i32);
         let height_axis = AbsInfo::new(0, spec.height.saturating_sub(1) as i32);
 
-        let is_secondary = spec
-            .output_name
-            .as_deref()
-            .map_or(false, |s| s.contains('2'));
+        let is_secondary = spec.output_name.as_deref().is_some_and(|s| s.contains('2'));
         let prefix = if is_secondary {
             "Orbiscreen 2"
         } else {

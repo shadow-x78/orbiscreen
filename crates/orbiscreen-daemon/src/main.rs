@@ -2185,14 +2185,12 @@ async fn run_secondary_display_session(
                     let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
                     last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
                     let pts_ns = last_pts_ns;
-                    if let Err(e) = encoder.push_frame(data, *width, *height, pts_ns) {
-                        match e {
-                            orbiscreen_encode::EncodeError::Flushing
-                            | orbiscreen_encode::EncodeError::Eos => {
-                                break;
-                            }
-                            _ => {}
-                        }
+                    if let Err(
+                        orbiscreen_encode::EncodeError::Flushing
+                        | orbiscreen_encode::EncodeError::Eos,
+                    ) = encoder.push_frame(data, *width, *height, pts_ns)
+                    {
+                        break;
                     }
                     continue;
                 }
@@ -2207,14 +2205,12 @@ async fn run_secondary_display_session(
                     let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
                     last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
                     let pts_ns = last_pts_ns;
-                    if let Err(e) = encoder.push_frame_owned(frame.data, width, height, pts_ns) {
-                        match e {
-                            orbiscreen_encode::EncodeError::Flushing
-                            | orbiscreen_encode::EncodeError::Eos => {
-                                break;
-                            }
-                            _ => {}
-                        }
+                    if let Err(
+                        orbiscreen_encode::EncodeError::Flushing
+                        | orbiscreen_encode::EncodeError::Eos,
+                    ) = encoder.push_frame_owned(frame.data, width, height, pts_ns)
+                    {
+                        break;
                     }
                 }
                 SourceOutcome::Parked => {
