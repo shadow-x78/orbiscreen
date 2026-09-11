@@ -46,7 +46,11 @@ object UsbAccessoryManager {
     private val _accessoryDetachedEvent = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val accessoryDetachedEvent: kotlinx.coroutines.flow.SharedFlow<Unit> = _accessoryDetachedEvent
 
-    private val _autoConnectEvent = kotlinx.coroutines.flow.MutableSharedFlow<Int>(extraBufferCapacity = 1)
+    private val _autoConnectEvent = kotlinx.coroutines.flow.MutableSharedFlow<Int>(
+        replay = 1,
+        extraBufferCapacity = 1,
+        onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST,
+    )
     val autoConnectEvent: kotlinx.coroutines.flow.SharedFlow<Int> = _autoConnectEvent
 
     private var activePfd: ParcelFileDescriptor? = null
@@ -59,7 +63,10 @@ object UsbAccessoryManager {
         val usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager ?: return
         val accessories = usbManager.accessoryList ?: return
         for (acc in accessories) {
-            if (acc.manufacturer == "shadow-x78" || acc.model == "Orbiscreen") {
+            val matches = acc.manufacturer?.equals("shadow-x78", ignoreCase = true) == true ||
+                acc.model?.equals("Orbiscreen", ignoreCase = true) == true ||
+                accessories.size == 1
+            if (matches) {
                 if (usbManager.hasPermission(acc)) {
                     startAccessory(context, acc)
                 } else {
@@ -101,11 +108,17 @@ object UsbAccessoryManager {
     fun isAccessoryConnected(context: Context): Boolean {
         val usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager ?: return false
         val list = usbManager.accessoryList ?: return false
-        return list.any { it.manufacturer == "shadow-x78" || it.model == "Orbiscreen" }
+        return list.any {
+            it.manufacturer?.equals("shadow-x78", ignoreCase = true) == true ||
+                it.model?.equals("Orbiscreen", ignoreCase = true) == true ||
+                list.size == 1
+        }
     }
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun onAccessoryDetached() {
         stopAccessory()
+        _autoConnectEvent.resetReplayCache()
         _accessoryDetachedEvent.tryEmit(Unit)
     }
 

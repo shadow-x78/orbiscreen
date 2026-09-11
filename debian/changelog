@@ -1,3 +1,13 @@
+orbiscreen (0.27.4-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.27.4 for Ubuntu noble.
+  * Fix Android USB AOA accessory detection and auto-connect: register receiver with RECEIVER_EXPORTED, add onResume initialization, and enable replay cache for autoConnectEvent (Closes: #77).
+  * Fix keepScreenAwake flag: resolve Activity window through Context.findActivity() and set keepScreenOn directly on Compose View (Closes: #77).
+  * Add battery optimization exemption setting in Android app with live status tracking and direct intent launcher (Closes: #77).
+  * Update USB Hero Card to continuously probe and initialize AOA accessory without requiring app restart.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 13:20:00 +0300
+
 orbiscreen (0.27.3-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.3 for Ubuntu noble.

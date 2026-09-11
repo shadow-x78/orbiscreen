@@ -139,4 +139,9 @@
     <string name="scale_mode_title">Fit Mode</string>
     <string name="scale_100">100%</string>
     <string name="usb_audio_warning">Experimental: may cause a black screen on some hardware. Report issues on GitHub if audio fails.</string>
+    <string name="battery_optimization_title">Battery Optimization</string>
+    <string name="battery_optimization_unrestricted">Unrestricted · App won\'t be stopped in background</string>
+    <string name="battery_optimization_restricted">Optimized · Tap to disable battery restrictions</string>
+    <string name="battery_status_unrestricted">Unrestricted</string>
+    <string name="battery_status_restricted">Optimized</string>
 </resources>

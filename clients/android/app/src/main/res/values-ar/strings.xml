@@ -139,4 +139,9 @@
     <string name="scale_mode_title">وضع الملاءمة</string>
     <string name="scale_100">100%</string>
     <string name="usb_audio_warning">تجريبي: قد يتسبب في شاشة سوداء على بعض الأجهزة. أبلغ عن أي مشكلة عبر GitHub.</string>
+    <string name="battery_optimization_title">تحسين استهلاك البطارية</string>
+    <string name="battery_optimization_unrestricted">غير مقيد · لن يتم إيقاف التطبيق أو تجميده في الخلفية</string>
+    <string name="battery_optimization_restricted">مقيد · انقر لتعطيل قيود البطارية لضمان استقرار البث وعدم انقطاعه</string>
+    <string name="battery_status_unrestricted">غير مقيد</string>
+    <string name="battery_status_restricted">مقيد</string>
 </resources>

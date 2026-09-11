@@ -52,9 +52,10 @@ class MainActivity : ComponentActivity() {
                         @Suppress("DEPRECATION")
                         intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY)
                     }
+                    val targetAccessory = accessory ?: (context.getSystemService(Context.USB_SERVICE) as? UsbManager)?.accessoryList?.firstOrNull()
                     val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
-                    if (granted && accessory != null) {
-                        UsbAccessoryManager.startAccessory(context, accessory)
+                    if (granted && targetAccessory != null) {
+                        UsbAccessoryManager.startAccessory(context, targetAccessory)
                     }
                 }
             }
@@ -72,7 +73,7 @@ class MainActivity : ComponentActivity() {
             addAction(UsbAccessoryManager.ACTION_USB_PERMISSION)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(usbReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            registerReceiver(usbReceiver, filter, Context.RECEIVER_EXPORTED)
         } else {
             registerReceiver(usbReceiver, filter)
         }
@@ -84,6 +85,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             App(prefs)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        UsbAccessoryManager.init(this)
     }
 
     override fun onNewIntent(intent: Intent) {

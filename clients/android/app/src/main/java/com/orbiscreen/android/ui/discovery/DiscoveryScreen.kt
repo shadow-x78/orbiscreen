@@ -82,6 +82,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -279,11 +280,15 @@ private fun NetworkStatusPill(
 
 @Composable
 private fun UsbHeroCard(usbPort: Int, onConnect: (String, Int) -> Unit) {
+    val context = LocalContext.current
     var probe by remember(usbPort) { mutableStateOf<UsbProbeResult?>(null) }
     val aoaActive by com.orbiscreen.android.usb.UsbAccessoryManager.isAoaActiveFlow.collectAsState()
 
     LaunchedEffect(usbPort, aoaActive) {
         while (true) {
+            if (!com.orbiscreen.android.usb.UsbAccessoryManager.isAoaActive) {
+                com.orbiscreen.android.usb.UsbAccessoryManager.init(context)
+            }
             probe = HostApi().probeUsb(usbPort)
             kotlinx.coroutines.delay(1200)
         }
@@ -293,7 +298,15 @@ private fun UsbHeroCard(usbPort: Int, onConnect: (String, Int) -> Unit) {
     val isAoa = readyResult?.isAoa == true
 
     ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                if (isReady) {
+                    readyResult?.let { onConnect(it.host, it.port) }
+                } else {
+                    com.orbiscreen.android.usb.UsbAccessoryManager.init(context)
+                }
+            },
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surface,

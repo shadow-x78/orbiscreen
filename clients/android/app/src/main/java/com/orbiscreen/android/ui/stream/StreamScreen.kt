@@ -97,9 +97,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -121,6 +124,12 @@ import com.orbiscreen.android.ui.theme.GlassBorderDark
 import com.orbiscreen.android.ui.theme.GlassDark
 import kotlin.math.roundToInt
 
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 enum class ScreenCorner { TopLeft, TopRight, BottomLeft, BottomRight }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -136,6 +145,7 @@ fun StreamScreen(
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showExitConfirmDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val view = LocalView.current
     val prefs = remember { com.orbiscreen.android.data.PrefsStore(context) }
     var isTouchMode by remember { mutableStateOf(prefs.touchMode) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -159,7 +169,7 @@ fun StreamScreen(
     }
 
     DisposableEffect(Unit) {
-        val window = (context as? Activity)?.window
+        val window = context.findActivity()?.window
         if (window != null) {
             val controller = WindowCompat.getInsetsController(window, window.decorView)
             controller.systemBarsBehavior =
@@ -167,7 +177,7 @@ fun StreamScreen(
             controller.hide(WindowInsetsCompat.Type.systemBars())
         }
         onDispose {
-            val w = (context as? Activity)?.window
+            val w = context.findActivity()?.window
             if (w != null) {
                 WindowCompat.getInsetsController(w, w.decorView)
                     .show(WindowInsetsCompat.Type.systemBars())
@@ -176,11 +186,13 @@ fun StreamScreen(
     }
 
     DisposableEffect(prefs.keepScreenAwake) {
-        val window = (context as? Activity)?.window
+        view.keepScreenOn = prefs.keepScreenAwake
+        val window = context.findActivity()?.window
         if (prefs.keepScreenAwake) {
             window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
         onDispose {
+            view.keepScreenOn = false
             window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }

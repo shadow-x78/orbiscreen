@@ -3,9 +3,12 @@
 
 package com.orbiscreen.android.ui.settings
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.PowerManager
+import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -29,7 +32,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.BatteryAlert
+import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.BatteryFull
+import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Contrast
@@ -41,6 +47,7 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.Policy
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.Speed
@@ -70,6 +77,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -89,9 +97,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.orbiscreen.android.BuildConfig
 import com.orbiscreen.android.R
 import com.orbiscreen.android.data.PrefsStore
+import com.orbiscreen.android.ui.theme.ActiveGreen
 import com.orbiscreen.android.ui.updater.UpdateDialog
 import com.orbiscreen.android.updater.ReleaseInfo
 import com.orbiscreen.android.updater.UpdateManager
@@ -281,10 +293,69 @@ fun SettingsScreen(
                     title = stringResource(R.string.keep_screen_awake),
                     subtitle = stringResource(R.string.keep_screen_awake_desc),
                     checked = keepScreen,
-                    icon = Icons.Rounded.BatteryFull,
+                    icon = Icons.Rounded.PhoneAndroid,
                     onCheckedChange = {
                         keepScreen = it
                         prefs.keepScreenAwake = it
+                    },
+                )
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                )
+
+                val powerManager = remember { context.getSystemService(Context.POWER_SERVICE) as? PowerManager }
+                var isIgnoringBattery by remember {
+                    mutableStateOf(powerManager?.isIgnoringBatteryOptimizations(context.packageName) == true)
+                }
+                val lifecycleOwner = LocalLifecycleOwner.current
+                DisposableEffect(lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) {
+                            isIgnoringBattery = powerManager?.isIgnoringBatteryOptimizations(context.packageName) == true
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
+                }
+
+                ClickPreferenceRow(
+                    title = stringResource(R.string.battery_optimization_title),
+                    subtitle = if (isIgnoringBattery) {
+                        stringResource(R.string.battery_optimization_unrestricted)
+                    } else {
+                        stringResource(R.string.battery_optimization_restricted)
+                    },
+                    icon = if (isIgnoringBattery) Icons.Rounded.BatteryChargingFull else Icons.Rounded.BatterySaver,
+                    onClick = {
+                        try {
+                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                data = Uri.parse("package:${context.packageName}")
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            try {
+                                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
+                    },
+                    trailing = {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isIgnoringBattery) ActiveGreen.copy(alpha = 0.18f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                        ) {
+                            Text(
+                                text = if (isIgnoringBattery) stringResource(R.string.battery_status_unrestricted) else stringResource(R.string.battery_status_restricted),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isIgnoringBattery) ActiveGreen else MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     },
                 )
 
@@ -578,6 +649,7 @@ private fun ClickPreferenceRow(
     subtitle: String,
     icon: ImageVector,
     onClick: () -> Unit,
+    trailing: @Composable (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -618,12 +690,16 @@ private fun ClickPreferenceRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Icon(
-            imageVector = Icons.Rounded.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
-        )
+        if (trailing != null) {
+            trailing()
+        } else {
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 

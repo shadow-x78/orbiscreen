@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.27.3
+Version:        0.27.4
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -142,6 +142,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.4-1
+- Release 0.27.4: Fix Android USB AOA connection and auto-connect by using RECEIVER_EXPORTED, adding onResume initialization, and adding replay buffer to autoConnectEvent (#77); fix keepScreenAwake by unwrapping Context to Activity and setting keepScreenOn on View; add battery optimization exemption settings with direct intent launcher (#77).
+
 * Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.3-1
 - Release 0.27.3: Fix Android client audio playback by configuring AudioAttributes with USAGE_MEDIA, enabling audio focus handling, increasing DefaultLoadControl buffer durations to prevent AudioTrack buffer starvation, bypassing low-latency filters for audio decoders, and enforcing 48 kHz stereo ADTS audio in host GStreamer pipeline (#77).
 

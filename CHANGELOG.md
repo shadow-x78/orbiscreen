@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.27.4] - 2026-09-11
+
+Android client USB connection and display wake lock fix: register USB BroadcastReceiver with `RECEIVER_EXPORTED` on Android 13/14+ to prevent system accessory broadcasts from being dropped (#77), add `onResume()` initialization and background accessory polling so USB connects without restarting the app (#77), buffer auto-connect events with `replay = 1` to guarantee instant session startup, resolve Activity window through `Context.findActivity()` and set `keepScreenOn` directly on Compose View to eliminate screen timeouts during streaming (#77), and add a dedicated Battery Optimization preference row with direct system intent launcher (#77).
+
+### Bug Fixes
+- **USB AOA Receiver Block on Android 13+ (#77)**: Changed `usbReceiver` registration from `RECEIVER_NOT_EXPORTED` to `RECEIVER_EXPORTED` in `MainActivity.kt`. System broadcasts `ACTION_USB_ACCESSORY_ATTACHED`, `ACTION_USB_ACCESSORY_DETACHED`, and `ACTION_USB_PERMISSION` are delivered across process boundaries and were previously silently blocked by the Android OS framework. Closes #77.
+- **USB AOA Reconnect and Auto-Connect (#77)**: Added `UsbAccessoryManager.init()` to `MainActivity.onResume()` and inside `UsbHeroCard` periodic probe loop in `DiscoveryScreen.kt`. Configured `autoConnectEvent` with `replay = 1` and `onBufferOverflow = DROP_OLDEST` so auto-connect events are never lost before UI composition finishes. Added single-accessory fallback and case-insensitive matching in `UsbAccessoryManager.kt`. Closes #77.
+- **Keep Screen Awake on Localized Context (#77)**: Fixed `keepScreenAwake` failing when app language is set to Arabic (`ar`). `createConfigurationContext` wraps `Activity` in a `ContextWrapper`, causing `context as? Activity` to return `null`. Added `Context.findActivity()` helper, and set `LocalView.current.keepScreenOn = prefs.keepScreenAwake` for foolproof screen wake lock during streaming. Closes #77.
+- **Battery Optimization Exemption Setting (#77)**: Added `WAKE_LOCK` and `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` to `AndroidManifest.xml`. Added interactive Battery Optimization row in `SettingsScreen.kt` querying `powerManager.isIgnoringBatteryOptimizations` with live lifecycle resume updates, status pill, and one-tap intent launcher for disabling system battery restrictions.
+- **Icon Clarity**: Changed `keep_screen_awake` icon from `BatteryFull` to `PhoneAndroid` to prevent visual confusion with battery settings.
+
+### Version Bumps
+- **Cargo Workspace**: Bumped workspace package version to `0.27.4`.
+- **Android Client**: Incremented `versionCode` to `86`; updated `versionName` to `"0.27.4"`.
+- **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.4`.
+- **PKGBUILD**: Bumped `pkgver` to `0.27.4`.
+- **debian/changelog**: Added `0.27.4-1` release entry for Ubuntu noble.
+- **data/orbiscreen-copr.spec**: Bumped version to `0.27.4` and added changelog entry.
+
+---
+
 ## [v0.27.3] - 2026-09-11
 
 Android client audio playback fix: configure AudioAttributes with USAGE_MEDIA and enable audio focus handling so sound routes to tablet speakers/headphones (#77), increase DefaultLoadControl buffer durations to eliminate immediate AudioTrack buffer starvation underruns, bypass video-only low-latency filters for audio decoders, and standardize host GStreamer pipeline on 48 kHz stereo with ADTS stream format framing for MPEG-TS audio.

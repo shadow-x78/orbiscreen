@@ -13,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -52,15 +55,15 @@ fun OrbiNav(prefs: PrefsStore, startHost: String? = null, startPort: Int = 8788)
         Routes.DISCOVERY
     }
 
-    val currentEntry by nav.currentBackStackEntryAsState()
-    val currentRoute = currentEntry?.destination?.route
+    var lastAutoConnectedPort by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(Unit) {
         UsbAccessoryManager.autoConnectEvent.collect { port ->
-            if (prefs.autoConnectUsb) {
-                val target = Routes.stream("127.0.0.1", port)
-                if (currentRoute != target) {
-                    nav.navigate(target) {
+            if (prefs.autoConnectUsb && port != lastAutoConnectedPort) {
+                val curRoute = nav.currentDestination?.route
+                if (curRoute != Routes.STREAM) {
+                    lastAutoConnectedPort = port
+                    nav.navigate(Routes.stream("127.0.0.1", port)) {
                         popUpTo(Routes.DISCOVERY) { inclusive = false }
                     }
                 }
@@ -70,6 +73,7 @@ fun OrbiNav(prefs: PrefsStore, startHost: String? = null, startPort: Int = 8788)
 
     LaunchedEffect(Unit) {
         UsbAccessoryManager.accessoryDetachedEvent.collect {
+            lastAutoConnectedPort = null
             val cur = nav.currentBackStackEntry?.destination?.route
             if (cur == Routes.STREAM) {
                 val host = nav.currentBackStackEntry?.arguments?.getString("host")
