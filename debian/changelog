@@ -1,7 +1,7 @@
 orbiscreen (0.27.1-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.1 for Ubuntu noble.
-  * Fix Trackpad mode: cursor no longer jumps to primary screen on finger lift; RelativeMove now uses true relative mouse events on host (Closes: #78).
+  * Fix Trackpad mode: cursor no longer jumps to primary screen on finger lift; RelativeMove now uses true relative mouse events on host (Closes: #77).
   * Fix Trackpad tap-to-click: accumulated cursor position now tracked client-side so clicks land at correct location.
   * Fix latency accumulation after long sessions: hard-drop seek when buffered lag exceeds 80 ms, EWMA clock smoothing, keyframe protection from stale drop (Closes: #77).
   * Fix toolbar auto-close: session toolbar no longer closes automatically after 12 s.

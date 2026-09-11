@@ -231,7 +231,6 @@ class UdpPlayer {
                 val now = System.currentTimeMillis() * 1_000_000L
                 val rtt = ((now - t0) / 1_000_000L).toInt().coerceAtLeast(0)
                 _rttMs.value = rtt
-                clockOffsetNs = hostNs + (now - t0) / 2 - now
                 val raw = hostNs + (now - t0) / 2 - now
                 ewmaClockOffsetNs = if (ewmaClockOffsetNs == Long.MIN_VALUE) raw
                     else ((ewmaClockOffsetNs * 9L + raw) / 10L)
@@ -276,7 +275,6 @@ class UdpPlayer {
         if (glass in 0..5_000) _latencyMs.value = glass
         val gap = lastEmittedSeq >= 0 && seqDelta(seq, lastEmittedSeq) != 1
         lastEmittedSeq = seq
-        if (glass in 75..5_000) {
         if (glass in 75..5_000 && !key) {
             pending.keys.toList().forEach { pending.remove(it) }
             waitKey = true
