@@ -122,7 +122,7 @@ impl UinputInjector {
             .build(&tab_name)?;
 
         info!("opened uinput devices: mouse/keyboard, touchscreen, and tablet");
-        Ok(Self {
+        let mut injector = Self {
             mouse_keyboard,
             touchscreen,
             tablet,
@@ -133,7 +133,9 @@ impl UinputInjector {
             button_1_pressed: false,
             touch_slot_active: [false; crate::MAX_TOUCH_SLOTS],
             touch_active_count: 0,
-        })
+        };
+        let _ = injector.release_tools();
+        Ok(injector)
     }
 
     fn clamp_point(&self, x: f64, y: f64) -> (i32, i32) {
@@ -153,27 +155,18 @@ impl UinputInjector {
         match event {
             PointerEvent::Move { x, y } => {
                 let (xi, yi) = self.clamp_point(x, y);
+                let dx = xi - self.cursor_x.round() as i32;
+                let dy = yi - self.cursor_y.round() as i32;
                 self.cursor_x = f64::from(xi);
                 self.cursor_y = f64::from(yi);
-                let touch_state = if self.button_1_pressed {
-                    KeyState::PRESSED
-                } else {
-                    KeyState::RELEASED
-                };
-                let pressure = if self.button_1_pressed {
-                    PRESSURE_MAX
-                } else {
-                    0
-                };
-                let events = vec![
-                    AbsEvent::new(Abs::X, xi).into(),
-                    AbsEvent::new(Abs::Y, yi).into(),
-                    AbsEvent::new(Abs::PRESSURE, pressure).into(),
-                    KEv::new(Key::BTN_TOOL_PEN, KeyState::PRESSED).into(),
-                    KEv::new(Key::BTN_TOUCH, touch_state).into(),
-                    SynEvent::new(Syn::REPORT).into(),
-                ];
-                self.tablet.write_events(&events)?;
+                if dx != 0 || dy != 0 {
+                    let events = vec![
+                        RelEvent::new(Rel::X, dx).into(),
+                        RelEvent::new(Rel::Y, dy).into(),
+                        SynEvent::new(Syn::REPORT).into(),
+                    ];
+                    self.mouse_keyboard.write_events(&events)?;
+                }
             }
             PointerEvent::RelativeMove { dx, dy } => {
                 self.cursor_x =
@@ -193,45 +186,24 @@ impl UinputInjector {
                 if button == 0 || button > 8 {
                     return Err(InputError::Uinput(format!("invalid button: {button}")));
                 }
-                let xi = self.cursor_x.round() as i32;
-                let yi = self.cursor_y.round() as i32;
+                let btn_key = match button {
+                    1 => Key::BTN_LEFT,
+                    2 => Key::BTN_MIDDLE,
+                    3 => Key::BTN_RIGHT,
+                    4 => Key::BTN_SIDE,
+                    5 => Key::BTN_EXTRA,
+                    _ => Key::BTN_LEFT,
+                };
                 let state = if pressed {
                     KeyState::PRESSED
                 } else {
                     KeyState::RELEASED
                 };
-                let pressure = if pressed { PRESSURE_MAX } else { 0 };
-
-                let events = if button == 2 {
-                    vec![
-                        AbsEvent::new(Abs::X, xi).into(),
-                        AbsEvent::new(Abs::Y, yi).into(),
-                        AbsEvent::new(Abs::PRESSURE, 0).into(),
-                        KEv::new(Key::BTN_TOOL_PEN, KeyState::PRESSED).into(),
-                        KEv::new(Key::BTN_STYLUS2, state).into(),
-                        SynEvent::new(Syn::REPORT).into(),
-                    ]
-                } else if button == 3 {
-                    vec![
-                        AbsEvent::new(Abs::X, xi).into(),
-                        AbsEvent::new(Abs::Y, yi).into(),
-                        AbsEvent::new(Abs::PRESSURE, 0).into(),
-                        KEv::new(Key::BTN_TOOL_PEN, KeyState::PRESSED).into(),
-                        KEv::new(Key::BTN_STYLUS, state).into(),
-                        SynEvent::new(Syn::REPORT).into(),
-                    ]
-                } else {
-                    self.button_1_pressed = pressed;
-                    vec![
-                        AbsEvent::new(Abs::X, xi).into(),
-                        AbsEvent::new(Abs::Y, yi).into(),
-                        AbsEvent::new(Abs::PRESSURE, pressure).into(),
-                        KEv::new(Key::BTN_TOOL_PEN, KeyState::PRESSED).into(),
-                        KEv::new(Key::BTN_TOUCH, state).into(),
-                        SynEvent::new(Syn::REPORT).into(),
-                    ]
-                };
-                self.tablet.write_events(&events)?;
+                let events = vec![
+                    KEv::new(btn_key, state).into(),
+                    SynEvent::new(Syn::REPORT).into(),
+                ];
+                self.mouse_keyboard.write_events(&events)?;
             }
             PointerEvent::Wheel { delta_y } => {
                 let mut events: Vec<InputEvent> = Vec::new();
@@ -364,7 +336,12 @@ impl UinputInjector {
         events.push(AbsEvent::new(Abs::X, xi).into());
         events.push(AbsEvent::new(Abs::Y, yi).into());
         events.push(AbsEvent::new(Abs::PRESSURE, pressure_val).into());
-        events.push(KEv::new(Key::BTN_TOOL_PEN, KeyState::PRESSED).into());
+        let pen_state = if is_touching {
+            KeyState::PRESSED
+        } else {
+            KeyState::RELEASED
+        };
+        events.push(KEv::new(Key::BTN_TOOL_PEN, pen_state).into());
         events.push(KEv::new(Key::BTN_TOUCH, touch_state).into());
         if let Some((tx, ty)) = tilt {
             let tx = tx.clamp(f64::from(TILT_MIN), f64::from(TILT_MAX)) as i32;

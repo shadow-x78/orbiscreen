@@ -582,12 +582,17 @@ impl KwinVirtualCapture {
         let screencast: ZkdeScreencastUnstableV1 =
             registry.bind(global_name, version, &session.queue.handle(), ());
 
-        let names = [
-            "ORBISCREEN".to_string(),
-            format!("ORBISCREEN-{}", std::process::id()),
-            base_name.clone(),
-            format!("{}-{}", base_name, std::process::id()),
-        ];
+        let names = if base_name == "ORBISCREEN" {
+            vec![
+                "ORBISCREEN".to_string(),
+                format!("ORBISCREEN-{}", std::process::id()),
+            ]
+        } else {
+            vec![
+                base_name.clone(),
+                format!("{}-{}", base_name, std::process::id()),
+            ]
+        };
         let mut last_err: Option<KwinVirtualError> = None;
         let mut stream = None;
         let mut node_id = None;
@@ -738,7 +743,7 @@ impl KwinVirtualCapture {
             .map_err(|e| KwinVirtualError::Wayland(format!("State error: {e}")))?;
 
         let pump_interval = Duration::from_millis(16);
-        let damage_pump = super::damage_pump::spawn(pump_interval);
+        let damage_pump = super::damage_pump::spawn(accepted_name.clone(), pump_interval);
 
         let ended = Arc::new(AtomicBool::new(false));
         let ended_notify = Arc::new(Notify::new());

@@ -1478,7 +1478,9 @@ async fn bind_kwin_virtual_inputs(preferred_output: String) {
                         } else {
                             name.starts_with("Orbiscreen Virtual")
                         };
-                        if is_match {
+                        let is_touch_or_tablet =
+                            name.contains("Touchscreen") || name.contains("Tablet");
+                        if is_match && is_touch_or_tablet {
                             if let Err(e) = proxy
                                 .set_property::<&str>("outputName", target_output.as_str())
                                 .await
@@ -1504,7 +1506,7 @@ async fn bind_kwin_virtual_inputs(preferred_output: String) {
                     }
                 }
             }
-            if bound >= 3 {
+            if bound >= 2 {
                 break;
             }
         }
@@ -2101,6 +2103,21 @@ async fn run_secondary_display_session(
         .clone()
         .or_else(|| Some("Virtual-ORBISCREEN-2".to_string()));
 
+    if let Some(ref sec_name) = target_kwin_output {
+        let sec_name = sec_name.clone();
+        let sec_w = spec.width;
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+            let enable_spec = format!("output.{sec_name}.enable");
+            let pos_spec = format!("output.{sec_name}.position.{},0", sec_w.saturating_mul(2));
+            let _ = tokio::process::Command::new("kscreen-doctor")
+                .arg(&enable_spec)
+                .arg(&pos_spec)
+                .status()
+                .await;
+        });
+    }
+
     let (injector_tx, injector_rx) = tokio::sync::oneshot::channel::<InputInjector>();
     let input_spec = VirtualTouchscreenSpec {
         width: spec.width,
@@ -2173,7 +2190,12 @@ async fn run_secondary_display_session(
         const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(100);
         let started = std::time::Instant::now();
         let mut last_pts_ns: u64 = frame_dur;
-        let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = None;
+        let (width, height) = actual_dims;
+        let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = Some((
+            width,
+            height,
+            vec![0u8; (width.saturating_mul(height).saturating_mul(4)) as usize],
+        ));
         let mut last_snapshot: Option<std::time::Instant> = None;
         loop {
             let outcome = match tokio::time::timeout(KEEPALIVE, source.next_frame()).await {
@@ -2583,7 +2605,12 @@ async fn run_start(
         const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(100);
         let started = std::time::Instant::now();
         let mut last_pts_ns: u64 = frame_dur;
-        let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = None;
+        let (width, height) = cap_dims;
+        let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = Some((
+            width,
+            height,
+            vec![0u8; (width.saturating_mul(height).saturating_mul(4)) as usize],
+        ));
         let mut last_snapshot: Option<std::time::Instant> = None;
         loop {
             let outcome = match tokio::time::timeout(KEEPALIVE, source.next_frame()).await {

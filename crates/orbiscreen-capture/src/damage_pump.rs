@@ -29,13 +29,13 @@ impl Drop for DamagePumpHandle {
     }
 }
 
-pub(crate) fn spawn(period: Duration) -> DamagePumpHandle {
+pub(crate) fn spawn(target_output: Option<String>, period: Duration) -> DamagePumpHandle {
     let stop = Arc::new(AtomicBool::new(false));
     let pump_stop = Arc::clone(&stop);
     let thread = std::thread::Builder::new()
         .name("orbiscreen-damage".into())
         .spawn(move || {
-            if let Err(e) = run(period, pump_stop) {
+            if let Err(e) = run(target_output, period, pump_stop) {
                 tracing::warn!("damage pump disabled: {e}");
             }
         })
@@ -43,7 +43,11 @@ pub(crate) fn spawn(period: Duration) -> DamagePumpHandle {
     DamagePumpHandle { stop, thread }
 }
 
-fn run(period: Duration, stop: Arc<AtomicBool>) -> Result<(), String> {
+fn run(
+    target_output: Option<String>,
+    period: Duration,
+    stop: Arc<AtomicBool>,
+) -> Result<(), String> {
     let conn = Connection::connect_to_env().map_err(|e| format!("wayland connect: {e}"))?;
     let (globals, mut queue) = wayland_client::globals::registry_queue_init::<PumpState>(&conn)
         .map_err(|e| format!("registry: {e}"))?;
@@ -75,13 +79,28 @@ fn run(period: Duration, stop: Arc<AtomicBool>) -> Result<(), String> {
         .roundtrip(&mut state)
         .map_err(|e| format!("roundtrip: {e}"))?;
 
-    let target = state
-        .output_names
-        .iter()
-        .find(|(_, name)| name.to_uppercase().contains(OUTPUT_HINT))
-        .map(|(proxy, _)| proxy.clone());
+    let target = if let Some(ref name_target) = target_output {
+        let clean_target = name_target.trim().to_uppercase();
+        state
+            .output_names
+            .iter()
+            .find(|(_, name)| {
+                let upper = name.to_uppercase();
+                upper == clean_target
+                    || upper.contains(&clean_target)
+                    || clean_target.contains(&upper)
+            })
+            .map(|(proxy, _)| proxy.clone())
+    } else {
+        state
+            .output_names
+            .iter()
+            .find(|(_, name)| name.to_uppercase().contains(OUTPUT_HINT))
+            .map(|(proxy, _)| proxy.clone())
+    };
     let Some(output) = target else {
-        return Err(format!("no virtual output matching '{OUTPUT_HINT}' found"));
+        let hint = target_output.as_deref().unwrap_or(OUTPUT_HINT);
+        return Err(format!("no virtual output matching '{hint}' found"));
     };
 
     let surface = compositor.create_surface(&qh, ());
