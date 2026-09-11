@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.27.7] - 2026-09-11
+
+Secondary display damage pump independent pacing, kscreen placement, initial keepalive keyframe push, and mouse rubberbanding elimination: fix secondary tablet black screen by matching independent 60fps damage ticks to Virtual-ORBISCREEN-2 and prioritizing target output connectors (#77), auto-position secondary virtual monitors to the right of primary displays via kscreen-doctor (#77), push initial keepalive keyframes on display start to avoid waiting for desktop activity (#77), and eliminate mouse rubberbanding and erratic jumping by routing relative pointer motion strictly to the virtual mouse device while isolating stylus pen tools (#77).
+
+### Bug Fixes
+- **Secondary Display Damage Pump Pacing (#77)**: Updated `crates/orbiscreen-capture/src/damage_pump.rs` to accept `target_output` and generate independent 60fps damage ticks targeted to `Virtual-ORBISCREEN-2`. Updated `crates/orbiscreen-capture/src/kwin_virtual.rs` to prioritize matching the target output base name directly, preventing the second display from falling into a black screen state. Closes #77.
+- **Automated KScreen Output Placement (#77)**: Added automated `kscreen-doctor` execution in `crates/orbiscreen-daemon/src/main.rs` when spawning `Virtual-ORBISCREEN-2` to enable and position the secondary screen immediately to the right of primary desktop outputs. Closes #77.
+- **Immediate Keepalive Frame Push (#77)**: Initialized `keepalive_frame` with a non-empty buffer on display start in `orbiscreen-daemon`, ensuring H.264 SPS/PPS and IDR keyframes are pushed to the client immediately without waiting for compositor activity. Closes #77.
+- **Mouse Rubberbanding and Jitter Elimination (#77)**: Fixed `crates/orbiscreen-input/src/x11.rs` to route `PointerEvent::Move` and `Button` exclusively to `mouse_keyboard` as relative pointer and button events. Removed tablet uinput injection and `BTN_TOOL_PEN` activation from mouse events. Added tool release on device creation and when stylus contact ends. Restricted KWin input mapping (`mapToWorkspace = false`) exclusively to touchscreens and tablets in `orbiscreen-daemon`. Closes #77.
+
+### Version Bumps
+- **Cargo Workspace**: Bumped workspace package version to `0.27.7`.
+- **Android Client**: Incremented `versionCode` to `89`; updated `versionName` to `"0.27.7"`.
+- **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.7`.
+- **PKGBUILD**: Bumped `pkgver` to `0.27.7`.
+- **debian/changelog**: Added `0.27.7-1` release entry for Ubuntu noble.
+- **data/orbiscreen-copr.spec**: Bumped version to `0.27.7` and added changelog entry.
+
+---
+
 ## [v0.27.6] - 2026-09-11
 
 Dual tablet concurrent virtual displays, AOA candidate detection expansion, zero-lag mouse pacing, and uinput device isolation: support running multiple Android tablets concurrently as independent extended displays on KDE Plasma with automatic port allocation and isolated virtual outputs (#77), expand USB AOA candidate detection to Allwinner devices (such as VASOUN L10) and sysfs MTP/ADB interface probing (#77), eliminate mouse cursor jumping and stuttering by routing relative pointer motion strictly to the virtual mouse device (#77), and optimize Android ExoPlayer buffer pacing to 45-120ms with dynamic live playback speed adjustment to eliminate frame drops and audio starvation.

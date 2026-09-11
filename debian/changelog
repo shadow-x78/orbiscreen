@@ -1,3 +1,12 @@
+orbiscreen (0.27.7-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.27.7 for Ubuntu noble.
+  * Fix secondary display black screen: pace independent 60fps damage ticks to Virtual-ORBISCREEN-2 and push initial keepalive IDR frame (Closes: #77).
+  * Auto-position secondary display to the right of primary monitor via kscreen-doctor (Closes: #77).
+  * Eliminate mouse rubberbanding and cursor jitter: route pointer motion strictly as relative events to mouse_keyboard and isolate stylus pen tools (Closes: #77).
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 21:15:00 +0300
+
 orbiscreen (0.27.6-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.6 for Ubuntu noble.
