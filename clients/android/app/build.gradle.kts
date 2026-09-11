@@ -17,8 +17,6 @@ android {
         applicationId = "com.orbiscreen.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 86
-        versionName = "0.27.4"
         versionCode = 87
         versionName = "0.27.5"
     }

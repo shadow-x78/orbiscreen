@@ -8,7 +8,6 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.27.4
 Version:        0.27.5
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
@@ -152,13 +151,13 @@ fi
 * Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.3-1
 - Release 0.27.3: Fix Android client audio playback by configuring AudioAttributes with USAGE_MEDIA, enabling audio focus handling, increasing DefaultLoadControl buffer durations to prevent AudioTrack buffer starvation, bypassing low-latency filters for audio decoders, and enforcing 48 kHz stereo ADTS audio in host GStreamer pipeline (#77).
 
-* Thu Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.2-1
+* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.2-1
 - Release 0.27.2: Fix video stream periodic freezing by removing false-positive seekToDefaultPosition loop in Android client (#77), add independent upstream-leaky queues for both video and audio before mpegtsmux to prevent frame stalls and audio dropouts (#77), fix virtual sink device description formatting to cleanly display "Orbiscreen Audio" with space in system sound settings.
 
-* Thu Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.1-1
+* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.1-1
 - Release 0.27.1: Fix Trackpad cursor jump on finger lift by routing RelativeMove to relative mouse device instead of tablet on host (#77), track cursor position client-side for correct tap-to-click landing, add hard-drop seek when buffered lag exceeds 80 ms and EWMA clock smoothing for Wi-Fi stability, protect keyframes from stale drop, fix toolbar auto-close removed, add virtual audio sink "Orbiscreen Audio" in PipeWire/PulseAudio via pactl module-null-sink.
 
-* Thu Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.26.0-1
+* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.26.0-1
 - Release 0.26.0: Fix video stream latency accumulation on Wi-Fi and USB/AOA with stale frame drop at 75 ms (#77), aggressively reduce all pipeline buffers to eliminate rubberbanding (#75), reduce GOP from 600 to 120 frames for fast IDR recovery, wire USB audio to server via audio=1 query parameter with BETA badge, replace Input Mode switch with Segmented Button in settings only (#76 referenced).
 
 * Thu Sep 10 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.9-1
