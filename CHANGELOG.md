@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.27.2] - 2026-09-11
+
+Stream stability and audio-video multiplexing fix: eliminate periodic stream freezing by removing false-positive live-edge seek loop in Android client (#77), add dedicated upstream-leaky queues for both video and audio before mpegtsmux to prevent frame stalls and audio dropouts (#77), and format virtual sink device description to cleanly display "Orbiscreen Audio" with space in system sound settings.
+
+### Bug Fixes
+- **Video Stream Periodic Freezing (#77)**: Removed false-positive `seekToDefaultPosition()` loop in `PlayerHolder.kt` that evaluated ExoPlayer's healthy buffer duration against a tight 80 ms threshold, causing unnecessary player resets and IDR requests every 4 seconds. Closes #77.
+- **Audio-Video Multiplexing Stalls (#77)**: Added independent `queue` elements with `leaky=upstream` right before `mpegtsmux` for both video and audio in `build_audio_video_pipeline()`. Replaced undersized 20 ms downstream-leaky queue with a 200 ms upstream-leaky queue for audio, preventing AAC frame drops and multiplexer stalls at 60 fps. Closes #77.
+- **Virtual Sink Display Name**: Updated `sink_properties` in `ensure_virtual_sink()` to properly escape spaces so PulseAudio/PipeWire creates the sink with clean description "Orbiscreen Audio" instead of stripping backslashes.
+
+### Version Bumps
+- **Cargo Workspace**: Bumped workspace package version to `0.27.2`.
+- **Android Client**: Incremented `versionCode` to `84`; updated `versionName` to `"0.27.2"`.
+- **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.2`.
+- **PKGBUILD**: Bumped `pkgver` to `0.27.2`.
+- **debian/changelog**: Added `0.27.2-1` release entry for Ubuntu noble.
+
+---
+
 ## [v0.27.1] - 2026-09-11
 
 Trackpad stability, latency cure for long sessions, persistent toolbar, and a real audio output device: RelativeMove now drives the true relative mouse on the host so the cursor stays put when you lift your finger (#77), accumulated session lag is hard-dropped the moment it exceeds 80 ms with EWMA clock smoothing preventing false positives (#77), the in-session toolbar no longer vanishes after 12 seconds, and "Orbiscreen Audio" now appears as a proper PipeWire/PulseAudio output device you can route any app to from system sound settings.

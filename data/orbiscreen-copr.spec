@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.27.1
+Version:        0.27.2
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -142,6 +142,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Thu Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.2-1
+- Release 0.27.2: Fix video stream periodic freezing by removing false-positive seekToDefaultPosition loop in Android client (#77), add independent upstream-leaky queues for both video and audio before mpegtsmux to prevent frame stalls and audio dropouts (#77), fix virtual sink device description formatting to cleanly display "Orbiscreen Audio" with space in system sound settings.
+
 * Thu Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.1-1
 - Release 0.27.1: Fix Trackpad cursor jump on finger lift by routing RelativeMove to relative mouse device instead of tablet on host (#77), track cursor position client-side for correct tap-to-click landing, add hard-drop seek when buffered lag exceeds 80 ms and EWMA clock smoothing for Wi-Fi stability, protect keyframes from stale drop, fix toolbar auto-close removed, add virtual audio sink "Orbiscreen Audio" in PipeWire/PulseAudio via pactl module-null-sink.
 

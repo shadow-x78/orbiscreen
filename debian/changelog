@@ -1,3 +1,12 @@
+orbiscreen (0.27.2-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.27.2 for Ubuntu noble.
+  * Fix video stream periodic freezing: remove false-positive seekToDefaultPosition loop that reset player every 4 s (Closes: #77).
+  * Fix audio pipeline multiplexing: add dedicated upstream-leaky queues for both video and audio before mpegtsmux to prevent frame stalls and audio dropouts (Closes: #77).
+  * Fix virtual sink display name: format sink_properties to display cleanly as "Orbiscreen Audio" with space in system sound settings.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 11 Sep 2026 09:11:00 +0300
+
 orbiscreen (0.27.1-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.1 for Ubuntu noble.

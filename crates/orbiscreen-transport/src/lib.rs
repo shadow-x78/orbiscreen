@@ -823,13 +823,14 @@ fn build_audio_video_pipeline(
          appsrc name=src format=time is-live=false block=false \
          ! video/x-h264,stream-format=byte-stream,alignment=au \
          ! h264parse config-interval=1 \
+         ! queue max-size-buffers=3 max-size-time=100000000 max-size-bytes=0 leaky=upstream \
          ! mux. \
          pulsesrc device=\"{device}\" do-timestamp=true buffer-time=20000 latency-time=10000 \
-         ! queue max-size-buffers=2 max-size-time=20000000 max-size-bytes=0 leaky=downstream \
          ! audioconvert \
          ! audioresample \
          ! avenc_aac bitrate=128000 \
          ! aacparse \
+         ! queue max-size-buffers=8 max-size-time=200000000 max-size-bytes=0 leaky=upstream \
          ! mux."
     );
     let p = gstreamer::parse::launch(&pipeline_str).map_err(|_| ())?;
