@@ -648,9 +648,7 @@ pub async fn supervisor(
                 }
                 tried_devices.insert(key, now);
                 let dev_clone = dev.clone();
-                tokio::task::spawn_blocking(move || {
-                    initiate_aoa_handshake(&dev_clone)
-                });
+                tokio::task::spawn_blocking(move || initiate_aoa_handshake(&dev_clone));
             }
         }
 
