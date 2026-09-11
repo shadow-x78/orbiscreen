@@ -251,6 +251,24 @@ class PlayerHolder(
             null
         }
         _player.value = player
+
+        if (player != null) {
+            scope.launch {
+                while (isActive && _player.value === player) {
+                    delay(2_000)
+                    val p = _player.value ?: break
+                    if (p.playbackState == Player.STATE_READY) {
+                        val lagMs = p.bufferedPosition - p.currentPosition
+                        if (lagMs > 80) {
+                            Log.w("OrbiPlayer", "latency monitor: buffered lag ${lagMs}ms — hard drop")
+                            p.seekToDefaultPosition()
+                            requestIdr()
+                        }
+                    }
+                }
+            }
+        }
+
         return player
     }
 

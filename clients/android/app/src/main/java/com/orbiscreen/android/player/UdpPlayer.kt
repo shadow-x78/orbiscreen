@@ -70,6 +70,7 @@ class UdpPlayer {
     private var hostAddr: InetAddress? = null
     private var hostPort: Int = 0
     private var clockOffsetNs: Long = 0
+    private var ewmaClockOffsetNs: Long = Long.MIN_VALUE
     var width: Int = 1920
     var height: Int = 1080
 
@@ -231,6 +232,10 @@ class UdpPlayer {
                 val rtt = ((now - t0) / 1_000_000L).toInt().coerceAtLeast(0)
                 _rttMs.value = rtt
                 clockOffsetNs = hostNs + (now - t0) / 2 - now
+                val raw = hostNs + (now - t0) / 2 - now
+                ewmaClockOffsetNs = if (ewmaClockOffsetNs == Long.MIN_VALUE) raw
+                    else ((ewmaClockOffsetNs * 9L + raw) / 10L)
+                clockOffsetNs = ewmaClockOffsetNs
             }
             TYPE_PROBE -> {
                 if (data.size < 7) return
@@ -272,6 +277,7 @@ class UdpPlayer {
         val gap = lastEmittedSeq >= 0 && seqDelta(seq, lastEmittedSeq) != 1
         lastEmittedSeq = seq
         if (glass in 75..5_000) {
+        if (glass in 75..5_000 && !key) {
             pending.keys.toList().forEach { pending.remove(it) }
             waitKey = true
             requestIdr()

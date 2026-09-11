@@ -166,15 +166,20 @@ impl UinputInjector {
                 } else {
                     0
                 };
+                let dx_i = dx.round() as i32;
+                let dy_i = dy.round() as i32;
                 let events = vec![
                     AbsEvent::new(Abs::X, xi).into(),
                     AbsEvent::new(Abs::Y, yi).into(),
                     AbsEvent::new(Abs::PRESSURE, pressure).into(),
                     KEv::new(Key::BTN_TOOL_PEN, KeyState::PRESSED).into(),
                     KEv::new(Key::BTN_TOUCH, touch_state).into(),
+                    RelEvent::new(Rel::X, dx_i).into(),
+                    RelEvent::new(Rel::Y, dy_i).into(),
                     SynEvent::new(Syn::REPORT).into(),
                 ];
                 self.tablet.write_events(&events)?;
+                self.mouse_keyboard.write_events(&events)?;
             }
             PointerEvent::Button { button, pressed } => {
                 if button == 0 || button > 8 {

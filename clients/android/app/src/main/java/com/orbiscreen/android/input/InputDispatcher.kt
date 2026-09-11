@@ -139,6 +139,8 @@ class InputDispatcher(
         synchronized(this) {
             pendingDx += dx * effSensitivity
             pendingDy += dy * effSensitivity
+            cursorX = (cursorX + dx * effSensitivity).coerceIn(0f, streamWidth.toFloat())
+            cursorY = (cursorY + dy * effSensitivity).coerceIn(0f, streamHeight.toFloat())
         }
     }
 

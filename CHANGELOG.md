@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.27.1] - 2026-09-11
+
+Trackpad stability, latency cure for long sessions, persistent toolbar, and a real audio output device: RelativeMove now drives the true relative mouse on the host so the cursor stays put when you lift your finger (#78), accumulated session lag is hard-dropped the moment it exceeds 80 ms with EWMA clock smoothing preventing false positives (#77), the in-session toolbar no longer vanishes after 12 seconds, and "Orbiscreen Audio" now appears as a proper PipeWire/PulseAudio output device you can route any app to from system sound settings.
+
+### Bug Fixes
+- **Trackpad cursor jumps to primary screen on finger lift (#78)**: `PointerEvent::RelativeMove` in `x11.rs` was injected into the `tablet` uinput device as absolute `Abs::X/Y` with `BTN_TOOL_PEN`. When the finger lifted, the pen-proximity signal stopped and KWin snapped the cursor back to the primary screen. Fixed by routing `RelativeMove` to `mouse_keyboard` as true relative `Rel::X/Rel::Y` events. The cursor now stays exactly where it was on the secondary screen with no jump. Closes #78.
+- **Trackpad tap-to-click lands at wrong position**: `moveDelta()` in `InputDispatcher.kt` accumulated `pendingDx/pendingDy` for the network loop but never updated `cursorX/cursorY`. When `leftClick()` fired it sent a `Move` to the stale center-of-screen position. Fixed by also updating `cursorX/cursorY` cumulatively in `moveDelta()` with boundary clamping. Closes #78.
+- **Latency accumulation after long sessions (#77)**: After 30-60 minutes ExoPlayer's internal buffer drifted ahead of real time. Added a coroutine in `PlayerHolder.kt` that checks `bufferedPosition - currentPosition` every 2 seconds and calls `seekToDefaultPosition()` + IDR request when lag exceeds 80 ms. Closes #77.
+- **Wi-Fi clock jitter causing false stale-frame drops**: `clockOffsetNs` was updated raw on every PONG packet, so a single high-latency packet could spike the offset and trigger unnecessary IDR requests. Applied EWMA smoothing (alpha = 0.1) so the offset follows the trend, not individual outliers. Closes #77.
+- **Keyframe dropped during stale-frame flush (Wi-Fi)**: The stale-frame guard in `UdpPlayer.kt` discarded all frames including keyframes when measured latency exceeded 75 ms, causing a decoder freeze until the next IDR arrived. Fixed by exempting keyframes from the drop condition so the decoder can recover immediately. Closes #77.
+- **Session toolbar closes automatically**: A `LaunchedEffect(showControls)` block was automatically hiding the controls after a 12-second delay. Removed the effect entirely; the toolbar now stays visible until the user explicitly taps the eye button. References #76.
+
+### Features
+- **Virtual Audio Sink "Orbiscreen Audio"**: When a client connects with `audio=1`, the host now calls `ensure_virtual_sink()` which uses `pactl load-module module-null-sink` to create a dedicated sink named `orbiscreen_audio` with description "Orbiscreen Audio". The GStreamer pipeline captures from `orbiscreen_audio.monitor` instead of `@DEFAULT_MONITOR@`. The sink appears as a standard output device in GNOME/KDE sound settings and any application or system audio can be routed to it. The sink is idempotent -- it is only created if it does not already exist.
+
+### Version Bumps
+- **Cargo Workspace**: Bumped workspace package version to `0.27.1`.
+- **Android Client**: Incremented `versionCode` to `83`; updated `versionName` to `"0.27.1"`.
+- **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.1`.
+- **PKGBUILD**: Bumped `pkgver` to `0.27.1`.
+- **debian/changelog**: Added `0.27.1-1` release entry for Ubuntu noble.
+
+---
+
 ## [v0.26.0] - 2026-09-11
 
 Latency elimination, audio wiring, and UX polish: stale frame drop on Wi-Fi and USB/AOA eliminates seconds of accumulated latency (#77), aggressive pipeline buffer reduction removes rubberbanding (#75), GOP reduced from 10 s to 2 s for fast IDR recovery, USB Audio is now fully connected to the server pipeline with a BETA badge, Input Mode moved to a Segmented Button in main settings only.

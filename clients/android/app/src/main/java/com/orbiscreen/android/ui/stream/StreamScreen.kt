@@ -119,7 +119,6 @@ import com.orbiscreen.android.R
 import com.orbiscreen.android.player.StreamEvent
 import com.orbiscreen.android.ui.theme.GlassBorderDark
 import com.orbiscreen.android.ui.theme.GlassDark
-import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 enum class ScreenCorner { TopLeft, TopRight, BottomLeft, BottomRight }
@@ -183,13 +182,6 @@ fun StreamScreen(
         }
         onDispose {
             window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-    }
-
-    LaunchedEffect(showControls) {
-        if (showControls) {
-            delay(12_000)
-            showControls = false
         }
     }
 

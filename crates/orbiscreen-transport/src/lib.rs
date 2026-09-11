@@ -769,6 +769,39 @@ fn build_video_pipeline() -> Result<
     Ok((pipeline, appsrc, appsink))
 }
 
+fn ensure_virtual_sink() {
+    let check = std::process::Command::new("pactl")
+        .args(["list", "sinks", "short"])
+        .output();
+    if let Ok(out) = check {
+        if String::from_utf8_lossy(&out.stdout).contains("orbiscreen_audio") {
+            return;
+        }
+    }
+    let result = std::process::Command::new("pactl")
+        .args([
+            "load-module",
+            "module-null-sink",
+            "sink_name=orbiscreen_audio",
+            "sink_properties=device.description=Orbiscreen\\040Audio",
+        ])
+        .output();
+    match result {
+        Ok(out) if out.status.success() => {
+            info!("virtual audio sink 'Orbiscreen Audio' created");
+        }
+        Ok(out) => {
+            warn!(
+                "pactl load-module failed: {}",
+                String::from_utf8_lossy(&out.stderr).trim()
+            );
+        }
+        Err(e) => {
+            warn!("pactl not found or failed: {e}");
+        }
+    }
+}
+
 fn build_audio_video_pipeline() -> Result<
     (
         gstreamer::Pipeline,
@@ -786,6 +819,7 @@ fn build_audio_video_pipeline() -> Result<
                         ! h264parse config-interval=1 \
                         ! mux. \
                         pulsesrc device=\"@DEFAULT_MONITOR@\" do-timestamp=true buffer-time=20000 latency-time=10000 \
+                        pulsesrc device=\"orbiscreen_audio.monitor\" do-timestamp=true buffer-time=20000 latency-time=10000 \
                         ! queue max-size-buffers=2 max-size-time=20000000 max-size-bytes=0 leaky=downstream \
                         ! audioconvert \
                         ! audioresample \
@@ -884,6 +918,7 @@ async fn stream_handler(
     let mut launched = None;
 
     if try_audio {
+        ensure_virtual_sink();
         if let Ok((p, src, sink)) = build_audio_video_pipeline() {
             setup_pipeline(&p, &src, &sink, tx.clone());
             if p.set_state(gstreamer::State::Playing).is_ok() {
