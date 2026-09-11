@@ -11,11 +11,14 @@ import android.os.Build
 import android.os.Handler
 import android.util.Log
 import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -143,7 +146,7 @@ class PlayerHolder(
         } catch (_: Exception) {
             ""
         }
-        val uri = StreamUrl.build(host, port, token, prefs.usbAudioEnabled)
+        val uri = StreamUrl.build(host, port, token, audio && prefs.usbAudioEnabled)
         android.util.Log.i("OrbiPlayer", "connecting to stream: $uri")
         _event.value = StreamEvent.Connecting(uri)
 
@@ -184,14 +187,20 @@ class PlayerHolder(
             val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
 
             val loadControl = DefaultLoadControl.Builder()
-                .setBufferDurationsMs(50, 150, 20, 40)
+                .setBufferDurationsMs(250, 500, 100, 150)
                 .setPrioritizeTimeOverSizeThresholds(true)
+                .build()
+
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                .setUsage(C.USAGE_MEDIA)
                 .build()
 
             val newPlayer = ExoPlayer.Builder(context)
                 .setMediaSourceFactory(mediaSourceFactory)
                 .setRenderersFactory(buildRenderersFactory())
                 .setLoadControl(loadControl)
+                .setAudioAttributes(audioAttributes, true)
                 .build().apply {
                     val media = MediaItem.Builder()
                         .setUri(uri)
@@ -208,8 +217,22 @@ class PlayerHolder(
                     repeatMode = Player.REPEAT_MODE_OFF
                     playWhenReady = true
                     volume = if (audio) 1.0f else 0f
+                    trackSelectionParameters = trackSelectionParameters
+                        .buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, !audio)
+                        .build()
                     setForegroundMode(true)
                     addListener(object : Player.Listener {
+                        override fun onTracksChanged(tracks: Tracks) {
+                            for (group in tracks.groups) {
+                                val typeStr = when (group.type) {
+                                    C.TRACK_TYPE_AUDIO -> "audio"
+                                    C.TRACK_TYPE_VIDEO -> "video"
+                                    else -> "other"
+                                }
+                                Log.i("OrbiPlayer", "tracks changed: $typeStr, selected=${group.isSelected}, count=${group.length}")
+                            }
+                        }
                         override fun onPlaybackStateChanged(state: Int) {
                             when (state) {
                                 Player.STATE_BUFFERING -> {
@@ -300,14 +323,14 @@ class PlayerHolder(
         }
 
     private fun buildRenderersFactory(): DefaultRenderersFactory {
-        val selector = if (prefs.forceSoftwareDecoder) {
-            MediaCodecSelector { mimeType, secure, tunneling ->
+        val selector = MediaCodecSelector { mimeType, secure, tunneling ->
+            if (mimeType.startsWith("audio/")) {
+                MediaCodecSelector.DEFAULT.getDecoderInfos(mimeType, secure, tunneling)
+            } else if (prefs.forceSoftwareDecoder) {
                 MediaCodecSelector.DEFAULT
                     .getDecoderInfos(mimeType, secure, tunneling)
                     .filter { !it.hardwareAccelerated }
-            }
-        } else {
-            MediaCodecSelector { mimeType, secure, tunneling ->
+            } else {
                 val all = MediaCodecSelector.DEFAULT.getDecoderInfos(mimeType, secure, tunneling)
                 val lowLatency = all.filter { info ->
                     info.hardwareAccelerated &&

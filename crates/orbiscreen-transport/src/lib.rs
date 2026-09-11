@@ -828,8 +828,10 @@ fn build_audio_video_pipeline(
          pulsesrc device=\"{device}\" do-timestamp=true buffer-time=20000 latency-time=10000 \
          ! audioconvert \
          ! audioresample \
+         ! audio/x-raw,rate=48000,channels=2 \
          ! avenc_aac bitrate=128000 \
          ! aacparse \
+         ! audio/mpeg,stream-format=adts \
          ! queue max-size-buffers=8 max-size-time=200000000 max-size-bytes=0 leaky=upstream \
          ! mux."
     );

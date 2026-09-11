@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.27.3] - 2026-09-11
+
+Android client audio playback fix: configure AudioAttributes with USAGE_MEDIA and enable audio focus handling so sound routes to tablet speakers/headphones (#77), increase DefaultLoadControl buffer durations to eliminate immediate AudioTrack buffer starvation underruns, bypass video-only low-latency filters for audio decoders, and standardize host GStreamer pipeline on 48 kHz stereo with ADTS stream format framing for MPEG-TS audio.
+
+### Bug Fixes
+- **Android Audio Output and Focus (#77)**: Configured `AudioAttributes` with `C.USAGE_MEDIA` and `C.AUDIO_CONTENT_TYPE_MUSIC` with `handleAudioFocus = true` on ExoPlayer in `PlayerHolder.kt`. Without media classification and audio focus, Android audio policy muted playback or dropped output over USB connections. Closes #77.
+- **AudioTrack Buffer Starvation (#77)**: Increased `DefaultLoadControl` buffer parameters from `(50, 150, 20, 40)` ms to `(250, 500, 100, 150)` ms. The previous 20 ms playback start buffer was smaller than a single AAC audio frame (21.3 ms) and Android HAL `minBufferSize` (46-90 ms), causing immediate `AudioTrack` underruns and silenced audio. Closes #77.
+- **Audio Decoder Selection**: Updated `MediaCodecSelector` in `buildRenderersFactory()` to pass MIME types starting with `audio/` directly to `MediaCodecSelector.DEFAULT`, avoiding video-specific low-latency hardware filtering on Android software audio decoders.
+- **Host Audio Pipeline Standard (48 kHz ADTS)**: Enforced `audio/x-raw,rate=48000,channels=2` before `avenc_aac` and `audio/mpeg,stream-format=adts` after `aacparse` in `build_audio_video_pipeline()` in `crates/orbiscreen-transport/src/lib.rs`. Guarantees standard ADTS headers and sample rate compatibility across all Android decoders.
+- **Explicit Audio Track Selection**: Configured `trackSelectionParameters` in `PlayerHolder.kt` to ensure audio tracks are explicitly enabled when audio is requested, and added `onTracksChanged` debug logging.
+
+### Version Bumps
+- **Cargo Workspace**: Bumped workspace package version to `0.27.3`.
+- **Android Client**: Incremented `versionCode` to `85`; updated `versionName` to `"0.27.3"`.
+- **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.3`.
+- **PKGBUILD**: Bumped `pkgver` to `0.27.3`.
+- **debian/changelog**: Added `0.27.3-1` release entry for Ubuntu noble.
+- **data/orbiscreen-copr.spec**: Bumped version to `0.27.3` and added changelog entry.
+
+---
+
 ## [v0.27.2] - 2026-09-11
 
 Stream stability and audio-video multiplexing fix: eliminate periodic stream freezing by removing false-positive live-edge seek loop in Android client (#77), add dedicated upstream-leaky queues for both video and audio before mpegtsmux to prevent frame stalls and audio dropouts (#77), and format virtual sink device description to cleanly display "Orbiscreen Audio" with space in system sound settings.

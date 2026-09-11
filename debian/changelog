@@ -1,3 +1,13 @@
+orbiscreen (0.27.3-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.27.3 for Ubuntu noble.
+  * Fix Android client audio playback: configure AudioAttributes with USAGE_MEDIA, enable audio focus handling, and ensure audio tracks are explicitly enabled (Closes: #77).
+  * Fix Android AudioTrack buffer starvation: increase DefaultLoadControl buffer durations to prevent immediate underrun and audio muting.
+  * Fix audio decoder selection: bypass low-latency hardware filter for audio MIME types to preserve standard software audio decoders.
+  * Enforce host audio pipeline standard: specify 48 kHz stereo PCM and standard ADTS stream format framing for AAC in MPEG-TS multiplexer.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 10:25:00 +0300
+
 orbiscreen (0.27.2-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.2 for Ubuntu noble.

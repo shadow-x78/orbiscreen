@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.27.2
+Version:        0.27.3
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -142,6 +142,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.3-1
+- Release 0.27.3: Fix Android client audio playback by configuring AudioAttributes with USAGE_MEDIA, enabling audio focus handling, increasing DefaultLoadControl buffer durations to prevent AudioTrack buffer starvation, bypassing low-latency filters for audio decoders, and enforcing 48 kHz stereo ADTS audio in host GStreamer pipeline (#77).
+
 * Thu Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.2-1
 - Release 0.27.2: Fix video stream periodic freezing by removing false-positive seekToDefaultPosition loop in Android client (#77), add independent upstream-leaky queues for both video and audio before mpegtsmux to prevent frame stalls and audio dropouts (#77), fix virtual sink device description formatting to cleanly display "Orbiscreen Audio" with space in system sound settings.
 
