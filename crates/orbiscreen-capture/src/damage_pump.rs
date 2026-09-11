@@ -81,21 +81,34 @@ fn run(
 
     let target = if let Some(ref name_target) = target_output {
         let clean_target = name_target.trim().to_uppercase();
+        let exact = state
+            .output_names
+            .iter()
+            .find(|(_, name)| name.to_uppercase() == clean_target)
+            .map(|(proxy, _)| proxy.clone());
+        exact.or_else(|| {
+            state
+                .output_names
+                .iter()
+                .find(|(_, name)| {
+                    let upper = name.to_uppercase();
+                    let upper_has_2 = upper.contains('2');
+                    let target_has_2 = clean_target.contains('2');
+                    if upper_has_2 != target_has_2 {
+                        return false;
+                    }
+                    upper.contains(&clean_target) || clean_target.contains(&upper)
+                })
+                .map(|(proxy, _)| proxy.clone())
+        })
+    } else {
         state
             .output_names
             .iter()
             .find(|(_, name)| {
                 let upper = name.to_uppercase();
-                upper == clean_target
-                    || upper.contains(&clean_target)
-                    || clean_target.contains(&upper)
+                !upper.contains('2') && upper.contains(OUTPUT_HINT)
             })
-            .map(|(proxy, _)| proxy.clone())
-    } else {
-        state
-            .output_names
-            .iter()
-            .find(|(_, name)| name.to_uppercase().contains(OUTPUT_HINT))
             .map(|(proxy, _)| proxy.clone())
     };
     let Some(output) = target else {

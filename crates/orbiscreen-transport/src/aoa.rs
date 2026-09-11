@@ -374,7 +374,7 @@ pub fn run_accessory_bridge(
     );
 
     let (prio_tx, prio_rx) = std::sync::mpsc::channel::<Vec<u8>>();
-    let (video_tx, video_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(4);
+    let (video_tx, video_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(64);
     let running_writer = running.clone();
     let fd_writer = fd;
     let writer_handle = std::thread::spawn(move || {
@@ -462,7 +462,17 @@ pub fn run_accessory_bridge(
 
                 if (flags & FRAME_FLAG_OPEN) != 0 {
                     let addr = format!("127.0.0.1:{daemon_port}");
-                    match TcpStream::connect(&addr) {
+                    let mut conn_res = TcpStream::connect(&addr);
+                    if conn_res.is_err() && daemon_port != 8788 {
+                        for _ in 0..10 {
+                            std::thread::sleep(Duration::from_millis(150));
+                            conn_res = TcpStream::connect(&addr);
+                            if conn_res.is_ok() {
+                                break;
+                            }
+                        }
+                    }
+                    match conn_res {
                         Ok(mut tcp_stream) => {
                             let _ = tcp_stream.set_nodelay(true);
                             let _ = tcp_stream.set_read_timeout(Some(Duration::from_millis(1500)));
@@ -501,7 +511,7 @@ pub fn run_accessory_bridge(
                             };
 
                             std::thread::spawn(move || {
-                                let mut buf = vec![0u8; 8192];
+                                let mut buf = vec![0u8; MAX_PAYLOAD_LEN];
                                 while running_tcp.load(Ordering::Relaxed) {
                                     match tcp_read_stream.read(&mut buf) {
                                         Ok(0) => break,

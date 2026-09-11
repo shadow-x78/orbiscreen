@@ -148,7 +148,7 @@ class StreamViewModel(
                 _state.value.displayWidth,
                 _state.value.displayHeight,
             )
-            playerHolder.build(host, port, tokenProvider = { freshToken() }, audio = prefs.usbAudioEnabled)
+            playerHolder.build(host, port, tokenProvider = { freshToken() })
         }
         viewModelScope.launch {
             _state.collect { s ->

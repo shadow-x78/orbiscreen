@@ -85,10 +85,6 @@ class PrefsStore(context: Context) {
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }.distinctUntilChanged()
 
-    var usbAudioEnabled: Boolean
-        get() = prefs.getBoolean(KEY_USB_AUDIO, true)
-        set(value) { prefs.edit { putBoolean(KEY_USB_AUDIO, value) } }
-
     var autoConnectUsb: Boolean
         get() = prefs.getBoolean(KEY_AUTO_CONNECT_USB, true)
         set(value) { prefs.edit { putBoolean(KEY_AUTO_CONNECT_USB, value) } }
@@ -127,7 +123,6 @@ class PrefsStore(context: Context) {
         private const val KEY_THEME = "theme_pref"
         private const val KEY_LANGUAGE = "app_language"
         private const val KEY_KEEP_SCREEN_AWAKE = "keep_screen_awake"
-        private const val KEY_USB_AUDIO = "usb_audio_enabled"
         private const val KEY_AUTO_CONNECT_USB = "auto_connect_usb"
         private const val KEY_SW_DECODER = "sw_decoder"
         private const val KEY_USB_PORT = "usb_port"

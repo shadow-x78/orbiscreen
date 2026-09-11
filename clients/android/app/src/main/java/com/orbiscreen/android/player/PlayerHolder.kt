@@ -11,7 +11,6 @@ import android.os.Build
 import android.os.Handler
 import android.util.Log
 import androidx.annotation.OptIn
-import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
@@ -120,14 +119,12 @@ class PlayerHolder(
         host: String,
         port: Int,
         tokenProvider: suspend () -> String = { "" },
-        audio: Boolean = true,
-    ): ExoPlayer? = buildInternal(host, port, tokenProvider, audio, fromReconnect = false)
+    ): ExoPlayer? = buildInternal(host, port, tokenProvider, fromReconnect = false)
 
     private suspend fun buildInternal(
         host: String,
         port: Int,
         tokenProvider: suspend () -> String,
-        audio: Boolean = true,
         fromReconnect: Boolean,
     ): ExoPlayer? {
         releaseInternal()
@@ -146,7 +143,7 @@ class PlayerHolder(
         } catch (_: Exception) {
             ""
         }
-        val uri = StreamUrl.build(host, port, token, audio && prefs.usbAudioEnabled)
+        val uri = StreamUrl.build(host, port, token)
         android.util.Log.i("OrbiPlayer", "connecting to stream: $uri")
         _event.value = StreamEvent.Connecting(uri)
 
@@ -187,21 +184,14 @@ class PlayerHolder(
             val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
 
             val loadControl = DefaultLoadControl.Builder()
-                .setBufferDurationsMs(250, 500, 100, 150)
                 .setBufferDurationsMs(45, 120, 20, 35)
                 .setPrioritizeTimeOverSizeThresholds(true)
-                .build()
-
-            val audioAttributes = AudioAttributes.Builder()
-                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                .setUsage(C.USAGE_MEDIA)
                 .build()
 
             val newPlayer = ExoPlayer.Builder(context)
                 .setMediaSourceFactory(mediaSourceFactory)
                 .setRenderersFactory(buildRenderersFactory())
                 .setLoadControl(loadControl)
-                .setAudioAttributes(audioAttributes, true)
                 .build().apply {
                     val media = MediaItem.Builder()
                         .setUri(uri)
@@ -209,8 +199,6 @@ class PlayerHolder(
                         .setLiveConfiguration(
                             MediaItem.LiveConfiguration.Builder()
                                 .setTargetOffsetMs(0)
-                                .setMinPlaybackSpeed(1.0f)
-                                .setMaxPlaybackSpeed(1.0f)
                                 .setMinPlaybackSpeed(0.98f)
                                 .setMaxPlaybackSpeed(1.05f)
                                 .build()
@@ -219,10 +207,9 @@ class PlayerHolder(
                     setMediaItem(media)
                     repeatMode = Player.REPEAT_MODE_OFF
                     playWhenReady = true
-                    volume = if (audio) 1.0f else 0f
                     trackSelectionParameters = trackSelectionParameters
                         .buildUpon()
-                        .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, !audio)
+                        .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
                         .build()
                     setForegroundMode(true)
                     addListener(object : Player.Listener {
@@ -473,5 +460,6 @@ private class LowLatencyVideoRenderer(
 
     override fun shouldDropOutputBuffer(earlyUs: Long, elapsedRealtimeUs: Long, isLastBuffer: Boolean): Boolean {
         return earlyUs < -50_000
+        return false
     }
 }

@@ -416,55 +416,8 @@ fun SettingsScreen(
 
             PreferenceSection(
                 title = stringResource(R.string.settings_audio_connection),
-                icon = Icons.Rounded.HeadsetMic,
-                betaBadge = true,
+                icon = Icons.Rounded.Usb,
             ) {
-                var usbAudio by remember { mutableStateOf(prefs.usbAudioEnabled) }
-                SwitchPreferenceRow(
-                    title = stringResource(R.string.usb_audio_title),
-                    subtitle = stringResource(R.string.usb_audio_desc),
-                    checked = usbAudio,
-                    icon = Icons.Rounded.HeadsetMic,
-                    onCheckedChange = {
-                        usbAudio = it
-                        prefs.usbAudioEnabled = it
-                    },
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
-                        modifier = Modifier.size(32.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Rounded.Info,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier.size(16.dp),
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = stringResource(R.string.usb_audio_warning),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                )
-
                 var autoConnect by remember { mutableStateOf(prefs.autoConnectUsb) }
                 SwitchPreferenceRow(
                     title = stringResource(R.string.auto_connect_usb_title),

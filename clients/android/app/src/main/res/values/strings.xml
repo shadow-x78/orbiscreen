@@ -118,7 +118,7 @@
     <string name="usb_disconnected_toast">USB cable disconnected</string>
     <string name="settings_general">General</string>
     <string name="settings_display_session">Display &amp; Session</string>
-    <string name="settings_audio_connection">Audio &amp; Connection</string>
+    <string name="settings_audio_connection">USB Connection</string>
     <string name="settings_language">Language</string>
     <string name="language_system">System Default</string>
     <string name="language_ar">العربية</string>
@@ -127,8 +127,6 @@
     <string name="keep_screen_awake_desc">Prevent screen from sleeping while streaming</string>
     <string name="default_input_mode">Default Input Mode</string>
     <string name="default_input_mode_desc">Initial input method when session starts</string>
-    <string name="usb_audio_title">USB Audio Output</string>
-    <string name="usb_audio_desc">Stream PC desktop audio to device speakers or headphones</string>
     <string name="auto_connect_usb_title">Auto-connect on USB</string>
     <string name="auto_connect_usb_desc">Instantly start session when USB cable is attached</string>
     <string name="clear_history">Clear Recent Hosts</string>
@@ -138,7 +136,6 @@
     <string name="disconnect_confirm_title">End Session?</string>
     <string name="scale_mode_title">Fit Mode</string>
     <string name="scale_100">100%</string>
-    <string name="usb_audio_warning">Experimental: may cause a black screen on some hardware. Report issues on GitHub if audio fails.</string>
     <string name="battery_optimization_title">Battery Optimization</string>
     <string name="battery_optimization_unrestricted">Unrestricted · App won\'t be stopped in background</string>
     <string name="battery_optimization_restricted">Optimized · Tap to disable battery restrictions</string>

@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.27.8] - 2026-09-12
+
+Secondary display damage pump connector matching fix, USB AOA frame drop and video stutter elimination, touch delta normalization, and full USB audio removal: fix secondary tablet display damage pump matching so Virtual-ORBISCREEN-2 receives its own damage ticks and never binds to primary display (#77), eliminate USB frame drops, video stuttering, and keyframe stalls by increasing sync channel capacity to 64 and bounding pts calculations (#77), normalize mouse movement and cursor speed in Android PlayerSurface (#77), and completely remove USB audio pipeline, device sinks, and UI settings across the entire project (#77).
+
+### Bug Fixes
+- **Secondary Display Damage Pump Output Matching (#77)**: Fixed `crates/orbiscreen-capture/src/damage_pump.rs` output matching logic to ensure `Virtual-ORBISCREEN-2` does not match `Virtual-ORBISCREEN` via loose substring checks. Displays with suffix '2' are strictly separated so KWin receives damage ticks and renders frames continuously for secondary displays. Closes #77.
+- **USB AOA Zero Frame Drops and Stutter Elimination (#77)**: Increased `video_tx` sync channel capacity from 4 to 64 in `crates/orbiscreen-transport/src/aoa.rs` and from 4 to 32 in `crates/orbiscreen-daemon/src/main.rs` to allow large H.264 IDR frames to pass through without stalling the pipeline. Bounded daemon keepalive `pts_ns` calculation to prevent cumulative future timestamp drift. Closes #77.
+- **Mouse Sensitivity and Touch Delta Normalization (#77)**: Fixed `PlayerSurface.kt` by removing artificial display scaling multiplication on delta move and eliminating duplicate event emission, restoring smooth 1:1 mouse movement when controlling via touch trackpad. Closes #77.
+- **Complete USB Audio Removal (#77)**: Completely removed virtual pulse audio sink creation, audio GStreamer pipelines, and `audio` query parameters from `orbiscreen-transport`. Removed `usbAudioEnabled` preference and setting UI from Android client, simplifying stream playback to a dedicated, low-latency video pipeline. Closes #77.
+
+### Version Bumps
+- **Cargo Workspace**: Bumped workspace package version to `0.27.8`.
+- **Android Client**: Incremented `versionCode` to `90`; updated `versionName` to `"0.27.8"`.
+- **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.8`.
+- **PKGBUILD**: Bumped `pkgver` to `0.27.8`.
+- **debian/changelog**: Added `0.27.8-1` release entry for Ubuntu noble.
+- **data/orbiscreen-copr.spec**: Bumped version to `0.27.8` and added changelog entry.
+
+---
+
 ## [v0.27.7] - 2026-09-11
 
 Secondary display damage pump independent pacing, kscreen placement, initial keepalive keyframe push, and mouse rubberbanding elimination: fix secondary tablet black screen by matching independent 60fps damage ticks to Virtual-ORBISCREEN-2 and prioritizing target output connectors (#77), auto-position secondary virtual monitors to the right of primary displays via kscreen-doctor (#77), push initial keepalive keyframes on display start to avoid waiting for desktop activity (#77), and eliminate mouse rubberbanding and erratic jumping by routing relative pointer motion strictly to the virtual mouse device while isolating stylus pen tools (#77).

@@ -2166,7 +2166,7 @@ async fn run_secondary_display_session(
         }
     });
 
-    let (video_tx, video_rx) = mpsc::channel::<H264Packet>(4);
+    let (video_tx, video_rx) = mpsc::channel::<H264Packet>(32);
     let frame_pump = tokio::spawn(async move {
         let mut ts_base: Option<u64> = None;
         while let Some(chunk) = encoded_rx.recv().await {
@@ -2205,8 +2205,9 @@ async fn run_secondary_display_session(
                         continue;
                     };
                     let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
-                    last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
-                    let pts_ns = last_pts_ns;
+                    let next_min = last_pts_ns.saturating_add(1);
+                    let pts_ns = now_ns.max(next_min).min(now_ns.saturating_add(frame_dur));
+                    last_pts_ns = pts_ns;
                     if let Err(
                         orbiscreen_encode::EncodeError::Flushing
                         | orbiscreen_encode::EncodeError::Eos,
@@ -2225,8 +2226,9 @@ async fn run_secondary_display_session(
                         last_snapshot = Some(std::time::Instant::now());
                     }
                     let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
-                    last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
-                    let pts_ns = last_pts_ns;
+                    let next_min = last_pts_ns.saturating_add(1);
+                    let pts_ns = now_ns.max(next_min).min(now_ns.saturating_add(frame_dur));
+                    last_pts_ns = pts_ns;
                     if let Err(
                         orbiscreen_encode::EncodeError::Flushing
                         | orbiscreen_encode::EncodeError::Eos,
@@ -2559,7 +2561,7 @@ async fn run_start(
     });
     info!("D-Bus session service registered: com.orbiscreen.Daemon");
 
-    let (video_tx, video_rx) = mpsc::channel::<H264Packet>(4);
+    let (video_tx, video_rx) = mpsc::channel::<H264Packet>(32);
     let encoder_dump = match std::env::var("ORBISCREEN_ENCODER_DUMP") {
         Ok(path) => match std::fs::OpenOptions::new()
             .create(true)
@@ -2620,8 +2622,9 @@ async fn run_start(
                         continue;
                     };
                     let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
-                    last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
-                    let pts_ns = last_pts_ns;
+                    let next_min = last_pts_ns.saturating_add(1);
+                    let pts_ns = now_ns.max(next_min).min(now_ns.saturating_add(frame_dur));
+                    last_pts_ns = pts_ns;
                     if let Err(e) = encoder.push_frame(data, *width, *height, pts_ns) {
                         match e {
                             orbiscreen_encode::EncodeError::Flushing
@@ -2653,8 +2656,9 @@ async fn run_start(
                         last_snapshot = Some(std::time::Instant::now());
                     }
                     let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
-                    last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
-                    let pts_ns = last_pts_ns;
+                    let next_min = last_pts_ns.saturating_add(1);
+                    let pts_ns = now_ns.max(next_min).min(now_ns.saturating_add(frame_dur));
+                    last_pts_ns = pts_ns;
                     let data_len = frame.data.len();
                     if let Err(e) = encoder.push_frame_owned(frame.data, width, height, pts_ns) {
                         match e {

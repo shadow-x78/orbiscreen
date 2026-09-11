@@ -297,10 +297,7 @@ fun PlayerSurface(
                                     val dy = ev.y - lastY
                                     if (kotlin.math.abs(dx) > 1.5f || kotlin.math.abs(dy) > 1.5f) {
                                         moved = true
-                                        val cr = computeContentRect(w, hPx, holder.streamWidth, holder.streamHeight, holder.scaleMode)
-                                        val scaleX = holder.streamWidth.toFloat() / cr.w.coerceAtLeast(1f)
-                                        val scaleY = holder.streamHeight.toFloat() / cr.h.coerceAtLeast(1f)
-                                        holder.onDeltaMove(dx * scaleX, dy * scaleY)
+                                        holder.onDeltaMove(dx, dy)
                                         lastX = ev.x
                                         lastY = ev.y
                                     }

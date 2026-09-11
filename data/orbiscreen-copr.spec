@@ -9,6 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 Version:        0.27.7
+Version:        0.27.8
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -142,6 +143,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sat Sep 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.8-1
+- Release 0.27.8: Fix secondary display damage pump matching to prevent Virtual-ORBISCREEN-2 from attaching to primary display (#77); eliminate USB AOA frame drops, video stutter, and keyframe stalls by increasing sync channel capacity and bounding pts calculation (#77); fix mouse delta speed and cursor bounds in Android PlayerSurface (#77); completely remove USB audio pipeline and preferences across daemon, transport, and Android app (#77).
+
 * Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.7-1
 - Release 0.27.7: Fix secondary display black screen by pacing independent 60fps damage ticks to Virtual-ORBISCREEN-2 and pushing initial keepalive IDR frame (#77); auto-position secondary screen to the right via kscreen-doctor (#77); eliminate mouse rubberbanding and cursor jitter by routing pointer events strictly as relative motion to mouse_keyboard and isolating stylus pen tools (#77).
 

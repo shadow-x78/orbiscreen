@@ -118,7 +118,7 @@
     <string name="usb_disconnected_toast">تم فصل كابل USB</string>
     <string name="settings_general">عام</string>
     <string name="settings_display_session">العرض والجلسة</string>
-    <string name="settings_audio_connection">الصوت والاتصال</string>
+    <string name="settings_audio_connection">الاتصال عبر USB</string>
     <string name="settings_language">اللغة</string>
     <string name="language_system">تلقائي النظام</string>
     <string name="language_ar">العربية</string>
@@ -127,8 +127,6 @@
     <string name="keep_screen_awake_desc">منع قفل أو إيقاف تشغيل الشاشة أثناء البث وعرض الشاشة</string>
     <string name="default_input_mode">نمط الإدخال الافتراضي</string>
     <string name="default_input_mode_desc">وسيلة التحكم المختارة تلقائياً عند بدء كل جلسة</string>
-    <string name="usb_audio_title">إخراج الصوت عبر USB</string>
-    <string name="usb_audio_desc">تشغيل صوت الكمبيوتر عبر سماعات الهاتف أو السماعات الموصولة به</string>
     <string name="auto_connect_usb_title">اتصال تلقائي عند وصل USB</string>
     <string name="auto_connect_usb_desc">بدء البث فوراً بمجرد توصيل الكابل والموافقة على الإشعار</string>
     <string name="clear_history">مسح سجل الأجهزة السابقة</string>
@@ -138,7 +136,6 @@
     <string name="disconnect_confirm_title">إنهاء الجلسة؟</string>
     <string name="scale_mode_title">وضع الملاءمة</string>
     <string name="scale_100">100%</string>
-    <string name="usb_audio_warning">تجريبي: قد يتسبب في شاشة سوداء على بعض الأجهزة. أبلغ عن أي مشكلة عبر GitHub.</string>
     <string name="battery_optimization_title">تحسين استهلاك البطارية</string>
     <string name="battery_optimization_unrestricted">غير مقيد · لن يتم إيقاف التطبيق أو تجميده في الخلفية</string>
     <string name="battery_optimization_restricted">مقيد · انقر لتعطيل قيود البطارية لضمان استقرار البث وعدم انقطاعه</string>
