@@ -54,6 +54,7 @@ pub enum IncomingInput {
 pub struct ServerConfig {
     pub signaling_port: u16,
     pub client_web_dir: PathBuf,
+    pub enable_usb_supervisors: bool,
 }
 
 #[derive(Debug)]
@@ -197,6 +198,7 @@ pub struct Transport {
     cfg: ServerConfig,
     input_tx: mpsc::Sender<IncomingInput>,
     token: String,
+    aoa_active: Arc<AtomicUsize>,
 }
 
 impl Transport {
@@ -213,11 +215,16 @@ impl Transport {
             cfg,
             input_tx,
             token: token.unwrap_or_else(generate_token),
+            aoa_active: Arc::new(AtomicUsize::new(0)),
         }
     }
 
     pub fn token(&self) -> &str {
         &self.token
+    }
+
+    pub fn aoa_active(&self) -> Arc<AtomicUsize> {
+        self.aoa_active.clone()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -277,37 +284,41 @@ impl Transport {
             .await;
         });
 
-        let aoa_port = self.cfg.signaling_port;
-        let aoa_active = Arc::new(AtomicUsize::new(0));
-        let aoa_active_for_sup = aoa_active.clone();
-        let aoa_shutdown = shutdown_rx.clone();
-        tokio::spawn(async move {
-            aoa::supervisor(aoa_port, aoa_active_for_sup, aoa_shutdown).await;
-        });
+        let usb_stats_task = if self.cfg.enable_usb_supervisors {
+            let aoa_port = self.cfg.signaling_port;
+            let aoa_active = self.aoa_active.clone();
+            let aoa_active_for_sup = aoa_active.clone();
+            let aoa_shutdown = shutdown_rx.clone();
+            tokio::spawn(async move {
+                aoa::supervisor(aoa_port, aoa_active_for_sup, aoa_shutdown).await;
+            });
 
-        let adb_port = self.cfg.signaling_port;
-        let adb_udp_port = udp_port;
-        let adb_shutdown = shutdown_rx.clone();
-        tokio::spawn(async move {
-            adb::supervisor(adb_port, adb_udp_port, adb_shutdown).await;
-        });
+            let adb_port = self.cfg.signaling_port;
+            let adb_udp_port = udp_port;
+            let adb_shutdown = shutdown_rx.clone();
+            tokio::spawn(async move {
+                adb::supervisor(adb_port, adb_udp_port, adb_shutdown).await;
+            });
 
-        let usb_stats = state.stats.clone();
-        let mut usb_shutdown = shutdown_rx.clone();
-        let aoa_active_for_stats = aoa_active.clone();
-        let usb_stats_task = tokio::spawn(async move {
-            loop {
-                let is_aoa = aoa_active_for_stats.load(Ordering::Relaxed) > 0;
-                let names = aoa::get_connected_candidate_names();
-                let count = if is_aoa { 1 } else { names.len() };
-                usb_stats.note_usb_state(count, names, is_aoa);
-                tokio::select! {
-                    _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {}
-                    _ = usb_shutdown.changed() => break,
+            let usb_stats = state.stats.clone();
+            let mut usb_shutdown = shutdown_rx.clone();
+            let aoa_active_for_stats = aoa_active.clone();
+            Some(tokio::spawn(async move {
+                loop {
+                    let is_aoa = aoa_active_for_stats.load(Ordering::Relaxed) > 0;
+                    let names = aoa::get_connected_candidate_names();
+                    let count = if is_aoa { 1 } else { names.len() };
+                    usb_stats.note_usb_state(count, names, is_aoa);
+                    tokio::select! {
+                        _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {}
+                        _ = usb_shutdown.changed() => break,
+                    }
                 }
-            }
-            usb_stats.note_usb_state(0, Vec::new(), false);
-        });
+                usb_stats.note_usb_state(0, Vec::new(), false);
+            }))
+        } else {
+            None
+        };
 
         let stats_pump = state.stats.clone();
         tokio::spawn(async move {
@@ -332,7 +343,9 @@ impl Transport {
             _ = tokio::signal::ctrl_c() => {}
         }
 
-        usb_stats_task.abort();
+        if let Some(task) = usb_stats_task {
+            task.abort();
+        }
         state.stats.note_usb_devices(0);
         Ok(())
     }

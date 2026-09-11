@@ -188,6 +188,7 @@ class PlayerHolder(
 
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(250, 500, 100, 150)
+                .setBufferDurationsMs(45, 120, 20, 35)
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
 
@@ -210,6 +211,8 @@ class PlayerHolder(
                                 .setTargetOffsetMs(0)
                                 .setMinPlaybackSpeed(1.0f)
                                 .setMaxPlaybackSpeed(1.0f)
+                                .setMinPlaybackSpeed(0.98f)
+                                .setMaxPlaybackSpeed(1.05f)
                                 .build()
                         )
                         .build()
@@ -461,7 +464,7 @@ private class LowLatencyVideoRenderer(
     }
 
     override fun shouldDropBuffersToKeyframe(earlyUs: Long, elapsedRealtimeUs: Long, isLastBuffer: Boolean): Boolean {
-        if (earlyUs < -70_000) {
+        if (earlyUs < -120_000) {
             onLagDetected()
             return true
         }
@@ -469,6 +472,6 @@ private class LowLatencyVideoRenderer(
     }
 
     override fun shouldDropOutputBuffer(earlyUs: Long, elapsedRealtimeUs: Long, isLastBuffer: Boolean): Boolean {
-        return earlyUs < -30_000
+        return earlyUs < -50_000
     }
 }

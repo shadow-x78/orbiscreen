@@ -44,17 +44,41 @@ impl UinputInjector {
         let width_axis = AbsInfo::new(0, spec.width.saturating_sub(1) as i32);
         let height_axis = AbsInfo::new(0, spec.height.saturating_sub(1) as i32);
 
+        let is_secondary = spec
+            .output_name
+            .as_deref()
+            .map_or(false, |s| s.contains('2'));
+        let prefix = if is_secondary {
+            "Orbiscreen 2"
+        } else {
+            "Orbiscreen"
+        };
+        let prod_offset = if is_secondary { 0x0010 } else { 0x0000 };
+        let mk_name = format!("{prefix} Virtual Mouse and Keyboard");
+        let ts_name = format!("{prefix} Virtual Touchscreen");
+        let tab_name = format!("{prefix} Virtual Tablet");
+
         let mouse_keyboard = UinputDevice::builder()?
-            .with_input_id(InputId::new(Bus::VIRTUAL, 0x0BEE, 0x0001, 0x0001))?
+            .with_input_id(InputId::new(
+                Bus::VIRTUAL,
+                0x0BEE,
+                0x0001 + prod_offset,
+                0x0001,
+            ))?
             .with_props([InputProp::POINTER])?
             .with_rel_axes([Rel::X, Rel::Y, Rel::WHEEL])?
             .with_keys(mk_keys)?
-            .build("Orbiscreen Virtual Mouse and Keyboard")?;
+            .build(&mk_name)?;
 
         let slot_axis = AbsInfo::new(0, (crate::MAX_TOUCH_SLOTS as i32) - 1);
         let tracking_axis = AbsInfo::new(-1, i32::MAX);
         let touchscreen = UinputDevice::builder()?
-            .with_input_id(InputId::new(Bus::VIRTUAL, 0x0BEE, 0x0002, 0x0001))?
+            .with_input_id(InputId::new(
+                Bus::VIRTUAL,
+                0x0BEE,
+                0x0002 + prod_offset,
+                0x0001,
+            ))?
             .with_props([InputProp::DIRECT])?
             .with_abs_axes([
                 AbsSetup::new(Abs::X, width_axis),
@@ -65,7 +89,7 @@ impl UinputInjector {
                 AbsSetup::new(Abs::MT_POSITION_Y, height_axis),
             ])?
             .with_keys([Key::BTN_TOUCH])?
-            .build("Orbiscreen Virtual Touchscreen")?;
+            .build(&ts_name)?;
 
         let res_w_axis = AbsInfo::new(0, spec.width.saturating_sub(1) as i32).with_resolution(10);
         let res_h_axis = AbsInfo::new(0, spec.height.saturating_sub(1) as i32).with_resolution(10);
@@ -83,7 +107,12 @@ impl UinputInjector {
         ];
 
         let tablet = UinputDevice::builder()?
-            .with_input_id(InputId::new(Bus::VIRTUAL, 0x0BEE, 0x0003, 0x0001))?
+            .with_input_id(InputId::new(
+                Bus::VIRTUAL,
+                0x0BEE,
+                0x0003 + prod_offset,
+                0x0001,
+            ))?
             .with_props([InputProp::DIRECT])?
             .with_abs_axes([
                 AbsSetup::new(Abs::X, res_w_axis),
@@ -93,7 +122,7 @@ impl UinputInjector {
                 AbsSetup::new(Abs::TILT_Y, tilt_axis),
             ])?
             .with_keys(tablet_keys)?
-            .build("Orbiscreen Virtual Tablet")?;
+            .build(&tab_name)?;
 
         info!("opened uinput devices: mouse/keyboard, touchscreen, and tablet");
         Ok(Self {
@@ -154,31 +183,13 @@ impl UinputInjector {
                     (self.cursor_x + dx).clamp(0.0, f64::from(self.width.saturating_sub(1)));
                 self.cursor_y =
                     (self.cursor_y + dy).clamp(0.0, f64::from(self.height.saturating_sub(1)));
-                let xi = self.cursor_x.round() as i32;
-                let yi = self.cursor_y.round() as i32;
-                let touch_state = if self.button_1_pressed {
-                    KeyState::PRESSED
-                } else {
-                    KeyState::RELEASED
-                };
-                let pressure = if self.button_1_pressed {
-                    PRESSURE_MAX
-                } else {
-                    0
-                };
                 let dx_i = dx.round() as i32;
                 let dy_i = dy.round() as i32;
                 let events = vec![
-                    AbsEvent::new(Abs::X, xi).into(),
-                    AbsEvent::new(Abs::Y, yi).into(),
-                    AbsEvent::new(Abs::PRESSURE, pressure).into(),
-                    KEv::new(Key::BTN_TOOL_PEN, KeyState::PRESSED).into(),
-                    KEv::new(Key::BTN_TOUCH, touch_state).into(),
                     RelEvent::new(Rel::X, dx_i).into(),
                     RelEvent::new(Rel::Y, dy_i).into(),
                     SynEvent::new(Syn::REPORT).into(),
                 ];
-                self.tablet.write_events(&events)?;
                 self.mouse_keyboard.write_events(&events)?;
             }
             PointerEvent::Button { button, pressed } => {

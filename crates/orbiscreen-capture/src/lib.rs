@@ -186,7 +186,11 @@ impl VirtualOutputLease {
             (guard.width, guard.height)
         };
         let capture = tokio::task::spawn_blocking(move || {
-            kwin_virtual::KwinVirtualCapture::open(kwin_virtual::KwinVirtualSpec { width, height })
+            kwin_virtual::KwinVirtualCapture::open(kwin_virtual::KwinVirtualSpec {
+                width,
+                height,
+                output_name: None,
+            })
         })
         .await
         .map_err(|e| CaptureError::Io(format!("kwin-virtual unpark task: {e}")))??;
@@ -245,9 +249,18 @@ impl CaptureSession {
         })
     }
 
-    async fn open_kwin(width: u32, height: u32) -> Result<Self, CaptureError> {
+    pub async fn open_kwin_named(
+        width: u32,
+        height: u32,
+        output_name: Option<String>,
+    ) -> Result<Self, CaptureError> {
+        let name_clone = output_name.clone();
         let capture = tokio::task::spawn_blocking(move || {
-            kwin_virtual::KwinVirtualCapture::open(kwin_virtual::KwinVirtualSpec { width, height })
+            kwin_virtual::KwinVirtualCapture::open(kwin_virtual::KwinVirtualSpec {
+                width,
+                height,
+                output_name: name_clone,
+            })
         })
         .await
         .map_err(|e| CaptureError::Io(format!("kwin-virtual open task: {e}")))??;
@@ -268,6 +281,10 @@ impl CaptureSession {
             width: actual_w,
             height: actual_h,
         })
+    }
+
+    pub async fn open_kwin(width: u32, height: u32) -> Result<Self, CaptureError> {
+        Self::open_kwin_named(width, height, None).await
     }
 
     pub async fn open_screencopy(output_name: Option<String>) -> Result<Self, CaptureError> {

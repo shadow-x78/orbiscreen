@@ -39,6 +39,7 @@ const PERMISSION_FILE_NAME: &str = "orbiscreen.kwin.desktop";
 pub struct KwinVirtualSpec {
     pub width: u32,
     pub height: u32,
+    pub output_name: Option<String>,
 }
 
 #[derive(Debug, Error)]
@@ -517,9 +518,14 @@ pub struct KwinVirtualCapture {
 impl KwinVirtualCapture {
     #[instrument(skip_all, fields(width = spec.width, height = spec.height))]
     pub fn open(spec: KwinVirtualSpec) -> Result<Self, KwinVirtualError> {
+        let base_name = spec
+            .output_name
+            .clone()
+            .unwrap_or_else(|| "ORBISCREEN".to_string());
+        let default_conn = format!("Virtual-{base_name}");
+        let pid_connector = format!("Virtual-{base_name}-{}", std::process::id());
         if let Some(path) = kwin_output_config_path() {
-            let pid_connector = format!("Virtual-ORBISCREEN-{}", std::process::id());
-            for connector in [VIRTUAL_OUTPUT_CONNECTOR, pid_connector.as_str()] {
+            for connector in [default_conn.as_str(), pid_connector.as_str()] {
                 match forget_saved_virtual_output(&path, connector) {
                     Ok(true) => tracing::info!(
                         file = %path.display(),
@@ -579,6 +585,8 @@ impl KwinVirtualCapture {
         let names = [
             "ORBISCREEN".to_string(),
             format!("ORBISCREEN-{}", std::process::id()),
+            base_name.clone(),
+            format!("{}-{}", base_name, std::process::id()),
         ];
         let mut last_err: Option<KwinVirtualError> = None;
         let mut stream = None;
@@ -762,7 +770,7 @@ impl KwinVirtualCapture {
             rx: tokio::sync::Mutex::new(rx),
             width: spec.width,
             height: spec.height,
-            connector: accepted_name.unwrap_or_else(|| VIRTUAL_OUTPUT_CONNECTOR.to_string()),
+            connector: accepted_name.unwrap_or(default_conn),
             stop,
             ended,
             ended_notify,

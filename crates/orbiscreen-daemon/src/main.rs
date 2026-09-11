@@ -6,6 +6,7 @@ pub mod ui;
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
@@ -1471,7 +1472,13 @@ async fn bind_kwin_virtual_inputs(preferred_output: String) {
                 .await
                 {
                     if let Ok(name) = proxy.get_property::<String>("name").await {
-                        if name.starts_with("Orbiscreen") {
+                        let is_secondary = target_output.contains('2');
+                        let is_match = if is_secondary {
+                            name.starts_with("Orbiscreen 2")
+                        } else {
+                            name.starts_with("Orbiscreen Virtual")
+                        };
+                        if is_match {
                             if let Err(e) = proxy
                                 .set_property::<&str>("outputName", target_output.as_str())
                                 .await
@@ -2050,6 +2057,379 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
     }
 }
 
+async fn run_secondary_display_session(
+    cfg: Config,
+    client_dir: PathBuf,
+    token: String,
+    mut shutdown_rx: tokio::sync::watch::Receiver<bool>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let secondary_port = cfg.transport.signaling_port + 2;
+    let spec = VirtualDisplaySpec {
+        width: cfg.display.width,
+        height: cfg.display.height,
+        refresh_rate_hz: cfg.display.refresh_rate_hz,
+    };
+
+    info!(
+        "Opening secondary virtual display ORBISCREEN-2 ({w}x{h}@{hz}Hz) on port {port}",
+        w = spec.width,
+        h = spec.height,
+        hz = spec.refresh_rate_hz,
+        port = secondary_port,
+    );
+
+    let capture = match CaptureSession::open_kwin_named(
+        spec.width,
+        spec.height,
+        Some("ORBISCREEN-2".to_string()),
+    )
+    .await
+    {
+        Ok(c) => c,
+        Err(e) => {
+            warn!(
+                "Secondary display KWin virtual output failed: {e}; falling back to auto capture"
+            );
+            CaptureSession::open_with_preference(spec.width, spec.height, CapturePreference::Auto)
+                .await?
+        }
+    };
+    let mut source = FrameSource::Capture(capture);
+    let actual_dims = source.actual_dimensions();
+    let captured_output_name = source.virtual_output_name().await;
+    let target_kwin_output = captured_output_name
+        .clone()
+        .or_else(|| Some("Virtual-ORBISCREEN-2".to_string()));
+
+    let (injector_tx, injector_rx) = tokio::sync::oneshot::channel::<InputInjector>();
+    let input_spec = VirtualTouchscreenSpec {
+        width: spec.width,
+        height: spec.height,
+        output_name: target_kwin_output.clone(),
+    };
+    tokio::spawn(async move {
+        match InputInjector::open_async(input_spec).await {
+            Ok(inj) => {
+                info!(backend = ?inj.backend(), "Secondary input injector open");
+                let _ = injector_tx.send(inj);
+                if let Some(name) = target_kwin_output {
+                    bind_kwin_virtual_inputs(name).await;
+                }
+            }
+            Err(e) => {
+                warn!("Secondary input injection unavailable ({e})");
+            }
+        }
+    });
+
+    let encoder_kind = match EncoderKind::parse(&cfg.encode.preferred_encoder) {
+        Some(kind) => kind,
+        None => EncoderKind::Auto,
+    };
+    let mut encoder = Encoder::new(EncodeParams {
+        kind: encoder_kind,
+        bitrate_kbps: cfg.encode.bitrate_kbps,
+        width: actual_dims.0,
+        height: actual_dims.1,
+        framerate: spec.refresh_rate_hz,
+    })?;
+    let encoder_name = match encoder.kind() {
+        EncoderKind::Auto => "auto",
+        EncoderKind::Vaapi => "vaapi",
+        EncoderKind::Nvenc => "nvenc",
+        EncoderKind::X264 => "x264",
+    };
+    let mut encoded_rx = encoder.subscribe().ok_or("encoder returned no rx")?;
+    let encoder = Arc::new(encoder);
+    let (idr_tx, mut idr_rx) = mpsc::channel::<()>(8);
+    let encoder_for_idr = Arc::clone(&encoder);
+    tokio::spawn(async move {
+        while idr_rx.recv().await.is_some() {
+            encoder_for_idr.request_keyframe();
+        }
+    });
+
+    let (video_tx, video_rx) = mpsc::channel::<H264Packet>(4);
+    let frame_pump = tokio::spawn(async move {
+        let mut ts_base: Option<u64> = None;
+        while let Some(chunk) = encoded_rx.recv().await {
+            let base = *ts_base.get_or_insert(chunk.pts_ns);
+            let pts_ns = chunk.pts_ns.saturating_sub(base);
+            let pkt = H264Packet {
+                bytes: chunk.bytes,
+                is_keyframe: chunk.is_keyframe,
+                pts_ns,
+            };
+            if video_tx.send(pkt).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    let encoder_for_pump = Arc::clone(&encoder);
+    let cap_pump = tokio::spawn(async move {
+        let encoder = encoder_for_pump;
+        let frame_dur = Encoder::frame_duration_ns(spec.refresh_rate_hz);
+        const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(100);
+        let started = std::time::Instant::now();
+        let mut last_pts_ns: u64 = frame_dur;
+        let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = None;
+        let mut last_snapshot: Option<std::time::Instant> = None;
+        loop {
+            let outcome = match tokio::time::timeout(KEEPALIVE, source.next_frame()).await {
+                Ok(outcome) => outcome,
+                Err(_elapsed) => {
+                    let Some((width, height, data)) = &keepalive_frame else {
+                        continue;
+                    };
+                    let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
+                    last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
+                    let pts_ns = last_pts_ns;
+                    if let Err(e) = encoder.push_frame(data, *width, *height, pts_ns) {
+                        match e {
+                            orbiscreen_encode::EncodeError::Flushing
+                            | orbiscreen_encode::EncodeError::Eos => {
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                    continue;
+                }
+            };
+            match outcome {
+                SourceOutcome::Frame(frame) => {
+                    let (width, height) = (frame.width, frame.height);
+                    if last_snapshot.map_or(true, |t| t.elapsed() >= KEEPALIVE) {
+                        keepalive_frame = Some((width, height, frame.data.to_vec()));
+                        last_snapshot = Some(std::time::Instant::now());
+                    }
+                    let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
+                    last_pts_ns = now_ns.max(last_pts_ns.saturating_add(frame_dur));
+                    let pts_ns = last_pts_ns;
+                    if let Err(e) = encoder.push_frame_owned(frame.data, width, height, pts_ns) {
+                        match e {
+                            orbiscreen_encode::EncodeError::Flushing
+                            | orbiscreen_encode::EncodeError::Eos => {
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                SourceOutcome::Parked => {
+                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                }
+                SourceOutcome::Retryable(_e) => {
+                    if source.is_ended() {
+                        break;
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+                }
+                SourceOutcome::Ended => {
+                    break;
+                }
+            }
+        }
+    });
+
+    let (input_tx, mut input_rx) = mpsc::channel::<orbiscreen_transport::IncomingInput>(1024);
+    let cap_dims = actual_dims;
+    let input_pump = tokio::spawn(async move {
+        use orbiscreen_input::PointerEvent;
+        use orbiscreen_transport::IncomingInput;
+        let (cap_w, cap_h) = cap_dims;
+        let scale = |x: f64, y: f64| {
+            if !x.is_finite() || !y.is_finite() {
+                return (0.0, 0.0);
+            }
+            let x = (x * f64::from(spec.width) / f64::from(cap_w.max(1)))
+                .clamp(0.0, f64::from(spec.width));
+            let y = (y * f64::from(spec.height) / f64::from(cap_h.max(1)))
+                .clamp(0.0, f64::from(spec.height));
+            (x, y)
+        };
+        let mut injector: Option<InputInjector> = None;
+        let mut pending_rx = Some(injector_rx);
+        while let Some(event) = input_rx.recv().await {
+            if injector.is_none() {
+                if let Some(rx) = pending_rx.as_mut() {
+                    match rx.try_recv() {
+                        Ok(inj) => {
+                            injector = Some(inj);
+                            pending_rx = None;
+                        }
+                        Err(tokio::sync::oneshot::error::TryRecvError::Closed) => {
+                            pending_rx = None;
+                        }
+                        Err(tokio::sync::oneshot::error::TryRecvError::Empty) => {}
+                    }
+                }
+            }
+            let Some(inj) = injector.as_mut() else {
+                continue;
+            };
+            match event {
+                IncomingInput::Pointer(p) => {
+                    let p = match p {
+                        PointerEvent::Move { x, y } => {
+                            let (x, y) = scale(x, y);
+                            PointerEvent::Move { x, y }
+                        }
+                        other => other,
+                    };
+                    let _ = inj.inject_pointer(p).await;
+                }
+                IncomingInput::Key(k) => {
+                    let _ = inj.inject_key(k).await;
+                }
+                IncomingInput::Stylus(s) => {
+                    let s = match s {
+                        orbiscreen_input::StylusEvent::Pressure { x, y, pressure } => {
+                            let (x, y) = scale(x, y);
+                            orbiscreen_input::StylusEvent::Pressure { x, y, pressure }
+                        }
+                        orbiscreen_input::StylusEvent::Tilt {
+                            x,
+                            y,
+                            pressure,
+                            tilt_x_deg,
+                            tilt_y_deg,
+                        } => {
+                            let (x, y) = scale(x, y);
+                            orbiscreen_input::StylusEvent::Tilt {
+                                x,
+                                y,
+                                pressure,
+                                tilt_x_deg,
+                                tilt_y_deg,
+                            }
+                        }
+                        other => other,
+                    };
+                    let _ = inj.inject_stylus(s).await;
+                }
+                IncomingInput::Touch(t) => {
+                    let (x, y) = scale(t.x, t.y);
+                    let t = orbiscreen_input::TouchEvent { x, y, ..t };
+                    let _ = inj.inject_touch(t).await;
+                }
+                IncomingInput::RawPointer { x, y } => {
+                    let (x, y) = scale(x, y);
+                    let _ = inj.inject_pointer(PointerEvent::Move { x, y }).await;
+                }
+            }
+        }
+    });
+
+    let transport = Transport::with_token(
+        ServerConfig {
+            signaling_port: secondary_port,
+            client_web_dir: client_dir,
+            enable_usb_supervisors: false,
+        },
+        input_tx,
+        Some(token),
+    );
+
+    let stats = Arc::new(Stats::default());
+    let mut serve_fut = std::pin::pin!(transport.serve(
+        video_rx,
+        stats,
+        actual_dims.0,
+        actual_dims.1,
+        spec.refresh_rate_hz,
+        encoder_name,
+        shutdown_rx.clone(),
+        Some(idr_tx),
+    ));
+
+    tokio::select! {
+        res = &mut serve_fut => {
+            res.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+        }
+        _ = shutdown_rx.changed() => {}
+    }
+
+    encoder.stop();
+    cap_pump.abort();
+    frame_pump.abort();
+    input_pump.abort();
+    info!("Secondary display session terminated cleanly");
+    Ok(())
+}
+
+async fn run_secondary_display_supervisor(
+    aoa_active: Arc<AtomicUsize>,
+    cfg: Config,
+    client_dir: PathBuf,
+    token: String,
+    mut shutdown_rx: tokio::sync::watch::Receiver<bool>,
+) {
+    let mut active_session: Option<(
+        tokio::sync::watch::Sender<bool>,
+        tokio::task::JoinHandle<()>,
+    )> = None;
+    let mut disconnect_grace = 0;
+
+    loop {
+        if *shutdown_rx.borrow() {
+            break;
+        }
+
+        let count = aoa_active.load(Ordering::Relaxed);
+
+        if count >= 2 && active_session.is_none() {
+            disconnect_grace = 0;
+            info!(
+                "Secondary tablet detected (AOA devices >= 2); launching secondary virtual display session on port {}",
+                cfg.transport.signaling_port + 2
+            );
+            let (sec_shutdown_tx, sec_shutdown_rx) = tokio::sync::watch::channel(false);
+            let sec_cfg = cfg.clone();
+            let sec_dir = client_dir.clone();
+            let sec_token = token.clone();
+            let handle = tokio::spawn(async move {
+                if let Err(e) =
+                    run_secondary_display_session(sec_cfg, sec_dir, sec_token, sec_shutdown_rx)
+                        .await
+                {
+                    warn!("Secondary display session exited with error: {e}");
+                }
+            });
+            active_session = Some((sec_shutdown_tx, handle));
+        } else if count < 2 && active_session.is_some() {
+            disconnect_grace += 1;
+            if disconnect_grace >= 3 {
+                if let Some((stop_tx, handle)) = active_session.take() {
+                    info!("Secondary tablet disconnected; tearing down secondary display session");
+                    let _ = stop_tx.send(true);
+                    let _ = handle.await;
+                }
+                disconnect_grace = 0;
+            }
+        } else if count >= 2 {
+            disconnect_grace = 0;
+        }
+
+        if let Some((_, ref handle)) = active_session {
+            if handle.is_finished() {
+                active_session = None;
+            }
+        }
+
+        tokio::select! {
+            _ = tokio::time::sleep(std::time::Duration::from_millis(1000)) => {}
+            _ = shutdown_rx.changed() => break,
+        }
+    }
+
+    if let Some((stop_tx, handle)) = active_session.take() {
+        let _ = stop_tx.send(true);
+        let _ = handle.await;
+    }
+}
+
 async fn run_start(
     cfg: Config,
     no_mdns: bool,
@@ -2482,12 +2862,28 @@ async fn run_start(
     let transport = Transport::with_token(
         ServerConfig {
             signaling_port: cfg.transport.signaling_port,
-            client_web_dir: client_dir,
+            client_web_dir: client_dir.clone(),
+            enable_usb_supervisors: true,
         },
         input_tx,
         Some(token_to_use),
     );
     let token = transport.token().to_owned();
+    let sec_aoa_active = transport.aoa_active();
+    let sec_cfg = cfg.clone();
+    let sec_client_dir = client_dir.clone();
+    let sec_token = token.clone();
+    let sec_shutdown_rx = shutdown_rx.clone();
+    tokio::spawn(async move {
+        run_secondary_display_supervisor(
+            sec_aoa_active,
+            sec_cfg,
+            sec_client_dir,
+            sec_token,
+            sec_shutdown_rx,
+        )
+        .await;
+    });
     info!("stream access token active ({len} chars, prefix={prefix}); clients fetch it via mDNS TXT or /client/config.json",
         len = token.len(), prefix = token.get(..4).unwrap_or(""));
 

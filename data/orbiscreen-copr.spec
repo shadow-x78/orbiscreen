@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.27.5
+Version:        0.27.6
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -142,6 +142,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.6-1
+- Release 0.27.6: Support concurrent secondary tablet virtual display on KDE Plasma with dynamic port allocation and uinput isolation (#77); expand AOA candidate detection to Allwinner and all MTP/ADB devices (#77); eliminate mouse cursor stutter by isolating relative mouse events from tablet stylus coordinate injection (#77); optimize Android ExoPlayer buffer pacing to 45-120ms with dynamic live playback speed to eliminate frame drops and audio underrun.
+
 * Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.5-1
 - Release 0.27.5: Support concurrent multi-device AOA bridges in supervisor to prevent device collisions (#77); fix Android USB accessory permission flow and fallback (#77); convert battery optimization to interactive switch preference with live status and system intent launcher (#77); enable app-wide keepScreenAwake; center USB audio warning and round touch ripple highlights.
 

@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.27.6] - 2026-09-11
+
+Dual tablet concurrent virtual displays, AOA candidate detection expansion, zero-lag mouse pacing, and uinput device isolation: support running multiple Android tablets concurrently as independent extended displays on KDE Plasma with automatic port allocation and isolated virtual outputs (#77), expand USB AOA candidate detection to Allwinner devices (such as VASOUN L10) and sysfs MTP/ADB interface probing (#77), eliminate mouse cursor jumping and stuttering by routing relative pointer motion strictly to the virtual mouse device (#77), and optimize Android ExoPlayer buffer pacing to 45-120ms with dynamic live playback speed adjustment to eliminate frame drops and audio starvation.
+
+### Bug Fixes
+- **Dual Tablet Concurrent Displays (#77)**: Added `run_secondary_display_supervisor` and `run_secondary_display_session` in `orbiscreen-daemon` to automatically launch an independent virtual display (`Virtual-ORBISCREEN-2`) on port 8790 when a second tablet connects, and cleanly tear it down when disconnected. Added dynamic output naming support to `orbiscreen-capture::kwin_virtual` (`CaptureSession::open_kwin_named`). Closes #77.
+- **AOA Candidate Detection Expansion (#77)**: Added Allwinner (`0x1f3a`), Rockchip, Unisoc, MediaTek, and other vendors to `ANDROID_VENDORS` in `orbiscreen-transport::aoa`. Added sysfs interface descriptor probing for MTP and ADB classes to detect any unlisted Android device. Closes #77.
+- **Zero-Lag Mouse Movement and Jitter Elimination (#77)**: Fixed `crates/orbiscreen-input/src/x11.rs` to write relative motion events exclusively to `mouse_keyboard`, removing the concurrent absolute tablet coordinate and pen down/up injection that caused cursor fighting and erratic jumps. Closes #77.
+- **Android Low-Latency Buffer Pacing**: Optimized `PlayerHolder.kt` `loadControl` buffer durations from 250-500ms down to 45-120ms to eliminate half-second video latency. Configured dynamic live playback speed between 0.98f and 1.05f to drain buffer drift smoothly. Adjusted `LowLatencyVideoRenderer` drop thresholds to prevent continuous IDR requests.
+- **Uinput Device Isolation (#77)**: Differentiated uinput device names and product IDs for secondary displays (`Orbiscreen 2 Virtual Touchscreen`) and updated KWin input binding to match devices to their respective virtual screens. Closes #77.
+
+### Version Bumps
+- **Cargo Workspace**: Bumped workspace package version to `0.27.6`.
+- **Android Client**: Incremented `versionCode` to `88`; updated `versionName` to `"0.27.6"`.
+- **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.6`.
+- **PKGBUILD**: Bumped `pkgver` to `0.27.6`.
+- **debian/changelog**: Added `0.27.6-1` release entry for Ubuntu noble.
+- **data/orbiscreen-copr.spec**: Bumped version to `0.27.6` and added changelog entry.
+
+---
+
 ## [v0.27.5] - 2026-09-11
 
 USB AOA concurrent multi-device handling, Android accessory fallback, interactive battery optimization switch, app-wide keepScreenAwake, and rounded ripple UI polish: overhaul host supervisor to maintain concurrent active accessory bridges and probe Android candidate devices in parallel without blocking candidate detection (#77), add fallback accessory resolution and FLAG_UPDATE_CURRENT for permission intents (#77), replace battery optimization row with an interactive switch preference querying real-time system state with intent launchers (#77), enable keepScreenAwake across the entire Android app via FLAG_KEEP_SCREEN_ON (#77), vertically center USB audio warning container, and round ripple selection highlights on all cards and preference rows.

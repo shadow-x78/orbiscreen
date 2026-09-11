@@ -145,7 +145,8 @@ pub fn is_android_candidate(dev: &UsbDeviceInfo) -> bool {
     }
     const ANDROID_VENDORS: &[u16] = &[
         0x18d1, 0x17ef, 0x2717, 0x04e8, 0x12d1, 0x22b8, 0x22d9, 0x2d95, 0x1004, 0x0fce, 0x0b05,
-        0x0bb4, 0x19d2, 0x2a45, 0x2a70, 0x2833, 0x1949,
+        0x0bb4, 0x19d2, 0x2a45, 0x2a70, 0x2833, 0x1949, 0x1f3a, 0x0e8d, 0x1782, 0x2207, 0x05c6,
+        0x2916, 0x1bbb, 0x10a9, 0x2006, 0x2b4c, 0x33f3, 0x2e04,
     ];
     if ANDROID_VENDORS.contains(&dev.vendor_id) {
         return true;
@@ -156,11 +157,42 @@ pub fn is_android_candidate(dev: &UsbDeviceInfo) -> bool {
     let mfg = std::fs::read_to_string(dev.sysfs_path.join("manufacturer"))
         .unwrap_or_default()
         .to_lowercase();
-    prod.contains("android")
+    if prod.contains("android")
         || prod.contains("phone")
         || prod.contains("tablet")
         || prod.contains("pad")
+        || prod.contains("tab")
         || mfg.contains("android")
+    {
+        return true;
+    }
+    if let Ok(entries) = std::fs::read_dir(&dev.sysfs_path) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = entry.file_name();
+            let name_str = name.to_string_lossy();
+            if path.is_dir() && name_str.contains(':') {
+                if let Ok(iface_name) = std::fs::read_to_string(path.join("interface")) {
+                    let iface_lower = iface_name.to_lowercase();
+                    if iface_lower.contains("mtp") || iface_lower.contains("adb") {
+                        return true;
+                    }
+                }
+                let cls = std::fs::read_to_string(path.join("bInterfaceClass"))
+                    .unwrap_or_default()
+                    .trim()
+                    .to_lowercase();
+                let subcls = std::fs::read_to_string(path.join("bInterfaceSubClass"))
+                    .unwrap_or_default()
+                    .trim()
+                    .to_lowercase();
+                if cls == "06" || (cls == "ff" && subcls == "42") {
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }
 
 fn ctrl_transfer(
@@ -602,6 +634,7 @@ pub fn get_connected_candidate_names() -> Vec<String> {
 }
 
 struct ActiveBridge {
+    port: u16,
     running: Arc<AtomicBool>,
     handle: tokio::task::JoinHandle<Result<(), String>>,
 }
@@ -631,13 +664,26 @@ pub async fn supervisor(
             if is_google_accessory(dev.vendor_id, dev.product_id) {
                 if !active_bridges.contains_key(&dev.dev_node) {
                     info!("AOA accessory device detected: {:?}", dev.dev_node);
+                    let used_ports: Vec<u16> = active_bridges.values().map(|b| b.port).collect();
+                    let target_port = if !used_ports.contains(&daemon_port) {
+                        daemon_port
+                    } else {
+                        daemon_port + 2
+                    };
                     let running = Arc::new(AtomicBool::new(true));
                     let running_inner = running.clone();
                     let dev_clone = dev.clone();
                     let handle = tokio::task::spawn_blocking(move || {
-                        run_accessory_bridge(&dev_clone, daemon_port, running_inner)
+                        run_accessory_bridge(&dev_clone, target_port, running_inner)
                     });
-                    active_bridges.insert(dev.dev_node.clone(), ActiveBridge { running, handle });
+                    active_bridges.insert(
+                        dev.dev_node.clone(),
+                        ActiveBridge {
+                            port: target_port,
+                            running,
+                            handle,
+                        },
+                    );
                 }
             } else if dev.vendor_id != 0x1d6b && is_android_candidate(dev) {
                 let key = (dev.vendor_id, dev.product_id, dev.bus_num, dev.dev_num);
