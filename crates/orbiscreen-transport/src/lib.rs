@@ -783,7 +783,7 @@ fn ensure_virtual_sink() -> &'static str {
             "load-module",
             "module-null-sink",
             "sink_name=orbiscreen_audio",
-            "sink_properties=device.description=Orbiscreen\\040Audio",
+            r#"sink_properties="device.description='Orbiscreen Audio'""#,
         ])
         .output();
     match result {
