@@ -80,9 +80,9 @@ object UsbAccessoryManager {
     fun requestPermission(context: Context, accessory: UsbAccessory) {
         val usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager ?: return
         val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            android.app.PendingIntent.FLAG_MUTABLE
+            android.app.PendingIntent.FLAG_MUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
         } else {
-            0
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT
         }
         val intent = android.content.Intent(ACTION_USB_PERMISSION).apply {
             `package` = context.packageName

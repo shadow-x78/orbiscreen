@@ -76,6 +76,15 @@ class PrefsStore(context: Context) {
         get() = prefs.getBoolean(KEY_KEEP_SCREEN_AWAKE, true)
         set(value) { prefs.edit { putBoolean(KEY_KEEP_SCREEN_AWAKE, value) } }
 
+    val keepScreenAwakeFlow: Flow<Boolean> = callbackFlow {
+        trySend(keepScreenAwake)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_KEEP_SCREEN_AWAKE) trySend(keepScreenAwake)
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.distinctUntilChanged()
+
     var usbAudioEnabled: Boolean
         get() = prefs.getBoolean(KEY_USB_AUDIO, true)
         set(value) { prefs.edit { putBoolean(KEY_USB_AUDIO, value) } }

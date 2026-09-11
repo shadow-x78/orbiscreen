@@ -12,11 +12,13 @@ import android.hardware.usb.UsbAccessory
 import android.hardware.usb.UsbManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -106,8 +108,9 @@ class MainActivity : ComponentActivity() {
                 @Suppress("DEPRECATION")
                 intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY)
             }
-            if (accessory != null) {
-                UsbAccessoryManager.onAccessoryAttached(this, accessory)
+            val targetAccessory = accessory ?: (getSystemService(Context.USB_SERVICE) as? UsbManager)?.accessoryList?.firstOrNull()
+            if (targetAccessory != null) {
+                UsbAccessoryManager.onAccessoryAttached(this, targetAccessory)
             }
         }
     }
@@ -150,6 +153,19 @@ private fun App(prefs: PrefsStore) {
 
     val theme by prefs.themePrefFlow.collectAsState(initial = PrefsStore.ThemePref.System)
     val language by prefs.appLanguageFlow.collectAsState(initial = prefs.appLanguage)
+    val keepScreenAwake by prefs.keepScreenAwakeFlow.collectAsState(initial = prefs.keepScreenAwake)
+
+    DisposableEffect(keepScreenAwake) {
+        val window = (context as? android.app.Activity)?.window
+        if (keepScreenAwake) {
+            window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     val localizedContext = remember(language) {
         if (language == "system") {

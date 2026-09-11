@@ -298,15 +298,14 @@ private fun UsbHeroCard(usbPort: Int, onConnect: (String, Int) -> Unit) {
     val isAoa = readyResult?.isAoa == true
 
     ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                if (isReady) {
-                    readyResult?.let { onConnect(it.host, it.port) }
-                } else {
-                    com.orbiscreen.android.usb.UsbAccessoryManager.init(context)
-                }
-            },
+        onClick = {
+            if (isReady) {
+                readyResult?.let { onConnect(it.host, it.port) }
+            } else {
+                com.orbiscreen.android.usb.UsbAccessoryManager.init(context)
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -481,7 +480,9 @@ private fun DiscoveredHostsSection(
         }
 
         ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp)),
             shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.elevatedCardColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -508,7 +509,10 @@ private fun HostRowItem(host: DiscoveredHost, onTap: () -> Unit) {
     Surface(
         onClick = onTap,
         color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 2.dp),
     ) {
         Row(
             modifier = Modifier
@@ -575,7 +579,9 @@ private fun ManualConnectCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onToggle() },
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { onToggle() }
+                    .padding(vertical = 4.dp, horizontal = 4.dp),
             ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),

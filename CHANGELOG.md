@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.27.5] - 2026-09-11
+
+USB AOA concurrent multi-device handling, Android accessory fallback, interactive battery optimization switch, app-wide keepScreenAwake, and rounded ripple UI polish: overhaul host supervisor to maintain concurrent active accessory bridges and probe Android candidate devices in parallel without blocking candidate detection (#77), add fallback accessory resolution and FLAG_UPDATE_CURRENT for permission intents (#77), replace battery optimization row with an interactive switch preference querying real-time system state with intent launchers (#77), enable keepScreenAwake across the entire Android app via FLAG_KEEP_SCREEN_ON (#77), vertically center USB audio warning container, and round ripple selection highlights on all cards and preference rows.
+
+### Bug Fixes
+- **Multi-Device USB AOA Supervisor (#77)**: Overhauled `orbiscreen-transport::aoa::supervisor` to maintain `active_bridges: HashMap<PathBuf, ActiveBridge>` and run accessory bridges concurrently with `tokio::task::spawn_blocking`. Handshakes for candidate devices are now initiated in parallel without blocking the scan loop, preventing device collisions (such as a connected phone blocking detection of a tablet). Closes #77.
+- **Android USB Accessory Fallback (#77)**: Added single-accessory fallback `targetAccessory = accessory ?: usbManager.accessoryList?.firstOrNull()` in `MainActivity.handleAccessoryIntent`. Added `FLAG_UPDATE_CURRENT` to `PendingIntent.FLAG_MUTABLE` in `UsbAccessoryManager.requestPermission`. Closes #77.
+- **Interactive Battery Optimization Switch (#77)**: Replaced `ClickPreferenceRow` with `SwitchPreferenceRow` in `SettingsScreen.kt`. Turning the switch ON requests exemption via `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, and turning it OFF opens `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`. State is updated dynamically on `ON_RESUME` via `PowerManager.isIgnoringBatteryOptimizations`. Closes #77.
+- **App-Wide Keep Screen Awake (#77)**: Added `keepScreenAwakeFlow` in `PrefsStore.kt` and observed it in `MainActivity.kt` with `FLAG_KEEP_SCREEN_ON` applied at the window level, ensuring the screen stays awake throughout the entire application when enabled. Closes #77.
+- **UI Polish and Rounded Ripples**: Vertically centered the text and icon in the USB Audio Output warning box (`verticalAlignment = Alignment.CenterVertically`). Added `clip(RoundedCornerShape(16.dp))` and `clip(RoundedCornerShape(22.dp))` to clickable preference rows, dialog options, and elevated cards in `SettingsScreen.kt` and `DiscoveryScreen.kt` so touch ripples and press highlights conform cleanly to rounded corners without sharp 90-degree edges.
+
+### Version Bumps
+- **Cargo Workspace**: Bumped workspace package version to `0.27.5`.
+- **Android Client**: Incremented `versionCode` to `87`; updated `versionName` to `"0.27.5"`.
+- **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.5`.
+- **PKGBUILD**: Bumped `pkgver` to `0.27.5`.
+- **debian/changelog**: Added `0.27.5-1` release entry for Ubuntu noble.
+- **data/orbiscreen-copr.spec**: Bumped version to `0.27.5` and added changelog entry.
+
+---
+
 ## [v0.27.4] - 2026-09-11
 
 Android client USB connection and display wake lock fix: register USB BroadcastReceiver with `RECEIVER_EXPORTED` on Android 13/14+ to prevent system accessory broadcasts from being dropped (#77), add `onResume()` initialization and background accessory polling so USB connects without restarting the app (#77), buffer auto-connect events with `replay = 1` to guarantee instant session startup, resolve Activity window through `Context.findActivity()` and set `keepScreenOn` directly on Compose View to eliminate screen timeouts during streaming (#77), and add a dedicated Battery Optimization preference row with direct system intent launcher (#77).

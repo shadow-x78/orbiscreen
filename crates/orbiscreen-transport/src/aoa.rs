@@ -601,90 +601,69 @@ pub fn get_connected_candidate_names() -> Vec<String> {
     names
 }
 
+struct ActiveBridge {
+    running: Arc<AtomicBool>,
+    handle: tokio::task::JoinHandle<Result<(), String>>,
+}
+
 pub async fn supervisor(
     daemon_port: u16,
     active_count: Arc<AtomicUsize>,
     mut shutdown: tokio::sync::watch::Receiver<bool>,
 ) {
-    let mut tried_devices: HashMap<(u16, u16), std::time::Instant> = HashMap::new();
+    let mut tried_devices: HashMap<(u16, u16, u16, u16), std::time::Instant> = HashMap::new();
+    let mut active_bridges: HashMap<PathBuf, ActiveBridge> = HashMap::new();
 
     loop {
         let devices = scan_usb_devices();
-        let mut accessory_device = None;
+        let now = std::time::Instant::now();
+
+        active_bridges.retain(|dev_node, bridge| {
+            if bridge.handle.is_finished() {
+                debug!("AOA bridge on {:?} finished", dev_node);
+                false
+            } else {
+                true
+            }
+        });
 
         for dev in &devices {
             if is_google_accessory(dev.vendor_id, dev.product_id) {
-                accessory_device = Some(dev.clone());
-                break;
-            }
-        }
-
-        if let Some(acc) = accessory_device {
-            info!("AOA accessory device detected: {:?}", acc.dev_node);
-            active_count.store(1, Ordering::Relaxed);
-            let running = Arc::new(AtomicBool::new(true));
-            let running_inner = running.clone();
-            let mut shutdown_inner = shutdown.clone();
-
-            let bridge_task = tokio::task::spawn_blocking(move || {
-                run_accessory_bridge(&acc, daemon_port, running_inner)
-            });
-
-            let mut permission_error = false;
-            tokio::select! {
-                _ = shutdown_inner.changed() => {
-                    running.store(false, Ordering::Relaxed);
+                if !active_bridges.contains_key(&dev.dev_node) {
+                    info!("AOA accessory device detected: {:?}", dev.dev_node);
+                    let running = Arc::new(AtomicBool::new(true));
+                    let running_inner = running.clone();
+                    let dev_clone = dev.clone();
+                    let handle = tokio::task::spawn_blocking(move || {
+                        run_accessory_bridge(&dev_clone, daemon_port, running_inner)
+                    });
+                    active_bridges.insert(dev.dev_node.clone(), ActiveBridge { running, handle });
                 }
-                res = bridge_task => {
-                    if let Ok(Err(e)) = res {
-                        if e.contains("Permission denied") {
-                            permission_error = true;
-                            warn!("AOA USB node requires non-root permissions: run 'orbiscreen doctor --fix' once, or use USB Tethering on Android for 100% root-free streaming");
-                        } else {
-                            warn!("AOA bridge exited: {e}");
-                        }
-                    }
-                }
-            }
-
-            active_count.store(0, Ordering::Relaxed);
-            tried_devices.clear();
-            let sleep_duration = if permission_error {
-                Duration::from_secs(8)
-            } else {
-                Duration::from_secs(2)
-            };
-            tokio::time::sleep(sleep_duration).await;
-        } else {
-            let now = std::time::Instant::now();
-            for dev in &devices {
-                if dev.vendor_id == 0x1d6b || !is_android_candidate(dev) {
-                    continue;
-                }
-                let pair = (dev.vendor_id, dev.product_id);
-                if let Some(last_time) = tried_devices.get(&pair) {
+            } else if dev.vendor_id != 0x1d6b && is_android_candidate(dev) {
+                let key = (dev.vendor_id, dev.product_id, dev.bus_num, dev.dev_num);
+                if let Some(last_time) = tried_devices.get(&key) {
                     if now.duration_since(*last_time) < Duration::from_secs(4) {
                         continue;
                     }
                 }
-
+                tried_devices.insert(key, now);
                 let dev_clone = dev.clone();
-                let switched =
-                    tokio::task::spawn_blocking(move || initiate_aoa_handshake(&dev_clone))
-                        .await
-                        .unwrap_or(false);
-
-                tried_devices.insert(pair, now);
-                if switched {
-                    tokio::time::sleep(Duration::from_millis(800)).await;
-                    break;
-                }
+                tokio::task::spawn_blocking(move || {
+                    initiate_aoa_handshake(&dev_clone)
+                });
             }
         }
 
+        active_count.store(active_bridges.len(), Ordering::Relaxed);
+
         tokio::select! {
-            _ = tokio::time::sleep(Duration::from_secs(1)) => {}
+            _ = tokio::time::sleep(Duration::from_millis(1200)) => {}
             _ = shutdown.changed() => break,
         }
     }
+
+    for (_, bridge) in active_bridges.drain() {
+        bridge.running.store(false, Ordering::Relaxed);
+    }
+    active_count.store(0, Ordering::Relaxed);
 }

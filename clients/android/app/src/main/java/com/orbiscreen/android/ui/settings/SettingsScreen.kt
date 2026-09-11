@@ -213,11 +213,12 @@ fun SettingsScreen(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
                                             .clickable {
                                                 prefs.themePref = pref
                                                 showThemeDialog = false
                                             }
-                                            .padding(vertical = 12.dp),
+                                            .padding(horizontal = 8.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         RadioButton(selected = prefs.themePref == pref, onClick = {
@@ -254,12 +255,13 @@ fun SettingsScreen(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
                                             .clickable {
                                                 currentLang = key
                                                 prefs.appLanguage = key
                                                 showLangDialog = false
                                             }
-                                            .padding(vertical = 12.dp),
+                                            .padding(horizontal = 8.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         RadioButton(selected = currentLang == key, onClick = {
@@ -322,39 +324,33 @@ fun SettingsScreen(
                     }
                 }
 
-                ClickPreferenceRow(
+                SwitchPreferenceRow(
                     title = stringResource(R.string.battery_optimization_title),
                     subtitle = if (isIgnoringBattery) {
                         stringResource(R.string.battery_optimization_unrestricted)
                     } else {
                         stringResource(R.string.battery_optimization_restricted)
                     },
+                    checked = isIgnoringBattery,
                     icon = if (isIgnoringBattery) Icons.Rounded.BatteryChargingFull else Icons.Rounded.BatterySaver,
-                    onClick = {
-                        try {
-                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                                data = Uri.parse("package:${context.packageName}")
+                    onCheckedChange = { enable ->
+                        if (enable) {
+                            try {
+                                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                    data = Uri.parse("package:${context.packageName}")
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                try {
+                                    val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
                             }
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
+                        } else {
                             try {
                                 val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
                                 context.startActivity(intent)
                             } catch (_: Exception) {}
-                        }
-                    },
-                    trailing = {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (isIgnoringBattery) ActiveGreen.copy(alpha = 0.18f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
-                        ) {
-                            Text(
-                                text = if (isIgnoringBattery) stringResource(R.string.battery_status_unrestricted) else stringResource(R.string.battery_status_restricted),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (isIgnoringBattery) ActiveGreen else MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Bold,
-                            )
                         }
                     },
                 )
@@ -439,7 +435,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.Top,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -528,12 +524,14 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(16.dp))
                             .clickable {
                                 prefs.recentHost = null
                                 recentHost = null
                                 Toast.makeText(context, context.getString(R.string.clear_history), Toast.LENGTH_SHORT).show()
                             }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                            .padding(horizontal = 12.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Surface(
@@ -629,7 +627,9 @@ private fun PreferenceSection(
             }
         }
         ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp)),
             shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.elevatedCardColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -654,8 +654,10 @@ private fun ClickPreferenceRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 15.dp),
+            .padding(horizontal = 12.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
@@ -714,8 +716,10 @@ private fun SwitchPreferenceRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(16.dp))
             .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 15.dp),
+            .padding(horizontal = 12.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(

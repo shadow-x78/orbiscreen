@@ -1,3 +1,14 @@
+orbiscreen (0.27.5-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.27.5 for Ubuntu noble.
+  * Fix USB AOA concurrent multi-device handling: update supervisor to maintain concurrent active bridges and probe Android candidate devices in parallel without blocking (Closes: #77).
+  * Fix Android USB accessory permission flow and fallback: add accessory list fallback and update mutable PendingIntent with FLAG_UPDATE_CURRENT (Closes: #77).
+  * Update battery optimization setting to interactive SwitchPreferenceRow with direct system permission and settings intent launching (Closes: #77).
+  * Enable app-wide keepScreenAwake using FLAG_KEEP_SCREEN_ON at Activity window level (Closes: #77).
+  * Polish UI: vertically center USB audio warning container and round ripple selection highlights on all cards and preference rows.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 16:20:00 +0300
+
 orbiscreen (0.27.4-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.4 for Ubuntu noble.

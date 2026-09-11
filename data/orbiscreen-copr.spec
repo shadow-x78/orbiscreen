@@ -9,6 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 Version:        0.27.4
+Version:        0.27.5
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -142,6 +143,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.5-1
+- Release 0.27.5: Support concurrent multi-device AOA bridges in supervisor to prevent device collisions (#77); fix Android USB accessory permission flow and fallback (#77); convert battery optimization to interactive switch preference with live status and system intent launcher (#77); enable app-wide keepScreenAwake; center USB audio warning and round touch ripple highlights.
+
 * Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.4-1
 - Release 0.27.4: Fix Android USB AOA connection and auto-connect by using RECEIVER_EXPORTED, adding onResume initialization, and adding replay buffer to autoConnectEvent (#77); fix keepScreenAwake by unwrapping Context to Activity and setting keepScreenOn on View; add battery optimization exemption settings with direct intent launcher (#77).
 
