@@ -143,7 +143,7 @@ fi
 
 %changelog
 * Sat Sep 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.9-1
-- Release 0.27.9: Confine virtual mouse pointer strictly inside tablet screen with visible cursor for trackpad mode (#77); allow arbitrary user placement of virtual displays in KDE without hardcoded position override (#77); synchronize Android native display resolution and eliminate touch and stylus offsets (#77); purge lingering virtual audio sinks on startup and shutdown (#77).
+- Release 0.27.9: Eliminate USB video frame drops on Screen 1 by expanding socket buffer to 256KB and tuning ExoPlayer buffer pacing (#77); fix secondary display black screen by implementing dynamic wl_output binding and configure retries in damage pump (#77); restore standard relative mouse motion across all displays without boundary confinement (#77); align Android touch and stylus coordinates 1:1 to host display pixels (#77).
 
 * Sat Sep 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.8-1
 - Release 0.27.8: Fix secondary display damage pump matching to prevent Virtual-ORBISCREEN-2 from attaching to primary display (#77); eliminate USB AOA frame drops, video stutter, and keyframe stalls by increasing sync channel capacity and bounding pts calculation (#77); fix mouse delta speed and cursor bounds in Android PlayerSurface (#77); completely remove USB audio pipeline and preferences across daemon, transport, and Android app (#77).

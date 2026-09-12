@@ -1499,10 +1499,9 @@ async fn bind_kwin_virtual_inputs(preferred_output: String) {
                         } else {
                             name.starts_with("Orbiscreen Virtual")
                         };
-                        let is_target_device = name.contains("Touchscreen")
-                            || name.contains("Tablet")
-                            || name.contains("Mouse and Keyboard");
-                        if is_match && is_target_device {
+                        let is_touch_or_tablet =
+                            name.contains("Touchscreen") || name.contains("Tablet");
+                        if is_match && is_touch_or_tablet {
                             if let Err(e) = proxy
                                 .set_property::<&str>("outputName", target_output.as_str())
                                 .await
@@ -1528,7 +1527,7 @@ async fn bind_kwin_virtual_inputs(preferred_output: String) {
                     }
                 }
             }
-            if bound >= 3 {
+            if bound >= 2 {
                 break;
             }
         }
@@ -2128,14 +2127,23 @@ async fn run_secondary_display_session(
     if let Some(ref sec_name) = target_kwin_output {
         let sec_name = sec_name.clone();
         tokio::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
             let enable_spec = format!("output.{sec_name}.enable");
             let scale_spec = format!("output.{sec_name}.scale.1");
-            let _ = tokio::process::Command::new("kscreen-doctor")
-                .arg(&enable_spec)
-                .arg(&scale_spec)
-                .status()
-                .await;
+            for _ in 0..5 {
+                let status = tokio::process::Command::new("kscreen-doctor")
+                    .arg(&enable_spec)
+                    .arg(&scale_spec)
+                    .status()
+                    .await;
+                if let Ok(s) = status {
+                    if s.success() {
+                        info!("Enabled and scaled KWin output {sec_name}");
+                        break;
+                    }
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+            }
         });
     }
 
@@ -2211,12 +2219,7 @@ async fn run_secondary_display_session(
         const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(100);
         let started = std::time::Instant::now();
         let mut last_pts_ns: u64 = frame_dur;
-        let (width, height) = actual_dims;
-        let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = Some((
-            width,
-            height,
-            vec![0u8; (width.saturating_mul(height).saturating_mul(4)) as usize],
-        ));
+        let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = None;
         let mut last_snapshot: Option<std::time::Instant> = None;
         loop {
             let outcome = match tokio::time::timeout(KEEPALIVE, source.next_frame()).await {
@@ -2513,12 +2516,23 @@ async fn run_start(
         info!(output = %name, "routing tablet input to KWin output");
         let name_str = name.to_string();
         tokio::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-            let _ = tokio::process::Command::new("kscreen-doctor")
-                .arg(format!("output.{name_str}.enable"))
-                .arg(format!("output.{name_str}.scale.1"))
-                .status()
-                .await;
+            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+            let enable_spec = format!("output.{name_str}.enable");
+            let scale_spec = format!("output.{name_str}.scale.1");
+            for _ in 0..5 {
+                let status = tokio::process::Command::new("kscreen-doctor")
+                    .arg(&enable_spec)
+                    .arg(&scale_spec)
+                    .status()
+                    .await;
+                if let Ok(s) = status {
+                    if s.success() {
+                        info!("Enabled and scaled KWin output {name_str}");
+                        break;
+                    }
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+            }
         });
     } else if virtual_output.is_kwin() {
         warn!("no virtual output to pin tablet input to; touch will land on the laptop screens");
@@ -2641,12 +2655,7 @@ async fn run_start(
         const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(100);
         let started = std::time::Instant::now();
         let mut last_pts_ns: u64 = frame_dur;
-        let (width, height) = cap_dims;
-        let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = Some((
-            width,
-            height,
-            vec![0u8; (width.saturating_mul(height).saturating_mul(4)) as usize],
-        ));
+        let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = None;
         let mut last_snapshot: Option<std::time::Instant> = None;
         loop {
             let outcome = match tokio::time::timeout(KEEPALIVE, source.next_frame()).await {

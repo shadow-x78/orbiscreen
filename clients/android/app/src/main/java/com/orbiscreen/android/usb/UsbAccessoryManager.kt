@@ -191,8 +191,8 @@ object UsbAccessoryManager {
             val clientSocket = try {
                 server.accept().apply {
                     tcpNoDelay = true
-                    sendBufferSize = 16384
-                    receiveBufferSize = 16384
+                    sendBufferSize = 262144
+                    receiveBufferSize = 262144
                 }
             } catch (_: Exception) {
                 break

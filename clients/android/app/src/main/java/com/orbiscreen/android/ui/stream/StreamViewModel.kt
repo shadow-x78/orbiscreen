@@ -124,30 +124,16 @@ class StreamViewModel(
             sessionToken = info.first
             info.first?.let { inputDispatcher?.updateToken(it) }
             val hostInfo = info.second
-            val (nativeW, nativeH, nativeFps) = detectNativeDisplay()
-            val isPortrait = context.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
-            val targetW = if (isPortrait) nativeH else nativeW
-            val targetH = if (isPortrait) nativeW else nativeH
-            if (targetW > 0 && targetH > 0 && (hostInfo == null || hostInfo.width != targetW || hostInfo.height != targetH)) {
-                _state.value = _state.value.copy(
-                    displayWidth = targetW,
-                    displayHeight = targetH,
-                    resolutionLabel = "${targetW}x${targetH}",
-                    encoder = hostInfo?.encoder.orEmpty(),
-                    version = hostInfo?.version.orEmpty(),
-                )
-                inputDispatcher?.resize(targetW, targetH)
-                updateDimensions(targetW, targetH, "${targetW}x${targetH}", nativeFps)
-            } else if (hostInfo != null) {
-                _state.value = _state.value.copy(
-                    displayWidth = hostInfo.width,
-                    displayHeight = hostInfo.height,
-                    resolutionLabel = "${hostInfo.width}x${hostInfo.height}",
-                    encoder = hostInfo.encoder,
-                    version = hostInfo.version,
-                )
-                inputDispatcher?.resize(hostInfo.width, hostInfo.height)
-            }
+            val streamW = hostInfo?.width ?: 1920
+            val streamH = hostInfo?.height ?: 1080
+            _state.value = _state.value.copy(
+                displayWidth = streamW,
+                displayHeight = streamH,
+                resolutionLabel = "${streamW}x${streamH}",
+                encoder = hostInfo?.encoder.orEmpty(),
+                version = hostInfo?.version.orEmpty(),
+            )
+            inputDispatcher?.resize(streamW, streamH)
             playerHolder.build(host, port, tokenProvider = { freshToken() })
         }
         viewModelScope.launch {

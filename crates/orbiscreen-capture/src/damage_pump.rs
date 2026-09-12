@@ -79,38 +79,54 @@ fn run(
         .roundtrip(&mut state)
         .map_err(|e| format!("roundtrip: {e}"))?;
 
-    let target = if let Some(ref name_target) = target_output {
-        let clean_target = name_target.trim().to_uppercase();
-        let exact = state
-            .output_names
-            .iter()
-            .find(|(_, name)| name.to_uppercase() == clean_target)
-            .map(|(proxy, _)| proxy.clone());
-        exact.or_else(|| {
+    let find_target = |state: &PumpState| -> Option<wl_output::WlOutput> {
+        if let Some(ref name_target) = target_output {
+            let clean_target = name_target.trim().to_uppercase();
+            let exact = state
+                .output_names
+                .iter()
+                .find(|(_, name)| name.to_uppercase() == clean_target)
+                .map(|(proxy, _)| proxy.clone());
+            exact.or_else(|| {
+                state
+                    .output_names
+                    .iter()
+                    .find(|(_, name)| {
+                        let upper = name.to_uppercase();
+                        let upper_has_2 = upper.contains('2');
+                        let target_has_2 = clean_target.contains('2');
+                        if upper_has_2 != target_has_2 {
+                            return false;
+                        }
+                        upper.contains(&clean_target) || clean_target.contains(&upper)
+                    })
+                    .map(|(proxy, _)| proxy.clone())
+            })
+        } else {
             state
                 .output_names
                 .iter()
                 .find(|(_, name)| {
                     let upper = name.to_uppercase();
-                    let upper_has_2 = upper.contains('2');
-                    let target_has_2 = clean_target.contains('2');
-                    if upper_has_2 != target_has_2 {
-                        return false;
-                    }
-                    upper.contains(&clean_target) || clean_target.contains(&upper)
+                    !upper.contains('2') && upper.contains(OUTPUT_HINT)
                 })
                 .map(|(proxy, _)| proxy.clone())
-        })
-    } else {
-        state
-            .output_names
-            .iter()
-            .find(|(_, name)| {
-                let upper = name.to_uppercase();
-                !upper.contains('2') && upper.contains(OUTPUT_HINT)
-            })
-            .map(|(proxy, _)| proxy.clone())
+        }
     };
+
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    let mut target = find_target(&state);
+    while target.is_none() && std::time::Instant::now() < deadline {
+        if stop.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+        let _ = queue.roundtrip(&mut state);
+        target = find_target(&state);
+        if target.is_some() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
     let Some(output) = target else {
         let hint = target_output.as_deref().unwrap_or(OUTPUT_HINT);
         return Err(format!("no virtual output matching '{hint}' found"));
@@ -136,6 +152,17 @@ fn run(
     queue
         .roundtrip(&mut state)
         .map_err(|e| format!("configure roundtrip: {e}"))?;
+    let cfg_deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while state.configured.is_none() && std::time::Instant::now() < cfg_deadline {
+        if stop.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+        let _ = queue.roundtrip(&mut state);
+        if state.configured.is_some() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
     let Some((serial, width, height)) = state.configured else {
         return Err("layer surface never configured".into());
     };
@@ -220,12 +247,22 @@ struct PumpState {
 impl Dispatch<wl_registry::WlRegistry, wayland_client::globals::GlobalListContents> for PumpState {
     fn event(
         _: &mut Self,
-        _: &wl_registry::WlRegistry,
-        _: wl_registry::Event,
+        registry: &wl_registry::WlRegistry,
+        event: wl_registry::Event,
         _: &wayland_client::globals::GlobalListContents,
         _: &Connection,
-        _: &QueueHandle<Self>,
+        qh: &QueueHandle<Self>,
     ) {
+        if let wl_registry::Event::Global {
+            name,
+            interface,
+            version,
+        } = event
+        {
+            if interface == "wl_output" {
+                let _: wl_output::WlOutput = registry.bind(name, version.min(4), qh, ());
+            }
+        }
     }
 }
 

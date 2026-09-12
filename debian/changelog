@@ -1,10 +1,10 @@
 orbiscreen (0.27.9-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.9 for Ubuntu noble.
-  * Confine virtual mouse pointer strictly inside tablet screen with visible cursor for trackpad mode (Closes: #77).
-  * Allow arbitrary user placement of virtual displays in KDE without hardcoded position override (Closes: #77).
-  * Synchronize Android native display resolution and eliminate touch and stylus offsets (Closes: #77).
-  * Purge lingering virtual audio sinks on startup and shutdown (Closes: #77).
+  * Eliminate USB video frame drops on Screen 1: expand socket buffer to 256KB and tune ExoPlayer pacing (Closes: #77).
+  * Fix secondary display black screen: implement dynamic wl_output binding and configure retries in damage pump (Closes: #77).
+  * Restore standard relative mouse motion across all displays without boundary confinement (Closes: #77).
+  * Align Android touch and stylus coordinates 1:1 to host display pixels (Closes: #77).
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 12 Sep 2026 06:40:00 +0300
 
