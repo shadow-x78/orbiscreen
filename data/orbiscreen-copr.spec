@@ -143,7 +143,7 @@ fi
 
 %changelog
 * Sat Sep 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.28.0-1
-- Release 0.28.0: Eliminate USB video frame drops on Screen 1 by expanding socket buffer to 256KB and tuning ExoPlayer buffer pacing (#77); fix secondary display black screen by implementing dynamic wl_output binding and configure retries in damage pump (#77); restore standard relative mouse motion across all displays without boundary confinement (#77); align Android touch and stylus coordinates 1:1 to host display pixels (#77).
+- Release 0.28.0: Eliminate USB video frame drops on Screen 1 by expanding socket buffer to 256KB and tuning ExoPlayer buffer pacing; fix secondary display black screen by implementing dynamic wl_output binding and configure retries in damage pump; restore standard relative mouse motion across all displays without boundary confinement; align Android touch and stylus coordinates 1:1 to host display pixels.
 
 * Sat Sep 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.9-1
 - Release 0.27.9: Eliminate USB video frame drops on Screen 1 by expanding socket buffer to 256KB and tuning ExoPlayer buffer pacing (#77); fix secondary display black screen by implementing dynamic wl_output binding and configure retries in damage pump (#77); restore standard relative mouse motion across all displays without boundary confinement (#77); align Android touch and stylus coordinates 1:1 to host display pixels (#77).

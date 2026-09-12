@@ -1,10 +1,10 @@
 orbiscreen (0.28.0-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.28.0 for Ubuntu noble.
-  * Eliminate USB video frame drops on Screen 1: expand socket buffer to 256KB and tune ExoPlayer pacing (Closes: #77).
-  * Fix secondary display black screen: implement dynamic wl_output binding and configure retries in damage pump (Closes: #77).
-  * Restore standard relative mouse motion across all displays without boundary confinement (Closes: #77).
-  * Align Android touch and stylus coordinates 1:1 to host display pixels (Closes: #77).
+  * Eliminate USB video frame drops on Screen 1: expand socket buffer to 256KB and tune ExoPlayer pacing.
+  * Fix secondary display black screen: implement dynamic wl_output binding and configure retries in damage pump.
+  * Restore standard relative mouse motion across all displays without boundary confinement.
+  * Align Android touch and stylus coordinates 1:1 to host display pixels.
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 12 Sep 2026 18:15:00 +0300
 
