@@ -664,8 +664,7 @@ async fn api_control(
             let ok = match res {
                 Ok(s) if s.success() => true,
                 _ => {
-                    let fallback_str =
-                        format!("output.{target_output}.mode.{width}x{height}@60");
+                    let fallback_str = format!("output.{target_output}.mode.{width}x{height}@60");
                     tokio::process::Command::new("kscreen-doctor")
                         .arg(&fallback_str)
                         .status()
@@ -675,7 +674,9 @@ async fn api_control(
                 }
             };
             if ok {
-                let _ = state.input_tx.try_send(IncomingInput::Resize { width, height });
+                let _ = state
+                    .input_tx
+                    .try_send(IncomingInput::Resize { width, height });
             }
             (
                 StatusCode::OK,
