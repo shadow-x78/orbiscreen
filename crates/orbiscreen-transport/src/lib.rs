@@ -43,6 +43,10 @@ pub enum IncomingInput {
     Key(KeyEvent),
     Stylus(StylusEvent),
     Touch(TouchEvent),
+    Resize {
+        width: u32,
+        height: u32,
+    },
     #[serde(untagged)]
     RawPointer {
         x: f64,
@@ -646,8 +650,13 @@ async fn api_control(
                 .and_then(|v| v.as_u64())
                 .unwrap_or(60)
                 .clamp(30, 240) as u32;
-            info!("host control: requested resolution change to {width}x{height}@{fps}Hz");
-            let mode_str = format!("output.Virtual-ORBISCREEN.mode.{width}x{height}@{fps}");
+            let target_output = if state.config.signaling_port == 8790 {
+                "Virtual-ORBISCREEN-2"
+            } else {
+                "Virtual-ORBISCREEN"
+            };
+            info!("host control: requested resolution change on {target_output} to {width}x{height}@{fps}Hz");
+            let mode_str = format!("output.{target_output}.mode.{width}x{height}@{fps}");
             let res = tokio::process::Command::new("kscreen-doctor")
                 .arg(&mode_str)
                 .status()
@@ -656,7 +665,7 @@ async fn api_control(
                 Ok(s) if s.success() => true,
                 _ => {
                     let fallback_str =
-                        format!("output.Virtual-ORBISCREEN.mode.{width}x{height}@60");
+                        format!("output.{target_output}.mode.{width}x{height}@60");
                     tokio::process::Command::new("kscreen-doctor")
                         .arg(&fallback_str)
                         .status()
@@ -665,6 +674,9 @@ async fn api_control(
                         .unwrap_or(false)
                 }
             };
+            if ok {
+                let _ = state.input_tx.try_send(IncomingInput::Resize { width, height });
+            }
             (
                 StatusCode::OK,
                 Json(serde_json::json!({"ok": ok, "width": width, "height": height, "fps": fps})),

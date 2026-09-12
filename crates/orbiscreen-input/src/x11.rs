@@ -64,6 +64,11 @@ impl UinputInjector {
             ))?
             .with_props([InputProp::POINTER])?
             .with_rel_axes([Rel::X, Rel::Y, Rel::WHEEL])?
+            .with_abs_axes([
+                AbsSetup::new(Abs::X, width_axis),
+                AbsSetup::new(Abs::Y, height_axis),
+            ])?
+            .with_rel_axes([Rel::WHEEL])?
             .with_keys(mk_keys)?
             .build(&mk_name)?;
 
@@ -135,6 +140,14 @@ impl UinputInjector {
             touch_active_count: 0,
         };
         let _ = injector.release_tools();
+        let center_x = spec.width.saturating_sub(1) as i32 / 2;
+        let center_y = spec.height.saturating_sub(1) as i32 / 2;
+        let init_events = vec![
+            AbsEvent::new(Abs::X, center_x).into(),
+            AbsEvent::new(Abs::Y, center_y).into(),
+            SynEvent::new(Syn::REPORT).into(),
+        ];
+        let _ = injector.mouse_keyboard.write_events(&init_events);
         Ok(injector)
     }
 
@@ -167,6 +180,12 @@ impl UinputInjector {
                     ];
                     self.mouse_keyboard.write_events(&events)?;
                 }
+                let events = vec![
+                    AbsEvent::new(Abs::X, xi).into(),
+                    AbsEvent::new(Abs::Y, yi).into(),
+                    SynEvent::new(Syn::REPORT).into(),
+                ];
+                self.mouse_keyboard.write_events(&events)?;
             }
             PointerEvent::RelativeMove { dx, dy } => {
                 self.cursor_x =
@@ -175,9 +194,13 @@ impl UinputInjector {
                     (self.cursor_y + dy).clamp(0.0, f64::from(self.height.saturating_sub(1)));
                 let dx_i = dx.round() as i32;
                 let dy_i = dy.round() as i32;
+                let xi = self.cursor_x.round() as i32;
+                let yi = self.cursor_y.round() as i32;
                 let events = vec![
                     RelEvent::new(Rel::X, dx_i).into(),
                     RelEvent::new(Rel::Y, dy_i).into(),
+                    AbsEvent::new(Abs::X, xi).into(),
+                    AbsEvent::new(Abs::Y, yi).into(),
                     SynEvent::new(Syn::REPORT).into(),
                 ];
                 self.mouse_keyboard.write_events(&events)?;

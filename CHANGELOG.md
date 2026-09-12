@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.27.9] - 2026-09-12
+
+Virtual pointer tablet confinement with visible trackpad cursor, user-controlled KDE screen positioning, Android native display synchronization with 1:1 touch and stylus precision, and complete audio sink purge: confine virtual mouse pointer strictly inside tablet screen with visible cursor for trackpad mode (#77), allow arbitrary user placement of virtual displays in KDE without hardcoded position override (#77), synchronize Android native display resolution and eliminate touch and stylus offsets (#77), and automatically purge lingering virtual audio sinks on daemon startup and shutdown (#77).
+
+### Bug Fixes
+- **Virtual Pointer Tablet Confinement and Visible Cursor (#77)**: Configured `mouse_keyboard` in `crates/orbiscreen-input/src/x11.rs` with absolute axes and initialized pointer at display center, binding it to target virtual output with `mapToWorkspace = false` in KWin. In trackpad mode, the cursor appears directly on the tablet and remains confined inside its boundaries without escaping to PC screens, while physical mice continue to navigate freely across all monitors. Closes #77.
+- **KDE Plasma Screen Placement Freedom (#77)**: Removed hardcoded `position` specification from `kscreen-doctor` calls in `crates/orbiscreen-daemon/src/main.rs`. Virtual screens are enabled with 1.0 scale, leaving placement and arrangement entirely to the user via KDE System Settings. Closes #77.
+- **Android Native Resolution & 1:1 Touch Alignment (#77)**: Synchronized native tablet display resolution via `updateDimensions` during session initialization in `StreamViewModel.kt`, preventing mismatched stream dimensions and eliminating touch and stylus coordinate offset. Closes #77.
+- **Lingering Virtual Audio Sink Purge (#77)**: Added automated cleanup in `crates/orbiscreen-daemon/src/main.rs` on startup and shutdown to unload any lingering `orbiscreen_audio` null-sinks from PulseAudio and PipeWire via `pactl`. Closes #77.
+
+### Version Bumps
+- **Cargo Workspace**: Bumped workspace package version to `0.27.9`.
+- **Android Client**: Incremented `versionCode` to `91`; updated `versionName` to `"0.27.9"`.
+- **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.9`.
+- **PKGBUILD**: Bumped `pkgver` to `0.27.9`.
+- **debian/changelog**: Added `0.27.9-1` release entry for Ubuntu noble.
+- **data/orbiscreen-copr.spec**: Bumped version to `0.27.9` and added changelog entry.
+
+---
+
 ## [v0.27.8] - 2026-09-12
 
 Secondary display damage pump connector matching fix, USB AOA frame drop and video stutter elimination, touch delta normalization, and full USB audio removal: fix secondary tablet display damage pump matching so Virtual-ORBISCREEN-2 receives its own damage ticks and never binds to primary display (#77), eliminate USB frame drops, video stuttering, and keyframe stalls by increasing sync channel capacity to 64 and bounding pts calculations (#77), normalize mouse movement and cursor speed in Android PlayerSurface (#77), and completely remove USB audio pipeline, device sinks, and UI settings across the entire project (#77).

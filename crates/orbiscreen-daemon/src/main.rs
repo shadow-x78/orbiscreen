@@ -357,51 +357,54 @@ async fn main() -> ExitCode {
                 }
             }
         }
-        Some(Command::Stop) => match dbus::request_stop().await {
-            Ok(reply) => {
-                ui::print_stop_card(false, &reply);
-                ExitCode::SUCCESS
-            }
-            Err(zbus::Error::MethodError(name, _, _))
-                if name.to_string().contains("ServiceUnknown")
-                    || name.to_string().contains("NameHasNoOwner") =>
-            {
-                let systemd_status = std::process::Command::new("systemctl")
-                    .args(["--user", "is-active", "orbiscreen"])
-                    .output()
-                    .ok()
-                    .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-                    .unwrap_or_default();
-                if systemd_status == "active" {
-                    run_service_action(ServiceAction::Stop).await
-                } else {
-                    ui::print_stop_card(false, "Daemon is not running on the session bus");
-                    ExitCode::from(1)
+        Some(Command::Stop) => {
+            cleanup_lingering_audio_sinks();
+            match dbus::request_stop().await {
+                Ok(reply) => {
+                    ui::print_stop_card(false, &reply);
+                    ExitCode::SUCCESS
                 }
-            }
-            Err(e) => {
-                let systemd_status = std::process::Command::new("systemctl")
-                    .args(["--user", "is-active", "orbiscreen"])
-                    .output()
-                    .ok()
-                    .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-                    .unwrap_or_default();
-                if systemd_status == "active" {
-                    run_service_action(ServiceAction::Stop).await
-                } else {
-                    let err_str = e.to_string();
-                    if err_str.contains("No such file or directory")
-                        || err_str.contains("ServiceUnknown")
-                        || err_str.contains("NameHasNoOwner")
-                    {
-                        ui::print_stop_card(false, "Daemon is not running on the session bus");
+                Err(zbus::Error::MethodError(name, _, _))
+                    if name.to_string().contains("ServiceUnknown")
+                        || name.to_string().contains("NameHasNoOwner") =>
+                {
+                    let systemd_status = std::process::Command::new("systemctl")
+                        .args(["--user", "is-active", "orbiscreen"])
+                        .output()
+                        .ok()
+                        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+                        .unwrap_or_default();
+                    if systemd_status == "active" {
+                        run_service_action(ServiceAction::Stop).await
                     } else {
-                        ui::print_stop_card(false, &format!("Stop failed: {e}"));
+                        ui::print_stop_card(false, "Daemon is not running on the session bus");
+                        ExitCode::from(1)
                     }
-                    ExitCode::from(1)
+                }
+                Err(e) => {
+                    let systemd_status = std::process::Command::new("systemctl")
+                        .args(["--user", "is-active", "orbiscreen"])
+                        .output()
+                        .ok()
+                        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+                        .unwrap_or_default();
+                    if systemd_status == "active" {
+                        run_service_action(ServiceAction::Stop).await
+                    } else {
+                        let err_str = e.to_string();
+                        if err_str.contains("No such file or directory")
+                            || err_str.contains("ServiceUnknown")
+                            || err_str.contains("NameHasNoOwner")
+                        {
+                            ui::print_stop_card(false, "Daemon is not running on the session bus");
+                        } else {
+                            ui::print_stop_card(false, &format!("Stop failed: {e}"));
+                        }
+                        ExitCode::from(1)
+                    }
                 }
             }
-        },
+        }
         Some(Command::Status { json }) => run_status(json, cfg.transport.signaling_port).await,
         Some(Command::Display { action }) => run_display(&config_path, action).await,
         Some(Command::Devices { json }) => run_devices(json).await,
@@ -1451,6 +1454,24 @@ async fn restore_virtual_output(
     false
 }
 
+fn cleanup_lingering_audio_sinks() {
+    if let Ok(out) = std::process::Command::new("pactl")
+        .args(["list", "modules", "short"])
+        .output()
+    {
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        for line in stdout.lines() {
+            if line.contains("orbiscreen_audio") {
+                if let Some(mod_id) = line.split_whitespace().next() {
+                    let _ = std::process::Command::new("pactl")
+                        .args(["unload-module", mod_id])
+                        .status();
+                }
+            }
+        }
+    }
+}
+
 async fn bind_kwin_virtual_inputs(preferred_output: String) {
     for delay_ms in [250, 500, 1000, 2000] {
         tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
@@ -1478,9 +1499,10 @@ async fn bind_kwin_virtual_inputs(preferred_output: String) {
                         } else {
                             name.starts_with("Orbiscreen Virtual")
                         };
-                        let is_touch_or_tablet =
-                            name.contains("Touchscreen") || name.contains("Tablet");
-                        if is_match && is_touch_or_tablet {
+                        let is_target_device = name.contains("Touchscreen")
+                            || name.contains("Tablet")
+                            || name.contains("Mouse and Keyboard");
+                        if is_match && is_target_device {
                             if let Err(e) = proxy
                                 .set_property::<&str>("outputName", target_output.as_str())
                                 .await
@@ -1506,7 +1528,7 @@ async fn bind_kwin_virtual_inputs(preferred_output: String) {
                     }
                 }
             }
-            if bound >= 2 {
+            if bound >= 3 {
                 break;
             }
         }
@@ -2105,14 +2127,13 @@ async fn run_secondary_display_session(
 
     if let Some(ref sec_name) = target_kwin_output {
         let sec_name = sec_name.clone();
-        let sec_w = spec.width;
         tokio::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_millis(300)).await;
             let enable_spec = format!("output.{sec_name}.enable");
-            let pos_spec = format!("output.{sec_name}.position.{},0", sec_w.saturating_mul(2));
+            let scale_spec = format!("output.{sec_name}.scale.1");
             let _ = tokio::process::Command::new("kscreen-doctor")
                 .arg(&enable_spec)
-                .arg(&pos_spec)
+                .arg(&scale_spec)
                 .status()
                 .await;
         });
@@ -2338,6 +2359,9 @@ async fn run_secondary_display_session(
                     let (x, y) = scale(x, y);
                     let _ = inj.inject_pointer(PointerEvent::Move { x, y }).await;
                 }
+                IncomingInput::Resize { width, height } => {
+                    inj.resize(width, height);
+                }
             }
         }
     });
@@ -2461,6 +2485,7 @@ async fn run_start(
     };
 
     let is_running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
+    cleanup_lingering_audio_sinks();
 
     info!(
         "Orbiscreen starting - display {w}x{h}@{hz}Hz, encoder preferred = {enc}",
@@ -2486,6 +2511,15 @@ async fn run_start(
     let captured_output_name = source.virtual_output_name().await;
     if let Some(name) = captured_output_name.as_deref() {
         info!(output = %name, "routing tablet input to KWin output");
+        let name_str = name.to_string();
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+            let _ = tokio::process::Command::new("kscreen-doctor")
+                .arg(format!("output.{name_str}.enable"))
+                .arg(format!("output.{name_str}.scale.1"))
+                .status()
+                .await;
+        });
     } else if virtual_output.is_kwin() {
         warn!("no virtual output to pin tablet input to; touch will land on the laptop screens");
     }
@@ -2814,6 +2848,9 @@ async fn run_start(
                 IncomingInput::RawPointer { x, y } => {
                     let (x, y) = scale(x, y);
                     let _ = inj.inject_pointer(PointerEvent::Move { x, y }).await;
+                }
+                IncomingInput::Resize { width, height } => {
+                    inj.resize(width, height);
                 }
             }
         }

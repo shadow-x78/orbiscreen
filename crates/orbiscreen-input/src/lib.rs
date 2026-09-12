@@ -252,6 +252,12 @@ impl InputInjector {
         }
     }
 
+    pub fn resize(&mut self, width: u32, height: u32) {
+        if let InjectorInner::Uinput(injector) = &mut self.inner {
+            injector.resize(width, height);
+        }
+    }
+
     pub async fn release_tools(&mut self) -> Result<(), InputError> {
         self.fallback_touch_down = false;
         self.inject_stylus(StylusEvent::Proximity {}).await

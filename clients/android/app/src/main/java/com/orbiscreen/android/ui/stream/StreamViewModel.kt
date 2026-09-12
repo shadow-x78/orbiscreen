@@ -129,6 +129,7 @@ class StreamViewModel(
             val targetW = if (isPortrait) nativeH else nativeW
             val targetH = if (isPortrait) nativeW else nativeH
             if (targetW > 0 && targetH > 0 && (hostInfo == null || hostInfo.width != targetW || hostInfo.height != targetH)) {
+            if (hostInfo != null) {
                 _state.value = _state.value.copy(
                     displayWidth = targetW,
                     displayHeight = targetH,
@@ -140,6 +141,7 @@ class StreamViewModel(
                 _state.value = _state.value.copy(
                     displayWidth = hostInfo.width,
                     displayHeight = hostInfo.height,
+                    resolutionLabel = "${hostInfo.width}x${hostInfo.height}",
                     encoder = hostInfo.encoder,
                     version = hostInfo.version,
                 )
@@ -148,6 +150,14 @@ class StreamViewModel(
                 _state.value.displayWidth,
                 _state.value.displayHeight,
             )
+            if (targetW > 0 && targetH > 0 && (hostInfo == null || hostInfo.width != targetW || hostInfo.height != targetH)) {
+                updateDimensions(targetW, targetH, "${targetW}x${targetH}", nativeFps)
+            } else {
+                inputDispatcher?.resize(
+                    _state.value.displayWidth,
+                    _state.value.displayHeight,
+                )
+            }
             playerHolder.build(host, port, tokenProvider = { freshToken() })
         }
         viewModelScope.launch {

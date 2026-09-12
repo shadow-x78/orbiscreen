@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.27.8
+Version:        0.27.9
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -142,6 +142,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sat Sep 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.9-1
+- Release 0.27.9: Confine virtual mouse pointer strictly inside tablet screen with visible cursor for trackpad mode (#77); allow arbitrary user placement of virtual displays in KDE without hardcoded position override (#77); synchronize Android native display resolution and eliminate touch and stylus offsets (#77); purge lingering virtual audio sinks on startup and shutdown (#77).
+
 * Sat Sep 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.8-1
 - Release 0.27.8: Fix secondary display damage pump matching to prevent Virtual-ORBISCREEN-2 from attaching to primary display (#77); eliminate USB AOA frame drops, video stutter, and keyframe stalls by increasing sync channel capacity and bounding pts calculation (#77); fix mouse delta speed and cursor bounds in Android PlayerSurface (#77); completely remove USB audio pipeline and preferences across daemon, transport, and Android app (#77).
 
