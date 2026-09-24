@@ -4,6 +4,88 @@
 package com.orbiscreen.android.player
 
 object Fec {
+    const val MAX_DATA_SHARDS = 252
+    const val BLOCK_FLAG = 0x02
+
+    data class Block(
+        val index: Int,
+        val count: Int,
+        val data: Array<ByteArray>,
+        val parity: Array<ByteArray>,
+    )
+
+    data class BlockView(val index: Int, val count: Int, val body: ByteArray)
+
+    fun shardCount(auLen: Int, chunk: Int): Int {
+        if (auLen <= 0 || chunk <= 0) return 0
+        val k0 = (auLen + chunk - 1) / chunk
+        return if (parityCount(k0) == 0) k0 else (4 + auLen + chunk - 1) / chunk
+    }
+
+    fun blocks(au: ByteArray, chunk: Int): List<Block> {
+        val size = chunk.coerceAtLeast(1)
+        if (au.isEmpty()) return emptyList()
+        if (shardCount(au.size, size) <= MAX_DATA_SHARDS) {
+            val (data, parity) = shardOne(au, size)
+            return listOf(Block(0, 1, data, parity))
+        }
+        val inner = (size - 2).coerceAtLeast(1)
+        val maxSlice = (MAX_DATA_SHARDS * inner - 4).coerceAtLeast(1)
+        val slices = ArrayList<ByteArray>()
+        var off = 0
+        while (off < au.size) {
+            var n = minOf(maxSlice, au.size - off)
+            while (n > 1 && shardCount(n, inner) > MAX_DATA_SHARDS) n -= 1
+            slices.add(au.copyOfRange(off, off + n))
+            off += n
+        }
+        return slices.mapIndexed { index, slice ->
+            val (data, parity) = shardOne(slice, inner)
+            Block(index, slices.size, data, parity)
+        }
+    }
+
+    fun viewBlock(flags: Int, payload: ByteArray): BlockView? {
+        if (flags and BLOCK_FLAG == 0) return BlockView(0, 1, payload)
+        if (payload.size < 2) return null
+        val index = payload[0].toInt() and 0xff
+        val count = payload[1].toInt() and 0xff
+        if (count == 0 || index >= count) return null
+        return BlockView(index, count, payload.copyOfRange(2, payload.size))
+    }
+
+    private fun shardOne(au: ByteArray, chunk: Int): Pair<Array<ByteArray>, Array<ByteArray>> {
+        val k0 = if (au.isEmpty()) 0 else (au.size + chunk - 1) / chunk
+        if (parityCount(k0) == 0) {
+            val parts = ArrayList<ByteArray>()
+            var off = 0
+            while (off < au.size) {
+                val n = minOf(chunk, au.size - off)
+                parts.add(au.copyOfRange(off, off + n))
+                off += n
+            }
+            return parts.toTypedArray() to emptyArray()
+        }
+        val prefix = ByteArray(4)
+        val len = au.size
+        prefix[0] = (len and 0xff).toByte()
+        prefix[1] = ((len shr 8) and 0xff).toByte()
+        prefix[2] = ((len shr 16) and 0xff).toByte()
+        prefix[3] = ((len shr 24) and 0xff).toByte()
+        val blob = prefix + au
+        val parts = ArrayList<ByteArray>()
+        var off = 0
+        while (off < blob.size) {
+            val n = minOf(chunk, blob.size - off)
+            parts.add(blob.copyOfRange(off, off + n))
+            off += n
+        }
+        val padded = Array(parts.size) { i ->
+            ByteArray(chunk).also { parts[i].copyInto(it) }
+        }
+        return parts.toTypedArray() to encode(padded, parityCount(parts.size))
+    }
+
     fun parityCount(k: Int): Int = when {
         k <= 3 -> 0
         k <= 16 -> 2
@@ -13,6 +95,7 @@ object Fec {
 
     fun recover(data: Array<ByteArray?>, parity: Array<ByteArray?>): Boolean {
         val k = data.size
+        if (k > MAX_DATA_SHARDS) return false
         if (data.all { it != null }) return true
         val m = parity.size
         if (m == 0) return false
@@ -91,7 +174,11 @@ object Fec {
         }
     }
 
-    private fun cauchy(p: Int, d: Int, m: Int): Int = gfInv(p xor (m + d))
+    private fun cauchy(p: Int, d: Int, m: Int): Int {
+        val denom = (p xor ((m + d) and 0xff)) and 0xff
+        if (denom == 0) return 0
+        return gfInv(denom)
+    }
 
     private val exp = ByteArray(512)
     private val log = ByteArray(256)

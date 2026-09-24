@@ -274,12 +274,11 @@ Use `#[allow(missing_debug_implementations)]` or `#[allow(unsafe_code)]` on the 
 Running the Orbiscreen Android app on ASUS Chromebook CM3001 (or other ChromeOS devices) shows "Looking for host" in USB mode and fails to find the Linux daemon.
 
 **Cause:**
-ChromeOS isolates Android apps inside an ARC++ container with its own virtual network namespace (`100.115.92.0/28`). Standard ADB reverse commands mapped to `127.0.0.1` inside the Crostini Linux container do not reach ARC++ without routing.
+ChromeOS isolates Android apps inside an ARC++ container with its own virtual network namespace (`100.115.92.0/28`). USB streaming uses Android Open Accessory, not `adb reverse` into Crostini.
 
 **Fix:**
-- Orbiscreen v0.20.0 automatically probes the internal ARC++ gateway address `100.115.92.2:5555` alongside `localhost:5555`.
-- In ChromeOS Settings, navigate to **Advanced** -> **Developers** -> **Develop Android apps** and turn on **Enable ADB debugging**.
-- Restart the Chromebook if prompted, then launch `orbiscreen start` in the Linux container. USB mode connects instantly.
+- Run `orbiscreen start` in the Linux container and grant the accessory permission dialog on the Android side.
+- When AOA is not up, the client still probes ARC/USB-tether gateways (`100.115.92.2`, …) on the signaling port.
 
 ---
 
@@ -411,18 +410,16 @@ Orbiscreen uses Jetpack Compose + `PlayerView` exclusively without WebView. Ensu
 ### Android: USB connection shows "Looking for host…"
 
 **Fix:**
-Orbiscreen manages the whole `adb reverse` lifecycle on its own: it creates the tunnel on every connected device when the daemon starts, picks up a newly plugged device within two seconds (hot-plug), recreates a tunnel that died with an unclean daemon exit (the setup is idempotent), and removes all tunnels on graceful shutdown. Ensure:
-1. **USB Debugging** is enabled in Android Developer Options.
-2. The host device is authorized on your Android phone/tablet prompt.
+USB uses Android Open Accessory, not `adb reverse`. Ensure:
+1. The host daemon is running (`orbiscreen start`).
+2. The cable is plugged in. The tablet should show the USB accessory permission dialog (Orbiscreen Display Server) — tap **OK**.
 3. Verify what the daemon sees:
    ```bash
-   orbiscreen doctor          # prints the usb: line: adb present? devices? active tunnels?
-   adb devices
-   adb reverse --list
+   orbiscreen doctor          # USB Direct / Cable card
    ```
-4. Tap the **USB mode** card on the Discovery screen. The card probes `http://127.0.0.1:8788/health` and shows the live state: **tunnel ready** (green check) or **no tunnel** (start the daemon on the host, or reconnect the cable).
+4. Tap the **USB** card on the Discovery screen if the dialog was dismissed. The card is ready when the AOA proxy is up, not when `127.0.0.1:8788` happens to answer.
 
-The daemon's tunnel count is also visible at any time in `GET /health` (`usb_devices`) and the D-Bus `GetStatus` payload.
+The daemon's accessory count is also visible in `GET /health` (`usb_devices`) and the D-Bus `GetStatus` payload.
 
 <a id="streaming-wifi-latency"></a>
 ## ⚡ Streaming: High latency, stutter, or slow mouse movement on 5GHz Wi-Fi
@@ -505,7 +502,7 @@ The `evdi` kernel module is not loaded, so Orbiscreen falls back to primary-desk
 `https://<host>:8790/client/` loads, the overlay stays on "Connecting", or it reports "Unsupported browser" and asks for Chrome, Brave, or Edge.
 
 **Cause:**
-The web client opens WebTransport and decodes Annex-B with WebCodecs `VideoDecoder` onto a canvas. HTTP `/` and `/client/` on the signaling port redirect there. Accept the self-signed certificate once. Browsers without `VideoDecoder` (Firefox Mobile is one) never decode the stream. There is no MSE or WebRTC path.
+The web client opens WebTransport and decodes Annex-B with WebCodecs `VideoDecoder` onto a canvas. HTTP `/` and `/client/` on the signaling port redirect there. Accept the self-signed certificate once; the daemon reuses `$XDG_CONFIG_HOME/orbiscreen/wt-cert.pem` (and `wt-key.pem`) across restarts. Browsers without `VideoDecoder` (Firefox Mobile is one) never decode the stream. There is no MSE or WebRTC path.
 
 **Fix:**
 1. Open the page in Chrome, Brave, Edge, or another Chromium browser. Firefox Mobile does not implement WebCodecs `VideoDecoder`.

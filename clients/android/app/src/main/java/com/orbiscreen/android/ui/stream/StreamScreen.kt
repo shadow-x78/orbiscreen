@@ -147,6 +147,14 @@ fun StreamScreen(
     }
     val player = viewModel.player.collectAsState().value
     val udp = viewModel.udpPlayer.collectAsState().value
+    val usb = viewModel.usbPlayer.collectAsState().value
+    val videoTransport = StreamTransport.label(
+        udp = udp != null,
+        usbAoa = usb?.usesAoa == true,
+        usbHttp = usb != null && usb.usesAoa != true,
+        exo = player != null,
+    )
+    val surfacePlayer = udp ?: usb
     var showControls by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showExitConfirmDialog by remember { mutableStateOf(false) }
@@ -154,6 +162,7 @@ fun StreamScreen(
     val view = LocalView.current
     val prefs = remember { com.orbiscreen.android.data.PrefsStore(context) }
     var isTouchMode by remember { mutableStateOf(prefs.touchMode) }
+    var showStats by remember { mutableStateOf(prefs.showStats) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     BackHandler {
@@ -263,11 +272,23 @@ fun StreamScreen(
         )
 
         val udpLat = udp?.latencyMs?.collectAsState()?.value
-        if ((player != null || udp != null) && state.event !is StreamEvent.Disconnected) {
+        val usbLat = usb?.latencyMs?.collectAsState()?.value
+        LaunchedEffect(udpLat, usbLat) {
+            val ms = udpLat ?: usbLat ?: return@LaunchedEffect
+            if (ms >= 0) viewModel.streamStats.noteDelay(ms)
+        }
+        var frameDelayMs by remember { mutableStateOf<Int?>(null) }
+        LaunchedEffect(Unit) {
+            while (true) {
+                frameDelayMs = viewModel.streamStats.snapshot().ageMs
+                delay(100)
+            }
+        }
+        if ((player != null || surfacePlayer != null) && state.event !is StreamEvent.Disconnected) {
             val input = remember { viewModel.ensureInput() }
             PlayerSurface(
                 player = player,
-                udp = udp,
+                udp = surfacePlayer,
                 isTouchMode = isTouchMode,
                 streamWidth = state.displayWidth,
                 streamHeight = state.displayHeight,
@@ -304,17 +325,26 @@ fun StreamScreen(
             modifier = Modifier.align(Alignment.TopCenter),
         ) {
             ControlToolbar(
-                hostLabel = if (state.host == "127.0.0.1") "USB · Orbiscreen" else state.host,
-                encoder = if (udp != null) "${state.encoder} · UDP" else state.encoder,
+                hostLabel = StreamTransport.hostLabel(videoTransport, state.host),
+                encoder = if (videoTransport.isBlank()) {
+                    state.encoder
+                } else {
+                    "${state.encoder} · $videoTransport"
+                },
                 resolution = "${state.displayWidth}×${state.displayHeight}",
-                delayMs = udpLat,
+                delayMs = frameDelayMs,
                 isTouchMode = isTouchMode,
+                statsVisible = showStats,
                 onToggleInputMode = {
                     isTouchMode = !isTouchMode
                     prefs.touchMode = isTouchMode
                 },
                 onToggleKeyboard = viewModel::toggleKeyboard,
                 onOpenSettings = { showSettingsSheet = true },
+                onToggleStats = {
+                    showStats = !showStats
+                    prefs.showStats = showStats
+                },
                 onLock = viewModel::lock,
                 onHideControls = {
                     showControls = false
@@ -384,6 +414,17 @@ fun StreamScreen(
                     }
                 }
             }
+        }
+
+        AnimatedVisibility(
+            visible = showStats && (player != null || surfacePlayer != null),
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 16.dp, bottom = 16.dp),
+        ) {
+            StatsOverlay(stats = viewModel.streamStats, transport = videoTransport)
         }
 
         AnimatedVisibility(

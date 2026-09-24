@@ -13,6 +13,26 @@ use tracing::{info, warn};
 const IDLE_AFTER_LAST_VIEWER: Duration = Duration::from_secs(120);
 const WAITING_FOR_FIRST_VIEWER: Duration = Duration::from_secs(30);
 
+/// A session is reaped only when nobody is attached and nothing is still
+/// subscribed to its video broadcast. A USB/AOA reader can outlive a
+/// mismatched `viewers` count; closing then kills both tablets at this timeout.
+pub(crate) fn should_reap_idle_session(
+    viewers: usize,
+    video_receivers: usize,
+    ever_attached: bool,
+    idle_for: Duration,
+) -> bool {
+    if viewers > 0 || video_receivers > 0 {
+        return false;
+    }
+    let limit = if ever_attached {
+        IDLE_AFTER_LAST_VIEWER
+    } else {
+        WAITING_FOR_FIRST_VIEWER
+    };
+    idle_for >= limit
+}
+
 #[derive(Clone, Debug)]
 pub struct HubConfig {
     pub encode_kind: EncoderKind,
@@ -66,25 +86,51 @@ async fn run_hub(mut cfg: HubConfig, mut rx: mpsc::Receiver<DisplayCommand>) {
             }
             _ = idle_tick.tick() => {
                 let now = tokio::time::Instant::now();
-                let stale: Vec<String> = idle_at
+                let due: Vec<String> = idle_at
                     .iter()
                     .filter_map(|(id, at)| {
-                        let limit = if sessions.get(id).is_some_and(|s| s.ever_attached) {
+                        let Some(session) = sessions.get(id) else {
+                            return Some(id.clone());
+                        };
+                        let idle_for = now.saturating_duration_since(*at);
+                        let limit = if session.ever_attached {
                             IDLE_AFTER_LAST_VIEWER
                         } else {
                             WAITING_FOR_FIRST_VIEWER
                         };
-                        if now.saturating_duration_since(*at) >= limit {
+                        if idle_for >= limit {
                             Some(id.clone())
                         } else {
                             None
                         }
                     })
                     .collect();
-                for id in stale {
-                    idle_at.remove(&id);
-                    if sessions.get(&id).is_some_and(|s| s.viewers == 0) {
-                        close_session(&mut sessions, &id);
+                for id in due {
+                    let reap = sessions.get(&id).is_none_or(|session| {
+                        should_reap_idle_session(
+                            session.viewers,
+                            session.video_tx.receiver_count(),
+                            session.ever_attached,
+                            IDLE_AFTER_LAST_VIEWER,
+                        )
+                    });
+                    if reap {
+                        if let Some(session) = sessions.get(&id) {
+                            info!(
+                                viewers = session.viewers,
+                                receivers = session.video_tx.receiver_count(),
+                                ever_attached = session.ever_attached,
+                                "reaping idle client display"
+                            );
+                        }
+                        idle_at.remove(&id);
+                        if sessions.contains_key(&id) {
+                            close_session(&mut sessions, &id);
+                        }
+                    } else {
+                        // Still watched. Drop the stamp so the next real detach
+                        // starts a fresh idle window.
+                        idle_at.remove(&id);
                     }
                 }
             }
@@ -144,7 +190,11 @@ async fn handle_cmd(
                     if existing_session.info.width == target_w
                         && existing_session.info.height == target_h
                     {
-                        idle_at.insert(existing_id.clone(), tokio::time::Instant::now());
+                        if existing_session.viewers == 0 {
+                            idle_at.insert(existing_id.clone(), tokio::time::Instant::now());
+                        } else {
+                            idle_at.remove(existing_id);
+                        }
                         let info = existing_session.info.clone();
                         let _ = reply.send(Ok(info));
                         return;
@@ -842,7 +892,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{adopt_resize_state, event_paths_from_introspect, ResizeCarry};
+    use super::{
+        adopt_resize_state, event_paths_from_introspect, should_reap_idle_session, ResizeCarry,
+    };
     use crate::client_display::Session;
     use orbiscreen_transport::IncomingInput;
     use std::collections::HashMap;
@@ -907,6 +959,47 @@ mod tests {
         assert!(viewed.ever_attached);
         let after = idle_at2.get("b").copied().unwrap();
         assert!(after > waiting);
+    }
+
+    #[test]
+    fn subscribed_video_is_not_reaped_at_the_idle_timeout() {
+        use std::time::Duration;
+        assert!(!should_reap_idle_session(
+            0,
+            1,
+            true,
+            Duration::from_secs(120),
+        ));
+        assert!(!should_reap_idle_session(
+            1,
+            0,
+            true,
+            Duration::from_secs(120),
+        ));
+        assert!(should_reap_idle_session(
+            0,
+            0,
+            true,
+            Duration::from_secs(120),
+        ));
+        assert!(!should_reap_idle_session(
+            0,
+            0,
+            true,
+            Duration::from_secs(119),
+        ));
+        assert!(should_reap_idle_session(
+            0,
+            0,
+            false,
+            Duration::from_secs(30),
+        ));
+        assert!(!should_reap_idle_session(
+            0,
+            0,
+            false,
+            Duration::from_secs(29),
+        ));
     }
 
     #[test]

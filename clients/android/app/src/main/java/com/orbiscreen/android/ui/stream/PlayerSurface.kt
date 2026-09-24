@@ -21,7 +21,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import com.orbiscreen.android.player.UdpPlayer
+import com.orbiscreen.android.player.SurfaceTarget
 import kotlin.math.roundToInt
 
 private const val TAG = "Orbi.Surface"
@@ -44,7 +44,7 @@ private class TouchCallbacksHolder(
 
 private class UdpVideoLayout(ctx: Context) : FrameLayout(ctx) {
     private val surfaceView = SurfaceView(ctx)
-    private var bound: UdpPlayer? = null
+    private var bound: SurfaceTarget? = null
     private var streamW = 1920
     private var streamH = 1080
     private var scaleMode = 0
@@ -67,17 +67,17 @@ private class UdpVideoLayout(ctx: Context) : FrameLayout(ctx) {
         addView(surfaceView)
     }
 
-    fun bindPlayer(udp: UdpPlayer?) {
-        if (bound === udp) {
-            if (udp != null && surfaceView.holder.surface.isValid) {
-                udp.attachSurface(surfaceView.holder.surface)
+    fun bindPlayer(target: SurfaceTarget?) {
+        if (bound === target) {
+            if (target != null && surfaceView.holder.surface.isValid) {
+                target.attachSurface(surfaceView.holder.surface)
             }
             return
         }
         bound?.detachSurface()
-        bound = udp
-        if (udp != null && surfaceView.holder.surface.isValid) {
-            udp.attachSurface(surfaceView.holder.surface)
+        bound = target
+        if (target != null && surfaceView.holder.surface.isValid) {
+            target.attachSurface(surfaceView.holder.surface)
         }
     }
 
@@ -101,7 +101,7 @@ private class UdpVideoLayout(ctx: Context) : FrameLayout(ctx) {
 @Composable
 fun PlayerSurface(
     player: ExoPlayer?,
-    udp: UdpPlayer? = null,
+    udp: SurfaceTarget? = null,
     isTouchMode: Boolean,
     onMove: (Float, Float, Int, Int) -> Unit,
     onPointer: (Float?, Float?, Int, Int, Int, Boolean) -> Unit,

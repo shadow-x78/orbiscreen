@@ -170,6 +170,44 @@ test("hashFromBase64 yields 32 bytes", () => {
     assert.deepEqual(Array.from(annexb.hashFromBase64(b64)), Array.from(raw));
 });
 
+test("252 data shards recover two erasures", () => {
+    const k = 252;
+    const src = Array.from({ length: k }, (_, i) => Uint8Array.from([i & 255, 1, 2, 3]));
+    const parity = annexb.encodeFec(src, 4);
+    const data = src.map((row) => row);
+    data[1] = null;
+    data[250] = null;
+    assert.equal(annexb.recoverFec(data, parity), true);
+    assert.deepEqual(Array.from(data[1]), Array.from(src[1]));
+    assert.deepEqual(Array.from(data[250]), Array.from(src[250]));
+});
+
+test("an access unit past 252 shards splits and survives one loss", () => {
+    const au = new Uint8Array(2013).fill(7);
+    const blocks = annexb.shardAuBlocks(au, 8);
+    assert.ok(blocks.length > 1);
+    assert.ok(blocks.every((block) => block.data.length <= 252 && block.count === blocks.length));
+    const asm = new annexb.DatagramAssembler();
+    let out = [];
+    for (const block of blocks) {
+        const dropFirst = block.index === 0 && block.parity.length > 0;
+        for (let i = 0; i < block.data.length; i += 1) {
+            if (dropFirst && i === 0) continue;
+            out = out.concat(asm.push(annexb.encodeBlockedDatagram(
+                9, i, block.data.length, true, 1n, 2n, block.data[i], block.index, block.count,
+            ), 0));
+        }
+        if (dropFirst) {
+            out = out.concat(asm.push(annexb.encodeBlockedDatagram(
+                9, block.data.length, block.data.length, true, 1n, 2n, block.parity[0], block.index, block.count,
+            ), 0));
+        }
+    }
+    const video = out.filter((item) => item.type === "video");
+    assert.equal(video.length, 1);
+    assert.deepEqual(Array.from(video[0].au), Array.from(au));
+});
+
 test("parity ladder matches the host", () => {
     assert.equal(annexb.parityCount(1), 0);
     assert.equal(annexb.parityCount(3), 0);

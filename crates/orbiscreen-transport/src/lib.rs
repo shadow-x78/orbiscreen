@@ -1,13 +1,14 @@
 // Orbiscreen - lib.rs (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
-pub mod adb;
 pub mod annexb;
 pub mod aoa;
+pub mod aoa_video;
 pub mod display;
 pub mod fec;
 pub mod mdns;
 pub mod pairing;
+pub mod udp_crypto;
 pub mod udp_stream;
 pub mod wt_protocol;
 pub mod wt_stream;
@@ -285,6 +286,7 @@ impl Transport {
             client_shutdown_tx,
             displays: displays.clone(),
             wt_offer: wt_hub.as_ref().map(|h| h.offer.clone()),
+            udp_keys: udp_crypto::UdpKeyRing::new(),
         };
         let https_pem = wt_hub.as_ref().and_then(|hub| match hub.https_pem() {
             Ok(pem) => Some(pem),
@@ -325,6 +327,7 @@ impl Transport {
         let udp_shutdown = shutdown_rx.clone();
         let udp_displays = displays.clone();
         let udp_registry = Arc::clone(&state.pairing);
+        let udp_keys = state.udp_keys.clone();
         tokio::spawn(async move {
             udp_stream::run_udp_hub(
                 udp_port,
@@ -336,6 +339,7 @@ impl Transport {
                 udp_stream::UdpLimits::from_env(),
                 udp_displays,
                 Some(udp_registry),
+                udp_keys,
             )
             .await;
         });
@@ -372,15 +376,9 @@ impl Transport {
             let aoa_active = self.aoa_active.clone();
             let aoa_active_for_sup = aoa_active.clone();
             let aoa_shutdown = shutdown_rx.clone();
+            let aoa_displays = displays.clone();
             tokio::spawn(async move {
-                aoa::supervisor(aoa_port, aoa_active_for_sup, aoa_shutdown).await;
-            });
-
-            let adb_port = self.cfg.signaling_port;
-            let adb_udp_port = udp_port;
-            let adb_shutdown = shutdown_rx.clone();
-            tokio::spawn(async move {
-                adb::supervisor(adb_port, adb_udp_port, adb_shutdown).await;
+                aoa::supervisor(aoa_port, aoa_active_for_sup, aoa_shutdown, aoa_displays).await;
             });
 
             let usb_stats = state.stats.clone();
@@ -388,10 +386,10 @@ impl Transport {
             let aoa_active_for_stats = aoa_active.clone();
             Some(tokio::spawn(async move {
                 loop {
-                    let is_aoa = aoa_active_for_stats.load(Ordering::Relaxed) > 0;
+                    let bridges = aoa_active_for_stats.load(Ordering::Relaxed);
                     let names = aoa::get_connected_candidate_names();
-                    let count = if is_aoa { 1 } else { names.len() };
-                    usb_stats.note_usb_state(count, names, is_aoa);
+                    let count = if bridges > 0 { bridges } else { names.len() };
+                    usb_stats.note_usb_state(count, names, bridges > 0);
                     tokio::select! {
                         _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {}
                         _ = usb_shutdown.changed() => break,
@@ -462,6 +460,7 @@ struct AppState {
     client_shutdown_tx: tokio::sync::broadcast::Sender<()>,
     displays: Option<DisplayCtl>,
     wt_offer: Option<wt_stream::WtOffer>,
+    udp_keys: udp_crypto::UdpKeyRing,
 }
 
 async fn alt_svc_h3(
@@ -498,6 +497,7 @@ fn build_router(state: AppState) -> Router {
             "/api/session",
             post(api_session_open).delete(api_session_close),
         )
+        .route("/api/udp-key", post(api_udp_key))
         .route_layer(middleware::from_fn_with_state(state.clone(), auth_check))
         .route("/api/pair/request", post(api_pair_request))
         .route("/api/pair/status", get(api_pair_status))
@@ -837,8 +837,66 @@ async fn api_session_close(
             state.pairing.forget_session(&id);
         }
     }
+    state.udp_keys.revoke_session(&id);
     ctl.release(&id).await;
     StatusCode::OK
+}
+
+async fn api_udp_key(
+    State(state): State<AppState>,
+    request: axum::extract::Request,
+) -> impl IntoResponse {
+    use base64::Engine as _;
+    let credential = request_credential(&request).unwrap_or_default();
+    let payload: serde_json::Value = match axum::Json::from_request(request, &()).await {
+        Ok(axum::Json(value)) => value,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"ok": false, "error": "invalid json"})),
+            )
+                .into_response();
+        }
+    };
+    let session = payload
+        .get("session")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    let kind = if !state.token.is_empty()
+        && token_eq(&credential, &state.token)
+        && state.pairing.verify(&credential).is_none()
+    {
+        udp_crypto::MintKind::SharedToken
+    } else if let Some(client) = state.pairing.verify(&credential) {
+        udp_crypto::MintKind::Paired {
+            owns_session: state.pairing.owns_session(&client.client_id, session),
+        }
+    } else {
+        udp_crypto::MintKind::Anonymous
+    };
+    if !udp_crypto::may_mint_udp_key(kind, session) {
+        state.stats.note_auth_failure();
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({"ok": false, "error": "udp key denied"})),
+        )
+            .into_response();
+    }
+    let key = state
+        .udp_keys
+        .issue(Some(session.to_string()), udp_crypto::UDP_KEY_TTL);
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "ok": true,
+            "key_id": udp_crypto::key_id_hex(&key.id),
+            "key": base64::engine::general_purpose::STANDARD.encode(key.secret),
+            "udp_port": udp_stream::default_udp_port(state.config.signaling_port),
+            "expires_in": udp_crypto::UDP_KEY_TTL.as_secs(),
+        })),
+    )
+        .into_response()
 }
 
 async fn client_config(
@@ -1865,6 +1923,7 @@ mod tests {
             client_shutdown_tx,
             displays: None,
             wt_offer: None,
+            udp_keys: udp_crypto::UdpKeyRing::new(),
         }
     }
 
@@ -2054,6 +2113,21 @@ mod tests {
         let script = manifest.join("../../clients/web/annexb.test.js");
         let Some(output) = run_node(&["--test", script.to_str().expect("utf-8 path")]) else {
             eprintln!("skipping annexb_js_unit_tests: node not installed");
+            return;
+        };
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
+    fn stats_js_unit_tests() {
+        let manifest = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let script = manifest.join("../../clients/web/stats.test.js");
+        let Some(output) = run_node(&["--test", script.to_str().expect("utf-8 path")]) else {
+            eprintln!("skipping stats_js_unit_tests: node not installed");
             return;
         };
         assert!(

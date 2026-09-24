@@ -17,13 +17,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Mouse
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.TouchApp
-import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -39,10 +39,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.orbiscreen.android.R
+import com.orbiscreen.android.player.StreamStats
 import com.orbiscreen.android.ui.theme.ActiveGreen
 import com.orbiscreen.android.ui.theme.GlassBorderDark
 import com.orbiscreen.android.ui.theme.GlassDark
@@ -54,9 +56,11 @@ fun ControlToolbar(
     resolution: String,
     delayMs: Int? = null,
     isTouchMode: Boolean = false,
+    statsVisible: Boolean = false,
     onToggleInputMode: () -> Unit = {},
     onToggleKeyboard: () -> Unit,
     onOpenSettings: () -> Unit,
+    onToggleStats: () -> Unit = {},
     onLock: () -> Unit,
     onHideControls: () -> Unit,
     onDisconnect: () -> Unit,
@@ -97,11 +101,7 @@ fun ControlToolbar(
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                val delayText = if (delayMs != null && delayMs >= 0) {
-                    "delay ${delayMs}ms"
-                } else {
-                    ""
-                }
+                val delayText = StreamStats.formatToolbarDelay(delayMs)
                 val info = listOfNotNull(
                     resolution.takeIf { it.isNotBlank() && !isPortrait },
                     encoder.takeIf { it.isNotBlank() && !isPortrait },
@@ -112,6 +112,7 @@ fun ControlToolbar(
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.7f),
                     fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace,
                 )
             }
 
@@ -144,6 +145,13 @@ fun ControlToolbar(
             )
 
             ToolbarActionButton(
+                icon = Icons.Rounded.BarChart,
+                contentDescription = stringResource(R.string.stats_toggle),
+                onClick = onToggleStats,
+                active = statsVisible,
+            )
+
+            ToolbarActionButton(
                 icon = Icons.Rounded.VisibilityOff,
                 contentDescription = stringResource(R.string.hide_controls),
                 onClick = onHideControls,
@@ -173,14 +181,23 @@ private fun ToolbarActionButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
+    active: Boolean = false,
 ) {
     FilledIconButton(
         onClick = onClick,
         shape = CircleShape,
         modifier = Modifier.size(34.dp),
         colors = IconButtonDefaults.filledIconButtonColors(
-            containerColor = Color.White.copy(alpha = 0.14f),
-            contentColor = Color.White,
+            containerColor = if (active) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                Color.White.copy(alpha = 0.14f)
+            },
+            contentColor = if (active) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                Color.White
+            },
         ),
     ) {
         Icon(

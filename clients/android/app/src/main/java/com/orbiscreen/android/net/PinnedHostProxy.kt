@@ -17,6 +17,19 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Semaphore
 import kotlin.concurrent.thread
 
+internal fun pinnedProxyAllows(path: String): Boolean = path in PINNED_PROXY_PATHS
+
+private val PINNED_PROXY_PATHS = setOf(
+    "/stream",
+    "/input",
+    "/api/control",
+    "/api/session",
+    "/api/info",
+    "/health",
+    "/api/udp-key",
+    "/idr",
+)
+
 class PinnedHostProxy internal constructor(
     private val upstream: HttpUrl,
     private val client: OkHttpClient,
@@ -73,7 +86,7 @@ class PinnedHostProxy internal constructor(
         require(target.startsWith('/') && !target.startsWith("//") && !target.contains('\\'))
         val url = requireNotNull(upstream.resolve(target))
         require(url.host == upstream.host && url.port == upstream.port && url.isHttps)
-        require(url.encodedPath in setOf("/stream", "/input", "/api/control", "/api/session", "/api/info", "/health"))
+        require(pinnedProxyAllows(url.encodedPath))
         val headers = linkedMapOf<String, String>()
         var total = first.sumOf { it.length }
         while (true) {

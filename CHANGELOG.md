@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **USB/AOA native Annex-B video**: accessory bulk carries length-prefixed H.264 access units into MediaCodec. MPEG-TS/ExoPlayer is not used on USB. `adb reverse` is not used.
+- **Android USB accessory permission dialog no longer loops on Cancel**: Cancel is remembered until the accessory detaches or the user taps the USB card.
+- **Stream statistics overlay (Web, Android)**: network delay, current frame age, received-bytes rate, and a last-minute I/P/D stack. The toolbar frame-age field is fixed width. The Android HUD height follows its content so the footer is not clipped.
+
 ## [v0.31.2] - 2026-09-21
 
 **Performance Fixes**

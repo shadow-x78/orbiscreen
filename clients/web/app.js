@@ -7,6 +7,7 @@ const I18N = {
         btnKeyboard: "Keyboard",
         btnLock: "Lock Session",
         btnSettings: "Settings",
+        btnStats: "Statistics",
         btnHideControls: "Hide Toolbar",
         btnFullscreen: "Fullscreen",
         btnDisconnect: "Disconnect",
@@ -49,6 +50,12 @@ const I18N = {
         toastCadSent: "Ctrl+Alt+Del sent",
         toastResynced: "Resynced",
         toastDisconnected: "Disconnected",
+        statsTitle: "Statistics",
+        statsDelay: "Network delay",
+        statsAge: "Current frame age",
+        statsReceived: "Received",
+        statsFrames: "Frames",
+        statsWindow: "last 1 min",
         statusUnsupported: "Unsupported browser",
         statusUnsupportedSub: "This client needs the WebCodecs VideoDecoder API. Open the page in Chrome, Brave, Edge, or another Chromium browser."
     },
@@ -222,6 +229,7 @@ const iconTouch = document.getElementById("iconTouch");
 const btnKeyboard = document.getElementById("btnKeyboard");
 const btnLock = document.getElementById("btnLock");
 const btnSettings = document.getElementById("btnSettings");
+const btnStats = document.getElementById("btnStats");
 const btnHideControls = document.getElementById("btnHideControls");
 const btnFullscreen = document.getElementById("btnFullscreen");
 const btnDisconnect = document.getElementById("btnDisconnect");
@@ -510,6 +518,7 @@ window.addEventListener("pagehide", () => {
 let displayWidth = 1920;
 let displayHeight = 1080;
 let encoderName = "NVENC";
+let videoTransport = "";
 let authToken = "";
 let wtConfig = null;
 let wtTransport = null;
@@ -528,7 +537,23 @@ let isTouchMode = true;
 let toastTimer = null;
 let vncBannerTimer = null;
 let latencyWatchdog = null;
+let holeWatchdog = null;
 let lastDelayMs = null;
+let infoTick = null;
+const streamStats = (typeof OrbiStats !== "undefined") ? new OrbiStats.StreamStats() : null;
+const pendingPresent = [];
+let statsVisible = false;
+let statsRaf = 0;
+const statsWidget = document.getElementById("statsWidget");
+const statsDelayEl = document.getElementById("statsDelay");
+const statsAgeEl = document.getElementById("statsAge");
+const statsBytesEl = document.getElementById("statsBytes");
+const statsFpsEl = document.getElementById("statsFps");
+const statsBytesGraph = document.getElementById("statsBytesGraph");
+const statsFramesGraph = document.getElementById("statsFramesGraph");
+const statsLegI = document.getElementById("statsLegI");
+const statsLegP = document.getElementById("statsLegP");
+const statsLegD = document.getElementById("statsLegD");
 let controlsVisible = false;
 let controlsLockedHidden = false;
 let controlsHideTimer = null;
@@ -561,16 +586,24 @@ function showToast(text, duration = 2200) {
 window.addEventListener("resize", () => updateInfoDisplay());
 
 function updateInfoDisplay() {
-    const delayText = (lastDelayMs != null && lastDelayMs >= 0)
-        ? `delay ${lastDelayMs}ms`
-        : "delay —";
+    const ageMs = (streamStats && typeof streamStats.snapshot === "function")
+        ? streamStats.snapshot().ageMs
+        : lastDelayMs;
+    const delayText = (typeof OrbiStats !== "undefined" && OrbiStats.formatToolbarDelay)
+        ? OrbiStats.formatToolbarDelay(ageMs)
+        : ((ageMs != null && ageMs >= 0) ? `delay ${ageMs}ms` : "delay —");
     const narrow = window.matchMedia("(orientation: portrait), (max-width: 720px)").matches;
+    const encoderLabel = videoTransport ? `${encoderName} · ${videoTransport}` : encoderName;
     const infoStr = narrow
         ? delayText
-        : `${displayWidth}×${displayHeight}  ${encoderName}  ${delayText}`;
+        : `${displayWidth}×${displayHeight}  ${encoderLabel}  ${delayText}`;
     if (hostInfoEl) hostInfoEl.textContent = infoStr;
     if (statRes) statRes.textContent = `${displayWidth} × ${displayHeight}`;
-    if (statEncoder) statEncoder.textContent = encoderName;
+    if (statEncoder) statEncoder.textContent = encoderLabel;
+    const statsTitleEl = document.getElementById("statsTitle");
+    if (statsTitleEl) {
+        statsTitleEl.textContent = videoTransport ? `Statistics · ${videoTransport}` : "Statistics";
+    }
     if (statLatency) {
         statLatency.textContent = (lastDelayMs != null && lastDelayMs >= 0)
             ? `${lastDelayMs} ms`
@@ -894,6 +927,52 @@ if (btnSettings) {
         settingsModal.classList.remove("hidden");
     });
 }
+
+function setStatsVisible(visible) {
+    statsVisible = !!visible;
+    try { localStorage.setItem("orbiscreen.statsVisible", statsVisible ? "1" : "0"); } catch (_) {}
+    if (statsWidget) {
+        statsWidget.classList.toggle("hidden", !statsVisible || !streamActive);
+        statsWidget.setAttribute("aria-hidden", (!statsVisible || !streamActive) ? "true" : "false");
+    }
+    if (btnStats) btnStats.classList.toggle("active", statsVisible);
+    if (statsVisible && streamActive) startStatsPaint();
+}
+
+function startStatsPaint() {
+    if (statsRaf || !streamStats || typeof OrbiStats === "undefined") return;
+    const tick = () => {
+        statsRaf = 0;
+        if (!statsVisible || !streamActive) return;
+        const snap = streamStats.snapshot();
+        if (statsDelayEl) statsDelayEl.textContent = OrbiStats.formatMs(snap.delayMs);
+        if (statsAgeEl) statsAgeEl.textContent = OrbiStats.formatMs(snap.ageMs);
+        if (statsBytesEl) statsBytesEl.textContent = OrbiStats.formatRate(snap.bytesPerSec);
+        if (statsFpsEl) statsFpsEl.textContent = `${snap.fps} fps`;
+        if (statsLegI) statsLegI.textContent = `I ${snap.lastMinuteI}`;
+        if (statsLegP) statsLegP.textContent = `P ${snap.lastMinuteP}`;
+        if (statsLegD) statsLegD.textContent = `D ${snap.lastMinuteDropped || 0}`;
+        if (statsBytesGraph) OrbiStats.drawBytesGraph(statsBytesGraph, snap.bytesSeries);
+        if (statsFramesGraph) OrbiStats.drawFramesGraph(statsFramesGraph, snap);
+        updateInfoDisplay();
+        statsRaf = requestAnimationFrame(tick);
+    };
+    statsRaf = requestAnimationFrame(tick);
+}
+
+if (btnStats) {
+    btnStats.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setStatsVisible(!statsVisible);
+    });
+}
+
+try {
+    if (localStorage.getItem("orbiscreen.statsVisible") === "1") {
+        statsVisible = true;
+        if (btnStats) btnStats.classList.add("active");
+    }
+} catch (_) {}
 
 if (btnCloseSettings) {
     btnCloseSettings.addEventListener("click", () => {
@@ -1417,7 +1496,17 @@ function destroyPlayer() {
     }
     closeDecoder();
     streamActive = false;
+    if (infoTick) {
+        clearInterval(infoTick);
+        infoTick = null;
+    }
+    if (statsWidget) {
+        statsWidget.classList.add("hidden");
+        statsWidget.setAttribute("aria-hidden", "true");
+    }
     clearInterval(latencyWatchdog);
+    clearInterval(holeWatchdog);
+    holeWatchdog = null;
     releaseControl();
 }
 
@@ -1475,6 +1564,10 @@ function markPlaying() {
         controlsLockedHidden = false;
         if (overlayEl) overlayEl.classList.add("hidden");
         setControlsVisible(false);
+        if (statsVisible) setStatsVisible(true);
+        if (!infoTick) {
+            infoTick = setInterval(updateInfoDisplay, 100);
+        }
     }
     noteKeyframe();
     lastFrameAt = Date.now();
@@ -1491,6 +1584,9 @@ function drawVideoFrame(frame) {
         }
         const ctx = videoEl.getContext("2d");
         ctx.drawImage(frame, 0, 0);
+        if (streamStats && pendingPresent.length) {
+            streamStats.notePresented(pendingPresent.shift());
+        }
         markPlaying();
     } finally {
         frame.close();
@@ -1546,12 +1642,21 @@ function feedAccessUnit(msg) {
         return;
     }
     if (waitingForKeyframe && !msg.key) {
+        if (streamStats) streamStats.noteDropped(1);
         requestIdr();
         return;
     }
+    if (streamStats) {
+        streamStats.noteFrame(OrbiAnnexB.classifyAccessUnit(msg.au));
+        pendingPresent.push(msg.sentNs);
+        if (pendingPresent.length > 120) pendingPresent.shift();
+    }
+    // Real-time timestamps keep VideoDecoder in low-latency mode.
+    // Session-relative pts_ns looks like a VOD timeline and some
+    // implementations then hold ~200 ms before the first output.
     const chunk = new EncodedVideoChunk({
         type: msg.key ? "key" : "delta",
-        timestamp: Number(msg.ptsNs / 1000n),
+        timestamp: Math.round(performance.now() * 1000),
         data: msg.au,
     });
     try {
@@ -1565,12 +1670,19 @@ function feedAccessUnit(msg) {
         const glass = Number((nowNs() + clockOffsetNs - msg.sentNs) / 1000000n);
         if (glass >= 0 && glass <= 5000) {
             lastDelayMs = glass;
+            if (streamStats) streamStats.noteDelay(glass);
             updateInfoDisplay();
         }
     }
 }
 
+function setVideoTransport(name) {
+    videoTransport = name || "";
+    updateInfoDisplay();
+}
+
 async function startAuStream() {
+    setVideoTransport("HTTPS /au");
     const params = new URLSearchParams();
     if (displaySessionId) params.set("session", displaySessionId);
     const qs = params.toString();
@@ -1594,6 +1706,7 @@ async function startAuStream() {
             while (true) {
                 const { value, done } = await reader.read();
                 if (done) break;
+                if (value && streamStats) streamStats.noteBytes(value.byteLength);
                 frames.push(value);
                 let msg;
                 while ((msg = frames.pop())) {
@@ -1655,6 +1768,8 @@ async function startStream(opts = {}) {
     lastDelayMs = null;
     clockOffsetNs = 0n;
     lastFrameAt = 0;
+    if (streamStats) streamStats.reset();
+    pendingPresent.length = 0;
     if (!opts.quiet) {
         setOverlayState("connecting", "Connecting", "Connecting to Linux virtual display…");
     }
@@ -1703,6 +1818,7 @@ async function startStream(opts = {}) {
             return;
         }
         wtTransport = transport;
+        setVideoTransport("WebTransport");
         const bidi = await transport.createBidirectionalStream();
         const writer = bidi.writable.getWriter();
         wtWriter = writer;
@@ -1710,11 +1826,13 @@ async function startStream(opts = {}) {
 
         const reader = bidi.readable.getReader();
         const frames = new OrbiAnnexB.FrameReader();
+        const assembler = new OrbiAnnexB.DatagramAssembler();
         (async () => {
             try {
                 while (wtTransport === transport) {
                     const { value, done } = await reader.read();
                     if (done) break;
+                    if (value && streamStats) streamStats.noteBytes(value.byteLength);
                     frames.push(value);
                     let msg;
                     while ((msg = frames.pop())) {
@@ -1724,11 +1842,13 @@ async function startStream(opts = {}) {
                             updateInfoDisplay();
                             requestIdr();
                         } else if (msg.type === "video") {
+                            if (msg.key) assembler.onReliableKeyframe();
                             feedAccessUnit(msg);
                         } else if (msg.type === "pong") {
                             const now = nowNs();
                             const rtt = now - msg.t0Ns;
                             clockOffsetNs = msg.hostNs + rtt / 2n - now;
+                            if (streamStats) streamStats.noteClockOffset(clockOffsetNs);
                         }
                     }
                 }
@@ -1741,7 +1861,22 @@ async function startStream(opts = {}) {
             }
         })();
 
-        const assembler = new OrbiAnnexB.DatagramAssembler();
+        const takeAssembler = (msgs) => {
+            for (const msg of msgs) {
+                if (msg.type === "gap") {
+                    waitingForKeyframe = true;
+                    if (streamStats) streamStats.noteDropped(msg.dropped || 1);
+                    requestIdr();
+                } else if (msg.type === "video") {
+                    feedAccessUnit(msg);
+                }
+            }
+        };
+        if (holeWatchdog) clearInterval(holeWatchdog);
+        holeWatchdog = setInterval(() => {
+            if (wtTransport !== transport) return;
+            takeAssembler(assembler.expire());
+        }, 16);
         let dgramReader = null;
         try {
             dgramReader = transport.datagrams.readable.getReader();
@@ -1754,14 +1889,8 @@ async function startStream(opts = {}) {
                     while (wtTransport === transport) {
                         const { value, done } = await dgramReader.read();
                         if (done) break;
-                        const msg = assembler.push(value);
-                        if (!msg) continue;
-                        if (msg.type === "gap") {
-                            waitingForKeyframe = true;
-                            requestIdr();
-                            continue;
-                        }
-                        if (msg.type === "video") feedAccessUnit(msg);
+                        if (value && streamStats) streamStats.noteBytes(value.byteLength);
+                        takeAssembler(assembler.push(value));
                     }
                 } catch (err) {
                     console.warn("webtransport datagram:", err);
@@ -1823,6 +1952,16 @@ function webDeviceKey() {
     }
 }
 
+function nativeScreenSize() {
+    const dpr = (typeof window !== "undefined" && window.devicePixelRatio) || 1;
+    const cssW = (typeof window !== "undefined" && window.screen && window.screen.width) || 1920;
+    const cssH = (typeof window !== "undefined" && window.screen && window.screen.height) || 1080;
+    return {
+        width: Math.max(1, Math.round(cssW * dpr)),
+        height: Math.max(1, Math.round(cssH * dpr)),
+    };
+}
+
 async function openDisplaySession() {
     if (!authToken) return;
     try {
@@ -1831,8 +1970,7 @@ async function openDisplaySession() {
                 ? navigator.userAgent.split(/[()]/)[0].trim() || "web"
                 : "web",
             key: webDeviceKey(),
-            width: window.screen?.width || displayWidth || 1920,
-            height: window.screen?.height || displayHeight || 1080,
+            ...nativeScreenSize(),
         };
         const response = await fetch("/api/session", {
             method: "POST",

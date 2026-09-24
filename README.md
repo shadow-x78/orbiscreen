@@ -85,7 +85,7 @@
 - 🎨 **Digital Drawing Tablet (Graphic Digitizer)**: Connect your tablet and stylus (S-Pen, capacitive, active stylus) to paint with native **pressure sensitivity and tilt** in Linux creative software like **Krita, GIMP, Blender, and Inkscape**.
 - 💻 **Dual Monitor On the Go**: Travel light without carrying fragile external monitors. Extend your Linux laptop screen at coffee shops, flights, coworking spaces, or hotel desks.
 - 🖥️ **Auto-Rotating Portrait Monitor**: Rotate your device to vertical orientation for reading code, API documentation, terminal logs, or keeping Discord/Slack visible.
-- ⚡ **Zero Wi-Fi Latency via USB**: Plug in a USB cable; Orbiscreen's automatic ADB reverse tunnel delivers interference-free, ultra-low latency performance.
+- ⚡ **Zero Wi-Fi Latency via USB**: Plug in a USB cable; Android Open Accessory carries the stream on the cable with no Wi-Fi and no `adb reverse`.
 
 ---
 
@@ -107,7 +107,7 @@
 - **Live discovery**: NSD scan of nearby hosts, manual `host:port` entry, optional subnet scanner
 - **Native streaming**: ExoPlayer with `OkHttpDataSource` + tuned load control for ultra-low latency MPEG-TS / H.264
 - **Host control panel**: Keyboard, lock, blank, Ctrl+Alt+Del, and retry actions
-- **USB transport via `adb reverse`**: Hot-plug detection picking up newly connected devices within two seconds
+- **USB transport via Android Open Accessory**: Hot-plug detection; grant the accessory permission dialog; Annex-B AUs on USB bulk
 - **Hardware encoding**: NVIDIA NVENC, Intel/AMD VA-API, and x264 software fallback
 - **Cryptographic signing** of every Linux and Android artifact
 
@@ -309,7 +309,7 @@ Unlike proprietary solutions restricted to specific operating systems and ecosys
 <details>
 <summary><b>Can I connect via USB cable instead of Wi-Fi?</b></summary>
 <br>
-<b>Yes!</b> Orbiscreen features built-in automatic ADB reverse tunneling over USB. Simply enable USB Debugging on your Android device and plug it in; Orbiscreen automatically establishes a zero-interference USB connection within two seconds.
+<b>Yes!</b> Plug in a USB cable and grant the accessory permission dialog (Orbiscreen Display Server). The host switches the tablet to Android Open Accessory mode and streams Annex-B video on USB bulk. USB debugging / `adb reverse` is not required.
 </details>
 
 <details>
@@ -327,6 +327,7 @@ With hardware encoding enabled (NVIDIA NVENC or Intel/AMD VA-API on Linux, and M
 |----------|-------------|
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System topology, frame pipeline &amp; D-Bus architecture |
 | [UDP_TRANSPORT.md](docs/UDP_TRANSPORT.md) | UDP Annex-B video path, packet types, DPLPMTUD &amp; test hooks |
+| [FRAME_TRANSPORT.md](docs/FRAME_TRANSPORT.md) | I/P/IDR/GOP terms, normal AU flow, and recovery after dropped datagrams |
 | [DE_SUPPORT.md](docs/DE_SUPPORT.md) | Per-desktop support matrix, capture plans &amp; troubleshooting |
 | [PACKAGING.md](docs/PACKAGING.md) | Multi-distro packaging specs (.deb, .rpm, AppImage) |
 | [DBUS_SPEC.md](docs/DBUS_SPEC.md) | D-Bus Session Bus IPC interface specifications |

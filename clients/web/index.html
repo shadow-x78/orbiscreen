@@ -9,7 +9,7 @@
           content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     <meta name="theme-color" content="#11111b" />
     <title>Orbiscreen</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=22" />
 </head>
 <body>
     <header id="controlToolbar" class="controlToolbar hidden">
@@ -59,6 +59,12 @@
             <button id="btnSettings" class="actionBtn" title="Settings" data-i18n-title="btnSettings">
                 <svg class="svgIcon" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                </svg>
+            </button>
+
+            <button id="btnStats" class="actionBtn" title="Statistics" data-i18n-title="btnStats">
+                <svg class="svgIcon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/>
                 </svg>
             </button>
 
@@ -272,7 +278,38 @@
 
     <div id="touchIndicator" class="touchIndicator hidden"></div>
 
-    <script src="annexb.js?v=15"></script>
-    <script src="app.js?v=15"></script>
+    <div id="statsWidget" class="statsWidget hidden" aria-hidden="true">
+        <div id="statsTitle" class="statsTitle">Statistics</div>
+        <div class="statsRow">
+            <span class="statsLabel" data-i18n="statsDelay">Network delay</span>
+            <span id="statsDelay" class="statsValue">—</span>
+        </div>
+        <div class="statsRow">
+            <span class="statsLabel" data-i18n="statsAge">Current frame age</span>
+            <span id="statsAge" class="statsValue">—</span>
+        </div>
+        <div class="statsRow">
+            <span class="statsLabel" data-i18n="statsReceived">Received</span>
+            <span id="statsBytes" class="statsValue">0 B/s</span>
+        </div>
+        <canvas id="statsBytesGraph" class="statsGraph" width="220" height="44"></canvas>
+        <div class="statsRow">
+            <span class="statsLabel" data-i18n="statsFrames">Frames</span>
+            <span id="statsFps" class="statsValue">0 fps</span>
+        </div>
+        <canvas id="statsFramesGraph" class="statsGraph" width="220" height="44"></canvas>
+        <div class="statsFooter">
+            <div class="statsLegend">
+                <span class="legI" id="statsLegI">I 0</span>
+                <span class="legP" id="statsLegP">P 0</span>
+                <span class="legD" id="statsLegD">D 0</span>
+            </div>
+            <span class="statsWindow" data-i18n="statsWindow">last 1 min</span>
+        </div>
+    </div>
+
+    <script src="annexb.js?v=19"></script>
+    <script src="stats.js?v=22"></script>
+    <script src="app.js?v=22"></script>
 </body>
 </html>

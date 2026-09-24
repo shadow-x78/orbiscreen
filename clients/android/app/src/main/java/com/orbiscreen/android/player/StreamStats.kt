@@ -239,5 +239,16 @@ class StreamStats(
         }
 
         fun formatMs(ms: Int?): String = if (ms == null) "-" else "${ms} ms"
+
+        const val TOOLBAR_DELAY_DIGITS = 4
+
+        fun formatToolbarDelay(ageMs: Int?): String {
+            val body = if (ageMs != null && ageMs >= 0) {
+                ageMs.coerceAtMost(9_999).toString()
+            } else {
+                "—"
+            }
+            return "delay ${body.padStart(TOOLBAR_DELAY_DIGITS)}ms"
+        }
     }
 }

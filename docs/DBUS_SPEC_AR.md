@@ -80,7 +80,7 @@
 | `active_clients` | u64 | عملاء `/stream` المتصلون حالياً |
 | `total_clients` | u64 | إجمالي اتصالات `/stream` منذ البدء |
 | `auth_failures` | u64 | الطلبات غير المصرّ بها المرفوضة منذ البدء (يظهر أيضاً في `GET /health`) |
-| `usb_devices` | u64 | أجهزة Android ذات نفق `adb reverse` نشط الآن (يُحدَّث لحظياً أثناء عمل الدامن؛ يظهر أيضاً في `GET /health`) |
+| `usb_devices` | u64 | ملحقات USB/AOA المفتوحة حالياً (يُحدَّث لحظياً أثناء عمل الدامن؛ يظهر أيضاً في `GET /health`) |
 | `encoder` | string | المُرمّز الفعلي قيد الاستخدام ‏(`x264`، `vaapi`، `nvenc`)‏ |
 | `capture_backend` | string | `evdi` للشاشة الافتراضية؛ `x11-portal-fallback` / `wayland-portal-fallback` عند غياب وحدة evdi |
 

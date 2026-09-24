@@ -237,7 +237,7 @@ Error: evdi kernel module is not installed
 عند تشغيل تطبيق Orbiscreen على جهاز ASUS Chromebook CM3001 (أو أجهزة ChromeOS الأخرى)، يعلق التطبيق في وضع USB على "Looking for host" ولا يكتشف خادم لينكس.
 
 **السبب:**
-يعزل نظام ChromeOS تطبيقات أندرويد داخل حاوية ARC++ مع نطاق شبكة فرعي خاص (`100.115.92.0/28`). توجيهات `adb reverse` القياسية الموجهة إلى `127.0.0.1` داخل حاوية لينكس Crostini لا تصل إلى تطبيقات أندرويد بدون مسار توجيه داخلي.
+يعزل نظام ChromeOS تطبيقات أندرويد داخل حاوية ARC++ مع نطاق شبكة فرعي خاص (`100.115.92.0/28`). بث USB يستخدم Android Open Accessory، وليس `adb reverse` إلى Crostini.
 
 **الحل:**
 - يقوم Orbiscreen v0.20.0 تلقائياً بفحص وتوجيه المنفذ الداخلي لبوابة ARC++ على `100.115.92.2:5555` إلى جانب `localhost:5555`.
@@ -374,18 +374,16 @@ orbiscreen start
 ### Android: اتصال USB يعرض "Looking for host…"
 
 **الإصلاح:**
-يدير Orbiscreen دورة حياة `adb reverse` كاملة من تلقاء نفسه: ينشئ النفق على كل جهاز متصل عند بدء الدامن، يلتقط جهازاً جديداً موصولاً خلال ثانيتين (hot-plug)، يعيد إنشاء نفق مات مع خروج غير نظيف من الدامن (الإنشاء idempotent)، ويزيل كل الأنفاق عند الإيقاف الرشيق. تأكد من:
-1. تفعيل **USB Debugging** في خيارات مطوّر Android.
-2. تخويل جهاز المضيف في رسالة التأكيد على هاتفك/جهازك اللوحي.
+USB يستخدم Android Open Accessory وليس `adb reverse`. تأكد من:
+1. تشغيل الدامن (`orbiscreen start`).
+2. توصيل الكابل والموافقة على حوار إذن الملحق (Orbiscreen Display Server).
 3. تحقق مما يراه الدامن:
    ```bash
-   orbiscreen doctor          # يطبع سطر usb: وجود adb؟ الأجهزة؟ الأنفاق النشطة؟
-   adb devices
-   adb reverse --list
+   orbiscreen doctor
    ```
-4. انقر بطاقة **USB mode** في شاشة Discovery. تفحص البطاقة `http://127.0.0.1:8788/health` وتعرض الحالة الحية: **النفق جاهز** (علامة خضراء) أو **لا نفق** (شغّل الدامن على المضيف أو أعد توصيل الكابل).
+4. إن أُلغي الحوار، انقر بطاقة USB في شاشة Discovery.
 
-عدد الأنفاق لدى الدامن مرئي في أي لحظة عبر `GET /health`‏ (الحقل `usb_devices`) وفي حمولة `GetStatus` عبر D-Bus.
+عدد الملحقات لدى الدامن مرئي عبر `GET /health`‏ (`usb_devices`) وفي `GetStatus` عبر D-Bus.
 
 <a id="streaming-wifi-latency"></a>
 ## ⚡ البث: بطء شديد أو تقطيع في حركة الفأرة عبر شبكة 5GHz Wi-Fi

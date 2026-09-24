@@ -107,6 +107,14 @@
     <string name="mode_touch">Touch</string>
     <string name="mode_trackpad">Touchpad</string>
     <string name="hide_controls">Hide Toolbar</string>
+    <string name="stats_toggle">Statistics</string>
+    <string name="stats_title">Statistics</string>
+    <string name="stats_delay">Network delay</string>
+    <string name="stats_age">Current frame age</string>
+    <string name="stats_received">Received</string>
+    <string name="stats_frames">Frames</string>
+    <string name="stats_window">last 1 min</string>
+    <string name="stats_fps">%1$d fps</string>
     <string name="cancel">Cancel</string>
     <string name="usb_status_label">USB Connected</string>
     <string name="wifi_status_label">Wi\u2011Fi Connected</string>

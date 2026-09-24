@@ -58,6 +58,12 @@ class HostApi {
         val connector: String,
     )
 
+    data class UdpKey(
+        val keyId: ByteArray,
+        val secret: ByteArray,
+        val udpPort: Int,
+    )
+
     suspend fun certificateFingerprint(host: String, port: Int): String = withContext(Dispatchers.IO) {
         val endpoint = pairingUrl(host, port)
         var observed: X509Certificate? = null
@@ -236,6 +242,38 @@ class HostApi {
         }
     }
 
+    suspend fun issueUdpKey(host: String, port: Int, token: String, sessionId: String): UdpKey? =
+        withContext(Dispatchers.IO) {
+            try {
+                val body = JSONObject().put("session", sessionId).toString()
+                val req = Request.Builder()
+                    .url("http://$host:$port/api/udp-key")
+                    .header("Authorization", "Bearer $token")
+                    .post(body.toRequestBody(JSON))
+                    .build()
+                client.newCall(req).execute().use { resp ->
+                    if (!resp.isSuccessful) {
+                        Log.w(TAG, "udp key HTTP ${resp.code}")
+                        return@withContext null
+                    }
+                    val raw = readBoundedBody(resp) ?: return@withContext null
+                    val obj = JSONObject(raw)
+                    if (!obj.optBoolean("ok", false)) return@withContext null
+                    val keyId = decodeHex(obj.optString("key_id"))
+                    val secret = android.util.Base64.decode(obj.optString("key"), android.util.Base64.DEFAULT)
+                    val udpPort = obj.optInt("udp_port", 0)
+                    if (keyId.size != 16 || secret.size != 32 || udpPort !in 1..65535) {
+                        Log.w(TAG, "udp key response was incomplete")
+                        return@withContext null
+                    }
+                    UdpKey(keyId, secret, udpPort)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "udp key failed: ${e.message}")
+                null
+            }
+        }
+
     suspend fun closeSession(host: String, port: Int, token: String, id: String) {
         withContext(Dispatchers.IO) {
             try {
@@ -274,13 +312,7 @@ class HostApi {
             }
         }
 
-        val candidates = mutableListOf(
-            "127.0.0.1",
-            "100.115.92.2",
-            "100.115.92.1",
-            "192.168.233.1",
-            "192.168.233.2"
-        )
+        val candidates = UsbLoopback.fallbackProbeHosts().toMutableList()
         try {
             val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
             while (interfaces != null && interfaces.hasMoreElements()) {
@@ -320,6 +352,18 @@ class HostApi {
             }
         }
         UsbProbeResult.TunnelDown
+    }
+
+    private fun decodeHex(text: String): ByteArray {
+        val clean = text.trim()
+        if (clean.length % 2 != 0) return ByteArray(0)
+        return try {
+            ByteArray(clean.length / 2) { index ->
+                clean.substring(index * 2, index * 2 + 2).toInt(16).toByte()
+            }
+        } catch (_: Exception) {
+            ByteArray(0)
+        }
     }
 
     companion object {

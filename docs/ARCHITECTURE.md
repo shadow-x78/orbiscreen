@@ -36,8 +36,9 @@ graph TD
         C0 -.->|"BGRA frames (primary desktop)"| D
         D -->|"GStreamer HW/SW Encode"| E["H.264 AU stream"]
         E --> F["orbiscreen-transport"]
-        F -->|"MPEG-TS HTTP /stream"| G["Network / USB"]
+        F -->|"MPEG-TS HTTP /stream fallback"| G["Network / USB"]
         F -->|"UDP Annex-B (udp_port)"| G
+        F -->|"USB AOA Annex-B AUs"| G
         F -->|"mDNS _orbiscreen._tcp."| G
         F -->|"GET /api/info"| G
         F -->|"POST /api/control"| G
@@ -50,9 +51,11 @@ graph TD
         G -->|"NSD discovery + token"| H["Android DiscoveryService"]
         H -->|"onConnect"| J["StreamViewModel"]
         J -->|"UDP when advertised"| U["UdpPlayer + MediaCodec"]
-        J -->|"HTTP fallback"| K["OkHttpDataSource"]
+        J -->|"USB AOA native video"| USB["UsbPlayer + MediaCodec"]
+        J -->|"HTTP MPEG-TS fallback"| K["OkHttpDataSource"]
         K -->|"MPEG-TS + Bearer token"| L["ExoPlayer + MediaCodec"]
         U -->|"Touch"| N["InputDispatcher"]
+        USB -->|"Touch"| N
         L -->|"Touch"| N
         N -->|"POST /input + Bearer token"| F
         J -->|"POST /api/session + /api/control"| F
@@ -89,7 +92,8 @@ com.orbiscreen.android/
 │   ├── WifiGatewayProvider.kt     # Reads WifiManager.dhcpInfo.gateway
 │   └── DiscoveryModel.kt          # HostSpec regex validator
 ├── player/
-│   ├── PlayerHolder.kt            # ExoPlayer + OkHttpDataSource + DefaultLoadControl + auto-reconnect
+│   ├── PlayerHolder.kt            # UDP / USB Annex-B MediaCodec, ExoPlayer MPEG-TS fallback
+│   ├── UsbPlayer.kt               # AOA FLAG_VIDEO AUs into MediaCodec
 │   └── StreamUrl.kt               # Builds http://host:port/stream (mpegts.js-free MPEG-TS URL + token query)
 ├── input/
 │   └── InputDispatcher.kt         # Absolute-coord pointer / wheel / keyboard / stylus; resiz() re-scales mapping
@@ -139,7 +143,7 @@ Every session generates a random 32-byte base64url token at startup:
 - **Client Bootstrap:** `/client/config.json` serves the session token and display geometry for automatic bootstrap by bundled web and LAN clients.
 - **Remote Client Auth:** Remote browsers connect using URL hash tokens (`http://<host>:8788/#token=<SECRET>`) or query parameters (`?token=<SECRET>`), preventing token leaks in server access logs.
 - **Android Client:** Receives the token securely via mDNS TXT records (`token=...`) or manual entry.
-- **Filesystem Security:** The daemon persists the session token in `~/.config/orbiscreen/stream_token` with strict `0o600` file permissions and `0o700` parent directory permissions.
+- **Filesystem Security:** The daemon persists the session token in `~/.config/orbiscreen/token` and the WebTransport/HTTPS certificate pair in `wt-cert.pem` / `wt-key.pem`, all with `0o600` file permissions and `0o700` parent directory permissions. The certificate is reused across restarts so the browser exception stays valid.
 - **Endpoint Protection:** Required on `POST /input`, `GET /stream` and `POST /api/control` via `Authorization: Bearer <token>` header or a `?token=` query parameter (compared constant-time).
 - `/health` and `/api/info` remain open so discovery and health checks work without credentials.
 

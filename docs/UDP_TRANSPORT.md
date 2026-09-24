@@ -16,9 +16,9 @@
 
 ---
 
-Android streams H.264 access units over UDP. The web client uses WebTransport Annex-B (`signaling_port + 2`, advertised as `wt_port`) and WebCodecs `VideoDecoder`. HTTP MPEG-TS on `/stream` stays as the Android USB/AOA fallback. How I/P/IDR frames are split between datagrams and the reliable stream, and what happens on loss, is in [FRAME_TRANSPORT.md](FRAME_TRANSPORT.md).
+Android streams H.264 access units over UDP. The web client uses WebTransport Annex-B (`signaling_port + 2`, advertised as `wt_port`) and WebCodecs `VideoDecoder`. USB/AOA sends the same Annex-B access units on accessory bulk frames into MediaCodec; HTTP MPEG-TS on `/stream` is only the USB fallback. How I/P/IDR frames are split between datagrams, the reliable stream, and USB, and what happens on loss, is in [FRAME_TRANSPORT.md](FRAME_TRANSPORT.md).
 
-The daemon advertises `udp_port` on `GET /api/info` (`signaling_port + 1`, default **8789**) and `wt_port` (`signaling_port + 2`, default **8790**) plus `cert_sha256` for WebTransport `serverCertificateHashes`. Android uses UDP when that port is set and the host is not `127.0.0.1` / `localhost`. USB/AOA cannot carry raw UDP (`adb reverse` is TCP-only), so those paths stay on HTTP. The web client always uses WebTransport from the HTTPS UI on `wt_port` (same self-signed cert as the QUIC endpoint). Video is sent as QUIC datagrams so a late frame can be dropped; a lost fragment waits for the next IDR. HTTP `/` and `/client/` redirect there. Android keeps using HTTP on the signaling port.
+The daemon advertises `udp_port` on `GET /api/info` (`signaling_port + 1`, default **8789**) and `wt_port` (`signaling_port + 2`, default **8790**) plus `cert_sha256` for WebTransport `serverCertificateHashes`. Android uses UDP when that port is set and the host is not `127.0.0.1` / `localhost`. USB/AOA is not an IP path and does not use `adb reverse`; native video uses AOA `FLAG_VIDEO` frames (same `encode_video` AUs as `/au`) and keeps HTTP on the accessory TCP proxy for session, input, and IDR. The web client always uses WebTransport from the HTTPS UI on `wt_port` (same self-signed cert as the QUIC endpoint). Video is sent as QUIC datagrams so a late frame can be dropped; a lost fragment waits for the next IDR. HTTP `/` and `/client/` redirect there. Android Wi-Fi keeps using HTTP on the signaling port.
 
 ## Session
 

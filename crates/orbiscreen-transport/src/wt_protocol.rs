@@ -138,7 +138,7 @@ pub fn parse_video_datagram(buf: &[u8]) -> Option<VideoDatagram> {
         return None;
     }
     Some(VideoDatagram {
-        is_keyframe: buf[1] != 0,
+        is_keyframe: buf[1] & 1 != 0,
         seq: u16::from_le_bytes([buf[2], buf[3]]),
         frag: u16::from_le_bytes([buf[4], buf[5]]),
         frags: u16::from_le_bytes([buf[6], buf[7]]),
@@ -161,36 +161,14 @@ pub fn fragment_video_datagrams(
     if pkt.bytes.is_empty() {
         return Vec::new();
     }
-    let shards = super::fec::shard_au(&pkt.bytes, datagram_payload_size(max_datagram));
-    let frags = shards.data.len() as u16;
-    let mut out: Vec<Vec<u8>> = shards
-        .data
-        .iter()
-        .enumerate()
-        .map(|(i, part)| {
-            encode_video_datagram(
-                seq,
-                i as u16,
-                frags,
-                pkt.is_keyframe,
-                pkt.pts_ns,
-                sent_ns,
-                part,
-            )
-        })
-        .collect();
-    for (i, par) in shards.parity.iter().enumerate() {
-        out.push(encode_video_datagram(
-            seq,
-            frags + i as u16,
-            frags,
-            pkt.is_keyframe,
-            pkt.pts_ns,
-            sent_ns,
-            par,
-        ));
-    }
-    out
+    crate::udp_stream::encode_block_packets(
+        pkt,
+        datagram_payload_size(max_datagram),
+        1,
+        |frag, frags, key, payload| {
+            encode_video_datagram(seq, frag, frags, key, pkt.pts_ns, sent_ns, payload)
+        },
+    )
 }
 
 pub fn seq_delta(cur: u16, prev: u16) -> u16 {
