@@ -3,6 +3,11 @@
 
 use std::sync::OnceLock;
 
+/// Largest data-shard count whose Cauchy columns stay inside GF(256)
+/// when four parity rows occupy field elements 0..3.
+pub const MAX_FEC_DATA_SHARDS: usize = 252;
+pub const FEC_BLOCK_FLAG: u8 = 0x02;
+
 pub fn parity_count(k: usize) -> usize {
     match k {
         0..=3 => 0,
@@ -22,6 +27,72 @@ pub struct Protect {
 pub struct Shards {
     pub data: Vec<Vec<u8>>,
     pub parity: Vec<Vec<u8>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FecBlock {
+    pub index: u8,
+    pub count: u8,
+    pub shards: Shards,
+}
+
+pub fn shard_count(au_len: usize, chunk: usize) -> usize {
+    if au_len == 0 || chunk == 0 {
+        return 0;
+    }
+    let k0 = au_len.div_ceil(chunk);
+    if parity_count(k0) == 0 {
+        k0
+    } else {
+        (4 + au_len).div_ceil(chunk)
+    }
+}
+
+pub fn shard_au_blocks(au: &[u8], chunk: usize) -> Vec<FecBlock> {
+    let chunk = chunk.max(1);
+    if au.is_empty() {
+        return Vec::new();
+    }
+    if shard_count(au.len(), chunk) <= MAX_FEC_DATA_SHARDS {
+        return vec![FecBlock {
+            index: 0,
+            count: 1,
+            shards: shard_au(au, chunk),
+        }];
+    }
+    let inner = chunk.saturating_sub(2).max(1);
+    let max_slice = (MAX_FEC_DATA_SHARDS * inner).saturating_sub(4).max(1);
+    let mut slices = Vec::new();
+    let mut off = 0;
+    while off < au.len() {
+        let mut n = (au.len() - off).min(max_slice);
+        while n > 1 && shard_count(n, inner) > MAX_FEC_DATA_SHARDS {
+            n -= 1;
+        }
+        slices.push(shard_au(&au[off..off + n], inner));
+        off += n;
+    }
+    let count = u8::try_from(slices.len()).unwrap_or(u8::MAX);
+    slices
+        .into_iter()
+        .enumerate()
+        .map(|(index, shards)| FecBlock {
+            index: index as u8,
+            count,
+            shards,
+        })
+        .collect()
+}
+
+pub fn block_payload(index: u8, count: u8, body: &[u8]) -> Vec<u8> {
+    if count <= 1 {
+        return body.to_vec();
+    }
+    let mut out = Vec::with_capacity(2 + body.len());
+    out.push(index);
+    out.push(count);
+    out.extend_from_slice(body);
+    out
 }
 
 pub fn shard_au(au: &[u8], chunk: usize) -> Shards {
@@ -62,10 +133,10 @@ pub fn protect(parts: &[Vec<u8>]) -> Protect {
             v
         })
         .collect();
-    let parity = if m == 0 || width == 0 {
+    let parity = if m == 0 || width == 0 || k > MAX_FEC_DATA_SHARDS {
         Vec::new()
     } else {
-        encode(&data, m)
+        encode(&data, m).unwrap_or_default()
     };
 
     for (i, p) in parts.iter().enumerate() {
@@ -83,7 +154,7 @@ pub fn recover(data: &mut [Option<Vec<u8>>], parity: &[Option<Vec<u8>>]) -> bool
         return true;
     }
     let m = parity.len();
-    if m == 0 || parity_count(k) == 0 {
+    if m == 0 || parity_count(k) == 0 || k > MAX_FEC_DATA_SHARDS {
         return false;
     }
     let width = data
@@ -131,7 +202,10 @@ pub fn recover(data: &mut [Option<Vec<u8>>], parity: &[Option<Vec<u8>>]) -> bool
             let mut s = rec[byte];
             for d in 0..k {
                 if data[d].is_some() {
-                    s ^= gf_mul(cauchy(p, d, m), known[d][byte]);
+                    let Some(coeff) = cauchy(p, d, m) else {
+                        return false;
+                    };
+                    s ^= gf_mul(coeff, known[d][byte]);
                 }
             }
             rhs[row][byte] = s;
@@ -141,7 +215,10 @@ pub fn recover(data: &mut [Option<Vec<u8>>], parity: &[Option<Vec<u8>>]) -> bool
     let mut a = vec![vec![0u8; miss_n]; miss_n];
     for (row, &p) in used_p.iter().enumerate() {
         for (col, &d) in missing.iter().enumerate() {
-            a[row][col] = cauchy(p, d, m);
+            let Some(coeff) = cauchy(p, d, m) else {
+                return false;
+            };
+            a[row][col] = coeff;
         }
     }
     let Some(inv) = invert(&a) else {
@@ -182,7 +259,7 @@ pub fn concat_fec_au(parts: &[Vec<u8>]) -> Option<Vec<u8>> {
 }
 
 #[allow(clippy::needless_range_loop)]
-fn encode(data: &[Vec<u8>], m: usize) -> Vec<Vec<u8>> {
+fn encode(data: &[Vec<u8>], m: usize) -> Option<Vec<Vec<u8>>> {
     let k = data.len();
     let width = data[0].len();
     let mut parity = vec![vec![0u8; width]; m];
@@ -190,16 +267,24 @@ fn encode(data: &[Vec<u8>], m: usize) -> Vec<Vec<u8>> {
         for byte in 0..width {
             let mut s = 0u8;
             for d in 0..k {
-                s ^= gf_mul(cauchy(p, d, m), data[d][byte]);
+                s ^= gf_mul(cauchy(p, d, m)?, data[d][byte]);
             }
             parity[p][byte] = s;
         }
     }
-    parity
+    Some(parity)
 }
 
-fn cauchy(p: usize, d: usize, m: usize) -> u8 {
-    gf_inv((p as u8) ^ ((m + d) as u8))
+fn cauchy(p: usize, d: usize, m: usize) -> Option<u8> {
+    let y = m.checked_add(d)?;
+    if y > u8::MAX as usize {
+        return None;
+    }
+    let denom = (p as u8) ^ (y as u8);
+    if denom == 0 {
+        return None;
+    }
+    Some(gf_inv(denom))
 }
 
 struct Gf {
@@ -238,7 +323,6 @@ fn gf_mul(a: u8, b: u8) -> u8 {
 }
 
 fn gf_inv(a: u8) -> u8 {
-    debug_assert!(a != 0);
     let t = gf();
     t.exp[255 - t.log[a as usize] as usize]
 }
@@ -392,6 +476,56 @@ mod tests {
         assert!(recover(&mut data, &parity));
         let parts: Vec<Vec<u8>> = data.into_iter().map(|p| p.unwrap()).collect();
         assert_eq!(concat_fec_au(&parts).unwrap(), au);
+    }
+
+    #[test]
+    fn two_hundred_fifty_two_data_shards_recover_two_erasures() {
+        let src = parts(252, 4, 11);
+        let prot = protect(&src);
+        assert_eq!(prot.data.len(), 252);
+        assert_eq!(prot.parity.len(), 4);
+        let mut data: Vec<Option<Vec<u8>>> = prot.data.into_iter().map(Some).collect();
+        let parity: Vec<Option<Vec<u8>>> = prot.parity.into_iter().map(Some).collect();
+        data[1] = None;
+        data[250] = None;
+        assert!(recover(&mut data, &parity));
+        for (i, src_i) in src.iter().enumerate() {
+            assert_eq!(data[i].as_ref().unwrap(), src_i);
+        }
+    }
+
+    #[test]
+    fn more_than_252_data_shards_split_and_still_recover() {
+        let chunk = 8usize;
+        let au = vec![7u8; 2013];
+        let blocks = shard_au_blocks(&au, chunk);
+        assert!(blocks.len() > 1);
+        assert!(blocks
+            .iter()
+            .all(|block| block.shards.data.len() <= MAX_FEC_DATA_SHARDS));
+        assert!(blocks
+            .iter()
+            .all(|block| block.count as usize == blocks.len()));
+
+        let mut pieces = Vec::new();
+        for block in &blocks {
+            let mut data: Vec<Option<Vec<u8>>> =
+                block.shards.data.iter().cloned().map(Some).collect();
+            let parity: Vec<Option<Vec<u8>>> =
+                block.shards.parity.iter().cloned().map(Some).collect();
+            if block.index == 0 && !parity.is_empty() {
+                data[0] = None;
+                assert!(recover(&mut data, &parity));
+            }
+            let parts: Vec<Vec<u8>> = data.into_iter().map(|part| part.unwrap()).collect();
+            let slice = if block.shards.parity.is_empty() {
+                parts.into_iter().flatten().collect()
+            } else {
+                concat_fec_au(&parts).unwrap()
+            };
+            pieces.extend(slice);
+        }
+        assert_eq!(pieces, au);
     }
 
     #[test]

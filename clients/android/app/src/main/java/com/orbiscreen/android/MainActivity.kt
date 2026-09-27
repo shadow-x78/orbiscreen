@@ -58,6 +58,8 @@ class MainActivity : ComponentActivity() {
                     val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
                     if (granted && targetAccessory != null) {
                         UsbAccessoryManager.startAccessory(context, targetAccessory)
+                    } else if (!granted) {
+                        UsbAccessoryManager.onPermissionDenied()
                     }
                 }
             }
@@ -141,6 +143,7 @@ private fun App(prefs: PrefsStore) {
     var startupUpdate by remember { mutableStateOf<ReleaseInfo?>(null) }
 
     LaunchedEffect(Unit) {
+        if (BuildConfig.DEBUG) return@LaunchedEffect
         delay(1200)
         val release = try {
             UpdateManager(context).checkForUpdates()

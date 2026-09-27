@@ -305,7 +305,7 @@ private fun UsbHeroCard(usbPort: Int, onConnect: (String, Int) -> Unit) {
             if (isReady) {
                 readyResult?.let { onConnect(it.host, it.port) }
             } else {
-                com.orbiscreen.android.usb.UsbAccessoryManager.init(context)
+                com.orbiscreen.android.usb.UsbAccessoryManager.init(context, forcePermission = true)
             }
         },
         modifier = Modifier.fillMaxWidth(),

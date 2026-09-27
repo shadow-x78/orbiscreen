@@ -385,16 +385,96 @@
 
     function parseVideoDatagram(buf) {
         if (!buf || buf.length < DATAGRAM_HEADER || buf[0] !== TYPE_VIDEO) return null;
+        const flags = buf[1];
+        let payload = buf.subarray(DATAGRAM_HEADER);
+        let blockIndex = 0;
+        let blockCount = 1;
+        if ((flags & 2) !== 0) {
+            if (payload.length < 2) return null;
+            blockIndex = payload[0];
+            blockCount = payload[1];
+            if (blockCount === 0 || blockIndex >= blockCount) return null;
+            payload = payload.subarray(2);
+        }
         return {
             type: "video",
-            key: buf[1] !== 0,
+            key: (flags & 1) !== 0,
             seq: readU16le(buf, 2),
             frag: readU16le(buf, 4),
             frags: readU16le(buf, 6),
             ptsNs: readU64le(buf, 8),
             sentNs: readU64le(buf, 16),
-            payload: buf.subarray(24),
+            payload,
+            blockIndex,
+            blockCount,
         };
+    }
+
+    function encodeBlockedDatagram(seq, frag, frags, key, ptsNs, sentNs, payload, blockIndex, blockCount) {
+        const split = blockCount > 1;
+        let body = payload;
+        if (split) {
+            body = new Uint8Array(2 + payload.length);
+            body[0] = blockIndex;
+            body[1] = blockCount;
+            body.set(payload, 2);
+        }
+        const out = encodeVideoDatagram(seq, frag, frags, key, ptsNs, sentNs, body);
+        if (split) out[1] |= 2;
+        return out;
+    }
+
+    function shardCount(auLen, chunk) {
+        if (auLen <= 0 || chunk <= 0) return 0;
+        const k0 = Math.ceil(auLen / chunk);
+        return parityCount(k0) === 0 ? k0 : Math.ceil((4 + auLen) / chunk);
+    }
+
+    function shardOne(au, chunk) {
+        const k0 = au.length === 0 ? 0 : Math.ceil(au.length / chunk);
+        if (parityCount(k0) === 0) {
+            const data = [];
+            for (let off = 0; off < au.length; off += chunk) data.push(au.subarray(off, Math.min(au.length, off + chunk)));
+            return { data, parity: [] };
+        }
+        const blob = new Uint8Array(4 + au.length);
+        blob[0] = au.length & 255;
+        blob[1] = (au.length >>> 8) & 255;
+        blob[2] = (au.length >>> 16) & 255;
+        blob[3] = (au.length >>> 24) & 255;
+        blob.set(au, 4);
+        const data = [];
+        for (let off = 0; off < blob.length; off += chunk) {
+            data.push(blob.subarray(off, Math.min(blob.length, off + chunk)));
+        }
+        const padded = data.map((part) => {
+            const row = new Uint8Array(chunk);
+            row.set(part);
+            return row;
+        });
+        return { data, parity: encodeFec(padded, parityCount(data.length)) };
+    }
+
+    function shardAuBlocks(au, chunk) {
+        const size = Math.max(1, chunk);
+        if (!au.length) return [];
+        if (shardCount(au.length, size) <= 252) {
+            const one = shardOne(au, size);
+            return [{ index: 0, count: 1, data: one.data, parity: one.parity }];
+        }
+        const inner = Math.max(1, size - 2);
+        const maxSlice = Math.max(1, 252 * inner - 4);
+        const slices = [];
+        for (let off = 0; off < au.length;) {
+            let n = Math.min(maxSlice, au.length - off);
+            while (n > 1 && shardCount(n, inner) > 252) n -= 1;
+            slices.push(au.subarray(off, off + n));
+            off += n;
+        }
+        return slices.map((slice, index) => {
+            const one = shardOne(slice, inner);
+            return { index, count: slices.length, data: one.data, parity: one.parity };
+        });
     }
 
     function encodeVideoDatagram(seq, frag, frags, key, ptsNs, sentNs, payload) {
@@ -446,7 +526,9 @@
         return GF.exp[255 - GF.log[a]];
     }
     function cauchy(p, d, m) {
-        return gfInv(p ^ (m + d));
+        const denom = (p ^ ((m + d) & 255)) & 255;
+        if (denom === 0) return 0;
+        return gfInv(denom);
     }
 
     function invertMatrix(a) {
@@ -480,6 +562,7 @@
 
     function recoverFec(data, parity) {
         const k = data.length;
+        if (k > 252) return false;
         if (data.every((d) => d)) return true;
         const m = parity.length;
         if (!m) return false;
@@ -578,6 +661,7 @@
     class DatagramAssembler {
         constructor() {
             this.pending = new Map();
+            this.partial = new Map();
             this.held = new Map();
             this.lastSeq = -1;
             this.holeSince = 0;
@@ -601,7 +685,10 @@
                     }
                 }
             }
-            let slots = this.pending.get(frag.seq);
+            const blockIndex = frag.blockIndex || 0;
+            const blockCount = frag.blockCount || 1;
+            const slotKey = frag.seq + blockIndex * 65536;
+            let slots = this.pending.get(slotKey);
             const isParity = frag.frag >= frag.frags;
             if (!slots || slots.frags !== frag.frags) {
                 if (isParity) return this.expire(t);
@@ -613,7 +700,7 @@
                     parts: Array.from({ length: frag.frags }, () => null),
                     parity: Array.from({ length: m }, () => null),
                 };
-                this.pending.set(frag.seq, slots);
+                this.pending.set(slotKey, slots);
             }
             if (isParity) slots.parity[frag.frag - frag.frags] = frag.payload;
             else slots.parts[frag.frag] = frag.payload;
@@ -626,10 +713,31 @@
                 if (!recoverFec(data, slots.parity)) return this.expire(t);
                 slots.parts = data;
             }
-            this.pending.delete(frag.seq);
+            this.pending.delete(slotKey);
             const au = m > 0 ? concatFecAu(slots.parts) : concatBytes(slots.parts);
             if (!au) return this.expire(t);
-            slots.parts = [au];
+            let frameAu = au;
+            if (blockCount > 1) {
+                let acc = this.partial.get(frag.seq);
+                if (!acc || acc.count !== blockCount) {
+                    acc = {
+                        count: blockCount,
+                        parts: Array(blockCount).fill(null),
+                        key: slots.key,
+                        ptsNs: slots.ptsNs,
+                        sentNs: slots.sentNs,
+                    };
+                    this.partial.set(frag.seq, acc);
+                }
+                acc.parts[blockIndex] = au;
+                acc.key = slots.key;
+                if (acc.parts.some((part) => part == null)) return this.expire(t);
+                this.partial.delete(frag.seq);
+                frameAu = concatBytes(acc.parts);
+                slots.key = acc.key;
+                slots.ptsNs = acc.ptsNs;
+                slots.sentNs = acc.sentNs;
+            }
             const expired = this.expire(t);
             return expired.concat(this.accept({
                 type: "video",
@@ -637,7 +745,7 @@
                 key: slots.key,
                 ptsNs: slots.ptsNs,
                 sentNs: slots.sentNs,
-                au,
+                au: frameAu,
             }, t));
         }
         accept(frame, now) {
@@ -732,7 +840,8 @@
         unescapeRbsp, classifyAccessUnit, sliceKind,
         encodeFrame, splitFrame, encodeHello, encodeCtrl, encodePing, decodeMessage,
         hashFromBase64, pickWtHost, FrameReader,
-        parseVideoDatagram, encodeVideoDatagram, DatagramAssembler, seqDelta, DATAGRAM_HEADER,
+        parseVideoDatagram, encodeVideoDatagram, encodeBlockedDatagram, shardAuBlocks,
+        DatagramAssembler, seqDelta, DATAGRAM_HEADER,
         HOLE_WAIT_MS, parityCount, recoverFec, concatFecAu, encodeFec,
     };
 }));

@@ -64,6 +64,7 @@ private data class StreamTarget(
     val port: Int,
     val tokenProvider: suspend () -> String,
     val session: com.orbiscreen.android.net.HostApi.SessionInfo? = null,
+    val udp: UdpVideoTarget? = null,
 )
 
 @OptIn(UnstableApi::class)
@@ -80,6 +81,8 @@ class PlayerHolder(
     val player: StateFlow<ExoPlayer?> get() = _player
     private val _udp = MutableStateFlow<UdpPlayer?>(null)
     val udpPlayer: StateFlow<UdpPlayer?> get() = _udp
+    private val _usb = MutableStateFlow<UsbPlayer?>(null)
+    val usbPlayer: StateFlow<UsbPlayer?> get() = _usb
     val stats = StreamStats()
 
     private var reconnectJob: Job? = null
@@ -96,10 +99,14 @@ class PlayerHolder(
     private var isBackgrounded: Boolean = false
 
     fun requestIdr() {
-        val target = lastTarget ?: return
         val now = android.os.SystemClock.elapsedRealtime()
         if (now - lastIdrAtMs.get() < 1_500L) return
         lastIdrAtMs.set(now)
+        postIdr()
+    }
+
+    private fun postIdr() {
+        val target = lastTarget ?: return
         scope.launch(Dispatchers.IO) {
             try {
                 val token = target.tokenProvider()
@@ -134,12 +141,14 @@ class PlayerHolder(
         port: Int,
         session: com.orbiscreen.android.net.HostApi.SessionInfo? = null,
         tokenProvider: suspend () -> String = { "" },
+        udp: UdpVideoTarget? = null,
     ): ExoPlayer? = buildInternal(
         host,
         port,
         tokenProvider,
         fromReconnect = false,
         session = session,
+        udp = udp,
     )
 
     private suspend fun buildInternal(
@@ -148,6 +157,7 @@ class PlayerHolder(
         tokenProvider: suspend () -> String,
         fromReconnect: Boolean,
         session: com.orbiscreen.android.net.HostApi.SessionInfo? = null,
+        udp: UdpVideoTarget? = null,
     ): ExoPlayer? {
         releaseInternal()
         if (!fromReconnect) {
@@ -156,7 +166,7 @@ class PlayerHolder(
             reconnectDelayMs = 1_000L
             retryCount = 0
         }
-        lastTarget = StreamTarget(host, port, tokenProvider, session)
+        lastTarget = StreamTarget(host, port, tokenProvider, session, udp)
         stats.reset()
 
         val token = try {
@@ -186,22 +196,75 @@ class PlayerHolder(
         } catch (_: Exception) {
             null
         }
-        val udpPort = session?.udpPort ?: info?.udpPort ?: 0
         val streamW = session?.width ?: info?.width ?: 1920
         val streamH = session?.height ?: info?.height ?: 1080
-        if (udpPort in 1..65535 && host != "127.0.0.1" && host != "localhost") {
-            val udp = UdpPlayer(stats)
+        val aoaProxy = com.orbiscreen.android.net.UsbLoopback.isAccessoryProxy(
+            host,
+            port,
+            com.orbiscreen.android.usb.UsbAccessoryManager.isAoaActive,
+            com.orbiscreen.android.usb.UsbAccessoryManager.localProxyPort,
+        )
+        val video = udp?.takeIf { it.usable() }
+        if (video != null) {
+            val udpPlayer = UdpPlayer(stats)
             val started = kotlinx.coroutines.withContext(Dispatchers.IO) {
-                udp.start(host, udpPort, token, streamW, streamH, session?.id, port)
+                udpPlayer.start(video, token, streamW, streamH)
             }
             if (started) {
-                _udp.value = udp
+                _udp.value = udpPlayer
+                _usb.value = null
                 _player.value = null
                 scope.launch {
-                    udp.event.collect { ev -> _event.value = ev }
+                    udpPlayer.event.collect { ev -> _event.value = ev }
                 }
                 return null
             }
+        }
+
+        if (aoaProxy) {
+            if (!com.orbiscreen.android.usb.UsbAccessoryManager.isAoaActive) {
+                com.orbiscreen.android.usb.UsbAccessoryManager.init(context)
+                val deadline = android.os.SystemClock.elapsedRealtime() + 1_500L
+                while (!com.orbiscreen.android.usb.UsbAccessoryManager.isAoaActive &&
+                    android.os.SystemClock.elapsedRealtime() < deadline
+                ) {
+                    kotlinx.coroutines.delay(50)
+                }
+            }
+            val usb = UsbPlayer(stats) { postIdr() }
+            val started = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                val aoa = com.orbiscreen.android.usb.UsbAccessoryManager.isAoaActive
+                val native = if (aoa) {
+                    usb.start(session?.id, streamW, streamH)
+                } else {
+                    false
+                }
+                if (native) {
+                    android.util.Log.i("OrbiPlayer", "USB Annex-B player started kind=Aoa")
+                    true
+                } else if (aoa) {
+                    val http = usb.startHttp(host, port, token, session?.id, streamW, streamH)
+                    if (http) {
+                        android.util.Log.i("OrbiPlayer", "USB Annex-B player started kind=HttpAu")
+                    }
+                    http
+                } else {
+                    android.util.Log.w("OrbiPlayer", "USB accessory not ready")
+                    false
+                }
+            }
+            if (started) {
+                _usb.value = usb
+                _udp.value = null
+                _player.value = null
+                scope.launch {
+                    usb.event.collect { ev -> _event.value = ev }
+                }
+                return null
+            }
+            android.util.Log.w("OrbiPlayer", "USB Annex-B failed; not using MPEG-TS on loopback")
+            _event.value = StreamEvent.Error(-3, "USB Annex-B stream failed")
+            return null
         }
 
         val player = try {
@@ -468,6 +531,7 @@ class PlayerHolder(
                 target.tokenProvider,
                 fromReconnect = true,
                 session = session,
+                udp = target.udp?.takeIf { it.sessionId == session?.id },
             )
         }
     }
@@ -487,6 +551,8 @@ class PlayerHolder(
         bufferingWatchdogJob = null
         _udp.value?.stop()
         _udp.value = null
+        _usb.value?.stop()
+        _usb.value = null
         _player.value?.release()
         _player.value = null
         _event.value = StreamEvent.Idle
@@ -501,7 +567,7 @@ class PlayerHolder(
         val wasBackgrounded = isBackgrounded
         isBackgrounded = false
         if (!wasBackgrounded) return
-        if (_udp.value != null) return
+        if (_udp.value != null || _usb.value != null) return
         val p = _player.value
         if (p != null && p.playbackState != Player.STATE_IDLE && p.playerError == null) {
             p.playWhenReady = true
@@ -515,7 +581,8 @@ class PlayerHolder(
     fun retry(host: String, port: Int, tokenProvider: suspend () -> String = { "" }) {
         scope.launch {
             val session = lastTarget?.session ?: refreshedSession()
-            build(host, port, session, tokenProvider)
+            val udp = lastTarget?.udp?.takeIf { it.sessionId == session?.id }
+            build(host, port, session, tokenProvider, udp)
         }
     }
 

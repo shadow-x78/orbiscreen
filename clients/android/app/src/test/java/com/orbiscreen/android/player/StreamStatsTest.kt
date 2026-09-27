@@ -117,4 +117,25 @@ class StreamStatsTest {
         assertTrue(StreamStats.formatRate(12_000).contains("KB"))
         assertTrue(StreamStats.formatRate(2_500_000).contains("MB"))
     }
+
+    @Test
+    fun toolbarDelayUsesFixedWidthForOneAndTwoDigitAges() {
+        val one = StreamStats.formatToolbarDelay(2)
+        val two = StreamStats.formatToolbarDelay(10)
+        val three = StreamStats.formatToolbarDelay(123)
+        val missing = StreamStats.formatToolbarDelay(null)
+        assertEquals(one.length, two.length)
+        assertEquals(one.length, three.length)
+        assertEquals(one.length, missing.length)
+        assertTrue(one.contains("2"))
+        assertTrue(two.contains("10"))
+        assertTrue(one.startsWith("delay"))
+        assertTrue(one.endsWith("ms"))
+    }
+
+    @Test
+    fun toolbarDelayCapsAtFourDigits() {
+        assertEquals(StreamStats.formatToolbarDelay(2).length, StreamStats.formatToolbarDelay(12_345).length)
+        assertTrue(StreamStats.formatToolbarDelay(12_345).contains("9999"))
+    }
 }

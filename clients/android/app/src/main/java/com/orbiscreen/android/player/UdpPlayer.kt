@@ -49,7 +49,7 @@ enum class HandshakeAction { Ack, Control, Ignore }
 
 class UdpPlayer(
     val stats: StreamStats = StreamStats(),
-) {
+) : SurfaceTarget {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _event = MutableStateFlow<StreamEvent>(StreamEvent.Idle)
     val event: StateFlow<StreamEvent> get() = _event
@@ -83,7 +83,7 @@ class UdpPlayer(
     var width: Int = 1920
     var height: Int = 1080
 
-    fun attachSurface(s: Surface) {
+    override fun attachSurface(s: Surface) {
         val same = surface == s && configured && codec != null
         surface = s
         if (same) return
@@ -92,32 +92,25 @@ class UdpPlayer(
         requestIdr()
     }
 
-    fun detachSurface() {
+    override fun detachSurface() {
         surface = null
         releaseCodec()
     }
 
     private var sessionId: String? = null
+    private var crypto: UdpSessionCrypto? = null
 
-    fun start(
-        host: String,
-        port: Int,
-        token: String,
-        width: Int,
-        height: Int,
-        session: String? = null,
-        httpPort: Int = 0,
-    ): Boolean {
-        
-        
+    fun start(target: UdpVideoTarget, httpToken: String, width: Int, height: Int): Boolean {
+        if (!target.usable()) return false
         stop(sendBye = false)
         this.width = width
         this.height = height
-        this.sessionId = session
+        this.sessionId = target.sessionId
+        this.crypto = UdpSessionCrypto(target.keyId, target.secret, UdpCrypto.DIR_CLIENT)
         return try {
-            val addr = InetAddress.getByName(host)
+            val addr = InetAddress.getByName(target.host)
             hostAddr = addr
-            hostPort = port
+            hostPort = target.port
             val sock = DatagramSocket()
             sock.receiveBufferSize = 1024 * 1024
             sock.sendBufferSize = 1024 * 1024
@@ -125,8 +118,8 @@ class UdpPlayer(
             socket = sock
             running = true
             stats.reset()
-            _event.value = StreamEvent.Connecting(Uri.parse("udp://$host:$port"))
-            sendRaw(encodeHello(token, session))
+            _event.value = StreamEvent.Connecting(Uri.parse("udp://${target.host}:${target.port}"))
+            sendPlain(UdpCrypto.helloPlain(target.keyId, target.sessionId))
             val buf = ByteArray(RECV_BUF)
             val pkt = DatagramPacket(buf, buf.size)
             val deadline = System.currentTimeMillis() + HELLO_WINDOW_MS
@@ -136,12 +129,13 @@ class UdpPlayer(
                     prepareReceive(pkt, buf)
                     sock.receive(pkt)
                     val data = buf.copyOf(pkt.length)
-                    when (handshakeAction(data)) {
+                    val plain = crypto?.openPeer(data) ?: continue
+                    when (handshakeAction(plain)) {
                         HandshakeAction.Ack -> {
                             acked = true
                             lastHeardMs.set(System.currentTimeMillis())
                         }
-                        HandshakeAction.Control -> handle(data)
+                        HandshakeAction.Control -> handle(plain, data.size)
                         HandshakeAction.Ignore -> {}
                     }
                 } catch (_: SocketTimeoutException) {
@@ -157,10 +151,10 @@ class UdpPlayer(
             recvJob = scope.launch { recvLoop() }
             pingJob = scope.launch { pingLoop() }
             watchdogJob = scope.launch { watchdogLoop() }
-            val idrPort = if (httpPort in 1..65535) httpPort else (port - 1).coerceAtLeast(1)
-            idrJob = scope.launch { readIdrStream(host, idrPort, token, session) }
+            val idrPort = if (target.httpPort in 1..65535) target.httpPort else (target.port - 1).coerceAtLeast(1)
+            idrJob = scope.launch { readIdrStream(target.httpHost, idrPort, httpToken, target.sessionId) }
             _event.value = StreamEvent.Buffering
-            Log.i(TAG, "UDP session up $host:$port idr=:$idrPort/idr")
+            Log.i(TAG, "UDP session up ${target.host}:${target.port} idr=:$idrPort/idr")
             true
         } catch (e: Exception) {
             Log.w(TAG, "UDP start failed: ${e.message}")
@@ -191,8 +185,9 @@ class UdpPlayer(
         idrJob = null
         idrCall = null
         if (wasRunning && sendBye) {
-            try { sendRaw(encodeBye(sessionId)) } catch (_: Exception) {}
+            try { sendPlain(encodeBye(sessionId)) } catch (_: Exception) {}
         }
+        crypto = null
         try { socket?.close() } catch (_: Exception) {}
         socket = null
         sessionId = null
@@ -229,7 +224,7 @@ class UdpPlayer(
 
     private suspend fun pingLoop() {
         while (scope.isActive && running) {
-            sendRaw(encodePing(System.currentTimeMillis() * 1_000_000L))
+            sendPlain(encodePing(System.currentTimeMillis() * 1_000_000L))
             delay(500)
         }
     }
@@ -241,7 +236,7 @@ class UdpPlayer(
             try {
                 prepareReceive(pkt, buf)
                 socket?.receive(pkt) ?: break
-                handle(buf.copyOf(pkt.length))
+                handleDatagram(buf.copyOf(pkt.length))
             } catch (_: SocketTimeoutException) {
                 applyReorder(reorder.expire(System.currentTimeMillis()))
             } catch (e: Exception) {
@@ -252,12 +247,17 @@ class UdpPlayer(
         if (running) fail("UDP socket closed")
     }
 
-    private fun handle(data: ByteArray) {
+    private fun handleDatagram(data: ByteArray) {
+        val plain = crypto?.openPeer(data) ?: return
+        handle(plain, data.size)
+    }
+
+    private fun handle(data: ByteArray, wireSize: Int = data.size) {
         if (data.size < 5 || data[0] != 'O'.code.toByte() || data[1] != 'R'.code.toByte()
             || data[2] != 'B'.code.toByte() || data[3] != '1'.code.toByte()
         ) return
         lastHeardMs.set(System.currentTimeMillis())
-        stats.noteBytes(data.size.toLong())
+        stats.noteBytes(wireSize.toLong())
         when (data[4]) {
             TYPE_VIDEO -> handleVideo(data)
             TYPE_PONG -> {
@@ -274,10 +274,10 @@ class UdpPlayer(
                 stats.clockOffsetNs = clockOffsetNs
             }
             TYPE_PROBE -> {
-                if (data.size < 7) return
+                val recv = UdpInbound.probeAckRecv(wireSize, data) ?: return
                 val id = le16(data, 5)
-                Log.i(TAG, "PMTU probe id=$id size=${data.size}")
-                sendRaw(encodeProbeAck(id, data.size))
+                Log.i(TAG, "PMTU probe id=$id size=$recv")
+                sendPlain(encodeProbeAck(id, recv))
             }
             TYPE_PMTU -> {
                 if (data.size < 7) return
@@ -297,14 +297,17 @@ class UdpPlayer(
 
     private fun handleVideo(data: ByteArray) {
         if (data.size < 28) return
-        val key = data[5].toInt() != 0
+        val flags = data[5].toInt() and 0xff
+        val key = flags and 1 != 0
         val seq = le16(data, 6)
         val frag = le16(data, 8)
         val frags = le16(data, 10)
         val sentNs = le64(data, 20)
-        val payload = data.copyOfRange(28, data.size)
+        val block = Fec.viewBlock(flags, data.copyOfRange(28, data.size)) ?: return
         dropStale(seq)
-        val done = pending.offer(seq, frag, frags, key, sentNs, payload) ?: return
+        val done = pending.offer(
+            seq, frag, frags, key, sentNs, block.body, block.index, block.count,
+        ) ?: return
         val nowMs = System.currentTimeMillis()
         applyReorder(
             reorder.expire(nowMs) +
@@ -547,7 +550,12 @@ class UdpPlayer(
         val now = System.currentTimeMillis()
         if (!Idr.due(now, lastIdr.get())) return
         lastIdr.set(now)
-        sendRaw(encodeCtrl(TYPE_IDR))
+        sendPlain(encodeCtrl(TYPE_IDR))
+    }
+
+    private fun sendPlain(bytes: ByteArray) {
+        val sealed = crypto?.sealNext(bytes) ?: return
+        sendRaw(sealed)
     }
 
     private fun sendRaw(bytes: ByteArray) {

@@ -42,6 +42,7 @@ wtransport = { version = "0.7.2", features = ["self-signed"] }
 quinn-proto = "=0.11.16"
 axum-server = { version = "0.7", default-features = false, features = ["tls-rustls-no-provider"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+ring = "0.17.14"
 
 [package.metadata.cargo-machete]
 ignored = ["quinn-proto"]

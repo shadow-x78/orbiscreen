@@ -110,7 +110,7 @@ Clients obtain the token in two ways:
 
 **Threat model:** anyone who can reach the HTTP port can read `/client/config.json` and therefore learn the token. The token is therefore **abuse protection against casual/unintended use** (scanners, wrong-device connections, neighbors probing the port), **not** protection against a determined attacker on your LAN. It stops nothing from an attacker who already has network access to the port, and it is transmitted in cleartext.
 
-- **TLS is planned** for a future release; until then the session token rides over plain HTTP. The USB transport (`adb reverse`) keeps the stream entirely inside the USB cable - no LAN exposure at all on that path - and the token is still required.
+- **TLS is planned** for a future release; until then the session token rides over plain HTTP. The USB transport (Android Open Accessory bulk) keeps the stream entirely inside the USB cable — no LAN exposure at all on that path — and the token is still required.
 - The Android client's `network_security_config.xml` therefore permits cleartext HTTP globally. This is deliberate: the app only ever connects to LAN hosts the user selects (mDNS discovery or manual entry), and Android's per-domain cleartext exceptions cannot express arbitrary LAN IP addresses. All requests still require the per-session token.
 - The token is regenerated on every daemon start, so restarting the daemon invalidates all previously issued tokens.
 - `/health`, `/api/info`, `/client/config.json`, `/client/*` stay public by design (liveness, metadata, web-client bootstrap).
@@ -123,7 +123,7 @@ Run `orbiscreen start --no-mdns` to stop advertising the host (and the token TXT
 |------|------|------------|
 | `uinput` injection | Any process holding the virtual touchscreen can inject arbitrary input | The daemon opens the uinput device exclusively; restrict `/dev/uinput` permissions on the host |
 | Screen capture | Frames contain everything rendered to the captured display | With evdi/KWin/wlroots virtual outputs capture targets a dedicated output; portal/X11 fallbacks capture the *primary* desktop (see `GetStatus.capture_backend`) |
-| Cleartext HTTP `/stream` | A LAN attacker who knows the token can view the desktop stream | Binds on `0.0.0.0` by default so Android/web clients can connect on the LAN; access requires the per-session token; use `adb reverse` and firewall the port on untrusted networks |
+| Cleartext HTTP `/stream` | A LAN attacker who knows the token can view the desktop stream | Binds on `0.0.0.0` by default so Android/web clients can connect on the LAN; access requires the per-session token; firewall the port on untrusted networks. USB/AOA never leaves the cable. |
 | `/api/control` | A client holding the token can call lock/blank/ctrl-alt-del | Token-authenticated since v0.11.0; host tools (`loginctl`, `xset`, …) are invoked as the daemon user |
 | evdi kernel module | DKMS + Secure Boot signing is distro-specific | Module loading is the host administrator's responsibility |
 | mDNS advertising (`_orbiscreen._tcp.`) | Host name, port and session token are broadcast on the local network | Start with `--no-mdns` to disable advertising |
@@ -145,7 +145,7 @@ The Android release signing key (`orbiscreen-release.keystore`) was removed from
 
 1. **Run the daemon as a non-root user** with explicit `/dev/uinput` + `/dev/dri/card*` permissions via `udev` rules.
 
-2. **Do not expose the signaling port** (`8788` by default) to untrusted networks. The daemon binds to `0.0.0.0` so LAN clients can connect; use `adb reverse` plus a firewall on the port (or run the daemon inside a network namespace that only exposes `127.0.0.1`) when you do not want LAN exposure.
+2. **Do not expose the signaling port** (`8788` by default) to untrusted networks. The daemon binds to `0.0.0.0` so LAN clients can connect; firewall the port (or run the daemon inside a network namespace that only exposes `127.0.0.1`) when you do not want LAN exposure. USB tablets use AOA and do not need the port on the LAN.
 
 3. **Build from source** from the official repository:
    ```bash

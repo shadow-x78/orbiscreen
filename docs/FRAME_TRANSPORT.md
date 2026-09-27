@@ -20,7 +20,7 @@
 
 ---
 
-How a coded picture gets from the host encoder to the tablet decoder on the Wi-Fi paths (Android UDP, web WebTransport). Packet layouts and DPLPMTUD are in [UDP_TRANSPORT.md](UDP_TRANSPORT.md). USB/AOA still uses HTTP MPEG-TS on `GET /stream` and is not this pipeline.
+How a coded picture gets from the host encoder to the tablet decoder. Wi-Fi: Android UDP and web WebTransport (packet layouts in [UDP_TRANSPORT.md](UDP_TRANSPORT.md)). USB/AOA: the same Annex-B access units on accessory bulk frames into MediaCodec. HTTP MPEG-TS on `GET /stream` remains only as a USB fallback if the native handshake fails.
 
 ---
 
@@ -51,23 +51,24 @@ How a coded picture gets from the host encoder to the tablet decoder on the Wi-F
 ```mermaid
 flowchart LR
   cap["Capture BGRA"] --> enc["Encode H.264 AU"]
-  enc -->|"is_keyframe"| rel["Reliable stream\nWT control or GET /idr"]
-  enc -->|"P-frame"| dg["Datagrams\nUDP or QUIC"]
+  enc -->|"is_keyframe"| rel["Reliable: WT control, GET /idr, or AOA prio"]
+  enc -->|"P-frame"| dg["UDP/QUIC datagrams or AOA video queue"]
   rel --> dec["Decoder"]
-  dg --> asm["Assembler"]
+  dg --> asm["Assembler / USB reassembly"]
   asm --> dec
 ```
 
-1. **Session.** The client `POST /api/session` (name, device key, size). That opens a per-client virtual output and encoder. Signaling stays HTTP on `signaling_port` (8788). Video ports: UDP `8789`, WebTransport `8790`.
+1. **Session.** The client `POST /api/session` (name, device key, size). That opens a per-client virtual output and encoder. Signaling stays HTTP on `signaling_port` (8788). Video ports: UDP `8789`, WebTransport `8790`. USB video does not use those ports.
 2. **Handshake.**
-   - Android: UDP Hello (token + session id) → Hello-Ack → DPLPMTUD until a datagram size is confirmed (up to ~1472 B). Then `GET /idr` on TCP for keys.
+   - Android Wi-Fi: UDP Hello (token + session id) → Hello-Ack → DPLPMTUD until a datagram size is confirmed (up to ~1472 B). Then `GET /idr` on TCP for keys.
+   - Android USB: AOA accessory only (no `adb reverse`). HTTP for session/input rides the AOA TCP proxy. Video is a native AOA stream: `OPEN|VIDEO` with the session id, host replies with an 8-byte clock ack, then length-prefixed `encode_video` AUs. If native video handshake fails, `GET /au` on that same proxy feeds MediaCodec. MPEG-TS/ExoPlayer is not used on USB.
    - Web: HTTPS page, WebTransport with `serverCertificateHashes`, Hello on the bidi stream → Hello-Ack. Video P-frames use QUIC datagrams (capped ~1024 B).
 3. **Encode.** Hardware H.264 preferred (VA-API / NVENC), CBR 8 Mbps, no B-frames, infinite GOP, intra-refresh, one-frame VBV. `h264parse config-interval=1` (and `repeat-sequence-header` when present) so an IDR should carry SPS/PPS. `is_keyframe` is `!DELTA_UNIT`.
-4. **Split by `video_carrier`.**
-   - **Keyframe** → reliable: `encode_video` (length-prefixed WT frame). If SPS/PPS are missing, the last cached pair is prepended (`with_parameter_sets`). Datagram `seq` does not increment.
-   - **P-frame** → datagrams: split into `frag` / `frags` at the path MTU. `seq` increments by one per P-AU.
+4. **Split by `video_carrier` (Wi-Fi) or USB lane.**
+   - **Keyframe** → reliable: `encode_video` (length-prefixed WT frame). If SPS/PPS are missing, the last cached pair is prepended (`with_parameter_sets`). Datagram `seq` does not increment. On USB the same blob is packed into AOA frames (max 16 379-byte payload, one USB URB each) and written on the **priority** queue.
+   - **P-frame** → datagrams on Wi-Fi: split into `frag` / `frags` at the path MTU. `seq` increments by one per P-AU. On USB the packed AU is `try_send` on a depth-2 video queue; if that is full the P-frame is dropped and an IDR is requested (USB bulk does not lose packets — a full queue means the tablet is behind).
 5. **Client.**
-   - First IDR on the reliable stream configures the decoder (Android: MediaCodec `csd-0`/`csd-1` from SPS/PPS; web: WebCodecs `avc1.…` from SPS) and calls `onReliableKeyframe()` so the datagram assembler treats the next P as the start of a GOP.
+   - First IDR on the reliable stream configures the decoder (Android: MediaCodec `csd-0`/`csd-1` from SPS/PPS; web: WebCodecs `avc1.…` from SPS) and calls `onReliableKeyframe()` so the datagram assembler treats the next P as the start of a GOP. USB skips the assembler: AOA payloads concatenate into `IdrFrames.Reader` and go straight to MediaCodec.
    - P-datagrams are reassembled (`DatagramAssembler` / `AuReorder`). In-order `seq` is fed to the decoder. A one-seq hole is held briefly (~48 ms) in case of reorder.
 6. **Idle.** Client ping ~500 ms. Android UDP expires after ~4-5 s silence. The last viewer of a session tears down that virtual output.
 
@@ -98,7 +99,7 @@ Without that reset, `lastSeq` stayed on the old GOP, every later P-frame looked 
 
 - It does not close the session. Ping/PMTU/Hello stay on their own packets.
 - It does not wait for the lost P-frame. That frame is gone; intra-refresh and the next IDR repair the picture.
-- USB/AOA is a different world: TCP MPEG-TS, head-of-line blocking, no datagram assembler.
+- USB/AOA native video is ordered bulk, not datagrams. A late picture is a full write queue, not a lost packet: drop that P-frame, hold until IDR. MPEG-TS `GET /stream` remains the fallback and still cannot drop mid-mux.
 
 ### Test hooks
 

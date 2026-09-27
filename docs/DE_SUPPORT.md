@@ -163,7 +163,7 @@ System76's Rust-based COSMIC desktop (`cosmic-comp`, built on Smithay) integrate
 When running Orbiscreen Android client inside ChromeOS (e.g. ASUS Chromebook CM3001 or any ChromeOS tablet supporting Android apps via ARC++):
 
 - **Android Subnet Isolation:** ChromeOS runs Android applications inside an isolated container (ARC++) behind an internal virtual NAT bridge, typically assigning the Android container an IP on `100.115.92.0/28` (default gateway `100.115.92.2`).
-- **Automatic Internal ADB Probing:** Orbiscreen automatically probes `100.115.92.2:5555` alongside `localhost:5555` to detect ADB reverse tunnels inside ChromeOS.
+- **Automatic Internal Gateway Probing:** When AOA is not up, the Android client still probes USB-tether / ARC gateways (`100.115.92.2`, `192.168.233.1`, …) on the signaling port. ChromeOS USB streaming itself uses AOA, not `adb reverse`.
 - **Stylus Digitizer Integration:** ChromeOS USI styluses report in-air hover events (`ACTION_HOVER_MOVE`) and tilt. Orbiscreen's background coroutine dispatch on `Dispatchers.IO` handles pen events without triggering UI freezes or main thread exceptions.
 - **Setup for ChromeOS Linux (Crostini):**
   1. Enable **Linux development environment** in ChromeOS Settings.

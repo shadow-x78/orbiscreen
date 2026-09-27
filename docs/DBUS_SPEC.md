@@ -80,7 +80,7 @@ Returns the live daemon status as a **JSON object string**:
 | `active_clients` | u64 | Currently connected `/stream` clients |
 | `total_clients` | u64 | Total `/stream` connections since start |
 | `auth_failures` | u64 | Unauthorized requests rejected since start (also exposed on `GET /health`) |
-| `usb_devices` | u64 | Android devices with an active `adb reverse` tunnel right now (updated live while the daemon runs; also exposed on `GET /health`) |
+| `usb_devices` | u64 | Android USB accessories currently claimed over AOA (updated live while the daemon runs; also exposed on `GET /health`) |
 | `encoder` | string | Encoder actually in use (`x264`, `vaapi`, `nvenc`) |
 | `capture_backend` | string | `evdi` for the virtual display; `x11-portal-fallback` / `wayland-portal-fallback` when the evdi module is missing |
 

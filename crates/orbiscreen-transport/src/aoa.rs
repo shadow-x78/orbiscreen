@@ -11,8 +11,15 @@ use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
+
+use crate::aoa_video::{
+    self, encode_video_close, encode_video_open_ack, host_now_ns, lane_for, pack_h264_packet,
+    parse_aoa_frame, Lane, FRAME_FLAG_CLOSE, FRAME_FLAG_DATA, FRAME_FLAG_OPEN, FRAME_FLAG_RESET,
+    FRAME_FLAG_VIDEO, FRAME_HEADER_LEN, MAX_PAYLOAD_LEN, VIDEO_QUEUE_CAP,
+};
+use crate::display::DisplayCtl;
 
 #[repr(C)]
 struct UsbDevFsCtrlTransfer {
@@ -54,13 +61,7 @@ const USBDEVFS_DISCONNECT_CLAIM: u64 = 0x8108551b;
 const AOA_GET_PROTOCOL: u8 = 51;
 const AOA_SEND_STRING: u8 = 52;
 const AOA_START_ACCESSORY: u8 = 53;
-
-const FRAME_FLAG_DATA: u8 = 0x01;
-const FRAME_FLAG_OPEN: u8 = 0x02;
-const FRAME_FLAG_CLOSE: u8 = 0x04;
-const FRAME_FLAG_RESET: u8 = 0x08;
-const FRAME_HEADER_LEN: usize = 5;
-const MAX_PAYLOAD_LEN: usize = 16384;
+const IDR_DEBOUNCE: Duration = Duration::from_millis(250);
 
 #[derive(Clone, Debug)]
 pub struct UsbDeviceInfo {
@@ -323,10 +324,176 @@ fn detect_endpoints(sysfs_path: &Path) -> (u32, u32) {
     (in_ep, out_ep)
 }
 
+fn bulk_write_slice(fd: i32, ep: u32, data: &[u8], running: &AtomicBool) -> bool {
+    let mut offset = 0;
+    while offset < data.len() && running.load(Ordering::Relaxed) {
+        let to_write = std::cmp::min(data.len() - offset, MAX_PAYLOAD_LEN);
+        let mut bulk = UsbDevFsBulkTransfer {
+            ep,
+            len: to_write as u32,
+            timeout: 250,
+            _pad: 0,
+            data: data[offset..].as_ptr() as *mut u8,
+        };
+        let written = unsafe { ioctl(fd, USBDEVFS_BULK, &mut bulk) };
+        if written < 0 {
+            let err = std::io::Error::last_os_error();
+            debug!("USB bulk write error: {err}");
+            if matches!(
+                err.raw_os_error(),
+                Some(110) | Some(libc::EINTR) | Some(libc::EAGAIN)
+            ) {
+                std::thread::sleep(Duration::from_millis(5));
+                continue;
+            }
+            return false;
+        }
+        offset += written as usize;
+    }
+    true
+}
+
+/// Write one channel message as complete AOA frames so an AU packed as
+/// several URBs cannot be split mid-header.
+fn write_aoa_chunk(fd: i32, ep: u32, chunk: &[u8], running: &AtomicBool) -> bool {
+    let mut offset = 0;
+    while offset < chunk.len() && running.load(Ordering::Relaxed) {
+        match parse_aoa_frame(&chunk[offset..]) {
+            Some((_, used)) => {
+                if !bulk_write_slice(fd, ep, &chunk[offset..offset + used], running) {
+                    return false;
+                }
+                offset += used;
+            }
+            None => {
+                return bulk_write_slice(fd, ep, &chunk[offset..], running);
+            }
+        }
+    }
+    true
+}
+
+fn idr_due(last: Instant, now: Instant) -> bool {
+    now.saturating_duration_since(last) >= IDR_DEBOUNCE
+}
+
+async fn run_native_video(
+    displays: DisplayCtl,
+    session: Option<String>,
+    prio_tx: std::sync::mpsc::Sender<Vec<u8>>,
+    au_tx: std::sync::mpsc::SyncSender<Vec<u8>>,
+    running: Arc<AtomicBool>,
+    stop: Arc<AtomicBool>,
+) {
+    let attached = match displays.attach(session.clone(), None).await {
+        Ok(a) => a,
+        Err(e) => {
+            warn!("AOA native video attach failed: {e}");
+            let _ = prio_tx.send(encode_video_close());
+            return;
+        }
+    };
+    let sid = attached.info.id.clone();
+    let mut video_rx = attached.video;
+    let _ = prio_tx.send(encode_video_open_ack(host_now_ns()));
+    displays.idr(&sid).await;
+    info!("AOA native Annex-B video attached session={sid}");
+
+    struct DetachGuard(DisplayCtl, String);
+    impl Drop for DetachGuard {
+        fn drop(&mut self) {
+            let ctl = self.0.clone();
+            let id = self.1.clone();
+            debug!("AOA native video releasing viewer session={id}");
+            tokio::spawn(async move { ctl.detach(&id).await });
+        }
+    }
+    let _detach = DetachGuard(displays.clone(), sid.clone());
+
+    let mut wait_key = true;
+    let mut cached = None;
+    let mut last_idr = Instant::now()
+        .checked_sub(IDR_DEBOUNCE)
+        .unwrap_or_else(Instant::now);
+    let mut request_idr = || {
+        let now = Instant::now();
+        if !idr_due(last_idr, now) {
+            return;
+        }
+        last_idr = now;
+        let ctl = displays.clone();
+        let id = sid.clone();
+        tokio::spawn(async move { ctl.idr(&id).await });
+    };
+
+    loop {
+        if stop.load(Ordering::Relaxed) || !running.load(Ordering::Relaxed) {
+            info!("AOA native video stopping session={sid}");
+            break;
+        }
+        let pkt = tokio::select! {
+            _ = tokio::time::sleep(Duration::from_millis(50)) => {
+                continue;
+            }
+            res = video_rx.recv() => match res {
+                Ok(p) => p,
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                    debug!("AOA native video lagged {n}; wait for keyframe");
+                    wait_key = true;
+                    request_idr();
+                    continue;
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                    if aoa_video::video_pump_should_release(aoa_video::VideoPumpEvent::BroadcastClosed)
+                    {
+                        break;
+                    }
+                    warn!("AOA video broadcast closed session={sid}; keeping the viewer lease");
+                    tokio::time::sleep(Duration::from_millis(200)).await;
+                    continue;
+                }
+            },
+        };
+        if stop.load(Ordering::Relaxed) || !running.load(Ordering::Relaxed) {
+            break;
+        }
+        if wait_key {
+            if !pkt.is_keyframe {
+                request_idr();
+                continue;
+            }
+            wait_key = false;
+        }
+        let Some(packed) = pack_h264_packet(&pkt, host_now_ns(), &mut cached) else {
+            continue;
+        };
+        match lane_for(pkt.is_keyframe) {
+            Lane::Priority => {
+                if prio_tx.send(packed).is_err() {
+                    if aoa_video::video_pump_should_release(aoa_video::VideoPumpEvent::SendFailed) {
+                        break;
+                    }
+                    warn!(
+                        "AOA video priority queue closed session={sid}; keeping the viewer lease"
+                    );
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                }
+            }
+            Lane::Video => {
+                if au_tx.try_send(packed).is_err() {
+                    wait_key = true;
+                    request_idr();
+                }
+            }
+        }
+    }
+}
+
 pub fn run_accessory_bridge(
     device: &UsbDeviceInfo,
     daemon_port: u16,
     running: Arc<AtomicBool>,
+    displays: Option<DisplayCtl>,
 ) -> Result<(), String> {
     let f = OpenOptions::new()
         .read(true)
@@ -376,46 +543,35 @@ pub fn run_accessory_bridge(
 
     let (prio_tx, prio_rx) = std::sync::mpsc::channel::<Vec<u8>>();
     let (video_tx, video_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(64);
+    let (au_tx, au_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(VIDEO_QUEUE_CAP);
     let running_writer = running.clone();
     let fd_writer = fd;
     let writer_handle = std::thread::spawn(move || {
         while running_writer.load(Ordering::Relaxed) {
             let chunk = match prio_rx.try_recv() {
                 Ok(c) => c,
-                Err(std::sync::mpsc::TryRecvError::Empty) => {
-                    match video_rx.recv_timeout(Duration::from_millis(50)) {
+                Err(std::sync::mpsc::TryRecvError::Empty) => match au_rx
+                    .recv_timeout(Duration::from_millis(5))
+                {
+                    Ok(c) => c,
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => match video_rx.try_recv() {
                         Ok(c) => c,
-                        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
-                        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                        Err(std::sync::mpsc::TryRecvError::Empty) => continue,
+                        Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
+                    },
+                    Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                        match video_rx.recv_timeout(Duration::from_millis(50)) {
+                            Ok(c) => c,
+                            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
+                            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                        }
                     }
-                }
+                },
                 Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
             };
 
-            let mut offset = 0;
-            while offset < chunk.len() && running_writer.load(Ordering::Relaxed) {
-                let to_write = std::cmp::min(chunk.len() - offset, MAX_PAYLOAD_LEN);
-                let mut bulk = UsbDevFsBulkTransfer {
-                    ep: out_ep,
-                    len: to_write as u32,
-                    timeout: 250,
-                    _pad: 0,
-                    data: chunk[offset..].as_ptr() as *mut u8,
-                };
-                let written = unsafe { ioctl(fd_writer, USBDEVFS_BULK, &mut bulk) };
-                if written < 0 {
-                    let err = std::io::Error::last_os_error();
-                    debug!("USB bulk write error: {err}");
-                    if matches!(
-                        err.raw_os_error(),
-                        Some(110) | Some(libc::EINTR) | Some(libc::EAGAIN)
-                    ) {
-                        std::thread::sleep(Duration::from_millis(5));
-                        continue;
-                    }
-                    break;
-                }
-                offset += written as usize;
+            if !write_aoa_chunk(fd_writer, out_ep, &chunk, &running_writer) {
+                break;
             }
         }
     });
@@ -426,6 +582,8 @@ pub fn run_accessory_bridge(
     let tcp_streams: StreamMap = Arc::new(Mutex::new(HashMap::new()));
     let mut rx_buf = vec![0u8; MAX_PAYLOAD_LEN + FRAME_HEADER_LEN];
     let mut acc_buf = Vec::new();
+    let mut native_stop = Arc::new(AtomicBool::new(false));
+    let mut native_handle: Option<tokio::task::JoinHandle<()>> = None;
 
     while running.load(Ordering::Relaxed) {
         let mut bulk = UsbDevFsBulkTransfer {
@@ -461,7 +619,40 @@ pub fn run_accessory_bridge(
                 let payload = acc_buf[FRAME_HEADER_LEN..total_frame_len].to_vec();
                 acc_buf.drain(..total_frame_len);
 
-                if (flags & FRAME_FLAG_OPEN) != 0 {
+                if (flags & FRAME_FLAG_VIDEO) != 0 {
+                    if (flags & FRAME_FLAG_OPEN) != 0 {
+                        native_stop.store(true, Ordering::Relaxed);
+                        if let Some(h) = native_handle.take() {
+                            h.abort();
+                        }
+                        let session = aoa_video::decode_video_open_session(&payload)
+                            .filter(|s| !s.is_empty());
+                        match displays.clone() {
+                            Some(ctl) => {
+                                native_stop = Arc::new(AtomicBool::new(false));
+                                let stop = native_stop.clone();
+                                let running_v = running.clone();
+                                let prio_v = prio_tx.clone();
+                                let au_v = au_tx.clone();
+                                native_handle =
+                                    Some(tokio::runtime::Handle::current().spawn(async move {
+                                        run_native_video(
+                                            ctl, session, prio_v, au_v, running_v, stop,
+                                        )
+                                        .await;
+                                    }));
+                            }
+                            None => {
+                                let _ = prio_tx.send(encode_video_close());
+                            }
+                        }
+                    } else if (flags & FRAME_FLAG_CLOSE) != 0 {
+                        native_stop.store(true, Ordering::Relaxed);
+                        if let Some(h) = native_handle.take() {
+                            h.abort();
+                        }
+                    }
+                } else if (flags & FRAME_FLAG_OPEN) != 0 {
                     let addr = format!("127.0.0.1:{daemon_port}");
                     let mut conn_res = TcpStream::connect(&addr);
                     if conn_res.is_err() && daemon_port != 8788 {
@@ -596,6 +787,11 @@ pub fn run_accessory_bridge(
         }
     }
 
+    native_stop.store(true, Ordering::Relaxed);
+    if let Some(h) = native_handle.take() {
+        h.abort();
+    }
+
     let mut reset_frame = vec![0u8; FRAME_HEADER_LEN];
     reset_frame[2] = FRAME_FLAG_RESET;
     let _ = prio_tx.send(reset_frame);
@@ -659,6 +855,7 @@ pub async fn supervisor(
     daemon_port: u16,
     active_count: Arc<AtomicUsize>,
     mut shutdown: tokio::sync::watch::Receiver<bool>,
+    displays: Option<DisplayCtl>,
 ) {
     let mut tried_devices: HashMap<(u16, u16, u16, u16), std::time::Instant> = HashMap::new();
     let mut active_bridges: HashMap<PathBuf, ActiveBridge> = HashMap::new();
@@ -684,8 +881,14 @@ pub async fn supervisor(
                     let running = Arc::new(AtomicBool::new(true));
                     let running_inner = running.clone();
                     let dev_clone = dev.clone();
+                    let displays_bridge = displays.clone();
                     let handle = tokio::task::spawn_blocking(move || {
-                        run_accessory_bridge(&dev_clone, target_port, running_inner)
+                        run_accessory_bridge(
+                            &dev_clone,
+                            target_port,
+                            running_inner,
+                            displays_bridge,
+                        )
                     });
                     active_bridges.insert(dev.dev_node.clone(), ActiveBridge { running, handle });
                 }

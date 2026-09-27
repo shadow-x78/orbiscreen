@@ -113,7 +113,10 @@ impl PmtuSearch {
     }
 
     pub fn video_payload(&self) -> usize {
-        self.low.saturating_sub(VIDEO_HEADER_LEN).max(1)
+        self.low
+            .saturating_sub(super::udp_crypto::SEAL_OVERHEAD)
+            .saturating_sub(VIDEO_HEADER_LEN)
+            .max(1)
     }
 
     pub fn is_complete(&self) -> bool {
@@ -354,7 +357,7 @@ pub fn parse_packet(buf: &[u8]) -> Option<Packet> {
                 return None;
             }
             Some(Packet::Video(VideoFragment {
-                is_keyframe: buf[5] != 0,
+                is_keyframe: buf[5] & 1 != 0,
                 seq: u16::from_le_bytes([buf[6], buf[7]]),
                 frag: u16::from_le_bytes([buf[8], buf[9]]),
                 frags: u16::from_le_bytes([buf[10], buf[11]]),
@@ -440,36 +443,42 @@ pub fn fragment_video(
     if pkt.bytes.is_empty() {
         return Vec::new();
     }
-    let shards = super::fec::shard_au(&pkt.bytes, max_payload.max(1));
-    let frags = shards.data.len() as u16;
-    let mut out: Vec<Vec<u8>> = shards
-        .data
-        .iter()
-        .enumerate()
-        .map(|(i, part)| {
-            encode_video(
-                seq,
-                i as u16,
-                frags,
-                pkt.is_keyframe,
-                pkt.pts_ns,
-                sent_ns,
-                part,
-            )
+    encode_block_packets(pkt, max_payload, 5, |frag, frags, key, payload| {
+        encode_video(seq, frag, frags, key, pkt.pts_ns, sent_ns, payload)
+    })
+}
+
+pub(crate) fn encode_block_packets(
+    pkt: &H264Packet,
+    max_payload: usize,
+    flag_index: usize,
+    mut encode: impl FnMut(u16, u16, bool, &[u8]) -> Vec<u8>,
+) -> Vec<Vec<u8>> {
+    super::fec::shard_au_blocks(&pkt.bytes, max_payload.max(1))
+        .into_iter()
+        .flat_map(|block| {
+            let frags = block.shards.data.len() as u16;
+            let mut packets =
+                Vec::with_capacity(block.shards.data.len() + block.shards.parity.len());
+            for (i, part) in block.shards.data.iter().enumerate() {
+                let payload = super::fec::block_payload(block.index, block.count, part);
+                let mut packet = encode(i as u16, frags, pkt.is_keyframe, &payload);
+                if block.count > 1 && packet.len() > flag_index {
+                    packet[flag_index] |= super::fec::FEC_BLOCK_FLAG;
+                }
+                packets.push(packet);
+            }
+            for (i, par) in block.shards.parity.iter().enumerate() {
+                let payload = super::fec::block_payload(block.index, block.count, par);
+                let mut packet = encode(frags + i as u16, frags, pkt.is_keyframe, &payload);
+                if block.count > 1 && packet.len() > flag_index {
+                    packet[flag_index] |= super::fec::FEC_BLOCK_FLAG;
+                }
+                packets.push(packet);
+            }
+            packets
         })
-        .collect();
-    for (i, par) in shards.parity.iter().enumerate() {
-        out.push(encode_video(
-            seq,
-            frags + i as u16,
-            frags,
-            pkt.is_keyframe,
-            pkt.pts_ns,
-            sent_ns,
-            par,
-        ));
-    }
-    out
+        .collect()
 }
 
 struct UdpClient {
@@ -480,6 +489,7 @@ struct UdpClient {
     probe_deadline: Option<Instant>,
     announced: bool,
     session: Option<String>,
+    key_id: Option<[u8; 16]>,
     payload: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     video_task: Option<tokio::task::JoinHandle<()>>,
 }
@@ -498,6 +508,7 @@ fn new_client(limits: UdpLimits) -> UdpClient {
         probe_deadline: None,
         announced: false,
         session: None,
+        key_id: None,
         payload: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         video_task: None,
     }
@@ -564,6 +575,21 @@ where
     out
 }
 
+fn seal_frames(
+    keys: &super::udp_crypto::UdpKeyRing,
+    key_id: &[u8; 16],
+    frames: &[Vec<u8>],
+) -> Vec<Vec<u8>> {
+    let mut sealed = Vec::with_capacity(frames.len());
+    for frame in frames {
+        match keys.seal_host(key_id, frame) {
+            Some(pkt) => sealed.push(pkt),
+            None => break,
+        }
+    }
+    sealed
+}
+
 async fn send_au_fragments(
     sock: &UdpSocket,
     frames: &[Vec<u8>],
@@ -608,7 +634,16 @@ async fn send_datagram(
     }
 }
 
-async fn send_probe(sock: &UdpSocket, addr: SocketAddr, client: &mut UdpClient, limits: UdpLimits) {
+async fn send_probe(
+    sock: &UdpSocket,
+    addr: SocketAddr,
+    client: &mut UdpClient,
+    limits: UdpLimits,
+    keys: &super::udp_crypto::UdpKeyRing,
+) {
+    let Some(key_id) = client.key_id else {
+        return;
+    };
     loop {
         let Some(size) = client.pmtu.current_probe() else {
             return;
@@ -616,7 +651,18 @@ async fn send_probe(sock: &UdpSocket, addr: SocketAddr, client: &mut UdpClient, 
         if client.probe_id == 0 {
             client.probe_id = 1;
         }
-        let pkt = encode_probe(client.probe_id, size);
+        let plain_len = size.saturating_sub(super::udp_crypto::SEAL_OVERHEAD);
+        if plain_len < PROBE_HEADER_LEN {
+            client.probe_deadline = None;
+            client.pmtu.on_unsendable();
+            bump_probe_id(client);
+            continue;
+        }
+        let plain = encode_probe(client.probe_id, plain_len);
+        let Some(pkt) = keys.seal_host_to_len(&key_id, &plain, size) else {
+            client.probe_deadline = Some(Instant::now() + PROBE_TIMEOUT);
+            return;
+        };
         match send_datagram(sock, &pkt, addr, limits).await {
             SendOutcome::Sent => {
                 client.probe_deadline = Some(Instant::now() + PROBE_TIMEOUT);
@@ -654,6 +700,7 @@ async fn announce_pmtu(
     addr: SocketAddr,
     client: &mut UdpClient,
     limits: UdpLimits,
+    keys: &super::udp_crypto::UdpKeyRing,
 ) {
     if client.announced || !client.pmtu.is_complete() {
         return;
@@ -665,7 +712,12 @@ async fn announce_pmtu(
         .payload
         .store(payload, std::sync::atomic::Ordering::Relaxed);
     info!(%addr, datagram, payload, "UDP PMTU confirmed");
-    let _ = send_datagram(sock, &encode_pmtu(datagram as u16), addr, limits).await;
+    let Some(key_id) = client.key_id else {
+        return;
+    };
+    if let Some(pkt) = keys.seal_host(&key_id, &encode_pmtu(datagram as u16)) {
+        let _ = send_datagram(sock, &pkt, addr, limits).await;
+    }
 }
 
 fn bump_probe_id(client: &mut UdpClient) {
@@ -733,14 +785,15 @@ fn bind_udp_socket(port: u16) -> std::io::Result<UdpSocket> {
 #[allow(clippy::too_many_arguments)]
 pub async fn run_udp_hub(
     port: u16,
-    token: String,
+    _token: String,
     mut video_rx: broadcast::Receiver<H264Packet>,
     idr_tx: Option<tokio::sync::mpsc::Sender<()>>,
     stats: std::sync::Arc<super::Stats>,
     mut shutdown: tokio::sync::watch::Receiver<bool>,
     limits: UdpLimits,
     displays: Option<super::DisplayCtl>,
-    registry: Option<std::sync::Arc<crate::pairing::PairingRegistry>>,
+    _registry: Option<std::sync::Arc<crate::pairing::PairingRegistry>>,
+    keys: super::udp_crypto::UdpKeyRing,
 ) {
     let sock = match bind_udp_socket(port) {
         Ok(s) => s,
@@ -761,23 +814,21 @@ pub async fn run_udp_hub(
 
     let recv_sock = sock.clone();
     let recv_clients = clients.clone();
-    let recv_token = token.clone();
-    let recv_registry = registry.clone();
+    let recv_keys = keys.clone();
     let recv_idr = idr_tx.clone();
     let recv_stats = stats.clone();
     let recv_limits = limits;
     let recv_displays = displays.clone();
     let mut recv_shutdown = shutdown.clone();
     tokio::spawn(async move {
-        let mut buf = vec![0u8; 4096];
+        let mut buf = vec![0u8; 65535];
         loop {
             tokio::select! {
                 _ = recv_shutdown.changed() => break,
                 res = recv_sock.recv_from(&mut buf) => {
                     let Ok((n, addr)) = res else { continue };
                     let ctx = IncomingCtx {
-                        token: &recv_token,
-                        registry: recv_registry.as_deref(),
+                        keys: &recv_keys,
                         sock: &recv_sock,
                         clients: &recv_clients,
                         idr_tx: recv_idr.as_ref(),
@@ -859,7 +910,7 @@ pub async fn run_udp_hub(
                                 bump_probe_id(client);
                             }
                             if client.pmtu.current_probe().is_some() {
-                                send_probe(&sock, addr, client, limits).await;
+                                send_probe(&sock, addr, client, limits, &keys).await;
                             }
                             if client.pmtu.is_complete() {
                                 enable_udp_video(
@@ -869,6 +920,7 @@ pub async fn run_udp_hub(
                                     limits,
                                     displays.as_ref(),
                                     idr_tx.as_ref(),
+                                    &keys,
                                 )
                                 .await;
                             }
@@ -886,11 +938,14 @@ pub async fn run_udp_hub(
                     }
                     Err(broadcast::error::RecvError::Closed) => break,
                 };
-                let targets: Vec<(SocketAddr, usize)> = {
+                let targets: Vec<(SocketAddr, usize, [u8; 16])> = {
                     let map = clients.lock().await;
                     map.iter()
-                        .filter(|(_, c)| c.pmtu.is_complete())
-                        .map(|(addr, c)| (*addr, c.pmtu.video_payload()))
+                        .filter(|(_, c)| c.pmtu.is_complete() && c.key_id.is_some())
+                        .filter_map(|(addr, c)| {
+                            c.key_id
+                                .map(|key_id| (*addr, c.pmtu.video_payload(), key_id))
+                        })
                         .collect()
                 };
                 if targets.is_empty() {
@@ -898,9 +953,14 @@ pub async fn run_udp_hub(
                 }
                 seq = seq.wrapping_add(1);
                 let sent_ns = now_unix_ns();
-                for (addr, payload) in targets {
+                for (addr, payload, key_id) in targets {
                     let frames = fragment_video(seq, &pkt, sent_ns, payload);
-                    let result = send_au_fragments(&sock, &frames, addr, limits).await;
+                    let sealed = seal_frames(&keys, &key_id, &frames);
+                    if sealed.len() != frames.len() {
+                        request_idr_sender(idr_tx.as_ref());
+                        continue;
+                    }
+                    let result = send_au_fragments(&sock, &sealed, addr, limits).await;
                     if result.request_idr() {
                         request_idr_sender(idr_tx.as_ref());
                     }
@@ -910,15 +970,20 @@ pub async fn run_udp_hub(
     }
     let map = clients.lock().await;
     let bye = encode_bye(None);
-    for addr in map.keys() {
-        let _ = sock.send_to(&bye, addr).await;
+    for (addr, client) in map.iter() {
+        let Some(key_id) = client.key_id else {
+            continue;
+        };
+        let Some(pkt) = keys.seal_host(&key_id, &bye) else {
+            continue;
+        };
+        let _ = sock.send_to(&pkt, addr).await;
     }
 }
 
 #[allow(missing_debug_implementations)]
 struct IncomingCtx<'a> {
-    token: &'a str,
-    registry: Option<&'a crate::pairing::PairingRegistry>,
+    keys: &'a super::udp_crypto::UdpKeyRing,
     sock: &'a std::sync::Arc<UdpSocket>,
     clients: &'a tokio::sync::Mutex<HashMap<SocketAddr, UdpClient>>,
     idr_tx: Option<&'a tokio::sync::mpsc::Sender<()>>,
@@ -935,6 +1000,8 @@ struct UdpForward {
     displays: Option<super::DisplayCtl>,
     session: Option<String>,
     idr_tx: Option<tokio::sync::mpsc::Sender<()>>,
+    keys: super::udp_crypto::UdpKeyRing,
+    key_id: [u8; 16],
 }
 
 async fn forward_udp_video(fwd: UdpForward, mut video_rx: broadcast::Receiver<H264Packet>) {
@@ -951,7 +1018,17 @@ async fn forward_udp_video(fwd: UdpForward, mut video_rx: broadcast::Receiver<H2
         }
         seq = seq.wrapping_add(1);
         let frames = fragment_video(seq, &pkt, now_unix_ns(), chunk);
-        let result = send_au_fragments(&fwd.sock, &frames, fwd.addr, fwd.limits).await;
+        let sealed = seal_frames(&fwd.keys, &fwd.key_id, &frames);
+        if sealed.len() != frames.len() {
+            request_client_idr(
+                fwd.displays.as_ref(),
+                fwd.session.as_deref(),
+                fwd.idr_tx.as_ref(),
+            )
+            .await;
+            continue;
+        }
+        let result = send_au_fragments(&fwd.sock, &sealed, fwd.addr, fwd.limits).await;
         if result.request_idr() {
             request_client_idr(
                 fwd.displays.as_ref(),
@@ -963,33 +1040,57 @@ async fn forward_udp_video(fwd: UdpForward, mut video_rx: broadcast::Receiver<H2
     }
 }
 
-fn udp_credential_allowed(
-    credential: &str,
-    shared_token: &str,
-    registry: Option<&crate::pairing::PairingRegistry>,
-) -> bool {
-    !shared_token.is_empty()
-        && super::token_eq(credential, shared_token)
-        && !registry.is_some_and(|registry| registry.verify(credential).is_some())
-}
-
 async fn handle_incoming(buf: &[u8], addr: SocketAddr, ctx: &IncomingCtx<'_>) {
-    match parse_packet(buf) {
+    if buf.len() >= 4 && buf[0..4] == MAGIC[..] {
+        if buf.len() >= 5 && buf[4] == TYPE_HELLO {
+            warn!(%addr, "UDP cleartext hello rejected");
+            ctx.stats.note_auth_failure();
+        }
+        return;
+    }
+    let Some(key_id) = super::udp_crypto::datagram_key_id(buf) else {
+        return;
+    };
+    let Some(nonce) = super::udp_crypto::datagram_nonce(buf) else {
+        return;
+    };
+    let Some(key) = ctx.keys.lookup(&key_id) else {
+        warn!(%addr, "UDP datagram rejected");
+        ctx.stats.note_auth_failure();
+        return;
+    };
+    let Some(plain) = super::udp_crypto::open(&key.secret, buf) else {
+        warn!(%addr, "UDP datagram rejected");
+        ctx.stats.note_auth_failure();
+        return;
+    };
+    if !ctx.keys.accept_client_nonce(&key_id, &nonce) {
+        return;
+    }
+    match parse_packet(&plain) {
         Some(Packet::Hello {
             token: got,
             session,
         }) => {
-            if !udp_credential_allowed(&got, ctx.token, ctx.registry) {
+            let bound = ctx.keys.bound_session(&key_id).flatten();
+            let decision = super::udp_crypto::decide_hello(
+                &got,
+                session.as_deref(),
+                &key_id,
+                bound.as_deref(),
+            );
+            let super::udp_crypto::HelloDecision::Accept { session } = decision else {
                 warn!(%addr, "UDP hello rejected");
                 ctx.stats.note_auth_failure();
                 return;
-            }
+            };
             let mut map = ctx.clients.lock().await;
             let joining = !map.contains_key(&addr);
             let client = map.entry(addr).or_insert_with(|| new_client(ctx.limits));
             client.last_seen = Instant::now();
             client.prune_pending = None;
             if joining {
+                client.key_id = Some(key_id);
                 ctx.stats.client_started();
                 info!(
                     %addr,
@@ -1009,6 +1110,8 @@ async fn handle_incoming(buf: &[u8], addr: SocketAddr, ctx: &IncomingCtx<'_>) {
                                 displays: ctx.displays.cloned(),
                                 session: client.session.clone(),
                                 idr_tx: ctx.idr_tx.cloned(),
+                                keys: ctx.keys.clone(),
+                                key_id,
                             };
                             client.video_task = Some(tokio::spawn(async move {
                                 forward_udp_video(fwd, att.video).await;
@@ -1018,14 +1121,25 @@ async fn handle_incoming(buf: &[u8], addr: SocketAddr, ctx: &IncomingCtx<'_>) {
                     }
                 }
             }
-            let _ = send_datagram(ctx.sock, &encode_hello_ack(), addr, ctx.limits).await;
+            let send_id = client.key_id.unwrap_or(key_id);
+            if let Some(ack) = ctx.keys.seal_host(&send_id, &encode_hello_ack()) {
+                let _ = send_datagram(ctx.sock, &ack, addr, ctx.limits).await;
+            }
             if joining {
                 if client.pmtu.current_probe().is_some() {
-                    send_probe(ctx.sock, addr, client, ctx.limits).await;
+                    send_probe(ctx.sock, addr, client, ctx.limits, ctx.keys).await;
                 }
                 if client.pmtu.is_complete() {
-                    enable_udp_video(ctx.sock, addr, client, ctx.limits, ctx.displays, ctx.idr_tx)
-                        .await;
+                    enable_udp_video(
+                        ctx.sock,
+                        addr,
+                        client,
+                        ctx.limits,
+                        ctx.displays,
+                        ctx.idr_tx,
+                        ctx.keys,
+                    )
+                    .await;
                 }
             }
         }
@@ -1045,9 +1159,22 @@ async fn handle_incoming(buf: &[u8], addr: SocketAddr, ctx: &IncomingCtx<'_>) {
             }
         }
         Some(Packet::Ping(t0)) => {
-            touch_client(ctx.clients, addr).await;
-            let _ =
-                send_datagram(ctx.sock, &encode_pong(t0, now_unix_ns()), addr, ctx.limits).await;
+            let key_id = {
+                let mut map = ctx.clients.lock().await;
+                let Some(client) = map.get_mut(&addr) else {
+                    return;
+                };
+                client.last_seen = Instant::now();
+                client.prune_pending = None;
+                client.key_id
+            };
+            let Some(key_id) = key_id else {
+                return;
+            };
+            let Some(pong) = ctx.keys.seal_host(&key_id, &encode_pong(t0, now_unix_ns())) else {
+                return;
+            };
+            let _ = send_datagram(ctx.sock, &pong, addr, ctx.limits).await;
         }
         Some(Packet::Idr) => {
             let session = {
@@ -1078,7 +1205,7 @@ async fn handle_incoming(buf: &[u8], addr: SocketAddr, ctx: &IncomingCtx<'_>) {
                         "UDP PMTU ack"
                     );
                     if client.pmtu.current_probe().is_some() {
-                        send_probe(ctx.sock, addr, client, ctx.limits).await;
+                        send_probe(ctx.sock, addr, client, ctx.limits, ctx.keys).await;
                     }
                     if client.pmtu.is_complete() {
                         enable_udp_video(
@@ -1088,6 +1215,7 @@ async fn handle_incoming(buf: &[u8], addr: SocketAddr, ctx: &IncomingCtx<'_>) {
                             ctx.limits,
                             ctx.displays,
                             ctx.idr_tx,
+                            ctx.keys,
                         )
                         .await;
                     }
@@ -1102,20 +1230,6 @@ async fn handle_incoming(buf: &[u8], addr: SocketAddr, ctx: &IncomingCtx<'_>) {
             | Packet::Pmtu(_),
         ) => {}
         None => {}
-    }
-}
-
-async fn touch_client(
-    clients: &tokio::sync::Mutex<HashMap<SocketAddr, UdpClient>>,
-    addr: SocketAddr,
-) -> bool {
-    let mut map = clients.lock().await;
-    if let Some(c) = map.get_mut(&addr) {
-        c.last_seen = Instant::now();
-        c.prune_pending = None;
-        true
-    } else {
-        false
     }
 }
 
@@ -1146,9 +1260,10 @@ async fn enable_udp_video(
     limits: UdpLimits,
     displays: Option<&super::DisplayCtl>,
     idr_tx: Option<&tokio::sync::mpsc::Sender<()>>,
+    keys: &super::udp_crypto::UdpKeyRing,
 ) {
     let first = !client.announced;
-    announce_pmtu(sock, addr, client, limits).await;
+    announce_pmtu(sock, addr, client, limits, keys).await;
     if first && client.announced {
         request_client_idr(displays, client.session.as_deref(), idr_tx).await;
     }
@@ -1171,9 +1286,9 @@ mod tests {
         let stats = super::super::Stats::default();
         let (commands, mut commands_rx) = tokio::sync::mpsc::channel(8);
         let displays = super::super::DisplayCtl::new(commands);
+        let keys = crate::udp_crypto::UdpKeyRing::new();
         let ctx = IncomingCtx {
-            token: "shared",
-            registry: Some(&registry),
+            keys: &keys,
             sock: &sock,
             clients: &clients,
             idr_tx: None,
@@ -1191,16 +1306,10 @@ mod tests {
             assert!(clients.lock().await.is_empty());
             assert!(commands_rx.try_recv().is_err());
         }
+        handle_incoming(&encode_hello("shared"), peer.local_addr().unwrap(), &ctx).await;
+        assert!(clients.lock().await.is_empty());
+        assert!(commands_rx.try_recv().is_err());
         assert!(registry.revoke(&client.client_id).unwrap());
-        assert!(!udp_credential_allowed(
-            &credential,
-            "shared",
-            Some(&registry)
-        ));
-        assert!(udp_credential_allowed("shared", "shared", Some(&registry)));
-        assert!(udp_credential_allowed("shared", "shared", None));
-        assert!(!udp_credential_allowed("", "", None));
-        assert!(!udp_credential_allowed("invalid", "shared", None));
     }
 
     #[tokio::test]
@@ -1215,9 +1324,18 @@ mod tests {
         stats.client_started();
         let (commands, mut commands_rx) = tokio::sync::mpsc::channel(8);
         let displays = super::super::DisplayCtl::new(commands);
+        let keys = crate::udp_crypto::UdpKeyRing::new();
+        let key = crate::udp_crypto::UdpSealKey {
+            id: [3; 16],
+            secret: [4; 32],
+        };
+        keys.insert(
+            key.clone(),
+            Some("attached-session".into()),
+            std::time::Instant::now() + std::time::Duration::from_secs(60),
+        );
         let ctx = IncomingCtx {
-            token: "shared",
-            registry: None,
+            keys: &keys,
             sock: &sock,
             clients: &clients,
             idr_tx: None,
@@ -1226,6 +1344,14 @@ mod tests {
             displays: Some(&displays),
         };
         handle_incoming(&encode_bye(Some("other-session")), addr, &ctx).await;
+        assert!(commands_rx.try_recv().is_err());
+        assert!(clients.lock().await.contains_key(&addr));
+        let bye = crate::udp_crypto::seal(
+            &key,
+            &crate::udp_crypto::nonce(crate::udp_crypto::DIR_CLIENT, 1),
+            &encode_bye(Some("other-session")),
+        );
+        handle_incoming(&bye, addr, &ctx).await;
         assert!(
             matches!(commands_rx.try_recv().unwrap(), crate::DisplayCommand::Detach { id } if id == "attached-session")
         );
@@ -1233,6 +1359,66 @@ mod tests {
             matches!(commands_rx.try_recv().unwrap(), crate::DisplayCommand::Release { id } if id == "attached-session")
         );
         assert!(clients.lock().await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn sealed_issued_key_hello_joins_and_cleartext_token_does_not() {
+        let keys = crate::udp_crypto::UdpKeyRing::new();
+        let key = crate::udp_crypto::UdpSealKey {
+            id: [0x22; 16],
+            secret: [0x11; 32],
+        };
+        keys.insert(
+            key.clone(),
+            Some("sess".into()),
+            std::time::Instant::now() + std::time::Duration::from_secs(60),
+        );
+        let sock = std::sync::Arc::new(UdpSocket::bind("127.0.0.1:0").await.unwrap());
+        let peer = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let addr = peer.local_addr().unwrap();
+        let clients = tokio::sync::Mutex::new(HashMap::new());
+        let stats = super::super::Stats::default();
+        let ctx = IncomingCtx {
+            keys: &keys,
+            sock: &sock,
+            clients: &clients,
+            idr_tx: None,
+            stats: &stats,
+            limits: UdpLimits::default(),
+            displays: None,
+        };
+        let shared = crate::udp_crypto::seal(
+            &key,
+            &crate::udp_crypto::nonce(crate::udp_crypto::DIR_CLIENT, 1),
+            &encode_hello_session("shared", Some("sess")),
+        );
+        handle_incoming(&shared, addr, &ctx).await;
+        assert!(clients.lock().await.is_empty());
+
+        let wrong_session = crate::udp_crypto::seal(
+            &key,
+            &crate::udp_crypto::nonce(crate::udp_crypto::DIR_CLIENT, 2),
+            &encode_hello_session(&crate::udp_crypto::key_id_hex(&key.id), Some("other")),
+        );
+        handle_incoming(&wrong_session, addr, &ctx).await;
+        assert!(clients.lock().await.is_empty());
+
+        let hello = crate::udp_crypto::seal(
+            &key,
+            &crate::udp_crypto::nonce(crate::udp_crypto::DIR_CLIENT, 3),
+            &encode_hello_session(&crate::udp_crypto::key_id_hex(&key.id), Some("sess")),
+        );
+        handle_incoming(&hello, addr, &ctx).await;
+        assert_eq!(clients.lock().await.len(), 1);
+        let mut buf = vec![0u8; 256];
+        let (n, _) =
+            tokio::time::timeout(std::time::Duration::from_secs(1), peer.recv_from(&mut buf))
+                .await
+                .unwrap()
+                .unwrap();
+        let opened = crate::udp_crypto::open(&key.secret, &buf[..n]).expect("sealed ack");
+        assert_eq!(parse_packet(&opened), Some(Packet::HelloAck));
+        assert!(buf[..n].starts_with(crate::udp_crypto::SEAL_MAGIC));
     }
 
     #[test]
@@ -1456,7 +1642,10 @@ mod tests {
     fn production_search_starts_at_base() {
         let search = PmtuSearch::new(DEFAULT_MAX_DATAGRAM);
         assert_eq!(search.confirmed(), BASE_DATAGRAM);
-        assert_eq!(search.video_payload(), BASE_DATAGRAM - VIDEO_HEADER_LEN);
+        assert_eq!(
+            search.video_payload(),
+            BASE_DATAGRAM - VIDEO_HEADER_LEN - crate::udp_crypto::SEAL_OVERHEAD
+        );
         assert!(!search.is_complete());
     }
 
