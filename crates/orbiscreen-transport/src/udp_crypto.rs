@@ -490,7 +490,9 @@ mod tests {
             "sess"
         ));
         assert!(!may_mint_udp_key(
-            MintKind::Paired { owns_session: false },
+            MintKind::Paired {
+                owns_session: false
+            },
             "sess"
         ));
     }

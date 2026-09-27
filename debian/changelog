@@ -1,3 +1,10 @@
+orbiscreen (0.31.3-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.31.3 for Ubuntu noble.
+  * Bump version to 0.31.3 across all packages; Android versionCode 118.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 27 Sep 2026 03:00:00 +0300
+
 orbiscreen (0.31.2-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.31.2 for Ubuntu noble.

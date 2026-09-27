@@ -4,9 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- **USB/AOA native Annex-B video**: accessory bulk carries length-prefixed H.264 access units into MediaCodec. MPEG-TS/ExoPlayer is not used on USB. `adb reverse` is not used.
-- **Android USB accessory permission dialog no longer loops on Cancel**: Cancel is remembered until the accessory detaches or the user taps the USB card.
-- **Stream statistics overlay (Web, Android)**: network delay, current frame age, received-bytes rate, and a last-minute I/P/D stack. The toolbar frame-age field is fixed width. The Android HUD height follows its content so the footer is not clipped.
+## [v0.31.3] - 2026-09-27
+
+**USB/AOA Native Annex-B Video & Stream Statistics**
+- **USB/AOA Annex-B video** (PR [#82](https://github.com/shadow-x78/orbiscreen/pull/82) by @sentinelt):
+  - Accessory bulk carries length-prefixed H.264 access units directly into MediaCodec. MPEG-TS/ExoPlayer is no longer used on USB.
+  - `adb reverse` is not used; the native AOA channel carries the stream with zero Wi-Fi latency.
+- **Android USB accessory permission dialog loop fix** (PR [#82](https://github.com/shadow-x78/orbiscreen/pull/82) by @sentinelt): Cancel is remembered until the accessory detaches or the user taps the USB card again.
+- **Stream statistics overlay** (Web, Android) (PR [#82](https://github.com/shadow-x78/orbiscreen/pull/82) by @sentinelt):
+  - Network delay (glass-to-glass), current frame age, received-bytes rate, and a last-minute I/P/D frame stack.
+  - Added a stats toggle button in the toolbar; the frame-age field has a fixed width and the Android HUD height follows content so the footer is not clipped.
+
+**Fixes**
+- Fixed `cargo fmt` check failure in `crates/orbiscreen-transport/src/udp_crypto.rs`
+- Added missing Arabic translations for stats overlay strings (`stats_toggle`, `stats_title`, `stats_delay`, `stats_age`, `stats_received`, `stats_frames`, `stats_window`, `stats_fps`)
+
+**Version Sync**: 0.31.3 across Cargo workspace, Android (versionCode=118), Tauri, PKGBUILD, Debian, COPR, all docs badges.
 
 ## [v0.31.2] - 2026-09-21
 

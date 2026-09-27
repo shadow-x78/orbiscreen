@@ -107,6 +107,14 @@
     <string name="mode_touch">لمس مباشر</string>
     <string name="mode_trackpad">لوحة لمس (ماوس)</string>
     <string name="hide_controls">إخفاء القائمة</string>
+    <string name="stats_toggle">الإحصاءات</string>
+    <string name="stats_title">الإحصاءات</string>
+    <string name="stats_delay">تأخير الشبكة</string>
+    <string name="stats_age">عمر الإطار</string>
+    <string name="stats_received">البيانات المستلمة</string>
+    <string name="stats_frames">الإطارات</string>
+    <string name="stats_window">آخر دقيقة</string>
+    <string name="stats_fps">%1$d إطار/ث</string>
     <string name="cancel">إلغاء</string>
     <string name="usb_status_label">USB متصل</string>
     <string name="wifi_status_label">Wi\u2011Fi متصل</string>
