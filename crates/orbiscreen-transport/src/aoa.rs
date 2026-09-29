@@ -634,21 +634,23 @@ pub fn run_accessory_bridge(
         if read_bytes < 0 {
             let err = std::io::Error::last_os_error();
             let raw_err = err.raw_os_error();
-                        if raw_err == Some(110) || raw_err == Some(libc::EINTR) {
+            if raw_err == Some(110) || raw_err == Some(libc::EINTR) {
                 consecutive_proto_errs = 0;
                 continue;
             }
-                                                if raw_err == Some(libc::EPROTO) {
+            if raw_err == Some(libc::EPROTO) {
                 consecutive_proto_errs += 1;
                 if consecutive_proto_errs >= 50 {
-                    warn!("USB bulk read: too many consecutive protocol errors; releasing accessory");
+                    warn!(
+                        "USB bulk read: too many consecutive protocol errors; releasing accessory"
+                    );
                     break;
                 }
                 let sleep_ms = (10 * consecutive_proto_errs).min(200) as u64;
                 std::thread::sleep(Duration::from_millis(sleep_ms));
                 continue;
             }
-                        warn!("USB bulk read error on accessory: {err}");
+            warn!("USB bulk read error on accessory: {err}");
             break;
         }
         consecutive_proto_errs = 0;

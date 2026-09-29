@@ -322,12 +322,12 @@ async fn handle_cmd(
             .await
             {
                 Ok(new_session) => {
-                                        let info = new_session.info.clone();
+                    let info = new_session.info.clone();
                     let sid = info.id.clone();
                     let carry = adopt_resize_state(new_session, request, idle_at);
                     sessions.insert(sid, carry);
-                    
-                                        if let Some(old) = sessions.remove(&id) {
+
+                    if let Some(old) = sessions.remove(&id) {
                         close_session_inner(old);
                     }
                     let _ = reply.send(Ok(info));

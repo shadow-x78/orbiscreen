@@ -122,7 +122,10 @@ impl Stats {
     }
 
     pub fn usb_connected_names(&self) -> Vec<String> {
-        self.usb_connected_names.read().map(|r| r.clone()).unwrap_or_default()
+        self.usb_connected_names
+            .read()
+            .map(|r| r.clone())
+            .unwrap_or_default()
     }
 
     pub fn is_usb_aoa_ready(&self) -> bool {
