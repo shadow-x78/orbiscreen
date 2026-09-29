@@ -20,7 +20,12 @@ ARCH="$(uname -m)"
 
 # ── Build Binaries ──
 echo "Building release binaries..."
-cargo build --release --workspace
+if pkg-config --atleast-version=3.0 libsoup-3.0 2>/dev/null && pkg-config --atleast-version=4.1 javascriptcoregtk 2>/dev/null; then
+    cargo build --release --workspace
+else
+    echo "warning: libsoup-3.0 or webkit2gtk not found; building without GUI" >&2
+    cargo build --release -p orbiscreen-daemon
+fi
 
 # ── Prepare AppDir Staging ──
 APP="$DIST/orbiscreen.AppDir"
@@ -70,17 +75,26 @@ else
 fi
 
 # ── Desktop & Icon Metadata ──
-cat > "$APP/orbiscreen.desktop" <<'EOF'
+if [ -f "$APP/usr/bin/orbiscreen-gui" ]; then
+    EXEC_LINE="orbiscreen-gui"
+    TERMINAL="false"
+else
+    EXEC_LINE="orbiscreen start"
+    TERMINAL="true"
+fi
+cat > "$APP/orbiscreen.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=Orbiscreen
 GenericName=Virtual Secondary Display
 Comment=Stream a virtual display to an Android device
-Exec=orbiscreen start
+Exec=${EXEC_LINE}
 Icon=orbiscreen
-Terminal=true
-Categories=Network;System;
+Terminal=${TERMINAL}
+Categories=Utility;HardwareSettings;
+Keywords=monitor;display;virtual;screen;second;android;
 StartupNotify=true
+StartupWMClass=orbiscreen-gui
 EOF
 
 rasterize_256() {
@@ -131,5 +145,9 @@ if ! command -v appimagetool >/dev/null 2>&1; then
     export APPIMAGE_EXTRACT_AND_RUN=1
 fi
 
-appimagetool "$APP" "$DIST/orbiscreen-${ARCH}.AppImage"
+if ! appimagetool -u "gh-releases-zsync|shadow-x78|orbiscreen|latest|orbiscreen-*${ARCH}.AppImage.zsync" "$APP" "$DIST/orbiscreen-${ARCH}.AppImage"; then
+    echo "error: appimagetool failed" >&2
+    exit 1
+fi
+
 echo "Built $DIST/orbiscreen-${ARCH}.AppImage"

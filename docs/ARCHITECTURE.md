@@ -2,10 +2,7 @@
 
 # Architecture Specification - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.30.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.30.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.30.9-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.31.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.31.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -14,7 +11,7 @@
 
 ---
 
-## 🌐 Language
+## Language
 
 <a href="ARCHITECTURE.md">🇬🇧 English</a> · <a href="ARCHITECTURE_AR.md">🇸🇦 العربية</a>
 
@@ -24,90 +21,120 @@ Orbiscreen is built as a modular multi-crate Rust workspace separating system di
 
 ---
 
-## 🏛 System Architecture Overview
+## System Architecture Overview
+
+One daemon on the Linux host, many clients. Video flows one way (host to client); input flows back:
 
 ```mermaid
-graph TD
-    subgraph "Host Linux Machine"
-        A["evdi Kernel Module"] -->|"Virtual DRM Device"| B["Display Server (X11 / Wayland)"]
-        B -->|"evdi framebuffer"| C1["orbiscreen-display (EvdiFramePump)"]
-        B -.->|"portal fallback only"| C0["orbiscreen-capture (portal / X11)"]
-        C1 -->|"Tight BGRA frames"| D["orbiscreen-encode"]
-        C0 -.->|"BGRA frames (primary desktop)"| D
-        D -->|"GStreamer HW/SW Encode"| E["H.264 AU stream"]
-        E --> F["orbiscreen-transport"]
-        F -->|"MPEG-TS HTTP /stream fallback"| G["Network / USB"]
-        F -->|"UDP Annex-B (udp_port)"| G
-        F -->|"USB AOA Annex-B AUs"| G
-        F -->|"mDNS _orbiscreen._tcp."| G
-        F -->|"GET /api/info"| G
-        F -->|"POST /api/control"| G
-        F -->|"GET /health"| G
-    end
+flowchart TD
+    DESK["Linux desktop"]
+    CAP["orbiscreen-capture: create virtual output and grab frames (KWin, wlroots, portal, X11)"]
+    EVDI["orbiscreen-display: EVDI virtual monitor (opt-in path)"]
+    ENC["orbiscreen-encode: H.264 via GStreamer (NVENC, VA-API, x264)"]
+    TR["orbiscreen-transport: HTTP, UDP, WebTransport, USB AOA; mDNS discovery, token auth"]
+    IN["orbiscreen-input: inject touch, pen, keyboard into the desktop"]
+    AND["Android app (MediaCodec)"]
+    WEB["Web client (WebCodecs)"]
 
-    subgraph "Clients"
-        G -->|"WebTransport Annex-B"| W["Web client (VideoDecoder)"]
-        W -->|"POST /input"| F
-        G -->|"NSD discovery + token"| H["Android DiscoveryService"]
-        H -->|"onConnect"| J["StreamViewModel"]
-        J -->|"UDP when advertised"| U["UdpPlayer + MediaCodec"]
-        J -->|"USB AOA native video"| USB["UsbPlayer + MediaCodec"]
-        J -->|"HTTP MPEG-TS fallback"| K["OkHttpDataSource"]
-        K -->|"MPEG-TS + Bearer token"| L["ExoPlayer + MediaCodec"]
-        U -->|"Touch"| N["InputDispatcher"]
-        USB -->|"Touch"| N
-        L -->|"Touch"| N
-        N -->|"POST /input + Bearer token"| F
-        J -->|"POST /api/session + /api/control"| F
-    end
+    DESK --> CAP
+    DESK --> EVDI
+    CAP --> ENC
+    EVDI --> ENC
+    ENC --> TR
+    TR --> AND
+    TR --> WEB
+    AND -->|input events| TR
+    WEB -->|input events| TR
+    TR --> IN
+    IN --> DESK
 ```
+
+The same loop in words:
+
+1. A virtual display is created by `orbiscreen-capture` (KWin virtual output, wlroots headless output, or portal virtual) or by `orbiscreen-display` (EVDI kernel path).
+2. `orbiscreen-capture` (or the EVDI frame pump) grabs frames from that output.
+3. `orbiscreen-encode` converts BGRA frames to H.264 with hardware encoders.
+4. `orbiscreen-transport` serves the stream to Android (UDP Annex-B, USB AOA Annex-B, HTTP MPEG-TS fallback) and to browsers (WebTransport Annex-B).
+5. Clients send input events back through `orbiscreen-transport`.
+6. `orbiscreen-input` injects them into the desktop (uinput, XTEST, wlroots virtual devices, or portal RemoteDesktop).
+
+The daemon process (`orbiscreen-daemon`) wires all crates together and exposes a D-Bus service; the desktop GUI (`orbiscreen-gui`, Tauri v2) and the CLI talk to it over D-Bus.
 
 ---
 
-## 📦 Workspace Crate Topology
+## Workspace Crate Topology
 
 | Crate | Responsibility | Key Dependencies |
 |-------|----------------|------------------|
-| `orbiscreen-core` | Shared configuration, error types, serialization | `serde`, `toml` |
-| `orbiscreen-display` | EVDI DRM virtual display creation, EDID synthesis, framebuffer → tight BGRA conversion, `EvdiFramePump` | `evdi`, `drm-fourcc`, `libc` |
-| `orbiscreen-capture` | Wayland Portal (ashpd) & X11 (x11rb) capture engines: **fallback source only** | `ashpd`, `x11rb` |
-| `orbiscreen-encode` | Hardware & software H.264 encoding pipelines | `gstreamer`, `gstreamer-app` |
-| `orbiscreen-input` | Reverse touch, stylus, and keyboard injection (uinput) | `evdev`, `ashpd` |
-| `orbiscreen-transport` | Axum HTTP `/stream` + token auth, UDP Annex-B (`udp_port`), WebTransport Annex-B (`wt_port`), mDNS, ADB reverse, `/api/session`, `/api/info`, `/api/control`, `/health` | `axum`, `gstreamer`, `tokio`, `rand`, `base64`, `wtransport` |
-| `orbiscreen-daemon` | Main daemon binary, systemd integration & live D-Bus service | `zbus`, `clap`, `tokio` |
+| `orbiscreen-core` | Shared configuration, error types, serialization, paths (config, token) | `serde`, `toml`, `thiserror` |
+| `orbiscreen-display` | EVDI kernel virtual display: DRM connector, EDID synthesis, framebuffer to BGRA pump (`EvdiFramePump`) | `evdi`, `drm-fourcc`, `tokio` |
+| `orbiscreen-capture` | Virtual output creation (KWin via `zkde-screencast`, wlroots headless via IPC) plus frame capture: portal (ashpd/PipeWire), wlr-screencopy, X11 (x11rb), damage pump, capability detection | `ashpd`, `x11rb`, `wayland-*`, `orbiscreen-core` |
+| `orbiscreen-encode` | H.264 pipelines: NVENC, VA-API, x264 software; low-latency VBV and GOP tuning | `gstreamer`, `gstreamer-app`, `orbiscreen-core` |
+| `orbiscreen-input` | Reverse input injection: uinput touchscreen/tablet/keyboard, XTEST, wlroots virtual-pointer/virtual-keyboard, portal RemoteDesktop | `evdevil`, `ashpd`, `orbiscreen-core` |
+| `orbiscreen-transport` | All client-facing protocol surfaces: HTTP `/stream` `/input` `/api/*` `/health`, UDP Annex-B with Reed-Solomon FEC, WebTransport Annex-B (`wt_port`), USB AOA bulk video, mDNS advertising, pairing, token auth, per-client display session routing | `axum`, `mdns-sd`, `wtransport`, `gstreamer`, `orbiscreen-core`, `orbiscreen-input` |
+| `orbiscreen-daemon` | Binary that wires every crate together; systemd integration; D-Bus service (`com.orbiscreen.Daemon`); `doctor` diagnostics | `zbus`, `clap`, `tokio` |
+| `orbiscreen-gui` | Desktop control center (Tauri v2): status, start/stop, resolution chips over D-Bus | `zbus`, `serde_json` |
 
 ---
 
-## 📱 Android Client Package Layout
+## Android Client Package Layout
 
 ```
 com.orbiscreen.android/
-├── MainActivity.kt                # Compose host, observes PrefsStore.themePrefFlow
+├── MainActivity.kt                # Compose host, theme from PrefsStore
 ├── data/
-│   └── PrefsStore.kt              # SharedPreferences (recent host, theme, scanner toggle)
+│   ├── PrefsStore.kt              # theme, recent host, scanner toggle
+│   └── HostCredentialStore.kt     # saved host tokens
 ├── net/
-│   ├── DiscoveryService.kt        # NsdManager wrapper -> StateFlow<Map<DiscoveredHost>>
-│   ├── SubnetScanner.kt           # /24 sweep with Semaphore-bounded parallelism
-│   ├── HostApi.kt                 # OkHttp client for /client/config.json (token), /api/info, /api/control, /health
-│   ├── WifiGatewayProvider.kt     # Reads WifiManager.dhcpInfo.gateway
-│   └── DiscoveryModel.kt          # HostSpec regex validator
+│   ├── DiscoveryService.kt        # NSD (mDNS) discovery -> StateFlow of hosts
+│   ├── SubnetScanner.kt           # /24 sweep, Semaphore-bounded
+│   ├── HostApi.kt                 # /client/config.json, /api/info, /api/control, /health
+│   ├── ClientIdentity.kt          # stable per-device key (ANDROID_ID hash)
+│   ├── PinnedHostProxy.kt         # trusted-host TLS/cert handling
+│   ├── UsbLoopback.kt             # local socket in front of the AOA channel
+│   ├── WifiGatewayProvider.kt     # gateway probe for ChromeOS ARC++
+│   └── DiscoveryModel.kt          # host spec parsing and validation
 ├── player/
-│   ├── PlayerHolder.kt            # UDP / USB Annex-B MediaCodec, ExoPlayer MPEG-TS fallback
-│   ├── UsbPlayer.kt               # AOA FLAG_VIDEO AUs into MediaCodec
-│   └── StreamUrl.kt               # Builds http://host:port/stream (mpegts.js-free MPEG-TS URL + token query)
+│   ├── PlayerHolder.kt            # selects UDP / USB / ExoPlayer path per transport
+│   ├── UdpPlayer.kt               # UDP Annex-B -> MediaCodec
+│   ├── UsbPlayer.kt               # AOA Annex-B -> MediaCodec
+│   ├── AuReorder.kt               # datagram reassembly, hold-until-IDR
+│   ├── Fec.kt / PendingFecStore.kt  # Reed-Solomon FEC recovery
+│   ├── UdpCrypto.kt               # datagram authentication
+│   ├── H264.kt / Idr.kt / IdrFrames.kt / AoaFrames.kt  # bitstream helpers
+│   ├── StreamStats.kt             # glass-to-glass delay, frame age, rates
+│   ├── StreamUrl.kt               # stream URL + token builder
+│   └── SurfaceTarget.kt           # decoder surface management
 ├── input/
-│   └── InputDispatcher.kt         # Absolute-coord pointer / wheel / keyboard / stylus; resiz() re-scales mapping
+│   └── InputDispatcher.kt         # WebSocket-first pointer/touch/pen/key, HTTP fallback
+├── usb/
+│   ├── UsbAccessoryManager.kt     # AOA handshake, accessory read/write
+│   ├── AoaAcceptedSocket.kt       # AOA exposed as a local server socket
+│   └── UsbPermissionPrompt.kt     # accessory permission flow
+├── updater/
+│   └── UpdateManager.kt           # release check and APK install flow
 └── ui/
-    ├── theme/                     # Material 3 Color.kt, Theme.kt, Type.kt
-    ├── nav/OrbiNav.kt             # NavHost (Discovery / Stream / Settings)
+    ├── theme/                     # Material 3 (Catppuccin Mocha / Latte)
+    ├── nav/OrbiNav.kt             # routes: Discovery / Stream / Settings
     ├── discovery/                 # DiscoveryScreen + DiscoveryViewModel
-    ├── stream/                    # StreamScreen, PlayerSurface, ControlToolbar
-    └── settings/                  # SettingsScreen (theme, software-decoder toggle, scanner, recent host)
+    ├── stream/                    # StreamScreen, PlayerSurface, ControlToolbar,
+    │                              # StatsOverlay, HostWatch, LanLoginScreen
+    └── settings/                  # SettingsScreen (theme, decoder, scanner, hosts)
+```
+
+## Web Client Layout
+
+```
+clients/web/
+├── index.html                     # page shell, canvas, controls
+├── app.js                         # WebTransport session, reconnect, input post
+├── annexb.js                      # Annex-B framing for VideoDecoder chunks
+└── stats.js                       # stream statistics overlay
 ```
 
 ---
 
-## 🎞 Stream Pipeline
+## Stream Pipeline
 
 Each stage owns its data; frames are copied between stages (no zero-copy, this keeps the lifetimes simple at the cost of one extra copy per stage):
 
@@ -119,11 +146,11 @@ Each stage owns its data; frames are copied between stages (no zero-copy, this k
 2. **Frame Read & Conversion:** `orbiscreen-display::EvdiFramePump` drives EVDI on a dedicated thread (the underlying handle is `!Send`), waiting on content updates (`request_update` with `UPDATE_BUFFER_TIMEOUT`) and converting the stride-padded XRGB8888/Rgb565 framebuffer to tightly-packed BGRA in `to_tight_bgra()`.
 3. **Encoding:**
    - `orbiscreen-encode` takes BGRA frames sized to the **actual** negotiated display mode (not the requested spec) through a live `appsrc → videoconvert → x264enc/vaapih264enc/nvh264enc → h264parse` pipeline.
-   - Keyframes (GOP) are tuned to 6 frames (~100ms interval) across hardware encoders to allow instant client catch-up and rapid recovery from Wi-Fi jitter.
+   - Keyframes (GOP) are tuned to 6 frames (~100ms interval) across hardware encoders for fast client catch-up and recovery from network jitter.
    - AppSink buffers are capped with `drop = true` and `max-buffers = 1` to prevent queuing delays.
 4. **Playback:**
    - **Web:** The bundled client opens WebTransport (`wt_port`) with the advertised certificate hash, feeds Annex-B access units to WebCodecs `VideoDecoder`, and paints a canvas. On any error it tears down and reconnects with exponential backoff.
-   - **Android:** `PlayerHolder.build()` builds ExoPlayer with `MimeTypes.VIDEO_MP2T` and ultra-low latency load control (minBuffer: 40ms, maxBuffer: 120ms, bufferForPlayback: 20ms, bufferForPlaybackAfterRebuffer: 30ms).
+   - **Android:** `PlayerHolder.build()` builds ExoPlayer with `MimeTypes.VIDEO_MP2T` and low-latency load control (minBuffer: 40ms, maxBuffer: 120ms, bufferForPlayback: 20ms, bufferForPlaybackAfterRebuffer: 30ms).
    - **Disconnect & Recovery:** On transport errors, an immediate 500ms `/health` probe verifies daemon state, with reconnections capped at 3 attempts to prevent infinite retry loops.
 5. **Reverse Input:**
    - Clients send pointer, wheel, stylus, and keyboard events to `POST /input` (token required). Coordinates map to the **actual** stream resolution with strict boundary clamping to the virtual display geometry.
@@ -136,7 +163,7 @@ Each stage owns its data; frames are copied between stages (no zero-copy, this k
 
 ---
 
-## 🔐 Authentication & Security
+## Authentication & Security
 
 Every session generates a random 32-byte base64url token at startup:
 
@@ -149,7 +176,7 @@ Every session generates a random 32-byte base64url token at startup:
 
 ---
 
-## 🌐 HTTP API Contract
+## HTTP API Contract
 
 | Endpoint | Method | Auth | Body | Response |
 |----------|--------|------|------|----------|
@@ -157,26 +184,26 @@ Every session generates a random 32-byte base64url token at startup:
 | `/stream` | GET | token | - | `video/mp2t` MPEG-TS live stream |
 | `/input` | POST | token | pointer/key/stylus JSON | `202 Accepted` |
 | `/api/control` | POST | token | `{"action":"lock"\|"blank"\|"unblank"\|"ctrl_alt_del"\|"idr"}` | `200 OK` / `501` when the host lacks the required tool / `400` for unknown actions |
-| `/api/info` | GET | - | - | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.25.9"}` |
+| `/api/info` | GET | - | - | `{"display_width":1920,"display_height":1080,"refresh_hz":60,"encoder":"x264","version":"0.31.3"}` |
 | `/health` | GET | - | - | `200 OK "ok"` |
 
 Input events (`/input`) accept the same payload schema as the web client: `{"Pointer":{"Move":{"x","y"}\|"Button":{"button","pressed"}\|"Wheel":{"delta_y"}}}`, `{"Key":{"code","pressed"}}` (Linux evdev keycodes), `{"Stylus":{"Tilt":{"x","y","pressure","tilt_x_deg","tilt_y_deg"}}}`.
 
 ---
 
-## 🔌 Transport Optimisations
+## Transport Optimisations
 
 - **Per-client muxing:** every `/stream` request spawns an `appsrc → mpegtsmux → appsink` pipeline with `h264parse config-interval=1`, so SPS/PPS re-emit every keyframe and late-joining clients decode within one GOP.
 - **Infinite GOP + On-Demand IDR:** Hardware and software encoders maximize GOP length without periodic IDR bandwidth spikes; clients and lagged muxers trigger immediate upstream keyframe generation on join or packet loss.
-- **ChromeOS ARC++ ADB Routing:** Automatic internal ADB probing on `100.115.92.2:5555` bridges USB connections inside ChromeOS ARC++ container networking.
+- **ChromeOS ARC++ gateway probe:** the Android client probes the internal ARC++ gateways (`100.115.92.2`, `192.168.233.1`) on the signaling port; USB streaming itself runs over AOA, not `adb reverse`.
 - **OkHttpDataSource:** zero read-timeout, long-lived socket, custom `User-Agent: Orbiscreen-Android/1.0` for friendlier server logs.
-- **DefaultLoadControl + Ultra-Low Latency:** buffers 40ms minimally and 120ms maximally, ensuring near-instantaneous live edge playback.
+- **DefaultLoadControl:** 40ms minimum and 120ms maximum buffers keep playback at the live edge.
 - **Bounded fan-out:** the encode pipeline uses a bounded mpsc channel; `broadcast::RecvError::Lagged` is tolerated (slow clients fast-forward to the next keyframe) instead of tearing down the HTTP stream; unbounded memory growth from a stalled client is impossible.
 - **Protobuf-free:** payloads use `org.json.JSONObject` for both directions to keep the on-wire contract symmetric with the web client.
 
 ---
 
-## 🔁 Lifecycle
+## Lifecycle
 
 - `PlayerHolder` is owned by `StreamViewModel`; release happens in `onCleared()`.
 - `InputDispatcher` is constructed lazily on first touch and released together with the player.

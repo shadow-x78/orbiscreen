@@ -2,10 +2,7 @@
 
 # دعم بيئات سطح المكتب - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.30.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الإصدار](https://img.shields.io/badge/version-0.30.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الإصدار](https://img.shields.io/badge/version-0.30.9-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الإصدار](https://img.shields.io/badge/version-0.31.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.31.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -14,7 +11,7 @@
 
 ---
 
-## 🌐 اللغة
+## اللغة
 
 <a href="DE_SUPPORT.md">🇬🇧 English</a> · <a href="DE_SUPPORT_AR.md">🇸🇦 العربية</a>
 
@@ -137,7 +134,7 @@ orbiscreen doctor --fix    # تثبيت/تحميل وحدة نواة EVDI عند
 عند تشغيل تطبيق Orbiscreen على نظام ChromeOS (مثل جهاز ASUS Chromebook CM3001 أو أي جهاز لوحي يدعم تطبيقات الأندرويد عبر ARC++):
 
 - **عزل شبكة الأندرويد:** يعمل نظام أندرويد داخل حاوية معزولة (ARC++) خلف جسر NAT افتراضي، ويُعيّن لها عنوان IP ضمن النطاق `100.115.92.0/28` (البوابة الافتراضية `100.115.92.2`).
-- **استكشاف نفق ADB الداخلي تلقائياً:** يقوم Orbiscreen بفحص المنفذ الداخلي `100.115.92.2:5555` تلقائياً إلى جانب `localhost:5555` لربط نفق البث السلكي فورياً داخل ChromeOS.
+- **فحص البوابات الداخلية تلقائيًا:** عندما لا تكون AOA جاهزة، يظل عميل Android يفحص بوابات USB-tether / ARC ‏(`100.115.92.2`، `192.168.233.1`، ...)‏ على منفذ الإشارة. بث USB في ChromeOS نفسه يستخدم AOA وليس `adb reverse`.
 - **تكامل القلم الذكي (Stylus):** تدعم أقلام USI تتبع الحركة أثناء التحليق بالهواء ومستويات الضغط والميلان. وتتم معالجة أحداث القلم في خيوط خلفية عبر `Dispatchers.IO` لمنع تجميد واجهة التطبيق.
 - **الإعداد عبر لينكس داخل ChromeOS (Crostini):**
   1. فعّل **Linux development environment** من إعدادات ChromeOS.

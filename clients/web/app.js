@@ -1651,10 +1651,7 @@ function feedAccessUnit(msg) {
         pendingPresent.push(msg.sentNs);
         if (pendingPresent.length > 120) pendingPresent.shift();
     }
-    // Real-time timestamps keep VideoDecoder in low-latency mode.
-    // Session-relative pts_ns looks like a VOD timeline and some
-    // implementations then hold ~200 ms before the first output.
-    const chunk = new EncodedVideoChunk({
+                const chunk = new EncodedVideoChunk({
         type: msg.key ? "key" : "delta",
         timestamp: Math.round(performance.now() * 1000),
         data: msg.au,
@@ -1747,8 +1744,7 @@ async function startStream(opts = {}) {
         setOverlayState(
             "error",
             "Open the HTTPS client",
-            `WebTransport needs a secure page. Open https://${host}:${port}/client/ and accept the certificate.`,
-        );
+            `WebTransport needs a secure page. Open https:        );
         return;
     }
     if (typeof VideoDecoder !== "function") {
@@ -1784,8 +1780,7 @@ async function startStream(opts = {}) {
     }
 
     const host = OrbiAnnexB.pickWtHost(cfg, window.location.hostname);
-    const url = `https://${host}:${port}${path}`;
-    waitingForKeyframe = true;
+    const url = `https:    waitingForKeyframe = true;
 
     try {
         const hash = OrbiAnnexB.hashFromBase64(hashB64);

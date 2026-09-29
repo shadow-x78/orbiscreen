@@ -1,10 +1,6 @@
 // Orbiscreen - udp_crypto.rs (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
-//! AES-256-GCM wrapper for UDP datagrams.
-//!
-//! The clear header is `ORB2 || key_id || nonce`. The AEAD binds that header
-//! as additional data, and the plaintext is an ordinary ORB1 packet.
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};

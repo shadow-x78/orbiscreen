@@ -2,7 +2,7 @@
 
 # دليل التغليف متعدد التوزيعات - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.31.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -10,9 +10,9 @@
 ---
 
 <a id="packaging-matrix"></a>
-## 📦 مصفوفة حزم التوزيعات
+## مصفوفة حزم التوزيعات
 
-مصفوفة الإصدار: `2` (مساحة العمل)، `versionCode = 117` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع: راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
+مصفوفة الإصدار: `0.31.4` (مساحة العمل)، `versionCode = 119` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع: راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
 
 يوفّر Orbiscreen تكوينات البناء وتعريفات الحزم لجميع توزيعات Linux الرئيسية وAndroid:
 
@@ -25,7 +25,7 @@
 
 ---
 
-## 🔨 بناء الحزم محلياً
+## بناء الحزم محلياً
 
 ### 1. الأرشيف المستقل والمثبّت بأمر واحد
 ```bash
@@ -70,7 +70,7 @@ cd clients/android
 
 ---
 
-## 🎯 التوزيعات والأهداف المدعومة
+## التوزيعات والأهداف المدعومة
 
 | الهدف | التنسيق | التوزيعات | الحالة |
 |--------|---------|-------------|--------|
@@ -83,7 +83,7 @@ cd clients/android
 
 ---
 
-## 📦 أرشيفات المصدر
+## أرشيفات المصدر
 
 يتم إنشاء أرشيفات مصدر الإصدار عبر مسار CI وإرفاقها بـ GitHub Releases:
 
@@ -96,7 +96,7 @@ orbiscreen-<version>-linux-x86_64.tar.gz  # ثنائيات جاهزة
 
 ---
 
-## 🏗️ Fedora / RHEL / CentOS (COPR)
+## Fedora / RHEL / CentOS (COPR)
 
 ### مستودع COPR
 ```bash
@@ -117,7 +117,7 @@ sudo dnf install orbiscreen
 
 ---
 
-## 📦 Debian / Ubuntu / Linux Mint (.deb)
+## Debian / Ubuntu / Linux Mint (.deb)
 
 ### البناء من المصدر
 ```bash
@@ -137,7 +137,7 @@ sudo apt-get install -f
 
 ---
 
-## 🏔️ Arch Linux / Manjaro (PKGBUILD)
+## Arch Linux / Manjaro (PKGBUILD)
 
 يحتوي جذر المستودع على ملف `PKGBUILD` مستقل:
 
@@ -154,7 +154,7 @@ makepkg -si
 
 ---
 
-## 📱 تغليف إصدار Android
+## تغليف إصدار Android
 
 ### المتطلبات
 - Android SDK / Android Studio
@@ -182,7 +182,7 @@ aapt dump badging app-release.apk | grep version
 
 ---
 
-## 🔏 التوقيع والتوزيع
+## التوقيع والتوزيع
 
 ### حزم Linux
 - **RPM:** موقّع بـ `rpmsign` باستخدام مفتاح GPG الخاص بالمُحافظ (COPR يتولّى ذلك)
@@ -206,7 +206,7 @@ gpg --verify orbiscreen-x86_64.AppImage.sig orbiscreen-x86_64.AppImage
 
 ---
 
-## 📄 الرخصة
+## الرخصة
 
 Orbiscreen مرخص تحت **GPL-3.0-or-later**.
 

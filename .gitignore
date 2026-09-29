@@ -18,6 +18,8 @@ debian/files
 *.deb
 *.rpm
 *.AppImage
+*.AppImage.zsync
+*.zsync
 *.apk
 *.aab
 *.ap_
@@ -48,14 +50,14 @@ orbiscreen-*.tar.gz
 *.jks
 local.properties
 google-services.json
+.env
+.env.local
 
 # ── Editor artifacts ──
 .vscode/
 .idea/
-.kilo/
 *.swp
 *.sublime-*
-.playwright-mcp/
 
 # ── OS files ──
 .DS_Store

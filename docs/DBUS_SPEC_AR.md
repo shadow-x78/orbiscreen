@@ -2,10 +2,7 @@
 
 # مواصفات واجهة D-Bus - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.30.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الإصدار](https://img.shields.io/badge/version-0.30.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الإصدار](https://img.shields.io/badge/version-0.30.9-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الإصدار](https://img.shields.io/badge/version-0.31.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.31.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -14,7 +11,7 @@
 
 ---
 
-## 🌐 اللغة
+## اللغة
 
 <a href="DBUS_SPEC.md">🇬🇧 English</a> · <a href="DBUS_SPEC_AR.md">🇸🇦 العربية</a>
 
@@ -31,7 +28,7 @@
 
 ---
 
-## 🛰 سطح تحكم HTTP المرافق
+## سطح تحكم HTTP المرافق
 
 يتواصل عميلا Android والويب مع الـ daemon عبر HTTP وليس D-Bus. جدول التوجيه الحالي (راجع `orbiscreen-transport`):
 
@@ -44,7 +41,7 @@
 | `POST /api/control` | توكن | إجراءات المضيف `lock`، `blank`، `unblank`، `ctrl_alt_del` |
 | `GET /client/config.json` | عامة | تمهيد عميل الويب: `{token, display_width, display_height}` |
 | `GET /` | عامة | إعادة توجيه إلى عميل الويب المضمّن |
-| `GET /client/*` | عامة | ملفات عميل الويب الساكنة ‏(MSE عبر mpegts.js المُورَّدة محليا)‏ |
+| `GET /client/*` | عامة | ملفات عميل الويب المضمّن (WebTransport + فك ترميز WebCodecs ‏`VideoDecoder`)‏ |
 
 **نموذج التوكن:** يولَّد توكن عشوائي جديد مع كل تشغيل للدايمن (32 بايت، base64url). المسارات المحمية تشترطه عبر ترويسة `Authorization: Bearer <token>` أو معامل `?token=<token>`. يحصل العملاء عليه من سجل mDNS TXT أو من `/client/config.json`. وبما أن التوكن قابل للقراءة من أي طرف يستطيع الوصول إلى المنفذ، فهذه حماية من الاستخدام العرضي وليست مصادقة قوية - راجع `SECURITY.md`.
 
@@ -52,7 +49,7 @@
 
 ---
 
-## 🛠 توابع D-Bus
+## توابع D-Bus
 
 جميع التوابع معروضة على ناقل الجلسة. يحوّل zbus أسماء Rust إلى PascalCase على السلك.
 
@@ -80,13 +77,13 @@
 | `active_clients` | u64 | عملاء `/stream` المتصلون حالياً |
 | `total_clients` | u64 | إجمالي اتصالات `/stream` منذ البدء |
 | `auth_failures` | u64 | الطلبات غير المصرّ بها المرفوضة منذ البدء (يظهر أيضاً في `GET /health`) |
-| `usb_devices` | u64 | ملحقات USB/AOA المفتوحة حالياً (يُحدَّث لحظياً أثناء عمل الدامن؛ يظهر أيضاً في `GET /health`) |
+| `usb_devices` | u64 | ملحقات USB/AOA المفتوحة حالياً (يُحدَّث أثناء عمل الدامن؛ يظهر أيضاً في `GET /health`) |
 | `encoder` | string | المُرمّز الفعلي قيد الاستخدام ‏(`x264`، `vaapi`، `nvenc`)‏ |
 | `capture_backend` | string | `evdi` للشاشة الافتراضية؛ `x11-portal-fallback` / `wayland-portal-fallback` عند غياب وحدة evdi |
 
 ### 2. `Stop() -> String` (التوقيع `s`)
 
-طلب إيقاف سلس ومنظم للخدمة الخلفية. يقلب المعالج راية التشغيل ويرسل إشارة إلى الحلقة الرئيسية عبر قناة watch داخلية، لإنهاء مراحل الالتقاط والترميز والنقل ثم الخروج بنجاح.
+طلب إيقاف منظم للخدمة الخلفية. يقلب المعالج راية التشغيل ويرسل إشارة إلى الحلقة الرئيسية عبر قناة watch داخلية، لإنهاء مراحل الالتقاط والترميز والنقل ثم الخروج بنجاح.
 
 - **القيمة المُرجعة:** `"Orbiscreen daemon shutting down"`
 - **إن كان متوقفاً أصلاً:** `"Orbiscreen is not running"`
@@ -133,7 +130,7 @@ mdns_advertise = true
 
 ---
 
-## 💻 مثال استخدام من CLI ‏(`busctl`)
+## مثال استخدام من CLI ‏(`busctl`)
 
 ```bash
 # فحص واجهة Orbiscreen على D-Bus

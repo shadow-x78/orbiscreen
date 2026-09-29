@@ -1,9 +1,6 @@
 // Orbiscreen - aoa_video.rs (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
-//! Native USB/AOA video: length-prefixed Annex-B access units on AOA frames,
-//! not HTTP MPEG-TS. USB bulk is ordered and retried, so P-frames are dropped
-//! only when the write queue is full (the analogue of a late UDP datagram).
 
 use super::annexb::{self, SpsPps};
 use super::wt_protocol;
@@ -76,8 +73,6 @@ pub fn parse_aoa_frame(buf: &[u8]) -> Option<(ParsedFrame<'_>, usize)> {
     ))
 }
 
-/// Split a byte stream into complete AOA frames. Returns parsed frames and
-/// leftover unparsed tail (incomplete header/payload).
 pub fn drain_aoa_frames(buf: &[u8]) -> (Vec<(u16, u8, Vec<u8>)>, usize) {
     let mut frames = Vec::new();
     let mut offset = 0;
@@ -88,8 +83,6 @@ pub fn drain_aoa_frames(buf: &[u8]) -> (Vec<(u16, u8, Vec<u8>)>, usize) {
     (frames, offset)
 }
 
-/// Pack a length-prefixed `encode_video` blob into one or more AOA VIDEO
-/// frames concatenated so the USB writer can emit them as one AU.
 pub fn pack_video_bytes(stream_id: u16, bytes: &[u8]) -> Vec<u8> {
     let max = max_aoa_payload();
     let mut out = Vec::new();
@@ -158,8 +151,6 @@ pub fn lane_for(is_keyframe: bool) -> Lane {
     }
 }
 
-/// USB bulk does not lose packets. A full video queue means the tablet is
-/// behind; drop the P-frame rather than queueing seconds of picture.
 pub fn drop_p_on_full_queue(try_send_ok: bool) -> bool {
     !try_send_ok
 }
@@ -169,8 +160,6 @@ pub fn clock_offset_ns(host_ns: u64, t0_ns: u64, now_ns: u64) -> i64 {
     host_ns.wrapping_add(rtt / 2).wrapping_sub(now_ns) as i64
 }
 
-/// The USB video task is the session's viewer. Transient send failures and a
-/// closed broadcast must not drop that lease; only leaving the accessory does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VideoPumpEvent {
     BridgeStopped,
@@ -206,8 +195,6 @@ pub fn pack_h264_packet(
     Some(pack_video_bytes(VIDEO_STREAM_ID, &framed))
 }
 
-/// Concatenate VIDEO payloads (in USB order) and peel complete `encode_video`
-/// frames. Used by tests to mimic the Android `IdrFrames.Reader`.
 pub fn reassemble_video_payloads(payloads: &[Vec<u8>]) -> Vec<wt_protocol::VideoFrame> {
     let mut buf = Vec::new();
     for p in payloads {

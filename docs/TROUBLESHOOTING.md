@@ -2,10 +2,7 @@
 
 # Troubleshooting - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.30.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.30.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.30.9-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.31.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.31.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -14,13 +11,13 @@
 
 ---
 
-## 🌐 Language
+## Language
 
 <a href="TROUBLESHOOTING.md">🇬🇧 English</a> · <a href="TROUBLESHOOTING_AR.md">🇸🇦 العربية</a>
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 ### CI Workflow Actions (`.github/workflows/ci.yml`)
 
@@ -111,7 +108,7 @@
 # CI Failures
 
 <a id="ci-fmt"></a>
-## 🧪 CI Action: `Format & Lint` (`cargo fmt --check`)
+## CI Action: `Format & Lint` (`cargo fmt --check`)
 
 **Symptom:**
 ```
@@ -127,7 +124,7 @@ Source code does not adhere to standard Rust formatting (`rustfmt`).
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.25.9 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.31.3 | style: cargo fmt --all"
 ```
 
 **Prevention:**
@@ -136,7 +133,7 @@ Run `./gradlew :app:lintDebug` and `cargo fmt --all` locally before pushing.
 ---
 
 <a id="ci-clippy"></a>
-## 🧪 CI Action: `Clippy (deny warnings)`
+## CI Action: `Clippy (deny warnings)`
 
 **Symptom:**
 ```
@@ -152,7 +149,7 @@ error: this operation is not supported for derived errors
 cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
 cargo clippy --workspace --all-targets --locked --fix
 git add -A
-git commit -m "orbiscreen | v0.25.9 | fix: resolve clippy warnings"
+git commit -m "orbiscreen | v0.31.3 | fix: resolve clippy warnings"
 ```
 
 **Prevention:**
@@ -161,7 +158,7 @@ Run `cargo clippy` locally before pushing.
 ---
 
 <a id="ci-build"></a>
-## 🧪 CI Action: `Build` (`cargo build --workspace --locked`)
+## CI Action: `Build` (`cargo build --workspace --locked`)
 
 **Symptom:**
 ```
@@ -173,13 +170,13 @@ error[E0463]: can't find crate for `gstreamer`
 cargo update -p gstreamer
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.25.9 | chore: refresh Cargo.lock"
+git commit -m "orbiscreen | v0.31.3 | chore: refresh Cargo.lock"
 ```
 
 ---
 
 <a id="ci-test"></a>
-## 🧪 CI Action: `Test` (`cargo test --workspace --locked`)
+## CI Action: `Test` (`cargo test --workspace --locked`)
 
 Tests assume the host has GStreamer plugins (`x264enc`, `vaapih264enc`, `nvh264enc`). Install them locally:
 ```bash
@@ -189,14 +186,14 @@ sudo dnf install gstreamer1.0-plugins-{good,bad,ugly,libav}
 ---
 
 <a id="ci-deny"></a>
-## 🧪 CI Action: `Run cargo-deny`
+## CI Action: `Run cargo-deny`
 
 This is a **non-blocking** informational check. See `deny.toml` for the allowlist.
 
 ---
 
 <a id="ci-android"></a>
-## 🧪 CI Action: `Android assembleDebug` + `lintDebug`
+## CI Action: `Android assembleDebug` + `lintDebug`
 
 The Android workflow runs `./gradlew :app:assembleDebug :app:lintDebug`. Common failures:
 
@@ -206,7 +203,7 @@ The Android workflow runs `./gradlew :app:assembleDebug :app:lintDebug`. Common 
 ---
 
 <a id="runtime-evdi"></a>
-## 🚀 Runtime: `orbiscreen start` fails - `kernel module is not installed`
+## Runtime: `orbiscreen start` fails - `kernel module is not installed`
 
 **Symptom:**
 ```
@@ -236,7 +233,7 @@ Error: evdi kernel module is not installed
 ---
 
 <a id="runtime-kwin"></a>
-## 🚀 Runtime: KDE Plasma (virtual display without evdi or root)
+## Runtime: KDE Plasma (virtual display without evdi or root)
 
 **Symptom:** `orbiscreen start` logs `EVDI kernel module not active` and you do not want to build a kernel module.
 
@@ -252,20 +249,20 @@ Notes:
 ---
 
 <a id="runtime-wayland"></a>
-## 🚀 Runtime: capture backend unavailable on Wayland
+## Runtime: capture backend unavailable on Wayland
 
 Use `CaptureSession::open_with_preference()` (the daemon already does so).
 
 ---
 
 <a id="runtime-lints"></a>
-## 🚀 Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`
+## Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`
 
 Use `#[allow(missing_debug_implementations)]` or `#[allow(unsafe_code)]` on the offending type/function.
 
 ---
 
-## 📱 Android Client & Devices
+## Android Client & Devices
 
 <a id="android-chromebook-adb"></a>
 ### Android / ChromeOS: ADB connection fails on ASUS Chromebook CM3001
@@ -295,8 +292,8 @@ Using a stylus on a Lenovo Tab (IdeaTab) or Chromebook causes either:
 Early implementations dispatched stylus network packets synchronously on the Android main UI thread. In addition, generic motion hover listeners (`ACTION_HOVER_MOVE`) were not hooked, and pen release was not emitted on zero pressure.
 
 **Fix:**
-- Update to `orbiscreen-android-release.apk` **v0.20.0** or later.
-- v0.20.0 moves stylus dispatch to background coroutines (`Dispatchers.IO`) with `latestStylus` coalescing, preventing UI freezes and thread exceptions.
+- Update to `orbiscreen-android-release.apk` **v0.31.3** or later.
+- v0.31.3 moves stylus dispatch to background coroutines (`Dispatchers.IO`) with `latestStylus` coalescing, preventing UI freezes and thread exceptions.
 - Implements `setOnGenericMotionListener` for in-air hover cursor tracking.
 - Calibrates tilt math (`-altitudeDeg * cos(orientationRad)`) and ensures `BTN_TOOL_PEN: RELEASED` is cleanly emitted when lifting the pen.
 
@@ -309,10 +306,10 @@ Early implementations dispatched stylus network packets synchronously on the And
 In Touchpad mode, tapping and dragging on the tablet moves the mouse pointer, but does not drag windows or select text.
 
 **Cause:**
-Prior to v0.20.0, Touchpad mode only sent hover pointer movements, lacking a drag gesture.
+Prior to v0.31.3, Touchpad mode only sent hover pointer movements, lacking a drag gesture.
 
 **Fix:**
-- Update to **v0.20.0**.
+- Update to **v0.31.3**.
 - **Double-tap and drag:** Double-tap on the touch surface and keep your finger held down on the second tap. As you move your finger, mouse button 1 remains pressed, smoothly dragging the window, file, or selection.
 - Lifting your finger releases mouse button 1.
 
@@ -328,7 +325,7 @@ Tapping a host on the Discovery screen immediately kills the app process or cras
 `PlayerHolder.build()` must be executed on the main thread. ExoPlayer requires main-thread construction; creating player components on IO threads throws thread access exceptions that terminate the process.
 
 **Fix:**
-- Upgrade to `orbiscreen-android-release.apk` **v0.20.0** or later.
+- Upgrade to `orbiscreen-android-release.apk` **v0.31.3** or later.
 - `StreamViewModel` constructs ExoPlayer on `Dispatchers.Main` with try-catch hardening so errors surface as `StreamEvent.Error` retry cards instead of crashing.
 
 ---
@@ -343,7 +340,7 @@ Tapping a discovered host shows a black surface; no video; the control toolbar d
 ExoPlayer MIME sniffing for `/stream` falling back to a black surface when failing to detect MPEG-TS automatically.
 
 **Fix:**
-- Upgrade to `orbiscreen-android-release.apk` **v0.20.0** or later.
+- Upgrade to `orbiscreen-android-release.apk` **v0.31.3** or later.
 - `PlayerHolder` configures `MediaItem` with explicit `setMimeType(MimeTypes.VIDEO_MP2T)`, ensuring the stream decodes without sniffing.
 - Errors are surfaced as a retry card instead of a black surface.
 
@@ -402,7 +399,7 @@ You open the Orbiscreen app on Android and it immediately crashes back to the ho
 Legacy WebView issues in obsolete versions.
 
 **Fix:**
-Orbiscreen uses Jetpack Compose + `PlayerView` exclusively without WebView. Ensure you are running `orbiscreen-android-release.apk` **v0.20.0** or later. If any crash occurs, capture a logcat with `adb logcat *:E | grep orbiscreen` and open an issue.
+Orbiscreen uses Jetpack Compose + `PlayerView` exclusively without WebView. Ensure you are running `orbiscreen-android-release.apk` **v0.31.3** or later. If any crash occurs, capture a logcat with `adb logcat *:E | grep orbiscreen` and open an issue.
 
 ---
 
@@ -412,7 +409,7 @@ Orbiscreen uses Jetpack Compose + `PlayerView` exclusively without WebView. Ensu
 **Fix:**
 USB uses Android Open Accessory, not `adb reverse`. Ensure:
 1. The host daemon is running (`orbiscreen start`).
-2. The cable is plugged in. The tablet should show the USB accessory permission dialog (Orbiscreen Display Server) — tap **OK**.
+2. The cable is plugged in. The tablet should show the USB accessory permission dialog (Orbiscreen Display Server), tap **OK**.
 3. Verify what the daemon sees:
    ```bash
    orbiscreen doctor          # USB Direct / Cable card
@@ -422,7 +419,7 @@ USB uses Android Open Accessory, not `adb reverse`. Ensure:
 The daemon's accessory count is also visible in `GET /health` (`usb_devices`) and the D-Bus `GetStatus` payload.
 
 <a id="streaming-wifi-latency"></a>
-## ⚡ Streaming: High latency, stutter, or slow mouse movement on 5GHz Wi-Fi
+## Streaming: High latency, stutter, or slow mouse movement on 5GHz Wi-Fi
 
 **Symptom:**
 When connected over 5GHz Wi-Fi (e.g. from a Lenovo Tab or phone), mouse movements feel sluggish or delayed by hundreds of milliseconds, or the stream lags behind the host.
@@ -433,8 +430,8 @@ When connected over 5GHz Wi-Fi (e.g. from a Lenovo Tab or phone), mouse movement
 3. Mouse input batching was queued at long intervals.
 
 **Fix:**
-- Orbiscreen v0.20.0 tunes the entire pipeline for ultra-low latency:
-  - **6-frame GOP:** Hardware encoders emit a keyframe every 100ms, enabling instant recovery from Wi-Fi packet loss without buffering.
+- Orbiscreen v0.31.3 tunes the pipeline for low latency:
+  - **6-frame GOP:** Hardware encoders emit a keyframe every 100ms, enabling recovery from packet loss without added buffering.
   - **40-120ms load control:** ExoPlayer buffers are tuned down to 40ms minimum and 120ms maximum.
   - **8ms input loop:** Mouse movement batching interval is reduced to 8ms for 120Hz-class responsiveness.
 - Ensure your Wi-Fi router uses 5GHz with an 80MHz channel width and low channel congestion.
@@ -442,7 +439,7 @@ When connected over 5GHz Wi-Fi (e.g. from a Lenovo Tab or phone), mouse movement
 ---
 
 <a id="stream-disconnect-retry"></a>
-## 🔁 Streaming: Stream error causes infinite reconnect flicker instead of detecting disconnect
+## Streaming: Stream error causes infinite reconnect flicker instead of detecting disconnect
 
 **Symptom:**
 When the Linux daemon stops or the network drops, the Android app repeatedly flickers and attempts to reconnect indefinitely instead of showing a clean disconnected state.
@@ -451,14 +448,14 @@ When the Linux daemon stops or the network drops, the Android app repeatedly fli
 Older versions lacked explicit lifecycle states for server disconnection and retried without bounds.
 
 **Fix:**
-- In v0.20.0, `PlayerHolder` introduces `StreamEvent.Disconnected`.
+- In v0.31.3, `PlayerHolder` introduces `StreamEvent.Disconnected`.
 - On network errors, an immediate 500ms `/health` probe checks if the daemon is alive.
 - Reconnection attempts are capped at 3 retries. If the host is unreachable, the app cleanly shows the disconnected card with manual retry options.
 
 ---
 
 <a id="cursor-clamping"></a>
-## 🖥 Multi-Monitor / X11: Mouse cursor escapes virtual display to other physical screens
+## Multi-Monitor / X11: Mouse cursor escapes virtual display to other physical screens
 
 **Symptom:**
 When moving the mouse or stylus on the tablet, the cursor jumps outside the virtual display area onto your physical laptop/desktop monitors.
@@ -467,13 +464,13 @@ When moving the mouse or stylus on the tablet, the cursor jumps outside the virt
 XTEST coordinate injection without output geometry boundaries spans the entire X11 root desktop dimensions.
 
 **Fix:**
-- In v0.20.0, Orbiscreen queries XRandR output geometry and clamps cursor and stylus coordinates strictly within the virtual output rectangle (`InputProp::DIRECT`).
+- In v0.31.3, Orbiscreen queries XRandR output geometry and clamps cursor and stylus coordinates strictly within the virtual output rectangle (`InputProp::DIRECT`).
 - The cursor is strictly confined to the tablet's virtual display screen.
 
 ---
 
 <a id="wrong-screen"></a>
-## 🖥 Client shows the wrong screen (primary desktop instead of virtual display)
+## Client shows the wrong screen (primary desktop instead of virtual display)
 
 **Symptom:**
 The Android/web client connects and displays video, but it mirrors the host's main desktop instead of a clean second monitor. Dragging windows "ac" onto a second screen does nothing.
@@ -496,7 +493,7 @@ The `evdi` kernel module is not loaded, so Orbiscreen falls back to primary-desk
 ---
 
 <a id="web-no-picture"></a>
-## 🌐 Web client loads but shows no picture
+## Web client loads but shows no picture
 
 **Symptom:**
 `https://<host>:8790/client/` loads, the overlay stays on "Connecting", or it reports "Unsupported browser" and asks for Chrome, Brave, or Edge.
@@ -512,7 +509,7 @@ The web client opens WebTransport and decodes Annex-B with WebCodecs `VideoDecod
 ---
 
 <a id="no-encoder"></a>
-## 🎞 No encoder available - stream starts but errors out (x264 missing)
+## No encoder available - stream starts but errors out (x264 missing)
 
 **Symptom:**
 The daemon starts, clients connect, but video never arrives or the log shows GStreamer element link errors mentioning `x264enc` / `no element found`.
@@ -536,7 +533,7 @@ Then restart the daemon; `GetStatus.encoder` reports which encoder is actually i
 ---
 
 <a id="token-401"></a>
-## 🔑 401 Unauthorized from `/stream`, `/input` or `/api/control` (token)
+## 401 Unauthorized from `/stream`, `/input` or `/api/control` (token)
 
 **Symptom:**
 Clients (Android, web, or hand-written scripts) get `401 Unauthorized`. `curl http://host:8788/health` works fine, but `/stream`, `/input` and `/api/control` all reject the request.
@@ -559,7 +556,7 @@ These routes require the per-session access token generated when the daemon star
    ```bash
    orbiscreen doctor
    # Or read the token file directly (stored with 0o600 permissions):
-   cat ~/.config/orbiscreen/stream_token
+   cat ~/.config/orbiscreen/token
    ```
 3. Android clients receive the token automatically via mDNS discovery (`token=...` TXT record). If adding a host manually, enter the token in the host connection settings.
 4. Pass the token via Authorization header or query parameter in custom scripts:
@@ -571,7 +568,7 @@ These routes require the per-session access token generated when the daemon star
 ---
 
 <a id="dbus-missing"></a>
-## 🚌 Daemon not found on D-Bus
+## Daemon not found on D-Bus
 
 **Symptom:**
 `orbiscreen stop` prints `daemon is not running (no com.orbiscreen.Daemon on the session bus)`
@@ -594,18 +591,18 @@ The D-Bus service (`com.orbiscreen.Daemon`) is registered on the **user session 
 ---
 
 <a id="daemon-cpu"></a>
-## 🚀 Daemon: 100% CPU usage or freeze
+## Daemon: 100% CPU usage or freeze
 
 **Cause:**
 Capture loop running without yielding or unbounded queue backlog.
 
 **Fix:**
-Update to the latest release (v0.25.9 or newer).
+Update to the latest release (v0.31.3 or newer).
 
 ---
 
 <a id="still-stuck"></a>
-## 🛟 Still Stuck?
+## Still Stuck?
 
 <a id="re-run-job"></a>
 ### Re-run a single CI job

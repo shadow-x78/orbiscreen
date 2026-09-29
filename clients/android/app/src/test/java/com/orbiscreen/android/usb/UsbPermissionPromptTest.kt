@@ -22,8 +22,7 @@ class UsbPermissionPromptTest {
     fun cancelThenResumeDoesNotReprompt() {
         val prompt = UsbPermissionPrompt()
         assertTrue(prompt.tryBeginPrompt())
-        // onResume can race the denied broadcast; Prompting must still block.
-        assertFalse(prompt.tryBeginPrompt())
+                assertFalse(prompt.tryBeginPrompt())
         prompt.onDenied()
         assertEquals(UsbPermissionPrompt.State.Denied, prompt.state)
         assertFalse(prompt.tryBeginPrompt())

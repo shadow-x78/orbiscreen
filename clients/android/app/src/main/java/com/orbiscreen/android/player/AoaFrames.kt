@@ -3,10 +3,6 @@
 
 package com.orbiscreen.android.player
 
-/**
- * 5-byte AOA frames used on the USB accessory bulk pipe.
- * Native video uses [FLAG_VIDEO]; HTTP/TCP proxy traffic uses DATA/OPEN/CLOSE.
- */
 object AoaFrames {
     const val FLAG_DATA: Int = 0x01
     const val FLAG_OPEN: Int = 0x02
@@ -75,7 +71,7 @@ object AoaFrames {
         return hostNs + rtt / 2 - nowNs
     }
 
-    /** Concatenate VIDEO payloads and emit complete length-prefixed AUs. */
+    
     class VideoReader {
         private var reader = IdrFrames.Reader()
 

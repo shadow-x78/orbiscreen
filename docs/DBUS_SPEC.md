@@ -2,10 +2,7 @@
 
 # D-Bus API Specification - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.30.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.30.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.30.9-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.31.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.31.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -14,7 +11,7 @@
 
 ---
 
-## 🌐 Language
+## Language
 
 <a href="DBUS_SPEC.md">🇬🇧 English</a> · <a href="DBUS_SPEC_AR.md">🇸🇦 العربية</a>
 
@@ -31,7 +28,7 @@ The service is registered by the running daemon process. If the service name is 
 
 ---
 
-## 🛰 Companion HTTP Control Surface
+## Companion HTTP Control Surface
 
 Android and web clients talk to the daemon over HTTP, not D-Bus. Current routing table (see `orbiscreen-transport`):
 
@@ -52,7 +49,7 @@ D-Bus remains the canonical interface for native Linux clients (CLI scripts, `or
 
 ---
 
-## 🛠 D-Bus Methods
+## D-Bus Methods
 
 All methods are exposed on the session bus. zbus maps the Rust names to PascalCase on the wire.
 
@@ -133,7 +130,7 @@ On serialization failure it returns `config serialize error: <detail>`.
 
 ---
 
-## 💻 CLI Usage Example (`busctl`)
+## CLI Usage Example (`busctl`)
 
 ```bash
 # Introspect the Orbiscreen D-Bus interface

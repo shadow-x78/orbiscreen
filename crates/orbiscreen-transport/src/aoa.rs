@@ -353,8 +353,6 @@ fn bulk_write_slice(fd: i32, ep: u32, data: &[u8], running: &AtomicBool) -> bool
     true
 }
 
-/// Write one channel message as complete AOA frames so an AU packed as
-/// several URBs cannot be split mid-header.
 fn write_aoa_chunk(fd: i32, ep: u32, chunk: &[u8], running: &AtomicBool) -> bool {
     let mut offset = 0;
     while offset < chunk.len() && running.load(Ordering::Relaxed) {
@@ -385,6 +383,22 @@ async fn run_native_video(
     running: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
 ) {
+    struct DetachGuard(DisplayCtl, Vec<String>);
+    impl Drop for DetachGuard {
+        fn drop(&mut self) {
+            let ctl = self.0.clone();
+            let ids = std::mem::take(&mut self.1);
+            tokio::spawn(async move {
+                for id in ids {
+                    debug!("AOA native video releasing viewer session={id}");
+                    ctl.detach(&id).await;
+                }
+            });
+        }
+    }
+
+    let mut guard = DetachGuard(displays.clone(), Vec::new());
+
     let attached = match displays.attach(session.clone(), None).await {
         Ok(a) => a,
         Err(e) => {
@@ -393,38 +407,18 @@ async fn run_native_video(
             return;
         }
     };
-    let sid = attached.info.id.clone();
+    let mut sid = attached.info.id.clone();
     let mut video_rx = attached.video;
+    guard.1.push(sid.clone());
     let _ = prio_tx.send(encode_video_open_ack(host_now_ns()));
     displays.idr(&sid).await;
     info!("AOA native Annex-B video attached session={sid}");
-
-    struct DetachGuard(DisplayCtl, String);
-    impl Drop for DetachGuard {
-        fn drop(&mut self) {
-            let ctl = self.0.clone();
-            let id = self.1.clone();
-            debug!("AOA native video releasing viewer session={id}");
-            tokio::spawn(async move { ctl.detach(&id).await });
-        }
-    }
-    let _detach = DetachGuard(displays.clone(), sid.clone());
 
     let mut wait_key = true;
     let mut cached = None;
     let mut last_idr = Instant::now()
         .checked_sub(IDR_DEBOUNCE)
         .unwrap_or_else(Instant::now);
-    let mut request_idr = || {
-        let now = Instant::now();
-        if !idr_due(last_idr, now) {
-            return;
-        }
-        last_idr = now;
-        let ctl = displays.clone();
-        let id = sid.clone();
-        tokio::spawn(async move { ctl.idr(&id).await });
-    };
 
     loop {
         if stop.load(Ordering::Relaxed) || !running.load(Ordering::Relaxed) {
@@ -440,16 +434,50 @@ async fn run_native_video(
                 Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
                     debug!("AOA native video lagged {n}; wait for keyframe");
                     wait_key = true;
-                    request_idr();
+                    let now = Instant::now();
+                    if idr_due(last_idr, now) {
+                        last_idr = now;
+                        displays.idr(&sid).await;
+                    }
                     continue;
                 }
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => {
-                    if aoa_video::video_pump_should_release(aoa_video::VideoPumpEvent::BroadcastClosed)
-                    {
+                    if stop.load(Ordering::Relaxed) || !running.load(Ordering::Relaxed) {
                         break;
                     }
-                    warn!("AOA video broadcast closed session={sid}; keeping the viewer lease");
-                    tokio::time::sleep(Duration::from_millis(200)).await;
+                                                            warn!("AOA video broadcast closed session={sid}; re-attaching");
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                                                            let mut attempt = session.clone();
+                    let mut reattached = false;
+                    for _ in 0..2 {
+                        let att = match attempt.clone() {
+                            Some(id) => displays.attach(Some(id), None).await,
+                            None => displays.attach(None, None).await,
+                        };
+                        match att {
+                            Ok(a) => {
+                                let new_sid = a.info.id.clone();
+                                if !guard.1.contains(&new_sid) {
+                                    guard.1.push(new_sid.clone());
+                                }
+                                sid = new_sid;
+                                video_rx = a.video;
+                                wait_key = true;
+                                last_idr = Instant::now();
+                                displays.idr(&sid).await;
+                                info!("AOA native video re-attached session={sid}");
+                                reattached = true;
+                                break;
+                            }
+                            Err(e) => {
+                                warn!("AOA video re-attach failed: {e}");
+                                attempt = None;
+                            }
+                        }
+                    }
+                    if !reattached {
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                    }
                     continue;
                 }
             },
@@ -459,7 +487,11 @@ async fn run_native_video(
         }
         if wait_key {
             if !pkt.is_keyframe {
-                request_idr();
+                let now = Instant::now();
+                if idr_due(last_idr, now) {
+                    last_idr = now;
+                    displays.idr(&sid).await;
+                }
                 continue;
             }
             wait_key = false;
@@ -482,7 +514,11 @@ async fn run_native_video(
             Lane::Video => {
                 if au_tx.try_send(packed).is_err() {
                     wait_key = true;
-                    request_idr();
+                    let now = Instant::now();
+                    if idr_due(last_idr, now) {
+                        last_idr = now;
+                        displays.idr(&sid).await;
+                    }
                 }
             }
         }
@@ -585,6 +621,7 @@ pub fn run_accessory_bridge(
     let mut native_stop = Arc::new(AtomicBool::new(false));
     let mut native_handle: Option<tokio::task::JoinHandle<()>> = None;
 
+    let mut consecutive_proto_errs: u32 = 0;
     while running.load(Ordering::Relaxed) {
         let mut bulk = UsbDevFsBulkTransfer {
             ep: in_ep,
@@ -596,12 +633,25 @@ pub fn run_accessory_bridge(
         let read_bytes = unsafe { ioctl(fd, USBDEVFS_BULK, &mut bulk) };
         if read_bytes < 0 {
             let err = std::io::Error::last_os_error();
-            if err.raw_os_error() == Some(110) {
+            let raw_err = err.raw_os_error();
+                        if raw_err == Some(110) || raw_err == Some(libc::EINTR) {
+                consecutive_proto_errs = 0;
                 continue;
             }
-            warn!("USB bulk read error on accessory: {err}");
+                                                if raw_err == Some(libc::EPROTO) {
+                consecutive_proto_errs += 1;
+                if consecutive_proto_errs >= 50 {
+                    warn!("USB bulk read: too many consecutive protocol errors; releasing accessory");
+                    break;
+                }
+                let sleep_ms = (10 * consecutive_proto_errs).min(200) as u64;
+                std::thread::sleep(Duration::from_millis(sleep_ms));
+                continue;
+            }
+                        warn!("USB bulk read error on accessory: {err}");
             break;
         }
+        consecutive_proto_errs = 0;
 
         if read_bytes > 0 {
             acc_buf.extend_from_slice(&rx_buf[..read_bytes as usize]);

@@ -13,9 +13,6 @@ use tracing::{info, warn};
 const IDLE_AFTER_LAST_VIEWER: Duration = Duration::from_secs(120);
 const WAITING_FOR_FIRST_VIEWER: Duration = Duration::from_secs(30);
 
-/// A session is reaped only when nobody is attached and nothing is still
-/// subscribed to its video broadcast. A USB/AOA reader can outlive a
-/// mismatched `viewers` count; closing then kills both tablets at this timeout.
 pub(crate) fn should_reap_idle_session(
     viewers: usize,
     video_receivers: usize,
@@ -128,9 +125,7 @@ async fn run_hub(mut cfg: HubConfig, mut rx: mpsc::Receiver<DisplayCommand>) {
                             close_session(&mut sessions, &id);
                         }
                     } else {
-                        // Still watched. Drop the stamp so the next real detach
-                        // starts a fresh idle window.
-                        idle_at.remove(&id);
+                                                                        idle_at.remove(&id);
                     }
                 }
             }
@@ -326,16 +321,15 @@ async fn handle_cmd(
             )
             .await
             {
-                Ok(session) => {
-                    let Some(old) = sessions.remove(&id) else {
-                        let _ = reply.send(Err("unknown session".into()));
-                        return;
-                    };
-                    close_session_inner(old);
-                    let info = session.info.clone();
+                Ok(new_session) => {
+                                        let info = new_session.info.clone();
                     let sid = info.id.clone();
-                    let carry = adopt_resize_state(session, request, idle_at);
+                    let carry = adopt_resize_state(new_session, request, idle_at);
                     sessions.insert(sid, carry);
+                    
+                                        if let Some(old) = sessions.remove(&id) {
+                        close_session_inner(old);
+                    }
                     let _ = reply.send(Ok(info));
                 }
                 Err(e) => {
@@ -817,8 +811,8 @@ pub(crate) async fn list_kwin_input_device_paths(conn: &zbus::Connection) -> Vec
 async fn bind_inputs(target_output: &str, device_prefix: &str) {
     let mut last_bound = 0;
     let mut last_resolved = target_output.to_string();
-    for delay_ms in [250, 500, 1000, 2000] {
-        tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+    for _attempt in 0..6 {
+        tokio::time::sleep(std::time::Duration::from_millis(120)).await;
         let Some(resolved) =
             orbiscreen_capture::kwin_virtual::preferred_tablet_output(Some(target_output))
         else {
@@ -839,7 +833,7 @@ async fn bind_inputs(target_output: &str, device_prefix: &str) {
             bound = last_bound,
             prefix = device_prefix,
             output = %last_resolved,
-            "KWin input bind found fewer than 3 OrbiScreen devices"
+            "KWin input bind found fewer than 3 OrbiScreen devices after 6 attempts"
         );
     }
 }

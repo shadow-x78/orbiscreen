@@ -105,10 +105,6 @@ class UsbPlayer(
         return true
     }
 
-    /**
-     * Annex-B over HTTP `GET /au` on the AOA TCP proxy. Same MediaCodec
-     * path as native FLAG_VIDEO; no ExoPlayer live buffer.
-     */
     fun startHttp(
         host: String,
         port: Int,

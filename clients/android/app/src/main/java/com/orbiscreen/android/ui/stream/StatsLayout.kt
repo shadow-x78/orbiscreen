@@ -2,7 +2,7 @@
 // https://github.com/shadow-x78/orbiscreen
 package com.orbiscreen.android.ui.stream
 
-/** Pixel/dp metrics shared with the web `.statsWidget` so both HUDs match. */
+
 object StatsLayout {
     const val WIDTH_DP = 236
     const val PAD_H_DP = 12

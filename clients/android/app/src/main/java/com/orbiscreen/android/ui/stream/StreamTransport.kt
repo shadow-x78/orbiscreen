@@ -3,7 +3,7 @@
 
 package com.orbiscreen.android.ui.stream
 
-/** Short label for the video path currently on screen. */
+
 internal object StreamTransport {
     const val USB_ANNEX_B = "USB Annex-B"
     const val USB_HTTP_AU = "USB HTTP /au"

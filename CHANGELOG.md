@@ -1,29 +1,42 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to Orbiscreen are documented here. Entries follow
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v0.31.4] - 2026-09-29
+
+### Fixed
+- Host-side latency: robust USB/AOA protocol error handling (retry EPROTO with graduated backoff instead of killing the accessory bridge) prevents stream freeze on transient USB errors.
+- Resize/restart no longer leaves a dead broadcast receiver: display hub now inserts the new session before closing the old one, and video pumps reattach on `BroadcastClosed` and request a fresh IDR immediately.
+- Input device binding retry cadence reduced from [250, 500, 1000, 2000] ms to every 120 ms, so touch/mouse devices are ready in under 1 s instead of 4 s at session start.
+- Stats emission now survives a poisoned `usb_connected_names` lock instead of panicking.
+
+### Changed
+- `package-appimage.sh`: embeds update metadata (`zsync`) and publishes `.zsync` alongside AppImage; desktop entry launches the GUI (`orbiscreen-gui`) when it is bundled, `[Terminal=false]`, otherwise the CLI (`orbiscreen start`).
+- `.gitignore`: added `*.AppImage.zsync`, `*.zsync`, `.env`, `.env.local` so build artifacts and secrets are never committed.
+- Removed stale `orbiscreen-x86_64.AppImage.zsync` from the repository root; deleted `scratch/`; all production source files now carry only the GPL header (all incidental comments removed).
+
 ## [v0.31.3] - 2026-09-27
 
-**USB/AOA Native Annex-B Video & Stream Statistics**
-- **USB/AOA Annex-B video** (PR [#82](https://github.com/shadow-x78/orbiscreen/pull/82) by @sentinelt):
-  - Accessory bulk carries length-prefixed H.264 access units directly into MediaCodec. MPEG-TS/ExoPlayer is no longer used on USB.
-  - `adb reverse` is not used; the native AOA channel carries the stream with zero Wi-Fi latency.
-- **Android USB accessory permission dialog loop fix** (PR [#82](https://github.com/shadow-x78/orbiscreen/pull/82) by @sentinelt): Cancel is remembered until the accessory detaches or the user taps the USB card again.
-- **Stream statistics overlay** (Web, Android) (PR [#82](https://github.com/shadow-x78/orbiscreen/pull/82) by @sentinelt):
-  - Network delay (glass-to-glass), current frame age, received-bytes rate, and a last-minute I/P/D frame stack.
-  - Added a stats toggle button in the toolbar; the frame-age field has a fixed width and the Android HUD height follows content so the footer is not clipped.
+### Added
+- USB/AOA native video path: length-prefixed H.264 access units are carried on the accessory bulk channel straight into MediaCodec, replacing MPEG-TS/ExoPlayer on USB (`adb reverse` is not used) (PR #82 by @sentinelt)
+- Stream statistics overlay for the Web and Android clients: glass-to-glass delay, frame age, received-bytes rate, and an I/P/D frame histogram for the last minute, with a toolbar toggle (PR #82 by @sentinelt)
+- Arabic translations for the stats overlay strings (`stats_toggle`, `stats_title`, `stats_delay`, `stats_age`, `stats_received`, `stats_frames`, `stats_window`, `stats_fps`)
 
-**Fixes**
-- Fixed `cargo fmt` check failure in `crates/orbiscreen-transport/src/udp_crypto.rs`
-- Added missing Arabic translations for stats overlay strings (`stats_toggle`, `stats_title`, `stats_delay`, `stats_age`, `stats_received`, `stats_frames`, `stats_window`, `stats_fps`)
+### Fixed
+- Android USB accessory permission dialog loop: a cancelled prompt is remembered until the accessory detaches or the USB card is tapped again (PR #82 by @sentinelt)
+- Android stats HUD footer clipping: the frame-age field has a fixed width and the HUD height follows its content (PR #82 by @sentinelt)
+- `cargo fmt` failure in `crates/orbiscreen-transport/src/udp_crypto.rs`
 
-**Version Sync**: 0.31.3 across Cargo workspace, Android (versionCode=118), Tauri, PKGBUILD, Debian, COPR, all docs badges.
+### Changed
+- Version set to 0.31.3 across the Cargo workspace, Android (`versionCode` 118), Tauri, PKGBUILD, Debian, COPR, and documentation badges
 
 ## [v0.31.2] - 2026-09-21
 
-**Performance Fixes**
+### Performance
 - Android HTTP/MPEG-TS: Increased buffer durations from 30/80/15/25ms to 500/2000/200/500ms
 - Android HTTP/MPEG-TS: Increased LiveConfiguration targetOffset from 30ms to 150ms
 - Android UDP: Increased socket buffers from 128/256KB to 1MB each
@@ -38,33 +51,33 @@ Version bump to 0.31.1 across all packages; Android versionCode incremented to 1
 
 ## [v0.31.0] - 2026-09-20
 
-Eliminate mouse cursor lag and motion queuing by introducing a persistent WebSocket input channel, confine uinput touchscreen, touchpad, and pointer devices strictly to the Orbiscreen virtual display in KWin/Wayland via dynamic `kwinrc` configuration and D-Bus reload, add full in-session display resolution controls (chips and custom dimensions) in the Android client settings sheet, eliminate `unwrap()` panics across production daemon and transport code, and purge all internal source comments while standardizing configuration comments.
+Remove mouse cursor lag and motion queuing by introducing a persistent WebSocket input channel, confine uinput touchscreen, touchpad, and pointer devices strictly to the Orbiscreen virtual display in KWin/Wayland via dynamic `kwinrc` configuration and D-Bus reload, add full in-session display resolution controls (chips and custom dimensions) in the Android client settings sheet, remove `unwrap()` panics across production daemon and transport code, and remove all internal source comments while standardizing configuration comments.
 
-### ⚡ Performance & Low-Latency Input
+### Performance & Low-Latency Input
 - **WebSocket Input Channel (`crates/orbiscreen-transport/src/lib.rs`, `InputDispatcher.kt`)**:
   - Added dedicated `/input/ws` WebSocket upgrade endpoint in the transport daemon for sub-millisecond motion event dispatch directly to `DisplayCtl`.
-  - Upgraded Android `InputDispatcher` to stream pointer and touch movement events over WebSocket, completely eliminating HTTP per-event round-trip latency, connection setup overhead, and queue backpressure timeouts.
+  - Upgraded Android `InputDispatcher` to stream pointer and touch movement events over WebSocket, removing HTTP per-event round-trip latency, connection setup overhead, and queue backpressure timeouts.
   - Retained reliable HTTP fallback for discrete button and key events when WebSocket connection is initializing or reconnecting.
 
-### 🖥️ KWin / Wayland Display Confinement
+### KWin / Wayland Display Confinement
 - **Dedicated Output Mapping (`crates/orbiscreen-input/src/x11.rs`)**:
   - Added `configure_kwin_device` to automatically register uinput mouse/keyboard, touchscreen, and tablet devices in `~/.config/kwinrc` under `[InputDevice][<name>]` with `OutputName=<virtual-output>`.
   - Invokes `qdbus org.kde.KWin /KWin reconfigure` upon device creation under Wayland, confining pointer, touch, and touchpad inputs strictly to the Orbiscreen virtual monitor instead of bleeding across all physical displays.
 
-### 📱 Android In-Session Resolution Controls
+### Android In-Session Resolution Controls
 - **Resolution Switcher (`StreamScreen.kt`, `StreamViewModel.kt`, `PrefsStore.kt`)**:
   - Added resolution preset chips (**Native**, **720p**, **1080p**, **1440p**, **2K (2560x1600)**) and custom Width × Height inputs to the `ConnectionSettingsSheet`.
   - Dynamically adapts dimension orientation (landscape vs portrait) and immediately reconfigures stream dimensions via host control without session drop.
   - Persists user resolution preference in `PrefsStore` and automatically restores it upon subsequent connections.
 
-### 🛡️ Safety & Code Quality Hardening
-- **Panic & Crash Elimination (`client_display.rs`, `fec.rs`, `lib.rs`, `StreamScreen.kt`)**:
+### Changed
+- **Panic & Crash Removal (`client_display.rs`, `fec.rs`, `lib.rs`, `StreamScreen.kt`)**:
   - Replaced `unwrap()` calls in production code paths with idiomatic safe alternatives (`.cloned()`, `let Some(...) = ... else`, safe slice indexing).
-  - Eliminated non-null assertion crash risks (`!!`) in Android key mapping.
+  - Removed non-null assertion crash risks (`!!`) in Android key mapping.
   - Removed unused `quinn-proto` and `tracing` dependencies.
-  - Purged all internal source comments across `.rs` and `.kt` files, verifying 0 internal comments.
+  - Removed all internal source comments across `.rs` and `.kt` files, verifying 0 internal comments.
 
-### 📦 Packaging & Versions
+### Changed
 - Bumped workspace package version to `0.31.0`.
 - Incremented Android client `versionCode` to `115` and updated `versionName` to `"0.31.0"`.
 - Updated `tauri.conf.json` version to `0.31.0`.
@@ -75,29 +88,29 @@ Eliminate mouse cursor lag and motion queuing by introducing a persistent WebSoc
 
 Prevent GStreamer segmentation fault and GLib aggregator assertions upon USB disconnection or protocol error, enforce strict RAII `PipelineGuard` with synchronous `State::Null` teardown, isolate display session acquisition before constructing video pipelines, implement intelligent multi-client session routing in the daemon via client keys and unattached session tracking, and preserve active sessions in the Android client across transient reconnections.
 
-### 🛡️ Stability & Lifecycle Hardening
-- **Eliminate GStreamer Segfaults on USB Disconnect (`crates/orbiscreen-transport/src/lib.rs`)**:
+### Fixed
+- **Remove GStreamer Segfaults on USB Disconnect (`crates/orbiscreen-transport/src/lib.rs`)**:
   - Encapsulated GStreamer pipelines in a RAII `PipelineGuard` ensuring that pipeline elements (`appsrc`, `h264parse`, `mpegtsmux`, `appsink`) are unconditionally and synchronously transitioned to `gstreamer::State::Null` upon dropping.
-  - Eliminated GLib aggregator assertions (`assertion 'GST_IS_PAD (pad)' failed`, `gst_aggregator_get_latency_unlocked`) and core dumps when USB connections drop (`Protocol error (os error 71)`) or sockets close.
+  - Removed GLib aggregator assertions (`assertion 'GST_IS_PAD (pad)' failed`, `gst_aggregator_get_latency_unlocked`) and core dumps when USB connections drop (`Protocol error (os error 71)`) or sockets close.
   - Reordered stream initialization: `ctl.attach` is performed strictly **before** constructing the video pipeline. If session attachment fails, the request returns `503 Service Unavailable` immediately without allocating any orphan GStreamer pipeline elements.
   - Ensured that streaming tasks synchronously nullify the pipeline on completion or disconnect before releasing memory.
 
-### 🖥️ Multi-Display & Multi-Client Session Routing
-- **Smart Session Correlation (`crates/orbiscreen-daemon/src/client_display.rs`, `display.rs`)**:
+### Multi-Display & Multi-Client Session Routing
+- **Automatic Session Correlation (`crates/orbiscreen-daemon/src/client_display.rs`, `display.rs`)**:
   - Added `resolve_attach_session_id` to correlate stream requests to the appropriate display session by matching client identity key (`client_key`), session ID, or unattached sessions (`viewers == 0`).
   - Added support for rapid reconnects by falling back to the newest active session rather than rejecting ambiguous requests when multiple displays exist.
   - Added `key` parameter to `DisplayCommand::Attach` and `DisplayCtl::attach` across transport handlers (`HTTP`, `WebSocket`, `UDP`, `WebTransport`).
   - Updated `DisplayCommand::Idr` to route keyframe requests matching client keys.
   - Added comprehensive unit tests for session resolution (`resolve_attach_session_id_prefers_key_unattached_and_newest`).
 
-### 📱 Android Client Resilience
+### Fixed
 - **Session Preservation & Explicit Headers (`PlayerHolder.kt`, `StreamUrl.kt`)**:
   - Passed `X-Orbiscreen-Session` and `X-Orbiscreen-Client-Key` in ExoPlayer's `OkHttpDataSource.Factory` request headers.
   - Added `key` query parameter support in `StreamUrl.build()`.
   - Updated `scheduleReconnect` and `retry` to preserve and reuse the known active `session` across transient reconnect attempts, preventing unnecessary duplicate session allocations on transient network drops.
   - Only triggers full session re-acquisition (`reopenDisplaySession`) when the host daemon explicitly returns HTTP 404/503.
 
-### 📦 Packaging & Versions
+### Changed
 - Bumped workspace package version to `0.30.9`.
 - Incremented Android client `versionCode` to `114` and updated `versionName` to `"0.30.9"`.
 - Updated `tauri.conf.json` version to `0.30.9`.
@@ -106,16 +119,16 @@ Prevent GStreamer segmentation fault and GLib aggregator assertions upon USB dis
 
 ## [v0.30.8] - 2026-09-19
 
-Overhaul direct touch and window dragging with `BTN_LEFT` uinput synchronization, implement graceful UDP `TYPE_BYE` disconnect upon daemon `Ctrl+C` with active Android health watchdog, eliminate secondary tablet freezing by decoupling per-client resolution and routing IDR requests, harden AOA USB bridges against poisoned mutex panics, and purge internal code comments across all source files.
+Rebuild direct touch and window dragging with `BTN_LEFT` uinput synchronization, implement graceful UDP `TYPE_BYE` disconnect upon daemon `Ctrl+C` with active Android health watchdog, prevent secondary tablet freezing by decoupling per-client resolution and routing IDR requests, harden AOA USB bridges against poisoned mutex panics, and remove internal code comments across all source files.
 
-### 🖱️ Input & Touch Control
-- **Direct Touch & Window Dragging Overhaul (`x11.rs`, `lib.rs`, `PlayerSurface.kt`)**:
+### Changed
+- **Direct Touch & Window Dragging Rebuild (`x11.rs`, `lib.rs`, `PlayerSurface.kt`)**:
   - Registered `Key::BTN_LEFT` alongside `Key::BTN_TOUCH` on the virtual uinput touchscreen device.
   - Emitted `BTN_LEFT` and `BTN_TOUCH` simultaneously on touch down and released both on touch up, enabling direct window titlebar dragging and standard UI button clicks on Linux desktops (KWin, Mutter, X11) without requiring touchpad cursor movement.
   - Synchronized desktop pointer location with touch slot 0 coordinates.
   - Expanded double-tap window dragging detection thresholds in Android client (`450ms` and `140px`) to properly support high-DPI tablets (e.g. 2560x1600).
 
-### ⚡ Stability & Lifecycle
+### Stability & Lifecycle
 - **Graceful Disconnect on Ctrl+C & Daemon Exit (`udp_stream.rs`, `UdpPlayer.kt`, `StreamViewModel.kt`, `StreamScreen.kt`, `main.rs`, `display.rs`)**:
   - Broadcasted UDP `TYPE_BYE` datagrams to all connected clients when the UDP hub shuts down, prompting immediate graceful disconnect.
   - Implemented an active host health watchdog (`checkHostAlive`) in Android `StreamViewModel` pinging `/health` every 2 seconds during playback; triggers automatic clean return to the connection screen with a toast notification if the host daemon terminates.
@@ -126,12 +139,12 @@ Overhaul direct touch and window dragging with `BTN_LEFT` uinput synchronization
   - Protected USB AOA bridges from crashing the daemon on poisoned mutexes using `unwrap_or_else`.
   - Prevented panics on frame slicing in WebTransport protocol.
 
-### 🧹 Codebase Standards & Cleanup
-- **Purge Internal Code Comments**:
+### Removed
+- **Remove Internal Code Comments**:
   - Removed all internal comments and dead commentary from `.rs` and `.kt` source files, preserving only the 2-line copyright/license headers.
   - Standardized configuration file comments (`.env.example`, `data/99-orbiscreen-usb.rules`, `data/orbiscreen.service`, `rustfmt.toml`, `deny.toml`, `Cargo.toml`) in the requested boxed format (`# ────`).
 
-### 📦 Packaging & Versions
+### Changed
 - Bumped workspace package version to `0.30.8`.
 - Incremented Android client `versionCode` to `113` and updated `versionName` to `"0.30.8"`.
 - Updated `tauri.conf.json` version to `0.30.8`.
@@ -140,22 +153,22 @@ Overhaul direct touch and window dragging with `BTN_LEFT` uinput synchronization
 
 ## [v0.30.7] - 2026-09-19
 
-Eliminate virtual display freezing and thread-pool deadlocks upon mouse cursor entry by reverting multi-threaded nearest-neighbor videoscale, restore safe crisp bilinear capture scaling, implement smart resolution negotiation auto-detecting client physical native display (2560x1536) by default while honoring explicit user overrides, and add tablet-friendly scaling presets (2560x1536, 1920x1152, 1280x768) in GUI dashboard.
+Remove virtual display freezing and thread-pool deadlocks upon mouse cursor entry by reverting multi-threaded nearest-neighbor videoscale, restore safe crisp bilinear capture scaling, implement automatic resolution negotiation auto-detecting client physical native display (2560x1536) by default while honoring explicit user overrides, and add tablet-friendly scaling presets (2560x1536, 1920x1152, 1280x768) in GUI dashboard.
 
-### ⚡ Performance & Fluidity
-- **Eliminate mouse cursor entry freezing and deadlocks (`kwin_virtual.rs`, `wayland.rs`)**:
+### Performance & Fluidity
+- **Remove mouse cursor entry freezing and deadlocks (`kwin_virtual.rs`, `wayland.rs`)**:
   - Reverted `videoscale method=0 n-threads=4` back to safe `videoscale` bilinear filtering without multi-threading contention.
   - Fixes GStreamer thread-pool deadlock with `pipewiresrc` buffer callbacks when rapid mouse cursor damage events are produced by KWin upon mouse entry.
-  - Eliminates pixelation and jagged text caused by nearest-neighbor sampling, restoring crystal clear desktop rendering.
+  - Removes pixelation and jagged text caused by nearest-neighbor sampling, restoring sharp desktop rendering.
 
-### 🐛 Bug Fixes
-- **Smart Resolution Precedence & Negotiation (`client_display.rs`, `main.rs`)**:
+### Bug Fixes
+- **Automatic Resolution Precedence & Negotiation (`client_display.rs`, `main.rs`)**:
   - Automatically detects and adopts client physical native resolution (e.g. 2560x1536 for Lenovo P11 Pro) when no explicit user override has been set, preventing display aspect ratio distortion.
   - Added `has_explicit_override` to `HubConfig`: when the user explicitly configures a resolution via `orbiscreen display set <SPEC>` or GUI dashboard, the override is strictly honored and active sessions are dynamically resized.
 - **Tablet Resolution Presets (`index.html`)**:
   - Added dedicated resolution chips for tablet displays: `2.5K (2560x1536)`, `1152p (1920x1152)` (ideal ~1.33x high-DPI scaling), and `768p (1280x768)` (2x integer scale).
 
-### 📦 Packaging & Versions
+### Changed
 - Bumped workspace package version to `0.30.7`.
 - Incremented Android client `versionCode` to `112` and updated `versionName` to `"0.30.7"`.
 - Updated `tauri.conf.json` version to `0.30.7`.
@@ -166,12 +179,12 @@ Eliminate virtual display freezing and thread-pool deadlocks upon mouse cursor e
 
 Fix mouse lag and severe performance collapse under 125% scaling by multi-threading GStreamer scaling with nearest-neighbor interpolation, fix resolution changes being ignored on client connect, wire CLI and GUI resolution settings to active sessions via D-Bus, restore direct multi-touch mode by removing relative mouse injections from uinput touch handler, and deduplicate Android input networking.
 
-### ⚡ Performance & Fluidity
-- **Eliminate 125% display scaling latency and frame accumulation (`kwin_virtual.rs`, `wayland.rs`)**:
+### Performance & Fluidity
+- **Remove 125% display scaling latency and frame accumulation (`kwin_virtual.rs`, `wayland.rs`)**:
   - Replaced single-threaded bilinear `videoscale` with multi-threaded nearest-neighbor scaling (`videoscale method=0 n-threads=4`) in both KWin virtual output and Wayland portal capture pipelines.
-  - Slashes frame resizing duration from ~51ms down to ~5.7ms during desktop scaling, completely preventing progressive frame queue accumulation, memory churn, and mouse pointer delay over time.
+  - Slashes frame resizing duration from ~51ms down to ~5.7ms during desktop scaling, preventing progressive frame queue accumulation, memory churn, and mouse pointer delay over time.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Fix resolution configuration ignored on client connection (`client_display.rs`, `lib.rs`)**:
   - Fixed an issue where the Android client's reported physical screen resolution (e.g. 2560x1536) unconditionally overrode the host's configured resolution in `DisplayCommand::Acquire`.
   - The host's configured resolution (`cfg.default_width`, `cfg.default_height`) now takes precedence, allowing tablets with high-density displays to connect at legible resolutions (e.g. 1280x800, 1920x1080).
@@ -186,7 +199,7 @@ Fix mouse lag and severe performance collapse under 125% scaling by multi-thread
 - **Clean up Android input network dispatch (`InputDispatcher.kt`)**:
   - Deduplicated redundant connection pool and timeout declarations in `OkHttpClient.Builder()`.
 
-### 📦 Packaging & Versions
+### Changed
 - Bumped workspace package version to `0.30.6`.
 - Incremented Android client `versionCode` to `111` and updated `versionName` to `"0.30.6"`.
 - Updated `tauri.conf.json` version to `0.30.6`.
@@ -195,23 +208,23 @@ Fix mouse lag and severe performance collapse under 125% scaling by multi-thread
 
 ## [v0.30.5] - 2026-09-18
 
-Eliminate permanent display freezing, resolve non-monotonic PTS timestamp regressions, drastically cut mouse input latency by tuning ExoPlayer buffer sizes, and prevent 90Hz mouse stuttering.
+Remove permanent display freezing, resolve non-monotonic PTS timestamp regressions, substantially cut mouse input latency by tuning ExoPlayer buffer sizes, and prevent 90Hz mouse stuttering.
 
-### 🐛 Bug Fixes
-- **Eliminate Android permanent display freeze (`PlayerHolder.kt`)**:
+### Bug Fixes
+- **Remove Android permanent display freeze (`PlayerHolder.kt`)**:
   - Reverted `shouldDropBuffersToKeyframe` to always return `false`. When returning `true`, ExoPlayer discards all decoded frames waiting for a `BUFFER_FLAG_KEY_FRAME` that Android hardware decoders rarely attach to output buffers, causing the tablet display to freeze permanently on the desktop background.
 - **Fix non-monotonic PTS timestamp jumps (`client_display.rs`, `main.rs`)**:
   - Replaced the flawed PTS formula `now_ns.max(next_min).min(...)` which jumped backwards in time during rapid frame bursts (such as fast mouse movement).
   - Adopted strictly monotonic real-time wall-clock timestamps: `now_ns.max(last_pts_ns.saturating_add(1_000))`, ensuring timestamps never jump backwards and never drift into the future.
-- **Drastically reduce mouse input latency (`PlayerHolder.kt`)**:
-  - Reduced ExoPlayer `loadControl` buffer durations from `(120, 350, 50, 80)` ms down to `(30, 80, 15, 25)` ms, eliminating ~100ms of artificial buffer delay on mouse cursor movements.
-  - Locked `LiveConfiguration` playback speed strictly to `1.0f` (removing `0.98f` - `1.05f` oscillation) to eliminate micro-jitter and speed hunting.
+- **Substantially reduce mouse input latency (`PlayerHolder.kt`)**:
+  - Reduced ExoPlayer `loadControl` buffer durations from `(120, 350, 50, 80)` ms down to `(30, 80, 15, 25)` ms, removing ~100ms of artificial buffer delay on mouse cursor movements.
+  - Locked `LiveConfiguration` playback speed strictly to `1.0f` (removing `0.98f` - `1.05f` oscillation) to prevent micro-jitter and speed hunting.
 - **Prevent micro frame drops at 90Hz (`PlayerHolder.kt`)**:
   - Relaxed `shouldDropOutputBuffer` drop threshold to 150ms instead of ExoPlayer's default 30ms, preventing discarded frames when high-resolution 2560x1600 decoding experiences momentary jitter.
 - **Compositor damage pump rate (`kwin_virtual.rs`)**:
   - Restored damage pump interval to 16ms to avoid full-screen compositor damage flooding during mouse activity.
 
-### 📦 Packaging & Versions
+### Changed
 - Bumped workspace package version to `0.30.5`.
 - Incremented Android client `versionCode` to `110` and updated `versionName` to `"0.30.5"`.
 - Updated `tauri.conf.json` version to `0.30.5`.
@@ -222,9 +235,9 @@ Eliminate permanent display freezing, resolve non-monotonic PTS timestamp regres
 
 Fix frozen display and stuck mouse regression introduced in v0.30.3, which was caused by conflicting appsink configuration and dead code in ExoPlayer frame-drop overrides.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Encoder appsink back-pressure (critical freeze fix)**:
-  - Removed duplicate `set_drop(false)` / `set_max_buffers(4)` calls in `orbiscreen-encode/src/lib.rs` that were silently overriding the correct `set_drop(true)` / `set_max_buffers(1)` settings. This caused full encoder pipeline stall when the Android client consumed frames slowly, resulting in a completely frozen display.
+  - Removed duplicate `set_drop(false)` / `set_max_buffers(4)` calls in `orbiscreen-encode/src/lib.rs` that were silently overriding the correct `set_drop(true)` / `set_max_buffers(1)` settings. This caused full encoder pipeline stall when the Android client consumed frames slowly, resulting in a frozen display.
 - **ExoPlayer dead code removal**:
   - Removed unreachable `return false` after `return super.shouldDropOutputBuffer(...)` in `LowLatencyVideoRenderer.shouldDropOutputBuffer()`. The dead code was a leftover from a failed edit attempt.
 - **`shouldDropBuffersToKeyframe` now acts on severe lag**:
@@ -232,7 +245,7 @@ Fix frozen display and stuck mouse regression introduced in v0.30.3, which was c
 - **KWin capture channel capacity reverted**:
   - `FRAME_CHANNEL_CAPACITY` reverted from `4` back to `2` to restore stable low-latency frame delivery without burst accumulation.
 
-### 📦 Packaging & Versions
+### Changed
 - Bumped workspace package version to `0.30.4`.
 - Incremented Android client `versionCode` to `109` and updated `versionName` to `"0.30.4"`.
 - Updated `tauri.conf.json` version to `0.30.4`.
@@ -241,21 +254,21 @@ Fix frozen display and stuck mouse regression introduced in v0.30.3, which was c
 
 ## [v0.30.3] - 2026-09-18
 
-Eliminate micro frame drops by disabling aggressive 30ms ExoPlayer frame drop in Android client, clamp PTS to prevent forward timestamp drift during frame bursts, disable appsink frame dropping in encoder pipeline, and optimize KWin virtual display damage pump for 90Hz.
+Remove micro frame drops by disabling aggressive 30ms ExoPlayer frame drop in Android client, clamp PTS to prevent forward timestamp drift during frame bursts, disable appsink frame dropping in encoder pipeline, and optimize KWin virtual display damage pump for 90Hz.
 
-### ⚡ Performance & Fluidity
-- **Eliminate Android ExoPlayer frame drops**:
+### Performance & Fluidity
+- **Remove Android ExoPlayer frame drops**:
   - Overrode `shouldDropOutputBuffer` in `LowLatencyVideoRenderer` to return `false` instead of calling `super.shouldDropOutputBuffer()`, which dropped frames whenever presentation delay exceeded 30ms.
   - Ensured all frames are rendered immediately upon decode without discarding P-frames, while preserving `shouldDropBuffersToKeyframe` recovery triggering on severe lag (>300ms).
-- **PTS drift elimination**:
-  - Clamped PTS progression in `client_display.rs` using `now_ns.max(next_min).min(now_ns.saturating_add(frame_dur))` to eliminate forward timestamp drift during frame bursts and synchronize PTS strictly to wall clock.
+- **PTS drift removal**:
+  - Clamped PTS progression in `client_display.rs` using `now_ns.max(next_min).min(now_ns.saturating_add(frame_dur))` to prevent forward timestamp drift during frame bursts and synchronize PTS strictly to wall clock.
 - **Encoder appsink drop prevention**:
   - Configured GStreamer `appsink` with `set_drop(false)` and `max_buffers(4)` in `orbiscreen-encode`, preventing silent frame dropping between the encoder element and downstream consumer channel.
 - **KWin virtual display capture & damage pump**:
   - Increased capture `FRAME_CHANNEL_CAPACITY` from 2 to 4 to accommodate compositor frame bursts without dropping.
   - Adjusted damage pump interval from 16ms to 11ms to support smooth, responsive 90Hz damage triggering.
 
-### 📦 Packaging & Versions
+### Changed
 - Bumped workspace package version to `0.30.3`.
 - Incremented Android client `versionCode` to `108` and updated `versionName` to `"0.30.3"`.
 - Updated `tauri.conf.json` version to `0.30.3`.
@@ -267,7 +280,7 @@ Eliminate micro frame drops by disabling aggressive 30ms ExoPlayer frame drop in
 
 Fix GUI unresponsiveness and syntax error (Issue #81), add dynamic version query via Tauri and D-Bus, prevent manual disconnect auto-reconnection loop in Android and Web clients, and guarantee clean daemon shutdown and pipeline teardown on SIGINT/Ctrl+C.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **GUI responsiveness & syntax error (Issue #81)**:
   - Fixed syntax error (`SyntaxError: Unexpected end of input`) in `crates/orbiscreen-gui/ui/app.js` and unexpected token in `clients/web/app.js` that broke web UI script evaluation.
   - Added `get_app_version` Tauri invoke command in `orbiscreen-gui` and updated `refreshAppVersion()` to dynamically query the compiled package version rather than relying on stale hardcoded UI strings.
@@ -278,7 +291,7 @@ Fix GUI unresponsiveness and syntax error (Issue #81), add dynamic version query
 - **Daemon pipeline cleanup on termination**:
   - In `orbiscreen-daemon/src/main.rs`, ensured `shutdown_keepalive` is always triggered upon exit from `serve_fut` (including SIGINT/Ctrl+C), stopping encoder pipelines and damage capture threads cleanly to prevent hang and channel overflow.
 
-### 📦 Packaging & Versions
+### Changed
 - Bumped workspace package version to `0.30.2`.
 - Incremented Android client `versionCode` to `107` and updated `versionName` to `"0.30.2"`.
 - Updated `tauri.conf.json` version to `0.30.2`.
@@ -288,15 +301,15 @@ Fix GUI unresponsiveness and syntax error (Issue #81), add dynamic version query
 
 ## [v0.30.1] - 2026-09-18
 
-Fix encoder VBV buffer sizing and dynamic bitrate scaling to eliminate severe pixelation, unblock UDP video keyframe delivery, fix KWin Wayland pointer device scoping, synchronize tablet touch with desktop mouse cursor, and optimize Android input dispatcher with motion event coalescing.
+Fix encoder VBV buffer sizing and dynamic bitrate scaling to prevent severe pixelation, unblock UDP video keyframe delivery, fix KWin Wayland pointer device scoping, synchronize tablet touch with desktop mouse cursor, and optimize Android input dispatcher with motion event coalescing.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Encoder VBV buffer & rate control**:
-  - Replaced the severe 1-frame (89 kbits / 11 KB) VBV buffer cap with `low_latency_vbv_kb` providing a minimum 300 KB / 6 frames buffer headroom and 100-400ms time window, eliminating macroblocking and QP 51 degradation under NVENC.
+  - Replaced the severe 1-frame (89 kbits / 11 KB) VBV buffer cap with `low_latency_vbv_kb` providing a minimum 300 KB / 6 frames buffer headroom and 100-400ms time window, removing macroblocking and QP 51 degradation under NVENC.
   - Added dynamic bitrate calculation (`suggested_bitrate_kbps`) scaling at ~0.08 bpp clamped to [8,000, 50,000] kbps, auto-scaling 2560x1600@90Hz to ~30 Mbps instead of 8 Mbps.
   - Enforced QP caps (`qp-max-i: 35`, `qp-max-p: 38`) to prevent video quality collapse under sudden scene complexity changes.
 - **UDP stream keyframe delivery**:
-  - Removed erroneous keyframe dropping in `udp_stream.rs` (`run_udp_hub` and `forward_udp_video`) that suppressed IDR frames over UDP, eliminating stream freezing and repeated 250ms IDR recovery request loops on Android.
+  - Removed erroneous keyframe dropping in `udp_stream.rs` (`run_udp_hub` and `forward_udp_video`) that suppressed IDR frames over UDP, removing stream freezing and repeated 250ms IDR recovery request loops on Android.
 - **KWin Wayland pointer device scoping**:
   - In `bind_named_kwin_devices`, exempted relative pointer devices (`*Mouse` and `*Mouse and Keyboard`) from virtual output scoping, allowing desktop mouse cursor movement across all screens while keeping touchscreens and styluses isolated to virtual displays.
 - **Desktop mouse cursor touch synchronization**:
@@ -304,9 +317,9 @@ Fix encoder VBV buffer sizing and dynamic bitrate scaling to eliminate severe pi
 - **Android input responsiveness & motion coalescing**:
   - Implemented motion event coalescing in `InputDispatcher.kt` to drop stale motion events and dispatch only the freshest coordinates.
   - Guaranteed `submit()` never blocks the UI thread during high-rate motion bursts.
-  - Increased OkHttp client connection pool size from 1 to 5 and reduced timeouts to 500ms to eliminate cascading HTTP input latency.
+  - Increased OkHttp client connection pool size from 1 to 5 and reduced timeouts to 500ms to remove cascading HTTP input latency.
 
-### 📦 Packaging & Versions
+### Changed
 - Bumped workspace package version to `0.30.1`.
 - Incremented Android client `versionCode` to `106` and updated `versionName` to `"0.30.1"`.
 - Updated `tauri.conf.json` version to `0.30.1`.
@@ -318,24 +331,24 @@ Fix encoder VBV buffer sizing and dynamic bitrate scaling to eliminate severe pi
 
 Full-project audit, security fixes, bug fixes, and dead-code/comment cleanup.
 
-### 🔒 Security
+### Security
 - **Token bootstrap restricted (S1)**: `GET /client/config.json` now serves the live shared token only to loopback peers (USB AOA bridge, adb reverse) or requests already presenting a valid credential; remote LAN peers receive `401 authentication required` instead of the token. Added regression tests covering loopback, remote-unauthenticated, and credential paths.
 - **mDNS token broadcast removed (S1)**: the service TXT record no longer publishes the shared token; no client consumed it (Android `DiscoveryService` resolves host/port only).
 - **Token fragments removed from logs (S2)**: auth-failure logs no longer include supplied/expected token prefixes; daemon startup logs no longer print token prefix/length; Android `HostApi` no longer logs token prefixes.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Android input ordering (B1-B3)**: `VirtualCursor` bounds now update on resize under the same lock; pending trackpad deltas flush before click snapshots; delivery serialized through a single bounded ordered channel with motion-only coalescing, release events are never dropped. 10 new input regression tests (65 unit tests green).
 - **Wrong-tablet input fallback (B4)**: `DisplayCommand::Input` no longer falls back to an arbitrary active/first session; input requires an unambiguous session match (fail closed with multi-session).
 - **Resize no longer displayless on failure (B5)**: display session resize opens the replacement before closing the old output, preserves viewer/attach counters, and initializes the idle deadline; rollback on open failure. Regression tests added.
 - **Host pointer semantics (B3-host)**: mouse buttons 6-8 map to distinct `BTN_SIDE/BTN_EXTRA/...` codes instead of falling through to `BTN_LEFT` (regression test); `release_tools` now releases all mouse buttons and keycodes plus the tablet on disconnect (no stuck keys/buttons); resize recreates the touchscreen/tablet uinput devices with fresh ABS axis ranges instead of only updating stored dimensions.
 
-### 📦 Packaging & Versions
+### Changed
 - **MSRV (Pkg1)**: workspace `rust-version` raised from 1.75 to 1.92, matching the locked `gstreamer 0.25.3` requirement (cargo previously refused builds on declared MSRV).
 - **PPA source build (Pkg2)**: `debian/rules` now builds from source (`cargo build --release --workspace --locked`) instead of expecting prebuilt binaries, installs only artifacts that exist, and runs the test suite; `debian/control` declares Rust/GStreamer build-deps; the PPA workflow installs the build deps and verifies a source build + tests before upload.
 - **Packaging omissions (Pkg3)**: `clients/web/annexb.js` (loaded by `index.html`) is now shipped by the PKGBUILD, Debian rules, and RPM spec; duplicate `pkgver` line removed from PKGBUILD; RPM packaging rebuilds from the current tree (no stale binaries) and the spec's GUI file list is conditional on the GUI binary being staged; verified end-to-end with a real `rpmbuild` producing a content-checked RPM.
 - **USB udev rules**: device nodes tightened from `MODE="0666"` to `MODE="0660"` with `uaccess` (console-user scoped instead of world-writable).
 
-### 🧹 Cleanup
+### Cleanup
 - Removed the stale `#[allow(dead_code)]` on `StreamQuery` (field is read); `adb.rs` verified live (`adb::supervisor` in the USB path) and kept.
 - `.gitignore` now covers local `.android/` and `scratch/` scratch state.
 - Stripped non-GPL comments across Rust, Kotlin, and web-client sources and unified config file headers (GPL license headers retained; vendored `mpegts.js` untouched).
@@ -344,13 +357,13 @@ Full-project audit, security fixes, bug fixes, and dead-code/comment cleanup.
 
 ## [v0.29.1] - 2026-09-17
 
-Fix dual screen USB AOA accessory routing, guard Android input pipeline against unauthenticated 401 request storms, restore fluid desktop mouse cursor motion in KWin, and ensure seamless session reconnection across physical USB hiccups.
+Fix dual screen USB AOA accessory routing, guard Android input pipeline against unauthenticated 401 request storms, restore fluid desktop mouse cursor motion in KWin, and ensure session reconnection across physical USB hiccups.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Dual screen AOA transport routing**:
   - Fixed AOA USB accessory supervisor to forward all connected devices directly to `daemon_port` (8788). Device 2 no longer routes to WebTransport port (8790), enabling simultaneous multi-tablet connections over USB.
 - **Android input 401 loop prevention**:
-  - In `InputDispatcher`, guarded `send()` and `control()` to return immediately when the auth token is blank, eliminating 60 unauthenticated requests/second over USB bulk endpoints.
+  - In `InputDispatcher`, guarded `send()` and `control()` to return immediately when the auth token is blank, removing 60 unauthenticated requests/second over USB bulk endpoints.
   - Debounced 401 re-authentication triggers to at most once per second.
   - Provided dynamic session ID via `sessionIdProvider` in input payload headers.
 - **KWin mouse cursor binding**:
@@ -360,7 +373,7 @@ Fix dual screen USB AOA accessory routing, guard Android input pipeline against 
   - Added fallback routing to active viewing sessions in `DisplayCommand::Input` to prevent dropped inputs.
   - Extended `IDLE_AFTER_LAST_VIEWER` from 20s to 120s to tolerate physical USB disconnects and reconnections without tearing down virtual displays.
 
-### 📦 Packaging & Versions
+### Changed
 - **Workspace & Packaging**:
   - Bumped Cargo workspace package version to `0.29.1`.
   - Incremented Android client `versionCode` to `104`; updated `versionName` to `"0.29.1"`.
@@ -373,9 +386,9 @@ Fix dual screen USB AOA accessory routing, guard Android input pipeline against 
 
 ## [v0.29.0] - 2026-09-16
 
-Introduce WebTransport Annex-B web streaming with WebCodecs hardware decoding, one-frame VBV CBR rate control for ultra-low latency, reliable IDR and parameter set distribution with Reed-Solomon FEC for P-frame datagrams, robust Android client AU reordering and packet loss recovery, and bump the release matrix across all platforms.
+Introduce WebTransport Annex-B web streaming with WebCodecs hardware decoding, one-frame VBV CBR rate control for low latency, reliable IDR and parameter set distribution with Reed-Solomon FEC for P-frame datagrams, robust Android client AU reordering and packet loss recovery, and bump the release matrix across all platforms.
 
-### ✨ Features
+### Features
 - **WebTransport Annex-B and WebCodecs web client (#80 by @sentinelt)**:
   - Chromium opens WebTransport on `signaling_port + 2` (`wt_port`) with `serverCertificateHashes` and decodes Annex-B access units with `VideoDecoder` onto a canvas.
   - P-frames ride QUIC datagrams (unreliable). Hello, ping/pong, and IDR stay on the control stream. The same port serves the UI over HTTPS; HTTP `/` and `/client/` redirect there. Android keeps HTTP on `:8788`.
@@ -389,18 +402,18 @@ Introduce WebTransport Annex-B web streaming with WebCodecs hardware decoding, o
 - **Frame transport guide (#80 by @sentinelt)**:
   - Added comprehensive `docs/FRAME_TRANSPORT.md` documenting I/P/IDR/GOP terminology, AU datagram/reliable stream partitioning, and hold-until-IDR packet loss recovery.
 
-### ⚡ Performance & Low Latency
+### Performance & Low Latency
 - HTTP MPEG-TS (`GET /stream`) keeps the encoder's infinite GOP: IDR on join, lag, and muxer failure, not every second.
 - IDR requests are debounced to 250 ms on HTTP, UDP, and WebTransport until a keyframe arrives.
 - A failed UDP datagram no longer aborts the rest of that access unit; only `TooBig` stops the fragment loop.
 - Early P-frames after a one-sequence hole are reordered instead of immediately requesting an IDR.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Quinn datagram stability**: Pinned `quinn-proto` to 0.11.16 to prevent daemon aborts from dropped datagram double-subtraction.
 - **Android mid-GOP packet retention**: UDP `feedCodec` drains and retries full input buffers, holding until the next IDR instead of discarding mid-GOP P-frames. HTTP/ExoPlayer no longer drops late P-frames.
 - **Connect IDR pacing**: Connect IDR is sent after the video path is live so the initial keyframe is not lost during DPLPMTUD.
 
-### 📦 Packaging & Versions
+### Changed
 - **Workspace & Packaging**:
   - Bumped Cargo workspace package version to `0.29.0`.
   - Incremented Android client `versionCode` to `103`; updated `versionName` to `"0.29.0"`.
@@ -415,7 +428,7 @@ Introduce WebTransport Annex-B web streaming with WebCodecs hardware decoding, o
 
 Introduce per-client KWin virtual displays and isolated touch scoping to support multiple simultaneous tablets, expand KWin input device introspection beyond event63, add automatic fallback session creation on attach for full backwards compatibility with legacy clients, and bump the release matrix across all platforms.
 
-### ✨ Features
+### Features
 - **Per-client KWin virtual outputs (#79 by @sentinelt)**:
   - The daemon dynamically creates dedicated virtual outputs per client (`Virtual-Orbi-<key>`) based on `POST /api/session` with device identity and native resolution.
   - Multiple tablets can connect concurrently, each maintaining its own independent geometry, layout, and resolution.
@@ -425,9 +438,9 @@ Introduce per-client KWin virtual displays and isolated touch scoping to support
   - Expanded KWin input device node introspection past `event63` (into `event256+`) to guarantee uinput binding on modern kernels.
   - Web touch mode posts absolute `Touch` coordinates instead of relative mouse movement.
 - **Backwards Compatibility Fallback**:
-  - `DisplayCommand::Attach` automatically provisions and attaches to a default virtual session if called without a session ID and no active sessions exist, ensuring legacy Android APKs and direct stream consumers connect seamlessly.
+  - `DisplayCommand::Attach` automatically provisions and attaches to a default virtual session if called without a session ID and no active sessions exist, ensuring legacy Android APKs and direct stream consumers connect cleanly.
 
-### 📦 Packaging & Versions
+### Changed
 - **Workspace & Packaging**:
   - Bumped Cargo workspace package version to `0.28.9`.
   - Incremented Android client `versionCode` to `102`; updated `versionName` to `"0.28.9"`.
@@ -440,17 +453,17 @@ Introduce per-client KWin virtual displays and isolated touch scoping to support
 
 ## [v0.28.8] - 2026-09-16
 
-Enhance daemon shutdown reliability by terminating lingering background processes on D-Bus stop timeouts or unowned session buses, clean orphaned audio sinks, harden the Android client video playback pipeline for legacy and low-end tablets, and bump the release matrix across all platforms.
+Improve daemon shutdown reliability by terminating lingering background processes on D-Bus stop timeouts or unowned session buses, clean orphaned audio sinks, harden the Android client video playback pipeline for legacy and low-end tablets, and bump the release matrix across all platforms.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Daemon Process Cleanup on Stop (`main.rs`)**:
-  - Enhanced `orbiscreen stop` command to clean lingering background daemon processes when D-Bus requests fail, time out, or when the session bus service has no active owner.
+  - Improved `orbiscreen stop` command to clean lingering background daemon processes when D-Bus requests fail, time out, or when the session bus service has no active owner.
   - Ensured orphaned PulseAudio and PipeWire virtual audio sinks are cleaned up during daemon stop execution.
 - **Android Client Low-End Device Support (`PlayerHolder.kt`)**:
-  - Hardened ExoPlayer video playback pipeline to eliminate frame freezes on legacy Android tablets.
+  - Hardened ExoPlayer video playback pipeline to remove frame freezes on legacy Android tablets.
   - Documented force software decoder setting for low-end SoC hardware decoders.
 
-### 📦 Packaging & Versions
+### Changed
 - **Workspace & Packaging**:
   - Bumped Cargo workspace package version to `0.28.8`.
   - Incremented Android client `versionCode` to `101`; updated `versionName` to `"0.28.8"`.
@@ -463,19 +476,19 @@ Enhance daemon shutdown reliability by terminating lingering background processe
 
 ## [v0.28.7] - 2026-09-16
 
-Eliminate frozen video stream and permanent frame drops on low-end and legacy Android tablets, relax ExoPlayer buffer drop thresholds to absorb decode jitter without dropping frames, prevent cascading drop-to-keyframe state, automatically calculate display geometry from kscreen-doctor to position KWin virtual displays adjacent to active screens, and bump version across workspace, packages, and documentation.
+Remove frozen video stream and permanent frame drops on low-end and legacy Android tablets, relax ExoPlayer buffer drop thresholds to absorb decode jitter without dropping frames, prevent cascading drop-to-keyframe state, automatically calculate display geometry from kscreen-doctor to position KWin virtual displays adjacent to active screens, and bump version across workspace, packages, and documentation.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **ExoPlayer Low-Latency Frame Drop Tuning (`PlayerHolder.kt`)**:
   - Relaxed `shouldDropOutputBuffer` threshold from -50 ms to -250 ms in `LowLatencyVideoRenderer`, preventing weak SoCs (e.g. Allwinner, Rockchip, older Mali/Adreno architectures) from discarding late-decoded frames and freezing on the initial desktop wallpaper.
-  - Reconfigured `shouldDropBuffersToKeyframe` to request on-demand IDR frames via `onLagDetected()` when latency exceeds 300 ms while returning `false`, eliminating permanent frame drop lockouts during live streaming.
+  - Reconfigured `shouldDropBuffersToKeyframe` to request on-demand IDR frames via `onLagDetected()` when latency exceeds 300 ms while returning `false`, removing permanent frame drop lockouts during live streaming.
   - Cleaned dead unreachable code in `LowLatencyVideoRenderer`.
 - **KWin Virtual Display Auto-Positioning (`kwin_virtual.rs`, `main.rs`)**:
   - Added display geometry parsing to `parse_kscreen_outputs` in `orbiscreen-capture` to extract X/Y offsets and dimensions from `kscreen-doctor -o`.
   - Implemented `next_available_output_x` helper to locate the maximum right boundary across all active physical displays.
-  - Automatically passed `position.<max_x>,0` to `kscreen-doctor` when enabling primary and secondary virtual displays, ensuring newly created virtual screens seamlessly align to the right of physical monitors so mouse cursors and desktop windows navigate directly onto tablets.
+  - Automatically passed `position.<max_x>,0` to `kscreen-doctor` when enabling primary and secondary virtual displays, ensuring newly created virtual screens cleanly align to the right of physical monitors so mouse cursors and desktop windows navigate directly onto tablets.
 
-### 📦 Packaging & Versions
+### Changed
 - **Workspace & Packaging**:
   - Bumped Cargo workspace package version to `0.28.7`.
   - Incremented Android client `versionCode` to `100`; updated `versionName` to `"0.28.7"`.
@@ -490,14 +503,14 @@ Eliminate frozen video stream and permanent frame drops on low-end and legacy An
 
 Enable dynamic virtual display resolution and framerate switching directly from the desktop GUI Display & Input settings, connect GUI chips to new D-Bus SetResolution method to immediately apply modes via kscreen-doctor and persist changes to orbiscreen.toml, synchronize active resolution and framerate chips with daemon status on startup, and add Arch Linux PKGBUILD build instructions to documentation and packaging guides.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Live GUI Resolution & Framerate Switching**:
   - Added `SetResolution(width, height, fps)` D-Bus method to `com.orbiscreen.Daemon` interface, dynamically applying modes to virtual outputs via `kscreen-doctor` and persisting display settings in `orbiscreen.toml`.
   - Added `set_display_settings` Tauri command in `orbiscreen-gui` and wired resolution and framerate chip click handlers to apply modes and update preview text in real-time.
   - Synchronized active resolution and framerate chips with daemon status on GUI startup and status polling.
   - Added offline fallback in GUI status probe to load saved geometry from `orbiscreen.toml` when daemon is not running.
 
-### 📖 Documentation & Packaging
+### Added
 - **Arch Linux PKGBUILD Build Guide**:
   - Added step-by-step Arch Linux / Manjaro build instructions using the repository PKGBUILD with `makepkg -si` in `README.md`, `README_AR.md`, `docs/PACKAGING.md`, and `docs/PACKAGING_AR.md`.
 - **Packaging & Version Bump**:
@@ -511,14 +524,14 @@ Enable dynamic virtual display resolution and framerate switching directly from 
 
 ## [v0.28.5] - 2026-09-16
 
-Send FRAME_FLAG_RESET on host shutdown to trigger immediate AOA accessory teardown in Android client, check host health endpoint before reporting USB ready to eliminate stale connection state after daemon exit, fix fit mode selection by mapping scale modes to engine integer values and applying them in real-time, clarify pointer speed UI controls for trackpad mode, resolve secondary display touch injection drop in uinput injector by tracking MT Type B slot IDs, expand OkHttp client concurrent request limits to prevent touch event queue stalls, and configure lightweight default capture profile (720p@60Hz, 3500 kbps) for secondary display to eliminate bus congestion.
+Send FRAME_FLAG_RESET on host shutdown to trigger immediate AOA accessory teardown in Android client, check host health endpoint before reporting USB ready to remove stale connection state after daemon exit, fix fit mode selection by mapping scale modes to engine integer values and applying them in real-time, clarify pointer speed UI controls for trackpad mode, resolve secondary display touch injection drop in uinput injector by tracking MT Type B slot IDs, expand OkHttp client concurrent request limits to prevent touch event queue stalls, and configure lightweight default capture profile (720p@60Hz, 3500 kbps) for secondary display to remove bus congestion.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **USB Teardown & Connection State Recovery**:
   - Added `FRAME_FLAG_RESET` (0x08) to AOA protocol and sent a reset frame before releasing the USB interface on host daemon shutdown.
   - Handled `FRAME_FLAG_RESET` in Android `UsbAccessoryManager` to immediately close active accessory file descriptors and clear running state.
-  - Enhanced `HostApi.probeUsb` to verify the host `/health` endpoint before reporting ready, automatically stopping stale accessory sessions when the server is terminated.
-  - Isolated initial attachment check in `DiscoveryScreen` to eliminate continuous accessory recreation while daemon is offline.
+  - Improved `HostApi.probeUsb` to verify the host `/health` endpoint before reporting ready, automatically stopping stale accessory sessions when the server is terminated.
+  - Isolated initial attachment check in `DiscoveryScreen` to remove continuous accessory recreation while daemon is offline.
 - **Scale Mode (Fit Mode) Application & Persistence**:
   - Corrected `ConnectionSettingsSheet` in `StreamScreen` to invoke `onScaleModeChange` instead of erroneously calling resolution resize with string keys.
   - Mapped scale mode strings ("fit", "fill", "100") to integer resize modes (0 = Fit, 3 = Fill, 4 = Zoom) in `StreamViewModel` and `PlayerSurface`.
@@ -531,7 +544,7 @@ Send FRAME_FLAG_RESET on host shutdown to trigger immediate AOA accessory teardo
   - Configured lightweight default capture profile for secondary display (1280x720@60Hz with 3500 kbps max bitrate) to prevent saturating shared USB controller bandwidth across multiple devices.
   - Added explicit `output_connector` routing for primary (`Virtual-ORBISCREEN`) and secondary (`Virtual-ORBISCREEN-2`) transports.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.28.5`.
 - **Android Client**: Incremented `versionCode` to `98`; updated `versionName` to `"0.28.5"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.28.5`.
@@ -543,23 +556,23 @@ Send FRAME_FLAG_RESET on host shutdown to trigger immediate AOA accessory teardo
 
 ## [v0.28.4] - 2026-09-16
 
-Fix Android tablet black screen over USB (AOA) by expanding MPEG-TS transmission buffer capacity to 2048 chunks, eliminating video pipeline packet dropping in appsrc and appsink, optimizing USB bulk transfer framing to prevent packet fragmentation, initializing keepalive frames cleanly only after first real frame capture, and resolving daemon stop deadlock by removing the watch channel race condition.
+Fix Android tablet black screen over USB (AOA) by expanding MPEG-TS transmission buffer capacity to 2048 chunks, removing video pipeline packet dropping in appsrc and appsink, optimizing USB bulk transfer framing to prevent packet fragmentation, initializing keepalive frames cleanly only after first real frame capture, and resolving daemon stop deadlock by removing the watch channel race condition.
 
-### 🐛 Bug Fixes
-- **Eliminate MPEG-TS Bitstream Corruption & Tablet Black Screen**:
+### Bug Fixes
+- **Remove MPEG-TS Bitstream Corruption & Tablet Black Screen**:
   - Expanded client transmission channel buffer from 16 chunks (~21 KB) to 2048 chunks (~2.7 MB capacity), preventing MPEG-TS packet drops during high-bitrate frame bursts that previously broke PES headers and caused Android MediaCodec decoding failures.
   - Configured `appsrc` with `block=true` and `do-timestamp=false` to preserve precise encoder PTS and prevent input frame dropping.
   - Configured `appsink` with `drop=false`, `sync=false`, and `max-buffers=0` to guarantee that all intermediate MPEG-TS packets are delivered intact.
-  - Sized TCP read buffer in AOA to `MAX_PAYLOAD_LEN - FRAME_HEADER_LEN` (16379 bytes) so that framed packets never exceed 16384 bytes, ensuring every packet fits into exactly one USB bulk transfer and eliminating fragmentation.
-  - Expanded Android `UsbAccessoryManager` incoming accumulator buffer ceiling from 128 KB to 4 MB, preventing buffer purges and stream desynchronization during frame bursts.
+  - Sized TCP read buffer in AOA to `MAX_PAYLOAD_LEN - FRAME_HEADER_LEN` (16379 bytes) so that framed packets never exceed 16384 bytes, ensuring every packet fits into exactly one USB bulk transfer and removing fragmentation.
+  - Expanded Android `UsbAccessoryManager` incoming accumulator buffer ceiling from 128 KB to 4 MB, preventing buffer removes and stream desynchronization during frame bursts.
 - **Initial Frame Capture & Keepalive Cleanliness**:
   - Removed artificial `initial_black` frame pre-push from capture pipeline initialization in both primary and secondary sessions.
   - Initialized `keepalive_frame` to `None`, caching frame data only after the first authentic desktop frame arrives from the Wayland capture source.
 - **Graceful Shutdown & Stop Deadlock Fix**:
-  - Resolved daemon hang on `orbiscreen stop` by simplifying the server await loop, eliminating duplicate watch notification consumption between `main.rs` and `transport.serve`.
+  - Resolved daemon hang on `orbiscreen stop` by simplifying the server await loop, removing duplicate watch notification consumption between `main.rs` and `transport.serve`.
   - Added broadcast client shutdown notification upon server termination to cleanly transition active client GStreamer pipelines to NULL.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.28.4`.
 - **Android Client**: Incremented `versionCode` to `97`; updated `versionName` to `"0.28.4"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.28.4`.
@@ -571,20 +584,20 @@ Fix Android tablet black screen over USB (AOA) by expanding MPEG-TS transmission
 
 ## [v0.28.3] - 2026-09-16
 
-Fix tablet black screen and AOA USB disconnect (`os error 71`) by dynamically discovering and binding asynchronous Wayland virtual outputs in damage pump, pre-seeding capture pipeline with initial black frame in cap pump to eliminate encoder and client stream starvation, adding automatic runtime fallback from failing hardware encoders to software x264 with GStreamer bus sync handler error logging, and expanding AOA video sync channel buffer capacity.
+Fix tablet black screen and AOA USB disconnect (`os error 71`) by dynamically discovering and binding asynchronous Wayland virtual outputs in damage pump, pre-seeding capture pipeline with initial black frame in cap pump to remove encoder and client stream starvation, adding automatic runtime fallback from failing hardware encoders to software x264 with GStreamer bus sync handler error logging, and expanding AOA video sync channel buffer capacity.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Fix Tablet Black Screen & Virtual Display Damage Pump**:
   - Dynamically re-scan and bind newly created or asynchronously enabled `wl_output` globals inside the damage pump wait loop, ensuring virtual outputs like `Virtual-ORBISCREEN` are discovered after KWin completes output activation.
-  - Enhance output matching in damage pump with substring and virtual connector fallbacks, preventing premature damage pump thread exits.
+  - Improve output matching in damage pump with substring and virtual connector fallbacks, preventing premature damage pump thread exits.
   - Seed capture pipeline with an initial black frame and pre-seed `keepalive_frame` in both primary and secondary display loops, ensuring GStreamer encoder immediately generates SPS/PPS and IDR keyframe packets without waiting for initial desktop damage.
 - **Hardware Encoder Runtime Fallback & Error Visibility**:
   - Implement automatic runtime fallback in `Encoder::new` from failing hardware encoders (NVENC/VAAPI) to software `x264enc` if initialization fails or emits immediate bus errors.
   - Add GStreamer pipeline bus sync handler to log detailed encoder warnings and errors in real-time.
 - **Prevent AOA USB Protocol Disconnect (os error 71)**:
-  - Increase AOA video `sync_channel` buffer capacity from 8 to 64 chunks (1 MB buffer), eliminating packet drop and buffer starvation during high-bitrate IDR keyframe bursts.
+  - Increase AOA video `sync_channel` buffer capacity from 8 to 64 chunks (1 MB buffer), removing packet drop and buffer starvation during high-bitrate IDR keyframe bursts.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.28.3`.
 - **Android Client**: Incremented `versionCode` to `96`; updated `versionName` to `"0.28.3"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.28.3`.
@@ -596,22 +609,22 @@ Fix tablet black screen and AOA USB disconnect (`os error 71`) by dynamically di
 
 ## [v0.28.2] - 2026-09-15
 
-Fix broken pipe error on host session lock via client shutdown notification, eliminate progressive streaming lag and frame drops over time by expanding video broadcast capacity and eliminating GStreamer callback stalls, resolve UDP probe tick mutex contention, and prevent UDP presence oscillation with a 2-second grace period.
+Fix broken pipe error on host session lock via client shutdown notification, remove progressive streaming lag and frame drops over time by expanding video broadcast capacity and removing GStreamer callback stalls, resolve UDP probe tick mutex contention, and prevent UDP presence oscillation with a 2-second grace period.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Host Session Lock Broken Pipe Resolution**:
   - Add broadcast client shutdown notification (`client_shutdown_tx`) triggered by `api_control` when host session is locked via `loginctl` or `xdg-screensaver`, cleanly terminating active HTTP streaming connections before the remote TCP socket closes.
   - Replace blocking `tx.blocking_send()` with non-blocking `tx.try_send()` in the GStreamer MPEG-TS AppSink callback, preventing slow or disconnected streaming clients from stalling the GStreamer streaming thread and freezing the encode pipeline.
-- **Eliminate Progressive Stream Lag & Frame Drops**:
-  - Expand video distribution broadcast channel capacity from 8 to 64 packets (~1.07s headroom at 60fps), eliminating the buffer starvation bottleneck and breaking the positive-feedback loop of recurrent IDR keyframe requests.
+- **Remove Progressive Stream Lag & Frame Drops**:
+  - Expand video distribution broadcast channel capacity from 8 to 64 packets (~1.07s headroom at 60fps), removing the buffer starvation bottleneck and breaking the positive-feedback loop of recurrent IDR keyframe requests.
   - Increase per-client MPEG-TS channel buffer from 8 to 16 chunks to absorb bursty network I/O.
   - Reset `last_pkt_pts_ns = None` when recovering from broadcast lag to ensure timestamp deltas are calculated accurately without stale frame gaps.
-  - Eliminate UDP hub probe tick mutex contention by checking probe deadlines and releasing the clients lock before sending datagrams over the network.
+  - Remove UDP hub probe tick mutex contention by checking probe deadlines and releasing the clients lock before sending datagrams over the network.
   - Request an immediate IDR keyframe when recovering from broadcast lag in the UDP hub to ensure smooth decoder recovery.
   - Implement a 2-second grace period in UDP client TTL pruning to absorb transient network jitter without triggering spurious client disconnect/reconnect cycles and IDR storms.
   - Optimize daemon keepalive frame snapshot memory allocation by storing an `Arc<[u8]>` slice buffer instead of repeatedly allocating full frame vectors.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.28.2`.
 - **Android Client**: Incremented `versionCode` to `95`; updated `versionName` to `"0.28.2"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.28.2`.
@@ -623,17 +636,17 @@ Fix broken pipe error on host session lock via client shutdown notification, eli
 
 ## [v0.28.1] - 2026-09-14
 
-Drop stale frames and eliminate stream latency accumulation over Wi-Fi and USB AOA, clamp PTS timeline desync across frame gaps, multi-thread software color conversion, and constrain transport buffer queues (PR [#78](https://github.com/shadow-x78/orbiscreen/pull/78) by [@Yashb404](https://github.com/Yashb404)).
+Drop stale frames and remove stream latency accumulation over Wi-Fi and USB AOA, clamp PTS timeline desync across frame gaps, multi-thread software color conversion, and constrain transport buffer queues (PR [#78](https://github.com/shadow-x78/orbiscreen/pull/78) by [@Yashb404](https://github.com/Yashb404)).
 
-### 🐛 Bug Fixes
-- **Drop Stale Frames & Eliminate Stream Latency Accumulation (PR [#78](https://github.com/shadow-x78/orbiscreen/pull/78) by [@Yashb404](https://github.com/Yashb404))**:
+### Bug Fixes
+- **Drop Stale Frames & Remove Stream Latency Accumulation (PR [#78](https://github.com/shadow-x78/orbiscreen/pull/78) by [@Yashb404](https://github.com/Yashb404))**:
   - Configure HTTP MPEG-TS pipeline with `is-live=true do-timestamp=true` and `appsink drop=true sync=false max-buffers=1`, ensuring stale frames are dropped immediately under backpressure instead of accumulating seconds of video and input latency.
   - Fix PTS timeline desync in `stream_handler` by clamping PTS delta across frame gaps (>250ms) to nominal frame time, preventing client decoder buffer inflation after laptop suspend/resume or heavy stalls.
-  - Reduce AOA USB accessory `sync_channel` capacity from 64 to 8 chunks to eliminate host-side transport queueing.
+  - Reduce AOA USB accessory `sync_channel` capacity from 64 to 8 chunks to remove host-side transport queueing.
   - Multi-thread software color conversion with `n-threads=4` on `videoconvert` in capture and encode pipelines to prevent CPU bottlenecks during color space conversion at higher resolutions.
   - Constrain `appsrc` max-bytes to 1 uncompressed frame and `appsink` max-buffers to 1 across capture pipelines to prevent buffer bloat.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.28.1`.
 - **Android Client**: Incremented `versionCode` to `94`; updated `versionName` to `"0.28.1"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.28.1`.
@@ -645,15 +658,15 @@ Drop stale frames and eliminate stream latency accumulation over Wi-Fi and USB A
 
 ## [v0.28.0] - 2026-09-12
 
-USB AOA frame drop and stutter elimination, secondary display black screen resolution, relative mouse cross-screen traversal, and 1:1 touch coordinate alignment: eliminate USB video frame drops on Screen 1 by expanding socket buffer to 256KB and tuning ExoPlayer buffer pacing, fix secondary display black screen by implementing dynamic wl_output binding and configure retries in damage pump, restore standard relative mouse motion across all displays without boundary confinement, and align Android touch and stylus coordinates 1:1 to host display pixels.
+USB AOA frame drop and stutter removal, secondary display black screen resolution, relative mouse cross-screen traversal, and 1:1 touch coordinate alignment: remove USB video frame drops on Screen 1 by expanding socket buffer to 256KB and tuning ExoPlayer buffer pacing, fix secondary display black screen by implementing dynamic wl_output binding and configure retries in damage pump, restore standard relative mouse motion across all displays without boundary confinement, and align Android touch and stylus coordinates 1:1 to host display pixels.
 
-### 🐛 Bug Fixes
-- **USB AOA Zero Frame Drops and Stutter Elimination**: Expanded Android USB socket `sendBufferSize` and `receiveBufferSize` to 256KB in `UsbAccessoryManager.kt` to prevent keyframe backpressure. Configured ExoPlayer `DefaultLoadControl` to 120-350ms with a 50ms live target offset in `PlayerHolder.kt` to absorb USB jitter and ensure silky smooth 60fps playback without rebuffering stalls.
+### Bug Fixes
+- **USB AOA Zero Frame Drops and Stutter Removal**: Expanded Android USB socket `sendBufferSize` and `receiveBufferSize` to 256KB in `UsbAccessoryManager.kt` to prevent keyframe backpressure. Configured ExoPlayer `DefaultLoadControl` to 120-350ms with a 50ms live target offset in `PlayerHolder.kt` to absorb USB jitter and ensure silky smooth 60fps playback without rebuffering stalls.
 - **Secondary Display Black Screen Resolution**: Implemented `wl_registry::Event::Global` handling and a 5s retry loop in `crates/orbiscreen-capture/src/damage_pump.rs` to dynamically bind newly created `wl_output` globals and wait for layer surface configuration. Added a 5-iteration retry loop for `kscreen-doctor` in `crates/orbiscreen-daemon/src/main.rs` to ensure secondary virtual outputs are enabled and scaled properly in KWin.
 - **Relative Mouse Traversal Across Displays**: Configured `mouse_keyboard` in `crates/orbiscreen-input/src/x11.rs` as a pure relative pointer device with standard relative axes and events. Excluded mouse devices from `mapToWorkspace = false` in `crates/orbiscreen-daemon/src/main.rs`, allowing the mouse cursor to move freely between physical screens and virtual monitors.
-- **1:1 Pixel-Accurate Touch & Stylus Coordinates**: Aligned Android stream resolution in `StreamViewModel.kt` directly with host stream dimensions (1920x1080), eliminating aspect ratio and coordinate scaling divergence between client touch events and host virtual outputs.
+- **1:1 Pixel-Accurate Touch & Stylus Coordinates**: Aligned Android stream resolution in `StreamViewModel.kt` directly with host stream dimensions (1920x1080), removing aspect ratio and coordinate scaling divergence between client touch events and host virtual outputs.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.28.0`.
 - **Android Client**: Incremented `versionCode` to `93`; updated `versionName` to `"0.28.0"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.28.0`.
@@ -665,15 +678,15 @@ USB AOA frame drop and stutter elimination, secondary display black screen resol
 
 ## [v0.27.9] - 2026-09-12
 
-USB AOA frame drop and stutter elimination, secondary display black screen resolution, relative mouse cross-screen traversal, and 1:1 touch coordinate alignment: eliminate USB video frame drops on Screen 1 by expanding socket buffer to 256KB and tuning ExoPlayer buffer pacing (#77), fix secondary display black screen by implementing dynamic wl_output binding and configure retries in damage pump (#77), restore standard relative mouse motion across all displays without boundary confinement (#77), and align Android touch and stylus coordinates 1:1 to host display pixels (#77).
+USB AOA frame drop and stutter removal, secondary display black screen resolution, relative mouse cross-screen traversal, and 1:1 touch coordinate alignment: remove USB video frame drops on Screen 1 by expanding socket buffer to 256KB and tuning ExoPlayer buffer pacing (#77), fix secondary display black screen by implementing dynamic wl_output binding and configure retries in damage pump (#77), restore standard relative mouse motion across all displays without boundary confinement (#77), and align Android touch and stylus coordinates 1:1 to host display pixels (#77).
 
-### 🐛 Bug Fixes
-- **USB AOA Zero Frame Drops and Stutter Elimination (#77)**: Expanded Android USB socket `sendBufferSize` and `receiveBufferSize` to 256KB in `UsbAccessoryManager.kt` to prevent keyframe backpressure. Configured ExoPlayer `DefaultLoadControl` to 120-350ms with a 50ms live target offset in `PlayerHolder.kt` to absorb USB jitter and ensure silky smooth 60fps playback without rebuffering stalls. Closes #77.
+### Bug Fixes
+- **USB AOA Zero Frame Drops and Stutter Removal (#77)**: Expanded Android USB socket `sendBufferSize` and `receiveBufferSize` to 256KB in `UsbAccessoryManager.kt` to prevent keyframe backpressure. Configured ExoPlayer `DefaultLoadControl` to 120-350ms with a 50ms live target offset in `PlayerHolder.kt` to absorb USB jitter and ensure silky smooth 60fps playback without rebuffering stalls. Closes #77.
 - **Secondary Display Black Screen Resolution (#77)**: Implemented `wl_registry::Event::Global` handling and a 5s retry loop in `crates/orbiscreen-capture/src/damage_pump.rs` to dynamically bind newly created `wl_output` globals and wait for layer surface configuration. Added a 5-iteration retry loop for `kscreen-doctor` in `crates/orbiscreen-daemon/src/main.rs` to ensure secondary virtual outputs are enabled and scaled properly in KWin. Closes #77.
 - **Relative Mouse Traversal Across Displays (#77)**: Configured `mouse_keyboard` in `crates/orbiscreen-input/src/x11.rs` as a pure relative pointer device with standard relative axes and events. Excluded mouse devices from `mapToWorkspace = false` in `crates/orbiscreen-daemon/src/main.rs`, allowing the mouse cursor to move freely between physical screens and virtual monitors. Closes #77.
-- **1:1 Pixel-Accurate Touch & Stylus Coordinates (#77)**: Aligned Android stream resolution in `StreamViewModel.kt` directly with host stream dimensions (1920x1080), eliminating aspect ratio and coordinate scaling divergence between client touch events and host virtual outputs. Closes #77.
+- **1:1 Pixel-Accurate Touch & Stylus Coordinates (#77)**: Aligned Android stream resolution in `StreamViewModel.kt` directly with host stream dimensions (1920x1080), removing aspect ratio and coordinate scaling divergence between client touch events and host virtual outputs. Closes #77.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.27.9`.
 - **Android Client**: Incremented `versionCode` to `91`; updated `versionName` to `"0.27.9"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.9`.
@@ -685,15 +698,15 @@ USB AOA frame drop and stutter elimination, secondary display black screen resol
 
 ## [v0.27.8] - 2026-09-12
 
-Secondary display damage pump connector matching fix, USB AOA frame drop and video stutter elimination, touch delta normalization, and full USB audio removal: fix secondary tablet display damage pump matching so Virtual-ORBISCREEN-2 receives its own damage ticks and never binds to primary display (#77), eliminate USB frame drops, video stuttering, and keyframe stalls by increasing sync channel capacity to 64 and bounding pts calculations (#77), normalize mouse movement and cursor speed in Android PlayerSurface (#77), and completely remove USB audio pipeline, device sinks, and UI settings across the entire project (#77).
+Secondary display damage pump connector matching fix, USB AOA frame drop and video stutter removal, touch delta normalization, and full USB audio removal: fix secondary tablet display damage pump matching so Virtual-ORBISCREEN-2 receives its own damage ticks and never binds to primary display (#77), remove USB frame drops, video stuttering, and keyframe stalls by increasing sync channel capacity to 64 and bounding pts calculations (#77), normalize mouse movement and cursor speed in Android PlayerSurface (#77), and remove USB audio pipeline, device sinks, and UI settings across the entire project (#77).
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Secondary Display Damage Pump Output Matching (#77)**: Fixed `crates/orbiscreen-capture/src/damage_pump.rs` output matching logic to ensure `Virtual-ORBISCREEN-2` does not match `Virtual-ORBISCREEN` via loose substring checks. Displays with suffix '2' are strictly separated so KWin receives damage ticks and renders frames continuously for secondary displays. Closes #77.
-- **USB AOA Zero Frame Drops and Stutter Elimination (#77)**: Increased `video_tx` sync channel capacity from 4 to 64 in `crates/orbiscreen-transport/src/aoa.rs` and from 4 to 32 in `crates/orbiscreen-daemon/src/main.rs` to allow large H.264 IDR frames to pass through without stalling the pipeline. Bounded daemon keepalive `pts_ns` calculation to prevent cumulative future timestamp drift. Closes #77.
-- **Mouse Sensitivity and Touch Delta Normalization (#77)**: Fixed `PlayerSurface.kt` by removing artificial display scaling multiplication on delta move and eliminating duplicate event emission, restoring smooth 1:1 mouse movement when controlling via touch trackpad. Closes #77.
+- **USB AOA Zero Frame Drops and Stutter Removal (#77)**: Increased `video_tx` sync channel capacity from 4 to 64 in `crates/orbiscreen-transport/src/aoa.rs` and from 4 to 32 in `crates/orbiscreen-daemon/src/main.rs` to allow large H.264 IDR frames to pass through without stalling the pipeline. Bounded daemon keepalive `pts_ns` calculation to prevent cumulative future timestamp drift. Closes #77.
+- **Mouse Sensitivity and Touch Delta Normalization (#77)**: Fixed `PlayerSurface.kt` by removing artificial display scaling multiplication on delta move and removing duplicate event emission, restoring smooth 1:1 mouse movement when controlling via touch trackpad. Closes #77.
 - **Complete USB Audio Removal (#77)**: Completely removed virtual pulse audio sink creation, audio GStreamer pipelines, and `audio` query parameters from `orbiscreen-transport`. Removed `usbAudioEnabled` preference and setting UI from Android client, simplifying stream playback to a dedicated, low-latency video pipeline. Closes #77.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.27.8`.
 - **Android Client**: Incremented `versionCode` to `90`; updated `versionName` to `"0.27.8"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.8`.
@@ -705,15 +718,15 @@ Secondary display damage pump connector matching fix, USB AOA frame drop and vid
 
 ## [v0.27.7] - 2026-09-11
 
-Secondary display damage pump independent pacing, kscreen placement, initial keepalive keyframe push, and mouse rubberbanding elimination: fix secondary tablet black screen by matching independent 60fps damage ticks to Virtual-ORBISCREEN-2 and prioritizing target output connectors (#77), auto-position secondary virtual monitors to the right of primary displays via kscreen-doctor (#77), push initial keepalive keyframes on display start to avoid waiting for desktop activity (#77), and eliminate mouse rubberbanding and erratic jumping by routing relative pointer motion strictly to the virtual mouse device while isolating stylus pen tools (#77).
+Secondary display damage pump independent pacing, kscreen placement, initial keepalive keyframe push, and mouse rubberbanding removal: fix secondary tablet black screen by matching independent 60fps damage ticks to Virtual-ORBISCREEN-2 and prioritizing target output connectors (#77), auto-position secondary virtual monitors to the right of primary displays via kscreen-doctor (#77), push initial keepalive keyframes on display start to avoid waiting for desktop activity (#77), and remove mouse rubberbanding and erratic jumping by routing relative pointer motion strictly to the virtual mouse device while isolating stylus pen tools (#77).
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Secondary Display Damage Pump Pacing (#77)**: Updated `crates/orbiscreen-capture/src/damage_pump.rs` to accept `target_output` and generate independent 60fps damage ticks targeted to `Virtual-ORBISCREEN-2`. Updated `crates/orbiscreen-capture/src/kwin_virtual.rs` to prioritize matching the target output base name directly, preventing the second display from falling into a black screen state. Closes #77.
 - **Automated KScreen Output Placement (#77)**: Added automated `kscreen-doctor` execution in `crates/orbiscreen-daemon/src/main.rs` when spawning `Virtual-ORBISCREEN-2` to enable and position the secondary screen immediately to the right of primary desktop outputs. Closes #77.
 - **Immediate Keepalive Frame Push (#77)**: Initialized `keepalive_frame` with a non-empty buffer on display start in `orbiscreen-daemon`, ensuring H.264 SPS/PPS and IDR keyframes are pushed to the client immediately without waiting for compositor activity. Closes #77.
-- **Mouse Rubberbanding and Jitter Elimination (#77)**: Fixed `crates/orbiscreen-input/src/x11.rs` to route `PointerEvent::Move` and `Button` exclusively to `mouse_keyboard` as relative pointer and button events. Removed tablet uinput injection and `BTN_TOOL_PEN` activation from mouse events. Added tool release on device creation and when stylus contact ends. Restricted KWin input mapping (`mapToWorkspace = false`) exclusively to touchscreens and tablets in `orbiscreen-daemon`. Closes #77.
+- **Mouse Rubberbanding and Jitter Removal (#77)**: Fixed `crates/orbiscreen-input/src/x11.rs` to route `PointerEvent::Move` and `Button` exclusively to `mouse_keyboard` as relative pointer and button events. Removed tablet uinput injection and `BTN_TOOL_PEN` activation from mouse events. Added tool release on device creation and when stylus contact ends. Restricted KWin input mapping (`mapToWorkspace = false`) exclusively to touchscreens and tablets in `orbiscreen-daemon`. Closes #77.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.27.7`.
 - **Android Client**: Incremented `versionCode` to `89`; updated `versionName` to `"0.27.7"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.7`.
@@ -725,16 +738,16 @@ Secondary display damage pump independent pacing, kscreen placement, initial kee
 
 ## [v0.27.6] - 2026-09-11
 
-Dual tablet concurrent virtual displays, AOA candidate detection expansion, zero-lag mouse pacing, and uinput device isolation: support running multiple Android tablets concurrently as independent extended displays on KDE Plasma with automatic port allocation and isolated virtual outputs (#77), expand USB AOA candidate detection to Allwinner devices (such as VASOUN L10) and sysfs MTP/ADB interface probing (#77), eliminate mouse cursor jumping and stuttering by routing relative pointer motion strictly to the virtual mouse device (#77), and optimize Android ExoPlayer buffer pacing to 45-120ms with dynamic live playback speed adjustment to eliminate frame drops and audio starvation.
+Dual tablet concurrent virtual displays, AOA candidate detection expansion, zero-lag mouse pacing, and uinput device isolation: support running multiple Android tablets concurrently as independent extended displays on KDE Plasma with automatic port allocation and isolated virtual outputs (#77), expand USB AOA candidate detection to Allwinner devices (such as VASOUN L10) and sysfs MTP/ADB interface probing (#77), remove mouse cursor jumping and stuttering by routing relative pointer motion strictly to the virtual mouse device (#77), and optimize Android ExoPlayer buffer pacing to 45-120ms with dynamic live playback speed adjustment to remove frame drops and audio starvation.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Dual Tablet Concurrent Displays (#77)**: Added `run_secondary_display_supervisor` and `run_secondary_display_session` in `orbiscreen-daemon` to automatically launch an independent virtual display (`Virtual-ORBISCREEN-2`) on port 8790 when a second tablet connects, and cleanly tear it down when disconnected. Added dynamic output naming support to `orbiscreen-capture::kwin_virtual` (`CaptureSession::open_kwin_named`). Closes #77.
 - **AOA Candidate Detection Expansion (#77)**: Added Allwinner (`0x1f3a`), Rockchip, Unisoc, MediaTek, and other vendors to `ANDROID_VENDORS` in `orbiscreen-transport::aoa`. Added sysfs interface descriptor probing for MTP and ADB classes to detect any unlisted Android device. Closes #77.
-- **Zero-Lag Mouse Movement and Jitter Elimination (#77)**: Fixed `crates/orbiscreen-input/src/x11.rs` to write relative motion events exclusively to `mouse_keyboard`, removing the concurrent absolute tablet coordinate and pen down/up injection that caused cursor fighting and erratic jumps. Closes #77.
-- **Android Low-Latency Buffer Pacing**: Optimized `PlayerHolder.kt` `loadControl` buffer durations from 250-500ms down to 45-120ms to eliminate half-second video latency. Configured dynamic live playback speed between 0.98f and 1.05f to drain buffer drift smoothly. Adjusted `LowLatencyVideoRenderer` drop thresholds to prevent continuous IDR requests.
+- **Zero-Lag Mouse Movement and Jitter Removal (#77)**: Fixed `crates/orbiscreen-input/src/x11.rs` to write relative motion events exclusively to `mouse_keyboard`, removing the concurrent absolute tablet coordinate and pen down/up injection that caused cursor fighting and erratic jumps. Closes #77.
+- **Android Low-Latency Buffer Pacing**: Optimized `PlayerHolder.kt` `loadControl` buffer durations from 250-500ms down to 45-120ms to remove half-second video latency. Configured dynamic live playback speed between 0.98f and 1.05f to drain buffer drift smoothly. Adjusted `LowLatencyVideoRenderer` drop thresholds to prevent continuous IDR requests.
 - **Uinput Device Isolation (#77)**: Differentiated uinput device names and product IDs for secondary displays (`Orbiscreen 2 Virtual Touchscreen`) and updated KWin input binding to match devices to their respective virtual screens. Closes #77.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.27.6`.
 - **Android Client**: Incremented `versionCode` to `88`; updated `versionName` to `"0.27.6"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.6`.
@@ -746,16 +759,16 @@ Dual tablet concurrent virtual displays, AOA candidate detection expansion, zero
 
 ## [v0.27.5] - 2026-09-11
 
-USB AOA concurrent multi-device handling, Android accessory fallback, interactive battery optimization switch, app-wide keepScreenAwake, and rounded ripple UI polish: overhaul host supervisor to maintain concurrent active accessory bridges and probe Android candidate devices in parallel without blocking candidate detection (#77), add fallback accessory resolution and FLAG_UPDATE_CURRENT for permission intents (#77), replace battery optimization row with an interactive switch preference querying real-time system state with intent launchers (#77), enable keepScreenAwake across the entire Android app via FLAG_KEEP_SCREEN_ON (#77), vertically center USB audio warning container, and round ripple selection highlights on all cards and preference rows.
+USB AOA concurrent multi-device handling, Android accessory fallback, interactive battery optimization switch, app-wide keepScreenAwake, and rounded ripple UI polish: rework host supervisor to maintain concurrent active accessory bridges and probe Android candidate devices in parallel without blocking candidate detection (#77), add fallback accessory resolution and FLAG_UPDATE_CURRENT for permission intents (#77), replace battery optimization row with an interactive switch preference querying real-time system state with intent launchers (#77), enable keepScreenAwake across the entire Android app via FLAG_KEEP_SCREEN_ON (#77), vertically center USB audio warning container, and round ripple selection highlights on all cards and preference rows.
 
-### 🐛 Bug Fixes
-- **Multi-Device USB AOA Supervisor (#77)**: Overhauled `orbiscreen-transport::aoa::supervisor` to maintain `active_bridges: HashMap<PathBuf, ActiveBridge>` and run accessory bridges concurrently with `tokio::task::spawn_blocking`. Handshakes for candidate devices are now initiated in parallel without blocking the scan loop, preventing device collisions (such as a connected phone blocking detection of a tablet). Closes #77.
+### Bug Fixes
+- **Multi-Device USB AOA Supervisor (#77)**: Rebuilded `orbiscreen-transport::aoa::supervisor` to maintain `active_bridges: HashMap<PathBuf, ActiveBridge>` and run accessory bridges concurrently with `tokio::task::spawn_blocking`. Handshakes for candidate devices are now initiated in parallel without blocking the scan loop, preventing device collisions (such as a connected phone blocking detection of a tablet). Closes #77.
 - **Android USB Accessory Fallback (#77)**: Added single-accessory fallback `targetAccessory = accessory ?: usbManager.accessoryList?.firstOrNull()` in `MainActivity.handleAccessoryIntent`. Added `FLAG_UPDATE_CURRENT` to `PendingIntent.FLAG_MUTABLE` in `UsbAccessoryManager.requestPermission`. Closes #77.
 - **Interactive Battery Optimization Switch (#77)**: Replaced `ClickPreferenceRow` with `SwitchPreferenceRow` in `SettingsScreen.kt`. Turning the switch ON requests exemption via `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, and turning it OFF opens `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`. State is updated dynamically on `ON_RESUME` via `PowerManager.isIgnoringBatteryOptimizations`. Closes #77.
 - **App-Wide Keep Screen Awake (#77)**: Added `keepScreenAwakeFlow` in `PrefsStore.kt` and observed it in `MainActivity.kt` with `FLAG_KEEP_SCREEN_ON` applied at the window level, ensuring the screen stays awake throughout the entire application when enabled. Closes #77.
 - **UI Polish and Rounded Ripples**: Vertically centered the text and icon in the USB Audio Output warning box (`verticalAlignment = Alignment.CenterVertically`). Added `clip(RoundedCornerShape(16.dp))` and `clip(RoundedCornerShape(22.dp))` to clickable preference rows, dialog options, and elevated cards in `SettingsScreen.kt` and `DiscoveryScreen.kt` so touch ripples and press highlights conform cleanly to rounded corners without sharp 90-degree edges.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.27.5`.
 - **Android Client**: Incremented `versionCode` to `87`; updated `versionName` to `"0.27.5"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.5`.
@@ -767,16 +780,16 @@ USB AOA concurrent multi-device handling, Android accessory fallback, interactiv
 
 ## [v0.27.4] - 2026-09-11
 
-Android client USB connection and display wake lock fix: register USB BroadcastReceiver with `RECEIVER_EXPORTED` on Android 13/14+ to prevent system accessory broadcasts from being dropped (#77), add `onResume()` initialization and background accessory polling so USB connects without restarting the app (#77), buffer auto-connect events with `replay = 1` to guarantee instant session startup, resolve Activity window through `Context.findActivity()` and set `keepScreenOn` directly on Compose View to eliminate screen timeouts during streaming (#77), and add a dedicated Battery Optimization preference row with direct system intent launcher (#77).
+Android client USB connection and display wake lock fix: register USB BroadcastReceiver with `RECEIVER_EXPORTED` on Android 13/14+ to prevent system accessory broadcasts from being dropped (#77), add `onResume()` initialization and background accessory polling so USB connects without restarting the app (#77), buffer auto-connect events with `replay = 1` to guarantee immediate session startup, resolve Activity window through `Context.findActivity()` and set `keepScreenOn` directly on Compose View to remove screen timeouts during streaming (#77), and add a dedicated Battery Optimization preference row with direct system intent launcher (#77).
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **USB AOA Receiver Block on Android 13+ (#77)**: Changed `usbReceiver` registration from `RECEIVER_NOT_EXPORTED` to `RECEIVER_EXPORTED` in `MainActivity.kt`. System broadcasts `ACTION_USB_ACCESSORY_ATTACHED`, `ACTION_USB_ACCESSORY_DETACHED`, and `ACTION_USB_PERMISSION` are delivered across process boundaries and were previously silently blocked by the Android OS framework. Closes #77.
 - **USB AOA Reconnect and Auto-Connect (#77)**: Added `UsbAccessoryManager.init()` to `MainActivity.onResume()` and inside `UsbHeroCard` periodic probe loop in `DiscoveryScreen.kt`. Configured `autoConnectEvent` with `replay = 1` and `onBufferOverflow = DROP_OLDEST` so auto-connect events are never lost before UI composition finishes. Added single-accessory fallback and case-insensitive matching in `UsbAccessoryManager.kt`. Closes #77.
 - **Keep Screen Awake on Localized Context (#77)**: Fixed `keepScreenAwake` failing when app language is set to Arabic (`ar`). `createConfigurationContext` wraps `Activity` in a `ContextWrapper`, causing `context as? Activity` to return `null`. Added `Context.findActivity()` helper, and set `LocalView.current.keepScreenOn = prefs.keepScreenAwake` for foolproof screen wake lock during streaming. Closes #77.
 - **Battery Optimization Exemption Setting (#77)**: Added `WAKE_LOCK` and `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` to `AndroidManifest.xml`. Added interactive Battery Optimization row in `SettingsScreen.kt` querying `powerManager.isIgnoringBatteryOptimizations` with live lifecycle resume updates, status pill, and one-tap intent launcher for disabling system battery restrictions.
 - **Icon Clarity**: Changed `keep_screen_awake` icon from `BatteryFull` to `PhoneAndroid` to prevent visual confusion with battery settings.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.27.4`.
 - **Android Client**: Incremented `versionCode` to `86`; updated `versionName` to `"0.27.4"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.4`.
@@ -788,16 +801,16 @@ Android client USB connection and display wake lock fix: register USB BroadcastR
 
 ## [v0.27.3] - 2026-09-11
 
-Android client audio playback fix: configure AudioAttributes with USAGE_MEDIA and enable audio focus handling so sound routes to tablet speakers/headphones (#77), increase DefaultLoadControl buffer durations to eliminate immediate AudioTrack buffer starvation underruns, bypass video-only low-latency filters for audio decoders, and standardize host GStreamer pipeline on 48 kHz stereo with ADTS stream format framing for MPEG-TS audio.
+Android client audio playback fix: configure AudioAttributes with USAGE_MEDIA and enable audio focus handling so sound routes to tablet speakers/headphones (#77), increase DefaultLoadControl buffer durations to remove immediate AudioTrack buffer starvation underruns, bypass video-only low-latency filters for audio decoders, and standardize host GStreamer pipeline on 48 kHz stereo with ADTS stream format framing for MPEG-TS audio.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Android Audio Output and Focus (#77)**: Configured `AudioAttributes` with `C.USAGE_MEDIA` and `C.AUDIO_CONTENT_TYPE_MUSIC` with `handleAudioFocus = true` on ExoPlayer in `PlayerHolder.kt`. Without media classification and audio focus, Android audio policy muted playback or dropped output over USB connections. Closes #77.
 - **AudioTrack Buffer Starvation (#77)**: Increased `DefaultLoadControl` buffer parameters from `(50, 150, 20, 40)` ms to `(250, 500, 100, 150)` ms. The previous 20 ms playback start buffer was smaller than a single AAC audio frame (21.3 ms) and Android HAL `minBufferSize` (46-90 ms), causing immediate `AudioTrack` underruns and silenced audio. Closes #77.
 - **Audio Decoder Selection**: Updated `MediaCodecSelector` in `buildRenderersFactory()` to pass MIME types starting with `audio/` directly to `MediaCodecSelector.DEFAULT`, avoiding video-specific low-latency hardware filtering on Android software audio decoders.
 - **Host Audio Pipeline Standard (48 kHz ADTS)**: Enforced `audio/x-raw,rate=48000,channels=2` before `avenc_aac` and `audio/mpeg,stream-format=adts` after `aacparse` in `build_audio_video_pipeline()` in `crates/orbiscreen-transport/src/lib.rs`. Guarantees standard ADTS headers and sample rate compatibility across all Android decoders.
 - **Explicit Audio Track Selection**: Configured `trackSelectionParameters` in `PlayerHolder.kt` to ensure audio tracks are explicitly enabled when audio is requested, and added `onTracksChanged` debug logging.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.27.3`.
 - **Android Client**: Incremented `versionCode` to `85`; updated `versionName` to `"0.27.3"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.3`.
@@ -809,14 +822,14 @@ Android client audio playback fix: configure AudioAttributes with USAGE_MEDIA an
 
 ## [v0.27.2] - 2026-09-11
 
-Stream stability and audio-video multiplexing fix: eliminate periodic stream freezing by removing false-positive live-edge seek loop in Android client (#77), add dedicated upstream-leaky queues for both video and audio before mpegtsmux to prevent frame stalls and audio dropouts (#77), and format virtual sink device description to cleanly display "Orbiscreen Audio" with space in system sound settings.
+Stream stability and audio-video multiplexing fix: remove periodic stream freezing by removing false-positive live-edge seek loop in Android client (#77), add dedicated upstream-leaky queues for both video and audio before mpegtsmux to prevent frame stalls and audio dropouts (#77), and format virtual sink device description to cleanly display "Orbiscreen Audio" with space in system sound settings.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Video Stream Periodic Freezing (#77)**: Removed false-positive `seekToDefaultPosition()` loop in `PlayerHolder.kt` that evaluated ExoPlayer's healthy buffer duration against a tight 80 ms threshold, causing unnecessary player resets and IDR requests every 4 seconds. Closes #77.
 - **Audio-Video Multiplexing Stalls (#77)**: Added independent `queue` elements with `leaky=upstream` right before `mpegtsmux` for both video and audio in `build_audio_video_pipeline()`. Replaced undersized 20 ms downstream-leaky queue with a 200 ms upstream-leaky queue for audio, preventing AAC frame drops and multiplexer stalls at 60 fps. Closes #77.
 - **Virtual Sink Display Name**: Updated `sink_properties` in `ensure_virtual_sink()` to properly escape spaces so PulseAudio/PipeWire creates the sink with clean description "Orbiscreen Audio" instead of stripping backslashes.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.27.2`.
 - **Android Client**: Incremented `versionCode` to `84`; updated `versionName` to `"0.27.2"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.2`.
@@ -829,7 +842,7 @@ Stream stability and audio-video multiplexing fix: eliminate periodic stream fre
 
 Trackpad stability, latency cure for long sessions, persistent toolbar, and a real audio output device: RelativeMove now drives the true relative mouse on the host so the cursor stays put when you lift your finger (#77), accumulated session lag is hard-dropped the moment it exceeds 80 ms with EWMA clock smoothing preventing false positives (#77), the in-session toolbar no longer vanishes after 12 seconds, and "Orbiscreen Audio" now appears as a proper PipeWire/PulseAudio output device you can route any app to from system sound settings.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Trackpad cursor jumps to primary screen on finger lift (#77)**: `PointerEvent::RelativeMove` in `x11.rs` was injected into the `tablet` uinput device as absolute `Abs::X/Y` with `BTN_TOOL_PEN`. When the finger lifted, the pen-proximity signal stopped and KWin snapped the cursor back to the primary screen. Fixed by routing `RelativeMove` to `mouse_keyboard` as true relative `Rel::X/Rel::Y` events. The cursor now stays exactly where it was on the secondary screen with no jump. References #77.
 - **Trackpad tap-to-click lands at wrong position**: `moveDelta()` in `InputDispatcher.kt` accumulated `pendingDx/pendingDy` for the network loop but never updated `cursorX/cursorY`. When `leftClick()` fired it sent a `Move` to the stale center-of-screen position. Fixed by also updating `cursorX/cursorY` cumulatively in `moveDelta()` with boundary clamping. References #77.
 - **Latency accumulation after long sessions (#77)**: After 30-60 minutes ExoPlayer's internal buffer drifted ahead of real time. Added a coroutine in `PlayerHolder.kt` that checks `bufferedPosition - currentPosition` every 2 seconds and calls `seekToDefaultPosition()` + IDR request when lag exceeds 80 ms. Closes #77.
@@ -837,10 +850,10 @@ Trackpad stability, latency cure for long sessions, persistent toolbar, and a re
 - **Keyframe dropped during stale-frame flush (Wi-Fi)**: The stale-frame guard in `UdpPlayer.kt` discarded all frames including keyframes when measured latency exceeded 75 ms, causing a decoder freeze until the next IDR arrived. Fixed by exempting keyframes from the drop condition so the decoder can recover immediately. Closes #77.
 - **Session toolbar closes automatically**: A `LaunchedEffect(showControls)` block was automatically hiding the controls after a 12-second delay. Removed the effect entirely; the toolbar now stays visible until the user explicitly taps the eye button. References #76.
 
-### 🚀 Features & Enhancements
+### Features & Improvements
 - **Virtual Audio Sink "Orbiscreen Audio"**: When a client connects with `audio=1`, the host now calls `ensure_virtual_sink()` which uses `pactl load-module module-null-sink` to create a dedicated sink named `orbiscreen_audio` with description "Orbiscreen Audio". The GStreamer pipeline captures from `orbiscreen_audio.monitor` instead of `@DEFAULT_MONITOR@`. The sink appears as a standard output device in GNOME/KDE sound settings and any application or system audio can be routed to it. The sink is idempotent -- it is only created if it does not already exist.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.27.1`.
 - **Android Client**: Incremented `versionCode` to `83`; updated `versionName` to `"0.27.1"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.27.1`.
@@ -851,21 +864,21 @@ Trackpad stability, latency cure for long sessions, persistent toolbar, and a re
 
 ## [v0.26.0] - 2026-09-11
 
-Latency elimination, audio wiring, and UX polish: stale frame drop on Wi-Fi and USB/AOA eliminates seconds of accumulated latency (#77), aggressive pipeline buffer reduction removes rubberbanding (#75), GOP reduced from 10 s to 2 s for fast IDR recovery, USB Audio is now fully connected to the server pipeline with a BETA badge, Input Mode moved to a Segmented Button in main settings only.
+Latency removal, audio wiring, and UX polish: stale frame drop on Wi-Fi and USB/AOA removes seconds of accumulated latency (#77), aggressive pipeline buffer reduction removes rubberbanding (#75), GOP reduced from 10 s to 2 s for fast IDR recovery, USB Audio is now fully connected to the server pipeline with a BETA badge, Input Mode moved to a Segmented Button in main settings only.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Video Stream Latency Accumulation (Wi-Fi and USB/AOA) (Issue #77)**: Full dual-side fix. Host side: encode channel reduced from 64 -> 4 slots, daemon video_tx channel reduced from 64 -> 4, broadcast channel reduced from 64 -> 8, transport appsrc max_bytes reduced from 512 KB -> 128 KB, preventing seconds of H.264 frames accumulating in memory before the client even receives them. Android side: UDP socket receive buffer reduced from 2 MB -> 128 KB; stale frame drop logic added: any frame with measured one-way latency > 75 ms is discarded immediately, pending fragments are cleared, and an IDR is requested. Closes #77.
 - **Rubberbanding on Long Sessions (Issue #75)**: ExoPlayer buffer reduced from (100ms, 1000ms) to (50ms, 150ms). LowLatencyVideoRenderer drop-to-keyframe threshold tightened from 100 ms -> 70 ms earlyUs. IDR guard raised from 500 ms -> 1500 ms to prevent request spam. Closes #75.
 - **AOA USB ADB Endpoint Collision (Issue #76)**: Already fixed in v0.25.9: `detect_endpoints` restricted to Interface 0. Referenced here for completeness. #76.
 
-### ✨ Improvements
+### Improvements
 - **GOP / Keyframe Interval**: Reduced `key-int-max`, `gop-size`, and `keyframe-period` from 600 frames (10 s) to 120 frames (~2 s at 60 fps): decoder recovers from a dropped frame in at most 2 s instead of 10 s.
 - **USB Audio wired to server**: `try_audio` in `stream_handler` now reads `query.audio == Some("1")` instead of being hardcoded to `false`. `StreamUrl.kt` sends `audio=1` when `prefs.usbAudioEnabled` is `true`.
 - **Audio BETA Badge**: `PreferenceSection` accepts `betaBadge = true`: a tertiaryContainer pill labeled "BETA" appears next to the section title. Applied to the Audio & Connection section.
 - **Audio Warning Card**: An informational card under the USB Audio toggle warns that the feature is experimental and may cause a black screen on some hardware.
 - **Input Mode: Segmented Button**: Replaced the `SwitchPreferenceRow` for Input Mode in Settings with a `SingleChoiceSegmentedButtonRow` (Touch / Trackpad). Removed the Input Mode toggle entirely from the session settings sheet.
 
-### 📦 Version Bumps
+### Version Bumps
 - **Cargo Workspace**: Bumped workspace package version to `0.26.0`.
 - **Android Client**: Incremented `versionCode` to `82`; updated `versionName` to `"0.26.0"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.26.0`.
@@ -876,10 +889,10 @@ Latency elimination, audio wiring, and UX polish: stale frame drop on Wi-Fi and 
 
 ## [v0.25.9] - 2026-09-10
 
-Comprehensive stability and UX overhaul: black screen on USB connect fixed, rubberbanding eliminated, single-tap pill handle, redesigned in-session settings, M3 preference rows for theme/language, full color contrast audit for light and dark modes, desktop GUI D-Bus timeout fix and dynamic Tauri invoke, Arabic translation cleanup.
+Comprehensive stability and UX rework: black screen on USB connect fixed, rubberbanding removed, single-tap pill handle, redesigned in-session settings, M3 preference rows for theme/language, full color contrast audit for light and dark modes, desktop GUI D-Bus timeout fix and dynamic Tauri invoke, Arabic translation cleanup.
 
-### 🐛 Bug Fixes
-- **Black Screen on USB / Connect**: Disabled `mpegtsmux` audio-video mux pipeline as default: always uses pure `build_video_pipeline`. Eliminates the blocking behavior where missing audio samples caused the muxer to stall video output entirely.
+### Bug Fixes
+- **Black Screen on USB / Connect**: Disabled `mpegtsmux` audio-video mux pipeline as default: always uses pure `build_video_pipeline`. Removes the blocking behavior where missing audio samples caused the muxer to stall video output entirely.
 - **Rubberbanding on USB Reconnect & Clock Drift (Issue #75)**: Restored `DefaultLoadControl` buffer durations to stable `(100ms, 1000ms, 32ms, 64ms)` and locked ExoPlayer playback speed to exactly `1.0f` / `1.0f`: removes the 0.98x-1.04x catch-up algorithm that caused aggressive frame-rate fluctuations and rubberbanding after long sessions (#75).
 - **Auto set_resolution on Connect**: Removed automatic `set_resolution` D-Bus call on session start: resolves the display flash and layout glitch triggered immediately after connecting.
 - **Single-Tap Pill Handle**: Removed `isControlsPermanentlyHidden` state entirely; floating pill is now always visible when toolbar is hidden and restores on single tap without requiring double-tap on stream surface.
@@ -888,14 +901,14 @@ Comprehensive stability and UX overhaul: black screen on USB connect fixed, rubb
 - **Desktop GUI D-Bus Freeze**: Added `tokio::time::timeout(500ms)` around D-Bus `GetStatus` call: prevents indefinite UI freeze when daemon is not running.
 - **AOA USB Direct ADB Endpoint Collision (Issue #76)**: Restricted `detect_endpoints` in `aoa.rs` to scan only Interface 0 (the standard AOA accessory interface). Prevents scanning Interface 1 (ADB) when USB debugging is enabled, resolving the `Device or resource busy (os error 16)` error and silence/black screen on AOA connect (#76).
 
-### ✨ Improvements
+### Improvements
 - **In-Session Settings Sheet Redesign**: Rebuilt `ConnectionSettingsSheet`: removed all resolution fields (presets, native, custom W/H). Sheet now contains only: Scale Mode (Fit / Fill / 100%), Touch/Trackpad toggle, Pointer Speed slider with presets, Keep Screen Awake toggle. Uses `MaterialTheme` colors throughout.
 - **Settings Page M3 Preference Rows**: Replaced Theme and Language chip rows with `ClickPreferenceRow` items that open `AlertDialog` radio pickers: matches Android M3 settings pattern with proper spacing and icon containers.
 - **Color Contrast Audit**: Increased `LightOnBackground` and `LightOnSurface` from `#4C4F69` to `#1E1E2E` and `LightOnSurfaceVariant` from `#5C5F77` to `#313244` for full WCAG AA compliance in light mode.
 - **Arabic Translations Cleanup**: Removed em dash from `delay` display in `ControlToolbar.kt`. Removed marketing phrases: `فائق السرعة`, `عالي السرعة`. Simplified `force_sw_decoder_summary`. Added missing strings: `disconnect_confirm_title`, `scale_mode_title`, `scale_100`.
 - **Desktop GUI Window**: Resized to compact `540×680` (min `480×580`) in `tauri.conf.json`.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to `0.25.9`.
 - **Android Client**: Incremented `versionCode` to `81`; updated `versionName` to `"0.25.9"`.
 - **Tauri GUI**: Updated `tauri.conf.json` version to `0.25.9`.
@@ -908,9 +921,9 @@ Comprehensive stability and UX overhaul: black screen on USB connect fixed, rubb
 ## [v0.25.8] - 2026-09-09
 
 
-USB desktop audio output streaming, native hardware display resolution and high refresh rate auto-matching, USB low-latency pipeline optimization, instant USB auto-connection and graceful detach handling, complete native Arabic localization with bundled NotoKufiArabic typography, draggable floating edge pill toolbar handle, and streamlined practical settings overhaul.
+USB desktop audio output streaming, native hardware display resolution and high refresh rate auto-matching, USB low-latency pipeline optimization, immediate USB auto-connection and graceful detach handling, complete native Arabic localization with bundled NotoKufiArabic typography, draggable floating edge pill toolbar handle, and streamlined practical settings rework.
 
-### 🚀 Features & Enhancements
+### Features & Improvements
 - **USB Audio Speaker Output (`orbiscreen-transport` & Android)**:
   - Added real-time desktop audio streaming over USB to Android device speakers or headphones using a low-latency GStreamer pipeline (`pulsesrc` -> `audioconvert` -> `audioresample` -> `avenc_aac` -> `mpegtsmux`).
   - Added in-app setting and query parameter support (`?audio=0`) allowing clients to selectively enable or disable audio output.
@@ -920,11 +933,11 @@ USB desktop audio output streaming, native hardware display resolution and high 
 - **Low-Latency USB Pipeline Tuning (`PlayerHolder.kt` & `orbiscreen-transport`)**:
   - Reduced ExoPlayer `DefaultLoadControl` initial buffer durations from 100ms down to 32ms, cutting initial presentation latency by over 70ms.
   - Reduced PulseAudio capture buffer from default 200ms to 20ms (`buffer-time=20000 latency-time=10000`) and audio queue from 100ms down to 20ms.
-  - Enabled dynamic zero-latency playback catch-up (`1.04f`) to eliminate cumulative delay.
+  - Enabled dynamic zero-latency playback catch-up (`1.04f`) to remove cumulative delay.
 - **USB Auto-Connect & Clean Disconnect Behavior (`UsbAccessoryManager.kt` & `OrbiNav.kt`)**:
   - Automatically launches the stream session immediately when USB cable is attached and system accessory permission prompt is confirmed.
   - Gracefully terminates session and returns to Discovery screen with user toast notification when USB cable is unplugged.
-  - Hid USB "Connect" button when USB cable is detached to eliminate invalid connection attempts.
+  - Hid USB "Connect" button when USB cable is detached to remove invalid connection attempts.
 - **Full Arabic Localization & Typography (`values-ar/strings.xml` & `Type.kt`)**:
   - Added comprehensive Arabic translations for all application strings, dialogs, controls, and error states.
   - Bundled `NotoKufiArabic` font family (Regular & Bold) for native, high-legibility Arabic typography across all UI components.
@@ -936,7 +949,7 @@ USB desktop audio output streaming, native hardware display resolution and high 
   - Completely reorganized settings into 4 clean, purposeful sections: General (Appearance & Language), Display & Session (Keep Screen Awake & Input Mode), Audio & Connection (USB Audio Output & Auto-Connect), and About & Data (Update Checker, History, Repository & License).
   - Implemented `FLAG_KEEP_SCREEN_ON` toggle to prevent device screen sleep while streaming.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to 0.25.8.
 - **Android Client**: Incremented `versionCode` to 80; updated `versionName` to "0.25.8".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.8 with changelog entry.
@@ -947,20 +960,20 @@ USB desktop audio output streaming, native hardware display resolution and high 
 
 Dual USB pipeline restoration with automatic ADB reverse supervisor, runtime Android USB accessory permissions via PendingIntent, D-Bus query timeout protection preventing CLI hangs on zombie or suspended daemon processes, and Linux Desktop GUI real-time device identification.
 
-### 🚀 Features & Enhancements
+### Features & Improvements
 - **Dual USB Transport Pipeline (`orbiscreen-transport`)**:
   - Implemented automatic ADB reverse supervisor in `adb.rs` that detects connected devices via `adb devices -l` and continuously manages reverse port forwarding (`tcp:8788` and `tcp:8789`).
-  - Integrated dual transport fallback: AOA (Android Open Accessory) with 4-second cooldown retry logic instead of permanent blacklisting, coupled with instant ADB reverse TCP fallback.
+  - Integrated dual transport fallback: AOA (Android Open Accessory) with 4-second cooldown retry logic instead of permanent blacklisting, coupled with immediate ADB reverse TCP fallback.
 - **Android Runtime USB Accessory Permissions (`UsbAccessoryManager.kt` & `MainActivity.kt`)**:
   - Added explicit runtime USB accessory permission dialog via `PendingIntent` with `ACTION_USB_PERMISSION` for Android 12+ compatibility (`FLAG_MUTABLE`).
   - Registered `UsbPermissionReceiver` to automatically initialize the accessory stream immediately upon user authorization without requiring physical replugging.
 - **Desktop GUI Real-Time Device Status (`crates/orbiscreen-gui`)**:
-  - Connected USB device card now queries and displays actual hardware models (e.g. `Lenovo TB336FU متصل`, `OnePlus 6T متصل`) with instant refresh upon connection or disconnection.
+  - Connected USB device card now queries and displays actual hardware models (e.g. `Lenovo TB336FU متصل`, `OnePlus 6T متصل`) with immediate refresh upon connection or disconnection.
   - Aligned GUI USB open button and port indicators to standard video port `8788`.
 - **D-Bus Call Timeout Protection (`orbiscreen-daemon`)**:
   - Guarded all CLI D-Bus IPC calls (`GetStatus`, `Stop`) with non-blocking timeouts (`tokio::time::timeout`) to ensure the CLI never hangs indefinitely when stale or suspended (`SIGTSTP` / Ctrl+Z) daemon processes hold the D-Bus bus.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to 0.25.7.
 - **Android Client**: Incremented `versionCode` to 79; updated `versionName` to "0.25.7".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.7 with changelog entry.
@@ -971,7 +984,7 @@ Dual USB pipeline restoration with automatic ADB reverse supervisor, runtime And
 
 Hotfix for rubberbanding regression introduced in v0.25.5 ([#75](https://github.com/shadow-x78/orbiscreen/issues/75)). Two ExoPlayer rendering thresholds were tuned too conservatively, causing the renderer to hold stale frames up to 150ms and a catch-up oscillation loop via `setMaxPlaybackSpeed(1.02f)`. Both changes are reverted. The proactive IDR request (`onLagDetected → requestIdr()`) added in v0.25.5 is kept as it genuinely improves recovery.
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - **Revert `shouldDropOutputBuffer` 150ms → 30ms (`PlayerHolder.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
   - The 150ms threshold introduced in v0.25.5 caused ExoPlayer to render frames that were up to 150ms stale, producing the rubber-band / temporal warping effect visible in the video from @MolagBals. Reverted to the original 30ms threshold that was stable in v0.25.3.
 - **Revert `setMaxPlaybackSpeed` 1.02f → 1.0f (`PlayerHolder.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
@@ -979,7 +992,7 @@ Hotfix for rubberbanding regression introduced in v0.25.5 ([#75](https://github.
 - **Revert `shouldDropBuffersToKeyframe` -120ms → -100ms (`PlayerHolder.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
   - Minor threshold creep reverted for consistency. The `onLagDetected()` callback at this threshold is kept: it correctly triggers a proactive IDR from the host on deep lag.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to 0.25.6.
 - **Android Client**: Incremented `versionCode` to 78; updated `versionName` to "0.25.6".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.6 with changelog entry.
@@ -990,9 +1003,9 @@ Hotfix for rubberbanding regression introduced in v0.25.5 ([#75](https://github.
 
 Fix 30-minute latency drift and rubberbanding on Android USB AOA connections ([#75](https://github.com/shadow-x78/orbiscreen/issues/75)), add micro-catchup speed compensation for physical quartz oscillator clock drift, enable proactive on-demand IDR keyframe recovery, tighten accessory proxy buffers, and configure periodic recovery keyframes in encoder pipelines.
 
-### ⚡ Performance & Low Latency
+### Performance & Low Latency
 - **Quartz Clock Drift Absorption & Live Catch-up (`PlayerHolder.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
-  - Reconfigured `MediaItem.LiveConfiguration` playback speed limits to `minPlaybackSpeed = 1.0f` and `maxPlaybackSpeed = 1.02f`. This micro-catchup range (+2%) is completely imperceptible to human vision but absorbs up to 20 ms of accumulated latency per second, continuously neutralizing physical quartz oscillator clock drift (~100 ms per 30 minutes at ~55 PPM) without rubberbanding or speed wobble.
+  - Reconfigured `MediaItem.LiveConfiguration` playback speed limits to `minPlaybackSpeed = 1.0f` and `maxPlaybackSpeed = 1.02f`. This micro-catchup range (+2%) is imperceptible to human vision but absorbs up to 20 ms of accumulated latency per second, continuously neutralizing physical quartz oscillator clock drift (~100 ms per 30 minutes at ~55 PPM) without rubberbanding or speed wobble.
   - Relaxed `shouldDropOutputBuffer` threshold to -150 ms to prevent dropping late frames that corrupt downstream hardware H.264 P-frame reference chains during transient system delays.
   - Implemented `requestIdr()` to trigger an on-demand keyframe from the host daemon via `/api/control {"action":"idr"}` whenever rendering falls behind by >120 ms (`shouldDropBuffersToKeyframe`), ensuring sub-second visual recovery.
 - **USB AOA Proxy Buffer Sizing (`UsbAccessoryManager.kt` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
@@ -1003,7 +1016,7 @@ Fix 30-minute latency drift and rubberbanding on Android USB AOA connections ([#
 - **USB Accessory Bridge Transfer Timeout (`orbiscreen-transport` - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
   - Tuned `UsbDevFsBulkTransfer` write timeout to 250 ms to prevent holding the writer thread during transient USB bus contention.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to 0.25.5.
 - **Android Client**: Incremented `versionCode` to 77; updated `versionName` to "0.25.5".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.5 with changelog entry.
@@ -1012,23 +1025,23 @@ Fix 30-minute latency drift and rubberbanding on Android USB AOA connections ([#
 
 ## [v0.25.4] - 2026-09-08
 
-Linux Desktop GUI native Control Center redesign (compact 560 × 620 dimensions), zero-inline-comments code audit across all languages, configuration comment standardization, dead code elimination, and mathematical vector QR code rendering.
+Linux Desktop GUI native Control Center redesign (compact 560 × 620 dimensions), zero-inline-comments code audit across all languages, configuration comment standardization, dead code removal, and mathematical vector QR code rendering.
 
-### 🖥 Linux Desktop GUI & System Integration
+### Linux Desktop GUI & System Integration
 - **Native Utility Dimensions & Layout Refinement (`orbiscreen-gui`)**:
-  - Restructured window dimensions to standard Linux utility proportions (`560 × 620 px`, minimum `500 × 540 px`) with flexible scroll area to eliminate empty space and fit any desktop display or fractional scaling.
+  - Restructured window dimensions to standard Linux utility proportions (`560 × 620 px`, minimum `500 × 540 px`) with flexible scroll area to remove empty space and fit any desktop display or fractional scaling.
   - Redesigned visual hierarchy with unified Deep Slate / Neutral Dark tokens, integrated system status header, quick navigation segments (`Connect`, `Display & Input`, `Doctor`), and streamlined action buttons.
   - Replaced raster canvas QR generation with an offline, mathematically valid vector SVG QR generator producing crisp scannable pairing codes at any resolution.
   - Deduplicated UI event listeners and JavaScript variables (`subTabBtns`, `usbBtn`, and `renderQrCode`).
 
-### 🛡 Code Quality, Audit & Comment Standardization
+### Code Quality, Audit & Comment Standardization
 - **Zero-Inline-Comments Policy**:
   - Audited and stripped all inline, mid-code, and block comments across Rust (`crates/**/*.rs`), Kotlin (`clients/android/**/*.kt`), JavaScript (`app.js`), HTML (`index.html`), and CSS (`style.css`), strictly preserving 1-2 line author credit/license headers at the file tops.
   - Preserved configuration and environment comments formatted with standard `# ─────────────────────────────────────────────` banners and `# ── <Section> ──` section dividers (`data/99-orbiscreen-usb.rules`, `.env.example`, `data/orbiscreen.service`).
 - **Dead Code & Asset Cleanup**:
   - Audited dependencies and build artifacts, cleared stale cached build files, and ensured clean clippy checks across all targets with `-D warnings`.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to 0.25.4.
 - **Android Client**: Incremented `versionCode` to 76; updated `versionName` to "0.25.4".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.4 with changelog entry.
@@ -1037,23 +1050,23 @@ Linux Desktop GUI native Control Center redesign (compact 560 × 620 dimensions)
 
 ## [v0.25.3] - 2026-09-08
 
-Eliminate USB AOA buffer bloat and rubberbanding latency spikes on Android devices, lock ExoPlayer playback rate, and enforce backpressure across host and client transport pipelines.
+Remove USB AOA buffer bloat and rubberbanding latency spikes on Android devices, lock ExoPlayer playback rate, and enforce backpressure across host and client transport pipelines.
 
-### ⚡ Performance & Low Latency
-- **USB AOA Backpressure & Buffer Bloat Elimination (`orbiscreen-transport`, Android Client - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
+### Performance & Low Latency
+- **USB AOA Backpressure & Buffer Bloat Removal (`orbiscreen-transport`, Android Client - [#75](https://github.com/shadow-x78/orbiscreen/issues/75))**:
   - Replaced the unbounded MPSC video transmission queue in `run_accessory_bridge()` with a bounded synchronous channel (`sync_channel(4)`), exerting immediate upstream backpressure whenever USB bulk writes throttle.
   - Upstream backpressure now triggers Axum's broadcast receiver lagging detection, dropping queued non-keyframe packets and requesting a clean IDR keyframe rather than buffering megabytes of stale video in host memory.
   - Sized local loopback TCP socket buffers (`SO_RCVBUF` and `SO_SNDBUF` to 32 KB) to prevent the Linux kernel from silently buffering stale frames between the daemon and AOA bridge.
   - Increased USB bulk write timeout to 500 ms and handled recoverable errors (`ETIMEDOUT`, `EINTR`, `EAGAIN`) with retries, preventing partial frame writes and framing desync in the AOA protocol.
 - **Android ExoPlayer Rubberbanding & Stutter Resolution (`PlayerHolder.kt`, `UsbAccessoryManager.kt`)**:
-  - Locked `LiveConfiguration` min and max playback speeds to `1.0f`, completely eliminating the 0.95x–1.08x playback speed oscillation (rubberbanding) when dragging desktop windows.
-  - Reconfigured `DefaultLoadControl` buffer durations to `(100, 1000, 32, 64)`, eliminating artificial TCP zero-window read pauses every 2–3 frames.
-  - Locked `LiveConfiguration` min and max playback speeds to `1.0f`, completely eliminating the 0.95x-1.08x playback speed oscillation (rubberbanding) when dragging desktop windows.
-  - Reconfigured `DefaultLoadControl` buffer durations to `(100, 1000, 32, 64)`, eliminating artificial TCP zero-window read pauses every 2-3 frames.
+  - Locked `LiveConfiguration` min and max playback speeds to `1.0f`, removing the 0.95x-1.08x playback speed oscillation (rubberbanding) when dragging desktop windows.
+  - Reconfigured `DefaultLoadControl` buffer durations to `(100, 1000, 32, 64)`, removing artificial TCP zero-window read pauses every 2-3 frames.
+  - Locked `LiveConfiguration` min and max playback speeds to `1.0f`, removing the 0.95x-1.08x playback speed oscillation (rubberbanding) when dragging desktop windows.
+  - Reconfigured `DefaultLoadControl` buffer durations to `(100, 1000, 32, 64)`, removing artificial TCP zero-window read pauses every 2-3 frames.
   - Overrode `shouldDropOutputBuffer` (threshold -30 ms) and `shouldDropBuffersToKeyframe` (threshold -100 ms) in `LowLatencyVideoRenderer` to immediately snap back to live edge upon any delay spike.
   - Enabled `tcpNoDelay = true` and socket buffer sizing on accepted local proxy sockets in `UsbAccessoryManager`, removed redundant per-packet `flush()` calls, and capped `accBuf` expansion to 512 KB.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to 0.25.3.
 - **Android Client**: Incremented `versionCode` to 75; updated `versionName` to "0.25.3".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.3 with changelog entry.
@@ -1064,23 +1077,23 @@ Eliminate USB AOA buffer bloat and rubberbanding latency spikes on Android devic
 
 Linux Desktop GUI redesign into a native Control Center, fix missing system tray and taskbar icons on Wayland, automate NVIDIA explicit sync compatibility, and add complete raster/vector icon packaging.
 
-### 🖥 Linux Desktop GUI & System Integration
+### Linux Desktop GUI & System Integration
 - **Native Control Center Redesign (`orbiscreen-gui`)**:
   - Replaced the 240px dashboard sidebar with a streamlined CSD-style top navigation header bar (`Connect`, `Display & Input`, `Doctor`).
-  - Standardized desktop window dimensions to `760 × 580` (min: `620 × 460`) to eliminate oversized layouts, clipped cards, and fit standard desktop displays and Wayland fractional scaling.
+  - Standardized desktop window dimensions to `760 × 580` (min: `620 × 460`) to remove oversized layouts, clipped cards, and fit standard desktop displays and Wayland fractional scaling.
   - Replaced raw KPI telemetry numeric boxes with an illustrated **Virtual Extended Monitor Frame** displaying live resolution, framerate, transport latency, and connection state.
   - Added tabbed connection selectors: **Wi-Fi Wireless** (featuring sharp, mathematically valid offline vector SVG QR pairing code) and **USB Cable** (zero-lag direct tethering mode).
   - Modernized settings with segmented chip selectors for resolutions/refresh rates and toggle switches for multi-touch, stylus digitizer, and pointer confinement.
 - **System Tray Icon Fix**:
-  - Bound `app.default_window_icon()` directly to `TrayIconBuilder` in `crates/orbiscreen-gui/src/main.rs`, eliminating invisible/empty status notifier items on Linux.
+  - Bound `app.default_window_icon()` directly to `TrayIconBuilder` in `crates/orbiscreen-gui/src/main.rs`, removing invisible/empty status notifier items on Linux.
 - **Wayland Taskbar & Window Icon Alignment**:
   - Updated `StartupWMClass=orbiscreen-gui` in `data/orbiscreen.desktop` to align with the Wayland window `app_id`, ensuring KWin and KDE Plasma correctly associate the window with its launcher and display the icon in the taskbar.
   - Generated and packaged complete standard hicolor icons across all raster dimensions (`16x16`, `24x24`, `32x32`, `48x48`, `64x64`, `128x128`, `256x256`, `512x512`) and scalable SVG for both `orbiscreen` and `orbiscreen-gui`.
 - **Automated NVIDIA Explicit Sync Stability**:
-  - Injected `__NV_DISABLE_EXPLICIT_SYNC=1` and `WEBKIT_DISABLE_DMABUF_RENDERER=1` directly into GUI startup in `main.rs`, daemon `orbiscreen gui` subcommand, and `orbiscreen.desktop` to eliminate Wayland protocol crashes on NVIDIA 555+ drivers.
+  - Injected `__NV_DISABLE_EXPLICIT_SYNC=1` and `WEBKIT_DISABLE_DMABUF_RENDERER=1` directly into GUI startup in `main.rs`, daemon `orbiscreen gui` subcommand, and `orbiscreen.desktop` to remove Wayland protocol crashes on NVIDIA 555+ drivers.
   - Added automated cleanup of legacy user-level `~/.local/share/applications/orbiscreen.desktop` entries.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to 0.25.2.
 - **Android Client**: Incremented `versionCode` to 74; updated `versionName` to "0.25.2".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.2 with icon symlinks and changelog entry.
@@ -1091,7 +1104,7 @@ Linux Desktop GUI redesign into a native Control Center, fix missing system tray
 
 Measure UDP PMTU without truncated ACKs or fragment stalls, expand Android receive buffer to full datagram size, and reject unsendable probe packets immediately without waiting for timeouts.
 
-### ⚡ Performance & Low Latency
+### Performance & Low Latency
 - **UDP PMTU Measurement & Probe Rejection (`orbiscreen-transport`, Android Client - PR [#74](https://github.com/shadow-x78/orbiscreen/pull/74) by [@sentinelt](https://github.com/sentinelt))**:
   - Android reused a `DatagramPacket` without resetting its `length`, which caused probe ACKs to report the previous packet's size (often a 21-byte pong), stalling DPLPMTUD discovery or locking it onto a tiny datagram. The receive cap is now explicitly reset before every `receive`.
   - Android UDP receive buffer enlarged to full datagram capacity (`65,507` bytes).
@@ -1099,7 +1112,7 @@ Measure UDP PMTU without truncated ACKs or fragment stalls, expand Android recei
   - Immediate fail on unsendable datagrams: local `EMSGSIZE` and `ORBISCREEN_UDP_DROP_ABOVE` reject that probe size immediately on the host instead of waiting for a timeout (saving up to 750 ms of probe discovery time).
   - Added unit tests `truncated_ack_rejects_probe_size`, `unsendable_probe_narrows_search`, `default_max_is_ipv4_ethernet_udp_payload`, and Android test `reusedPacketReportsFullSizeAfterPrepareReceive`.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.25.1.
 - **Android Client**: Incremented `versionCode` to 73; updated `versionName` to "0.25.1".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.1 with changelog entry.
@@ -1108,7 +1121,7 @@ Measure UDP PMTU without truncated ACKs or fragment stalls, expand Android recei
 
 ## [v0.25.0] - 2026-09-08
 
-### 🖥 Linux Desktop GUI Control Center
+### Linux Desktop GUI Control Center
 - **Desktop Application (`orbiscreen-gui`)**:
   - Native Host Control Center and System Tray Dashboard built with Tauri v2 and WebKitGTK.
   - Pixel-perfect Catppuccin Mocha glassmorphic UI matching the Web and Android clients.
@@ -1119,12 +1132,12 @@ Measure UDP PMTU without truncated ACKs or fragment stalls, expand Android recei
   - **System Tray Integration**: Background tray icon with quick actions (Open Dashboard, Start Service, Stop Service, Quit) and minimize-to-tray window behavior.
   - **Desktop Integration**: Standard XDG `orbiscreen.desktop` application launcher and `orbiscreen gui` CLI subcommand.
 
-### 🌐 Interface Streamlining
+### Interface Streamlining
 - **Streamlined English Interface**:
   - Unified clean English interface across Web, Android, and Desktop clients.
   - Removed localized Arabic bundles from Android client and web client to reduce bundle size and simplify interface maintenance.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to 0.25.0 across all crates and configured `default-members` to maintain green CI on headless build environments.
 - **Android Client**: Incremented `versionCode` to 72; updated `versionName` to "0.25.0".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.25.0 with desktop entry installation and `%changelog`.
@@ -1133,24 +1146,24 @@ Measure UDP PMTU without truncated ACKs or fragment stalls, expand Android recei
 
 ## [v0.24.1] - 2026-09-07
 
-### ⚡ Performance & Low Latency
+### Performance & Low Latency
 - **UDP Annex-B Video Transport (`orbiscreen-transport`, Android Client)**:
   - Second path beside HTTP MPEG-TS: H.264 access units over UDP (`signaling_port + 1`, advertised as `udp_port` on `/api/info`).
   - Hello carries the session token; ping/pong measures RTT; IDR requests reuse the existing encoder force-key-unit path.
   - Android prefers UDP and decodes with MediaCodec onto a Surface (no ExoPlayer / MPEG-TS). HTTP `/stream` remains for the web client and as fallback (including USB/AOA `127.0.0.1`, where raw UDP cannot be reversed).
   - Reassemble access units in linear time, enlarge socket buffers, and hold P-frames after a lost fragment until the next IDR so a dropped UDP packet cannot leave the decoder permanently garbled.
   - Per-client DPLPMTUD: host probes upward from a safe baseline (1200) with padded UDP datagrams; the Android client ACKs the received size. Video fragments follow the confirmed datagram. Probe and video datagrams set `IP_PMTUDISC_PROBE`. Acks that do not match the in-flight probe id are ignored after the search completes. `ORBISCREEN_UDP_MAX_DATAGRAM` caps the search; `ORBISCREEN_UDP_DROP_ABOVE` pretends larger packets were lost (test hook). `ORBISCREEN_UDP_LOSS_PCT` randomly drops outgoing datagrams (test hook).
-  - UDP hello waits out the handshake window so a PMTU probe arriving before Hello-Ack does not abort the session. A host-liveness watchdog ends the UDP session if no packet arrives. The UDP surface letterboxes to the same content rect as touch mapping. The stream menu shows send-to-assemble delay as `delay Nms` (2–4 ms on a 2560×1600 VA-API Wi-Fi path; HTTP ExoPlayer still targets a 24 ms live offset).
+  - UDP hello waits out the handshake window so a PMTU probe arriving before Hello-Ack does not abort the session. A host-liveness watchdog ends the UDP session if no packet arrives. The UDP surface letterboxes to the same content rect as touch mapping. The stream menu shows send-to-assemble delay as `delay Nms` (2-4 ms on a 2560×1600 VA-API Wi-Fi path; HTTP ExoPlayer still targets a 24 ms live offset).
   - UDP hello waits out the handshake window so a PMTU probe arriving before Hello-Ack does not abort the session. A host-liveness watchdog ends the UDP session if no packet arrives. The UDP surface letterboxes to the same content rect as touch mapping. The stream menu shows send-to-assemble delay as `delay Nms` (2-4 ms on a 2560×1600 VA-API Wi-Fi path; HTTP ExoPlayer still targets a 24 ms live offset).
 
-### 🖥 Virtual Display
+### Virtual Display
 - **KWin Virtual Output & Direct Touch (`orbiscreen-daemon`, `orbiscreen-capture`, `orbiscreen-input`)**:
   - Create `Virtual-ORBISCREEN`, then `Virtual-ORBISCREEN-{pid}` when the unsuffixed name is already taken. Clear a disabled KWin output config before creating the stream. Bind mouse, touchscreen, and tablet to the connector name the stream actually accepted.
   - Bind only when this session owns an enabled Orbiscreen virtual output (`outputName` + `outputUuid`, `mapToWorkspace = false`).
   - Direct Touch writes evdev type-B slots on the virtual touchscreen and lifts the pen before the first finger.
   - After the last HTTP/UDP client disconnects, lift `BTN_TOOL_PEN` and close the KWin virtual output so it leaves the layout. The next client recreates the stream (retrying unpark while still present), rebinds input to the new connector, and requests an IDR. A parked capture waits quietly instead of warning every frame.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to 0.24.1 across all 7 crates and updated `Cargo.lock`.
 - **Android Client**: Incremented `versionCode` to 71; updated `versionName` to "0.24.1".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.24.1 with validated `%changelog`.
@@ -1159,9 +1172,9 @@ Measure UDP PMTU without truncated ACKs or fragment stalls, expand Android recei
 
 ## [v0.24.0] - 2026-09-07
 
-Harmonize UI/UX design and Catppuccin Mocha palette between Android and Web clients, eliminate redundant Blank Display action, strengthen Web CSP headers, sanitize input coordinates against non-finite values, enforce strict codebase comment standards, and purge dead build artifacts.
+Harmonize UI/UX design and Catppuccin Mocha palette between Android and Web clients, remove redundant Blank Display action, strengthen Web CSP headers, sanitize input coordinates against non-finite values, enforce strict codebase comment standards, and remove dead build artifacts.
 
-### 🎨 UI/UX & Design Harmonization
+### UI/UX & Design Harmonization
 - **Authentic Vector Logo on Web Client**:
   - Replaced the simplified inline placeholder SVG in `clients/web/index.html` with the authentic Orbiscreen vector logo (concentric orbit ring, brandBlue gradient, and orbiting display dot with glow) identical to the official project branding.
 - **Web Semantic Styling & Spinner**:
@@ -1169,23 +1182,23 @@ Harmonize UI/UX design and Catppuccin Mocha palette between Android and Web clie
   - Harmonized Catppuccin Mocha dark theme tokens (`#11111b`, `#181825`, `#1e1e2e`, `#89b4fa`, `#74c7ec`, `#a6e3a1`, `#fab387`, `#f9e2af`, `#f38ba8`) between Web CSS variables and Android Jetpack Compose `Color.kt`.
   - Preserved the on-screen virtual touch keyboard (`#keyboardDrawer`) in the Web client for touch tablets and mobile browsers.
 
-### ✂️ Feature Boundary & Redundancy Cleanup
-- **Blank Display Elimination**:
+### Feature Boundary & Redundancy Cleanup
+- **Blank Display Removal**:
   - Removed `#btnActionBlank` button from `clients/web/index.html` settings modal.
-  - Purged `actionBlank`, `actionTurnOn`, `actionTurnOff`, `toastBlanked`, and `toastUnblanked` from English and Arabic dictionaries in `clients/web/app.js`.
+  - Removed `actionBlank`, `actionTurnOn`, `actionTurnOff`, `toastBlanked`, and `toastUnblanked` from English and Arabic dictionaries in `clients/web/app.js`.
   - Removed `isDpmsOff` state tracking and event listener from `clients/web/app.js`.
   - Removed unused `onBlank: () -> Unit` parameter from `ControlToolbar.kt` in the Android client.
-  - Removed `onBlank = viewModel::blank` from `StreamScreen.kt` and purged `fun blank()` and `blanked` state from `StreamViewModel.kt`.
+  - Removed `onBlank = viewModel::blank` from `StreamScreen.kt` and removed `fun blank()` and `blanked` state from `StreamViewModel.kt`.
   - Removed string resource `blank_screen` from `clients/android/app/src/main/res/values/strings.xml` and `values-ar/strings.xml`.
 
-### 🛡️ Security & Input Sanitization
+### Security & Input Sanitization
 - **Daemon Input Bounds & NaN Protection**:
   - In `crates/orbiscreen-daemon/src/main.rs`, added finite checks (`is_finite()`) to coordinate scaling in the input pump, immediately dropping `NaN` or `Infinity` coordinates.
   - Clamped scaled pointer, touch, and stylus coordinates to `[0.0, spec.width]` and `[0.0, spec.height]`, preventing out-of-bounds cursor warps or uinput panics.
 - **Web Content Security Policy (CSP)**:
   - Upgraded `<meta http-equiv="Content-Security-Policy">` in `clients/web/index.html` to strictly enforce allowed script, style, image, media, and WebSocket/HTTP connection sources (`connect-src 'self'`).
 
-### 🧹 Repository Hygiene & Comments Policy
+### Repository Hygiene & Comments Policy
 - **Dead Code & Comments Policy**:
   - Stripped all inline and inside-code explanatory comments across Rust source files (`crates/orbiscreen-input/src/x11.rs`, etc.).
   - Preserved top-of-file GPL-3.0-or-later credit/license headers across all source files.
@@ -1193,7 +1206,7 @@ Harmonize UI/UX design and Catppuccin Mocha palette between Android and Web clie
 - **Artifact Removal**:
   - Removed untracked binary artifact `orbiscreen_x86_64.rpm` (4.0 MB) from repository root.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to 0.24.0 across all 7 crates and updated `Cargo.lock`.
 - **Android Client**: Incremented `versionCode` to 70; updated `versionName` to "0.24.0".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.24.0 with validated `%changelog`.
@@ -1202,19 +1215,19 @@ Harmonize UI/UX design and Catppuccin Mocha palette between Android and Web clie
 
 ## [v0.23.9] - 2026-09-07
 
-Purge GitHub Deployments and `gh-pages` branch, remove GitHub Wikis, streamline distribution workflows via Launchpad PPA and Fedora COPR, and clean repository contributor tracking.
+Remove GitHub Deployments and `gh-pages` branch, remove GitHub Wikis, streamline distribution workflows via Launchpad PPA and Fedora COPR, and clean repository contributor tracking.
 
-### 🧹 Repository & Distribution Streamlining
-- **Deployments & Branch Purge**:
-  - Completely purged all GitHub Deployment environments (`APT-Repository`, `Launchpad-PPA`, `Fedora-RPM`, `GitHub-Releases`, `github-pages`) and deactivated/deleted all associated deployment history entries via GitHub API.
+### Repository & Distribution Streamlining
+- **Deployments & Branch Remove**:
+  - Completely removed all GitHub Deployment environments (`APT-Repository`, `Launchpad-PPA`, `Fedora-RPM`, `GitHub-Releases`, `github-pages`) and deactivated/deleted all associated deployment history entries via GitHub API.
   - Deleted the legacy `gh-pages` deployment branch from the remote repository.
   - Removed the `deploy-apt` job and all `environment:` metadata from `.github/workflows/release.yml`, `.github/workflows/ppa.yml`, and `.github/workflows/fedora.yml` to prevent unintended environment protection blocks and unneeded deployment records.
   - Streamlined APT and RPM installation documentation around official Launchpad PPA (`ppa:shadow-x78/ppa`) and Fedora COPR (`shadow-x78/orbiscreen`).
 - **Wikis & Contributor Hygiene**:
   - Disabled the GitHub Wikis feature (`has_wiki=false`) in repository settings to consolidate all project documentation inside the audited `/docs` directory.
-  - Purged bot commit footprint from contributors tracking.
+  - Removed bot commit footprint from contributors tracking.
 
-### 📦 Packaging & Versions
+### Changed
 - **Cargo Workspace**: Bumped workspace package version to 0.23.9.
 - **Android Client**: Incremented `versionCode` to 69; updated `versionName` to "0.23.9".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.9 with validated `%changelog`.
@@ -1225,24 +1238,24 @@ Purge GitHub Deployments and `gh-pages` branch, remove GitHub Wikis, streamline 
 
 Multi-target GitHub Deployments tracking, automated direct APT repository sync on GitHub Pages, standard issue form templates, and banner-aligned social preview branding.
 
-### 🚀 CI/CD & Deployments
+### CI/CD & Deployments
 - **GitHub Environments & Multi-Target Deployments**:
   - Registered official GitHub Deployments environments across all workflows: `Launchpad-PPA` (`.github/workflows/ppa.yml`), `Fedora-RPM` (`.github/workflows/fedora.yml`), and `GitHub-Releases` (`.github/workflows/release.yml`).
   - Added automated `deploy-apt` job in `release.yml` that pulls the newly built `orbiscreen_amd64.deb`, places it into `gh-pages/pool`, regenerates Debian package index (`Packages`, `Packages.gz`), computes SHA256/MD5 checksums, updates `Release`, and automatically deploys to GitHub Pages (`https://shadow-x78.github.io/orbiscreen/`).
 
-### 🎨 Branding & Social Preview
+### Branding & Social Preview
 - **Faithful Banner Artwork Alignment**:
   - Completely redesigned `assets/logo/orbiscreen-social-preview.svg` and `assets/logo/orbiscreen-social-preview.png` to be 100% faithful to the official vector banner (`assets/logo/orbiscreen-banner.svg`).
   - Preserved canonical Orbiscreen geometry: single outer dashed orbit ring (`r=118`), brand blue primary ring (`r=92`), clean orbiting satellite screen (`r=34`), and official 3-pill feature badges (`Low Latency`, `Wayland & X11`, `Stylus & Touch`).
   - Rendered high-resolution 1280x640 Open Graph social preview without letterboxing or artificial artifacts.
 
-### 👥 Community & Contributor Health
+### Community & Contributor Health
 - **Standardized Markdown Issue Templates**:
   - Converted issue forms into standard GitHub Markdown templates (`.github/ISSUE_TEMPLATE/bug_report.md` and `.github/ISSUE_TEMPLATE/feature_request.md`) recognized natively by GitHub's community health profile and issue chooser UI.
   - Added `.github/ISSUE_TEMPLATE/config.yml` with direct navigation to Discussions, Architecture docs, and Security policies.
   - Configured community funding in `.github/FUNDING.yml` and enabled repository sponsorships via GitHub GraphQL API.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.23.8.
 - **Android Client**: Incremented `versionCode` to 68; updated `versionName` to "0.23.8".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.8 with changelog entry.
@@ -1251,9 +1264,9 @@ Multi-target GitHub Deployments tracking, automated direct APT repository sync o
 
 ## [v0.23.7] - 2026-09-07
 
-Enable infinite GOP length, periodic intra-refresh for x264enc, and on-demand IDR keyframe recovery for seamless low-latency streaming without periodic network spikes.
+Enable infinite GOP length, periodic intra-refresh for x264enc, and on-demand IDR keyframe recovery for low-latency streaming without periodic network spikes.
 
-### ⚡ Performance & Low Latency
+### Performance & Low Latency
 - **Infinite GOP + On-Demand IDR Recovery (`orbiscreen-encode`, `orbiscreen-transport`, Android, Web - PR [#72](https://github.com/shadow-x78/orbiscreen/pull/72) by [@sentinelt](https://github.com/sentinelt))**:
   - Encoders no longer emit forced keyframes every 60 frames. GOP length uses the encoder property maximum (`key-int-max` / `gop-size` / `keyframe-period`); `x264enc` also enables periodic intra-refresh to keep P-frames small and predictable.
   - Recovery is on-demand: clients request an IDR keyframe via `POST /api/control` (`action: idr` / `action: keyframe`).
@@ -1262,7 +1275,7 @@ Enable infinite GOP length, periodic intra-refresh for x264enc, and on-demand ID
   - Android client (`StreamViewModel`) and Web client (`app.js`) automatically dispatch `idr` control requests upon decoding or MPEG-TS playback errors.
   - Added unit tests `infinite_gop_uses_property_maximum` and `request_keyframe_is_safe_before_playing`.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.23.7.
 - **Android Client**: Incremented `versionCode` to 67; updated `versionName` to "0.23.7".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.7 with changelog entry.
@@ -1274,14 +1287,14 @@ Enable infinite GOP length, periodic intra-refresh for x264enc, and on-demand ID
 
 Select GStreamer vah264enc hardware encoder, fallback through NVENC candidates, warn when falling back to software x264, and tune VA-API pipeline for low latency.
 
-### ⚡ Performance & Low Latency
+### Performance & Low Latency
 - **Hardware H.264 Encoder Detection & VA Low Latency (`orbiscreen-encode` - PR [#71](https://github.com/shadow-x78/orbiscreen/pull/71) by [@sentinelt](https://github.com/sentinelt))**:
   - Auto mode now probes modern GStreamer `vah264enc` (current VA plugin) as well as legacy `vaapih264enc` and NVENC factory names (`nvh264enc`, `nvcudah264enc`, `nvautogpuh264enc`).
   - Emits a clear warning when falling back to software `x264enc` instead of silently encoding 1440p+ displays on the CPU.
-  - Tuned `vah264enc` pipeline for ultra-low latency (`cbr`, `target-usage=7`, `ref-frames=1`, `b-frames=0`, `key-int-max=60`).
+  - Tuned `vah264enc` pipeline for low latency (`cbr`, `target-usage=7`, `ref-frames=1`, `b-frames=0`, `key-int-max=60`).
   - Added unit test `auto_prefers_hardware_when_va_or_nvenc_is_registered`.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.23.6.
 - **Android Client**: Incremented `versionCode` to 66; updated `versionName` to "0.23.6".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.6 with changelog entry.
@@ -1290,18 +1303,18 @@ Select GStreamer vah264enc hardware encoder, fallback through NVENC candidates, 
 
 ## [v0.23.5] - 2026-09-06
 
-Shrink HTTP MPEG-TS transport queues, backpressure on full queue, reduce Android live offset to 24 ms, and enable MediaCodec low-latency decoding for ultra-low latency streaming.
+Shrink HTTP MPEG-TS transport queues, backpressure on full queue, reduce Android live offset to 24 ms, and enable MediaCodec low-latency decoding for low latency streaming.
 
-### ⚡ Performance & Low Latency
+### Performance & Low Latency
 - **HTTP MPEG-TS Transport Queue & Low Latency Decoding (`orbiscreen-transport`, Android, Web - PR [#70](https://github.com/shadow-x78/orbiscreen/pull/70) by [@sentinelt](https://github.com/sentinelt))**:
   - Per-client muxer keeps four sink buffers and a 16-slot HTTP queue instead of 512 / 1024 queued chunks.
   - HTTP send no longer drops MPEG-TS packets on a full queue (which desynced the decoder). The muxer backpressures instead; a stalled `appsrc` push resyncs on the next keyframe.
-  - Android ExoPlayer live offset cut to 24 ms (8–48 ms) with 32–64 ms load control, `FEATURE_LowLatency` decoder preference, and MediaCodec low-latency flags.
+  - Android ExoPlayer live offset cut to 24 ms (8-48 ms) with 32-64 ms load control, `FEATURE_LowLatency` decoder preference, and MediaCodec low-latency flags.
   - Android ExoPlayer live offset cut to 24 ms (8-48 ms) with 32-64 ms load control, `FEATURE_LowLatency` decoder preference, and MediaCodec low-latency flags.
   - Android player sets foreground mode to prevent playback throttling.
   - Web `mpegts.js` live sync target cut to 30 ms with a tighter latency chase.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.23.5.
 - **Android Client**: Incremented `versionCode` to 65; updated `versionName` to "0.23.5".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.5 with changelog entry.
@@ -1310,15 +1323,15 @@ Shrink HTTP MPEG-TS transport queues, backpressure on full queue, reduce Android
 
 ## [v0.23.4] - 2026-09-06
 
-Confine trackpad pointer motion and clicks to the virtual display via virtual tablet routing; eliminate duplicated mouse click injection during stylus drawing; scale Android trackpad motion deltas proportionally to stream content dimensions.
+Confine trackpad pointer motion and clicks to the virtual display via virtual tablet routing; remove duplicated mouse click injection during stylus drawing; scale Android trackpad motion deltas proportionally to stream content dimensions.
 
-### 🐛 Fixed & Optimized
+### Fixed & Optimized
 - **Trackpad Display Confinement & Motion Pacing (`crates/orbiscreen-input/src/x11.rs`)**:
   - Re-architected virtual pointer event routing (`Move`, `RelativeMove`, `Button`) from `mouse_keyboard` to `Orbiscreen Virtual Tablet`, which KWin strictly binds to `Virtual-ORBISCREEN` via `outputName`.
   - Maintained virtual cursor coordinates centered at `(width/2, height/2)` and strictly clamped to `[0..width-1, 0..height-1]`.
   - Reconfigured `mouse_keyboard` to standard relative axes (`Rel::X, Rel::Y, Rel::WHEEL`), removing `Abs::X` and `Abs::Y` to prevent KWin from mapping it as a desktop-wide absolute pointer across all monitors.
-  - Eliminated cursor teleporting, wild 2.55x velocity multipliers, and edge clamping drops ("دروبات وسرعة في تحرك الماوس") during trackpad use.
-- **Stylus Dual-Screen Cloning Elimination (`crates/orbiscreen-input/src/x11.rs`)**:
+  - Removed cursor teleporting, wild 2.55x velocity multipliers, and edge clamping drops ("دروبات وسرعة في تحرك الماوس") during trackpad use.
+- **Stylus Dual-Screen Cloning Removal (`crates/orbiscreen-input/src/x11.rs`)**:
   - Completely removed secondary synthetic `mouse_keyboard` click and absolute coordinate emission from `inject_stylus`.
   - Ensured all stylus drawing and hovering events are routed exclusively to `Orbiscreen Virtual Tablet` on `Virtual-ORBISCREEN`.
   - Retained tool proximity (`BTN_TOOL_PEN: PRESSED`) during zero-pressure hover states, restoring smooth in-air cursor preview without triggering phantom clicks on the host's primary monitor.
@@ -1326,7 +1339,7 @@ Confine trackpad pointer motion and clicks to the virtual display via virtual ta
   - Scaled raw touch motion deltas (`dx, dy`) proportionally against `computeContentRect` and `streamWidth/Height`.
   - Delivers natural, 1:1 proportional pointer speeds across high-density tablet displays.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.23.4.
 - **Android Client**: Incremented `versionCode` to 64; updated `versionName` to "0.23.4".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.4 with changelog entry.
@@ -1336,9 +1349,9 @@ Confine trackpad pointer motion and clicks to the virtual display via virtual ta
 
 ## [v0.23.3] - 2026-09-06
 
-Enable Gradle dependency caching in CI workflows to eliminate Cloudflare 403 Forbidden errors; enhance in-page Code of Conduct navigation anchors.
+Enable Gradle dependency caching in CI workflows to remove Cloudflare 403 Forbidden errors; improve in-page Code of Conduct navigation anchors.
 
-### 🐛 Fixed & Optimized
+### Fixed & Optimized
 - **CI Workflow Gradle Caching (`.github/workflows/android.yml`, `.github/workflows/release.yml`)**:
   - Added `cache: gradle` to `actions/setup-java` in Android CI and release workflows.
   - Caches resolved Maven dependencies across runner invocations, permanently preventing Cloudflare WAF `403 Forbidden` rate-limiting on shared runner IPs and accelerating build times.
@@ -1347,7 +1360,7 @@ Enable Gradle dependency caching in CI workflows to eliminate Cloudflare 403 For
   - Added direct web tab hyperlinks (`?tab=coc-ov-file#readme`) for reliable one-click access.
   - Bumped community standards version badge to `0.23.3`.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.23.3.
 - **Android Client**: Incremented `versionCode` to 63; updated `versionName` to "0.23.3".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.3 with changelog entry.
@@ -1356,9 +1369,9 @@ Enable Gradle dependency caching in CI workflows to eliminate Cloudflare 403 For
 
 ## [v0.23.2] - 2026-09-06
 
-Fix black screen, video freezing, and visual glitches over USB AOA transport by eliminating arbitrary TCP/MPEG-TS chunk dropping and stabilizing Android ExoPlayer buffer thresholds.
+Fix black screen, video freezing, and visual glitches over USB AOA transport by removing arbitrary TCP/MPEG-TS chunk dropping and stabilizing Android ExoPlayer buffer thresholds.
 
-### 🐛 Fixed
+### Fixed
 - **Uncorrupted MPEG-TS Delivery & AOA TCP Stream Reliability (`crates/orbiscreen-transport`)**:
   - In `v0.23.0`, attempts to drop laggy frames via `appsink drop=true max-buffers=1` and `video_tx.try_send()` in the AOA bridge caused arbitrary 8KB chunks to be discarded from the TCP byte stream after MPEG-TS muxing.
   - Dropping data mid-stream corrupted the 188-byte MPEG-TS alignment and sliced H.264 NAL headers, causing constant decoder errors, visual artifacts ("تشويش"), and frozen video frames on Android.
@@ -1368,7 +1381,7 @@ Fix black screen, video freezing, and visual glitches over USB AOA transport by 
   - Previous load control thresholds of 10-15ms were shorter than a single 60 FPS video frame (16.67ms), causing MediaCodec to starve and cycle repeatedly between `STATE_BUFFERING` and rendering a single frame (leading to black screens and permanent freeze).
   - Configured `DefaultLoadControl` to `(40, 120, 25, 40)` ms and live target offset to `40ms` (min `25ms`, max `120ms`). This provides a stable ~2.5 frame buffer that prevents starvation while keeping end-to-end display latency imperceptible (< 50ms).
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.23.2.
 - **Android Client**: Incremented `versionCode` to 62; updated `versionName` to "0.23.2".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.2 with changelog entry.
@@ -1379,15 +1392,15 @@ Fix black screen, video freezing, and visual glitches over USB AOA transport by 
 
 Restore direct touch as a virtual multitouch device, injecting evdev type-B multitouch events on the virtual touchscreen instead of routing touch through the virtual mouse.
 
-### 🐛 Fixed
+### Fixed
 - **Direct Touch Injected as Mouse (`orbiscreen-input`, Android Client)**:
   - Previously, `Orbiscreen Virtual Touchscreen` was unused and Android touches in Direct Touch mode were routed through the virtual mouse as pointer moves and clicks, causing finger movements to hijack the host mouse cursor.
   - Android Direct Touch mode now dispatches dedicated per-finger `Touch` events (`slot`, `id`, `x`, `y`, `pressed`) with 60Hz motion coalescing.
   - The Linux daemon and input injector now inject these events via evdev type-B multitouch slots (`ABS_MT_SLOT`, `ABS_MT_TRACKING_ID`, `ABS_MT_POSITION_X`, `ABS_MT_POSITION_Y`, and `BTN_TOUCH`) onto `Orbiscreen Virtual Touchscreen`.
-  - Native touch gestures such as multi-finger scrolling, pinch-to-zoom, and direct screen tapping now function seamlessly on the virtual display.
+  - Native touch gestures such as multi-finger scrolling, pinch-to-zoom, and direct screen tapping now function cleanly on the virtual display.
   - Touchpad mode remains dedicated to virtual mouse cursor control.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.23.1.
 - **Android Client**: Incremented `versionCode` to 61; updated `versionName` to "0.23.1".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.1 with changelog entry.
@@ -1396,26 +1409,26 @@ Restore direct touch as a virtual multitouch device, injecting evdev type-B mult
 
 ## [v0.23.0] - 2026-09-06
 
-Eliminate USB and streaming latency by redesigning the pipeline with single-buffer appsink, non-blocking queue drops, and dual-channel USB egress; resolve USB interface claim collisions with kernel driver detachment retries; and prevent Android app exit when the Linux server disconnects.
+Remove USB and streaming latency by redesigning the pipeline with single-buffer appsink, non-blocking queue drops, and dual-channel USB egress; resolve USB interface claim collisions with kernel driver detachment retries; and prevent Android app exit when the Linux server disconnects.
 
-### 🐛 Fixed & Optimized
+### Fixed & Optimized
 - **Real-Time Stream Latency (`crates/orbiscreen-transport`)**:
-  - Reconfigured `mpegtsmux` appsink from `drop=false max-buffers=512` to `drop=true sync=false max-buffers=1`. Eliminates internal GStreamer buffer queues that caused multi-second visual and cursor lag.
+  - Reconfigured `mpegtsmux` appsink from `drop=false max-buffers=512` to `drop=true sync=false max-buffers=1`. Removes internal GStreamer buffer queues that caused multi-second visual and cursor lag.
   - Reduced bounded video channel from 1024 frames to 32 frames using non-blocking `try_send()`. On throughput bottlenecks, stale frames are discarded immediately instead of queuing up and delaying subsequent user input.
   - Implemented a **Dual-Channel AOA USB Writer**: split USB egress into an unbounded high-priority channel (`prio_tx` for control frames, input HTTP responses, and close events) and a bounded video channel (`video_tx`, depth 8). Control packets and mouse/touch ACKs are dispatched ahead of video data and are never blocked behind bulk video bursts.
   - Lowered bulk transfer write timeout from 2000ms to 100ms.
 - **Resilient USB Interface 0 Claim (`crates/orbiscreen-transport/src/aoa.rs`)**:
   - Resolved `Device or resource busy (os error 16)` during accessory bridge startup: configured `USBDEVFS_DISCONNECT_CLAIM` with `flags = 0` to unconditionally unbind any active kernel driver from interface 0 before claiming.
   - Added a 3-attempt retry loop with exponential backoff and fallback to `USBDEVFS_CLAIMINTERFACE`, ensuring smooth accessory handover across daemon restarts.
-- **ExoPlayer Ultra-Low Latency Buffer Tuning (`PlayerHolder.kt`)**:
-  - Reconfigured `DefaultLoadControl` on the Android client: reduced minimum and maximum buffer duration from 80ms–250ms down to 15ms–45ms (`bufferForPlaybackMs = 10`, `bufferForPlaybackAfterRebufferMs = 15`).
+- **ExoPlayer Low Latency Buffer Tuning (`PlayerHolder.kt`)**:
   - Reconfigured `DefaultLoadControl` on the Android client: reduced minimum and maximum buffer duration from 80ms-250ms down to 15ms-45ms (`bufferForPlaybackMs = 10`, `bufferForPlaybackAfterRebufferMs = 15`).
-  - Tuned `MediaItem.LiveConfiguration` target live offset down to 15ms (min 10ms, max 35ms), eliminating playback buffer accumulation and providing instant mouse cursor and screen reaction.
+  - Reconfigured `DefaultLoadControl` on the Android client: reduced minimum and maximum buffer duration from 80ms-250ms down to 15ms-45ms (`bufferForPlaybackMs = 10`, `bufferForPlaybackAfterRebufferMs = 15`).
+  - Tuned `MediaItem.LiveConfiguration` target live offset down to 15ms (min 10ms, max 35ms), removing playback buffer accumulation and providing immediate mouse cursor and screen reaction.
 - **Graceful USB Detach & App Lifecycle (`MainActivity.kt` & `OrbiNav.kt`)**:
   - Overrode `finish()` in `MainActivity` to prevent the Android system from force-terminating the activity when the USB accessory is detached (`ACTION_USB_ACCESSORY_DETACHED`).
   - Added reactive observation of `isAoaActiveFlow` in `OrbiNav`: when the Linux server stops or the USB cable is unplugged, the app automatically transitions from `Routes.STREAM` back to `Routes.DISCOVERY` instead of closing.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.23.0.
 - **Android Client**: Incremented `versionCode` to 60; updated `versionName` to "0.23.0".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.23.0 with changelog entry.
@@ -1426,16 +1439,16 @@ Eliminate USB and streaming latency by redesigning the pipeline with single-buff
 
 Fix USB bulk packet truncation in Android AOA proxy that caused session tokens to be silently lost, implement proper TCP connection lifecycle management on the Linux bridge, and optimize session token caching in the Android client.
 
-### 🐛 Fixed
+### Fixed
 - **AOA USB Packet Truncation (`UsbAccessoryManager.kt`)**:
   - The Linux kernel AOA gadget driver (`f_accessory`) delivers each USB Bulk transfer in a single `read()` call; the previous `readFully()` per-field approach caused the kernel to silently discard the remainder of each bulk packet after reading only the 5-byte frame header, permanently corrupting the byte stream.
-  - Replaced with a **streaming accumulator buffer**: `handleUsbIncoming` reads raw bytes in one `InputStream.read()` call and extracts complete frames from a sliding byte array - eliminating all packet truncation.
+  - Replaced with a **streaming accumulator buffer**: `handleUsbIncoming` reads raw bytes in one `InputStream.read()` call and extracts complete frames from a sliding byte array - removing all packet truncation.
   - `/client/config.json` responses now arrive intact, session token is delivered to `sessionToken`, and all subsequent `/stream` and `/input` requests include a valid `Authorization: Bearer` header.
 - **Auth Rejection Loop (`auth=missing`)**:
   - With `sessionToken = null` (caused by the truncation bug above), ExoPlayer and `InputDispatcher` were sending every request without authentication headers, causing the server to reject all requests with `unauthorized request rejected auth=missing`.
   - Fully resolved by the accumulator buffer fix above.
 
-### ✨ Improved
+### Improved
 - **AOA Bridge Lifecycle (`aoa.rs`)**:
   - Changed `tcp_streams` map value type from `Sender<Vec<u8>>` to `(Sender<Vec<u8>>, TcpStream)` to retain a cloned stream handle alongside each channel sender.
   - On `FRAME_FLAG_CLOSE` from Android: immediately calls `stream.shutdown(Shutdown::Both)` so Axum HTTP connection handlers receive EOF and release resources promptly.
@@ -1445,7 +1458,7 @@ Fix USB bulk packet truncation in Android AOA proxy that caused session tokens t
   - When `forceRefresh = false` and a valid cached token exists, returns the cached token immediately without a network round-trip, avoiding a redundant `/client/config.json` HTTP request during player setup.
   - `onUnauthorized` callbacks and explicit `retry()` calls use `forceRefresh = true` to always fetch a fresh token.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.9.
 - **Android Client**: Incremented `versionCode` to 59; updated `versionName` to "0.22.9".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.9.
@@ -1454,18 +1467,18 @@ Fix USB bulk packet truncation in Android AOA proxy that caused session tokens t
 
 ## [v0.22.8] - 2026-09-05
 
-Embed full multi-vendor Android udev rules in `orbiscreen doctor --fix`, implement resilient token retry logic on Android client to eliminate initial unauthorized stream errors, and provide zero-root USB Tethering guidance.
+Embed full multi-vendor Android udev rules in `orbiscreen doctor --fix`, implement resilient token retry logic on Android client to remove initial unauthorized stream errors, and provide zero-root USB Tethering guidance.
 
-### ✨ Added & Improved
+### Added & Improved
 - **Multi-Vendor Udev Rule Installation (`doctor --fix`)**:
   - Embedded complete `data/99-orbiscreen-usb.rules` in `orbiscreen doctor --fix`, ensuring all Android vendor IDs (`18d1`, `17ef`, `2717`, `04e8`, `12d1`, `22b8`, etc.) receive unprivileged non-root access (`TAG+="uaccess", MODE="0666"`).
-  - Enhanced error handling in AOA supervisor: prevents log spamming on permission denied and logs helpful non-root remediation instructions.
+  - Improved error handling in AOA supervisor: prevents log spamming on permission denied and logs helpful non-root remediation instructions.
   - Added explicit diagnostic guidance recommending USB Tethering for 100% configuration-free, zero-root USB cable streaming.
 - **Resilient Android Session Token Handshake**:
   - Implemented automatic retry loop (up to 6 attempts with 250ms backoff) in `StreamViewModel.kt` when fetching session token (`/client/config.json`) during stream startup.
-  - Eliminates the race condition where Android connects before daemon token initialization, preventing `401 Unauthorized` stream errors.
+  - Removes the race condition where Android connects before daemon token initialization, preventing `401 Unauthorized` stream errors.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.8.
 - **Android Client**: Incremented `versionCode` to 58; updated `versionName` to "0.22.8".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.8.
@@ -1475,25 +1488,25 @@ Embed full multi-vendor Android udev rules in `orbiscreen doctor --fix`, impleme
 
 ## [v0.22.7] - 2026-09-05
 
-Purge all ADB legacy dependencies, implement real-time progressive terminal diagnostics in `orbiscreen doctor`, provide unprivileged Linux udev rules for Android Open Accessory (AOA) mode, and enhance the Android in-app update dialog with native Compose Markdown rendering and auto-installation.
+Remove all ADB legacy dependencies, implement real-time progressive terminal diagnostics in `orbiscreen doctor`, provide unprivileged Linux udev rules for Android Open Accessory (AOA) mode, and improve the Android in-app update dialog with native Compose Markdown rendering and auto-installation.
 
-### ✨ Added & Improved
+### Added & Improved
 - **Direct USB Cable Streaming & Udev Rules**:
-  - Completely purged ADB socket calls (`adb::setup_reverse_for_all`, `adb_installed`, `reverse_tunnels`) from diagnostics and background streaming services.
-  - Implemented smart device filtering (`is_android_candidate`) in `aoa::supervisor` targeting Android vendor IDs (`0x18d1`, `0x17ef`, `0x2717`, `0x04e8`, etc.) and skipping non-Android peripherals (keyboards, gaming mice, audio headsets, USB hubs).
+  - Completely removed ADB socket calls (`adb::setup_reverse_for_all`, `adb_installed`, `reverse_tunnels`) from diagnostics and background streaming services.
+  - Implemented automatic device filtering (`is_android_candidate`) in `aoa::supervisor` targeting Android vendor IDs (`0x18d1`, `0x17ef`, `0x2717`, `0x04e8`, etc.) and skipping non-Android peripherals (keyboards, gaming mice, audio headsets, USB hubs).
   - Added `data/99-orbiscreen-usb.rules` with `TAG+="uaccess", MODE="0666"` for Android Open Accessory (`18d1:2d00-2d05`) and Android devices, allowing unprivileged direct streaming without root or ADB.
   - Extended endpoint discovery in `aoa.rs` across all interface subdirectories under sysfs.
 - **Progressive Live Diagnostics (`orbiscreen doctor`)**:
-  - Implemented real-time progressive output with immediate stdout flushing (`print_card_header`, `print_card_row`, `print_card_footer`), completely eliminating CLI freezing.
+  - Implemented real-time progressive output with immediate stdout flushing (`print_card_header`, `print_card_row`, `print_card_footer`), removing CLI freezing.
   - Added dedicated `USB Direct / Cable` diagnostic check detecting AOA accessory readiness and guiding users with a 1-line command when udev permissions are missing.
   - Added auto-installation support for udev rules in `orbiscreen doctor --fix`.
   - Updated `orbiscreen devices` to report direct USB hardware status instead of legacy ADB reverse tunnels.
-- **Android In-App Update Dialog Enhancements (`UpdateDialog.kt`)**:
+- **Android In-App Update Dialog Improvements (`UpdateDialog.kt`)**:
   - Native Jetpack Compose Markdown renderer supporting headings, bullet lists, bold, italics, and code blocks.
   - Polished Catppuccin surface design with symmetrical action button weights.
   - Lifecycle observer on `ON_RESUME` to automatically detect package install permission grant, dynamically update the button to "Install", and invoke installation immediately.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.7.
 - **Android Client**: Incremented `versionCode` to 57; updated `versionName` to "0.22.7".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.7, installed `99-orbiscreen-usb.rules`, and removed `Recommends: android-tools`.
@@ -1505,7 +1518,7 @@ Purge all ADB legacy dependencies, implement real-time progressive terminal diag
 
 Implement native USB Direct streaming via Android Open Accessory (AOA) protocol with standard Linux kernel usbfs ioctls, and unify concise, tool-oriented translations across Web, Android, and CLI interfaces.
 
-### ✨ Added & Improved
+### Added & Improved
 - **Direct USB Streaming via Android Open Accessory (AOA)**:
   - Implemented native Linux `usbfs` AOA driver in `orbiscreen-transport` (`aoa.rs`), communicating directly with USB bulk endpoints via standard kernel ioctls without external dependencies.
   - Enables plug-and-play high-speed streaming over a standard USB cable while the device is in default "File Transfer" (MTP) mode, with zero requirement for ADB, USB debugging, or developer options.
@@ -1514,13 +1527,13 @@ Implement native USB Direct streaming via Android Open Accessory (AOA) protocol 
   - Updated CLI diagnostics (`orbiscreen doctor`, `orbiscreen -V`, `orbiscreen status`) and UI cards to reflect "USB Direct".
 - **Tool-Oriented Bilingual Translations (Web, Android, CLI)**:
   - Completely audited and refined English and Arabic dictionaries across the web client (`clients/web/app.js`, `index.html`), Android app (`strings.xml`, `values-ar/strings.xml`), and CLI output cards.
-  - Eliminated verbose descriptions and manual-style sentences in favor of sleek, punchy, action-oriented tool terminology.
+  - Removed verbose descriptions and manual-style sentences in favor of sleek, punchy, action-oriented tool terminology.
   - Graceful styled stop card for `orbiscreen stop` when daemon is not currently running.
 - **Contributor Covenant Code of Conduct**:
   - Added project community standards (`CODE_OF_CONDUCT.md`) based on Contributor Covenant v2.1.
   - Linked across `README.md`, `README_AR.md`, and `CONTRIBUTING.md`.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.6.
 - **Android Client**: Incremented `versionCode` to 56; updated `versionName` to "0.22.6".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.6.
@@ -1532,19 +1545,19 @@ Implement native USB Direct streaming via Android Open Accessory (AOA) protocol 
 
 Implement native in-app Android updater with real-time download progress bar, automated SHA-256 checksum integrity verification, and direct PackageInstaller integration without external browser redirects.
 
-### ✨ Added & Improved
+### Added & Improved
 - **Native In-App Android Updater (`com.orbiscreen.android.updater`)**:
   - Implemented `UpdateManager` to query GitHub Releases API, parse version tags, release notes, APK download endpoints (`orbiscreen-android-release.apk`), and published checksum assets (`orbiscreen-android-release.apk.sha256`).
   - Added streaming file download with live coroutine progress updates (percentage and downloaded/total megabytes) and cancellation support.
   - Added automatic SHA-256 checksum verification before launching installation, protecting against corrupted or incomplete downloads.
-  - Added seamless `FileProvider` (`content://...`) and `REQUEST_INSTALL_PACKAGES` permission management with direct navigation to Android system settings when required.
+  - Added `FileProvider` (`content://...`) and `REQUEST_INSTALL_PACKAGES` permission management with direct navigation to Android system settings when required.
 - **Material 3 Update Dialog (`UpdateDialog.kt`)**:
   - Custom styled dialog displaying new version badge, scrollable release notes, live progress indicator, and action buttons ("Update Now", "Cancel", "Install", and fallback "Open in Browser").
 - **Automatic & Manual Update Triggers**:
   - Non-intrusive background check on application launch in `MainActivity.kt` after initial splash delay.
   - Interactive "Check for Updates" button in `SettingsScreen.kt` triggering the in-app update dialog directly.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.5.
 - **Android Client**: Incremented `versionCode` to 55; updated `versionName` to "0.22.5".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.5.
@@ -1556,10 +1569,10 @@ Implement native in-app Android updater with real-time download progress bar, au
 
 Fix pure pointer classification in libinput/KWin, add automatic USB Tethering gateway discovery for ADB-free high-speed USB connections, implement styled ASCII stop card, and register org.shadow-x78.Orbiscreen on D-Bus.
 
-### ✨ Added & Improved
+### Added & Improved
 - **Pure Pointer Device Classification (`orbiscreen-input`)**:
   - Filtered key capabilities in `Orbiscreen Virtual Mouse and Keyboard`: restricted keys to standard keyboard codes (`1..=248`) and mouse buttons (`0x110..=0x117`), removing `BTN_PAD` (`0x160..=0x2FF`) and `BTN_MISC` (`0x100..=0x10F`).
-  - Resolves issue where `libinput` mistakenly classified the device as a `tablet-pad` (`pointer = false` in KWin). The device is now correctly recognized as `Capabilities: keyboard pointer` (`pointer = true`), enabling instant absolute touch and mouse control.
+  - Resolves issue where `libinput` mistakenly classified the device as a `tablet-pad` (`pointer = false` in KWin). The device is now correctly recognized as `Capabilities: keyboard pointer` (`pointer = true`), enabling immediate absolute touch and mouse control.
   - Cursor coordinates remain strictly confined to `Virtual-ORBISCREEN` with zero snapback.
 - **Automatic USB Tethering Discovery (Android Client)**:
   - Updated `HostApi.probeUsb` and `DiscoveryScreen` to scan local network interfaces for active USB Tethering adapters (`rndis*`, `usb*`, `ncm*`) and probe default gateway endpoints (e.g. `192.168.42.1`).
@@ -1568,9 +1581,9 @@ Fix pure pointer classification in libinput/KWin, add automatic USB Tethering ga
   - Implemented `ui::print_stop_card` providing a formatted Catppuccin ASCII card for `orbiscreen stop` matching `orbiscreen -V` and `orbiscreen status`.
   - Clearly displays shutdown status, message, and session D-Bus service identifier.
 - **D-Bus Service Registration (`orbiscreen-daemon`)**:
-  - Registered `org.shadow-x78.Orbiscreen` well-known name on the D-Bus session bus alongside `com.orbiscreen.Daemon` for seamless client compatibility.
+  - Registered `org.shadow-x78.Orbiscreen` well-known name on the D-Bus session bus alongside `com.orbiscreen.Daemon` for client compatibility.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.4.
 - **Android Client**: Incremented `versionCode` to 54; updated `versionName` to "0.22.4".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.4.
@@ -1580,12 +1593,12 @@ Fix pure pointer classification in libinput/KWin, add automatic USB Tethering ga
 
 ## [v0.22.3] - 2026-09-05
 
-Eliminate video stuttering and packet bursts with 1-second GOP interval, make virtual mouse a pure absolute pointer device to permanently eliminate cursor snapback, and stabilize stylus proximity and network dispatch.
+Remove video stuttering and packet bursts with 1-second GOP interval, make virtual mouse a pure absolute pointer device to permanently remove cursor snapback, and stabilize stylus proximity and network dispatch.
 
-### ✨ Added & Improved
-- **Video Stuttering Elimination via GOP Interval Normalization (`orbiscreen-encode`)**:
+### Added & Improved
+- **Video Stuttering Removal via GOP Interval Normalization (`orbiscreen-encode`)**:
   - Increased encoder `gop-size` (NVENC), `keyframe-period` (VAAPI), and `key-int-max` (x264) from 6 frames to 60 frames (1 keyframe per second at 60 FPS).
-  - Eliminates the 10 IDR bursts per second that flooded Wi-Fi networks and caused continuous frame drops on mobile hardware decoders.
+  - Removes the 10 IDR bursts per second that flooded Wi-Fi networks and caused continuous frame drops on mobile hardware decoders.
 - **Pure Absolute Pointer Device & Zero Cursor Snapback (`orbiscreen-input`)**:
   - Removed `REL_X` and `REL_Y` axes from `Orbiscreen Virtual Mouse and Keyboard`, leaving only `ABS_X`, `ABS_Y`, and `REL_WHEEL`.
   - In `libinput`, devices declaring `REL_X`/`REL_Y` ignore `ABS_X`/`ABS_Y`. Removing relative axes allows `libinput` and KWin to treat the device as a pure absolute pointer.
@@ -1598,7 +1611,7 @@ Eliminate video stuttering and packet bursts with 1-second GOP interval, make vi
 - **Network Contention Reduction (Android Client)**:
   - Adjusted Android input dispatch loop delay from 8ms to 16ms, aligning input events with the 60 Hz display refresh rate and cutting upstream HTTP POST traffic by 50%.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.3.
 - **Android Client**: Incremented `versionCode` to 53; updated `versionName` to "0.22.3".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.3.
@@ -1610,22 +1623,22 @@ Eliminate video stuttering and packet bursts with 1-second GOP interval, make vi
 
 Fix video stuttering, prevent stream termination on buffer overrun, confine mouse pointer strictly to virtual screen without snapback, and enable universal stylus touch and hover support.
 
-### ✨ Added & Improved
+### Added & Improved
 - **Video Stuttering and Pipeline Stability (`orbiscreen-transport`)**:
-  - Expanded broadcast video packet channel from 32 to 512 packets, eliminating keyframe lag stalls.
+  - Expanded broadcast video packet channel from 32 to 512 packets, removing keyframe lag stalls.
   - Increased MPEG-TS appsink queue to 512 buffers and mpsc delivery channel to 1024 chunks.
-  - Eliminated stream termination on buffer overrun: chunks are safely dropped under transient network pressure instead of returning EOS.
-- **Mouse Pointer Confinement and Snapback Elimination (`orbiscreen-input`, `orbiscreen-daemon`)**:
+  - Removed stream termination on buffer overrun: chunks are safely dropped under transient network pressure instead of returning EOS.
+- **Mouse Pointer Confinement and Snapback Removal (`orbiscreen-input`, `orbiscreen-daemon`)**:
   - Routed all pointer button clicks (including Left Click / Button 1) through the virtual mouse device (`mouse_keyboard`), preventing KWin from dropping the pointer back to the primary monitor when releasing touch.
   - Applied `mapToWorkspace = false` alongside `outputName` in KWin input binding for all Orbiscreen virtual devices, ensuring strict confinement to the secondary display.
 - **Universal Stylus Touch, Pressure, and Hover (`orbiscreen-input`, Android Client)**:
   - Corrected Linux evdev tablet tool states: `BTN_TOOL_PEN` stays pressed while in proximity, with `BTN_TOUCH` reflecting physical contact.
   - Mirrored stylus coordinates and touch state to `mouse_keyboard`, enabling stylus interaction across all standard desktop applications, window controls, and menus, while retaining pressure and tilt in drawing software.
-  - Enhanced Android `PlayerSurface` with automatic view focus, positive pressure clamping on physical touch, and responsive hover tracking.
+  - Improved Android `PlayerSurface` with automatic view focus, positive pressure clamping on physical touch, and responsive hover tracking.
 - **Stutter-Free 60 FPS Android Playback (Android Client)**:
   - Tuned ExoPlayer `DefaultLoadControl` to 40-80ms playback threshold and 80-250ms buffer range, preventing micro-stutter buffering loops over USB ADB and Wi-Fi.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.2.
 - **Android Client**: Incremented `versionCode` to 52; updated `versionName` to "0.22.2".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.2.
@@ -1635,19 +1648,19 @@ Fix video stuttering, prevent stream termination on buffer overrun, confine mous
 
 ## [v0.22.1] - 2026-09-05
 
-Ultra-low latency streaming optimizations, 3 dedicated uinput virtual devices, direct touch output confinement, and hardware stylus recognition.
+Low-latency streaming optimizations, 3 dedicated uinput virtual devices, direct touch output confinement, and hardware stylus recognition.
 
-### ✨ Added & Improved
+### Added & Improved
 - **Dedicated uinput Device Separation (`orbiscreen-input`)**: Split virtual input into three specialized uinput devices:
   1. `Orbiscreen Virtual Mouse and Keyboard`: handles pointer relative movement, buttons, wheel scrolling, and keyboard events.
   2. `Orbiscreen Virtual Touchscreen`: direct touch input with `InputProp::DIRECT`, absolute X/Y axes, and `BTN_TOUCH`.
   3. `Orbiscreen Virtual Tablet`: dedicated digitizer with `BTN_TOOL_PEN`, `BTN_TOOL_RUBBER`, `BTN_TOUCH`, `BTN_STYLUS`, `BTN_STYLUS2`, pressure, and tilt.
 - **Hardware Stylus / Tablet Tool Resolution (`orbiscreen-input`)**: Added explicit axis resolution (`with_resolution(10)`) to `ABS_X` and `ABS_Y` on the tablet device. Resolves the Linux `libinput` kernel-level bug where tablet devices without explicit resolution are discarded.
 - **KWin Virtual Output Confinement (`orbiscreen-daemon`)**: Bound both virtual touchscreen and tablet devices to `Virtual-ORBISCREEN` using KWin D-Bus properties (`supportsOutputArea: true`), guaranteeing touch and stylus inputs stay strictly confined to the virtual secondary screen.
-- **Ultra-Low Latency Pipeline (`orbiscreen-transport`)**: Reconfigured GStreamer `appsrc` to `is-live=false` to prevent clock synchronization drift, and trimmed buffer queues (`appsink max-buffers=128`, channel capacity 32) to prevent frame queue latency accumulation.
+- **Low Latency Pipeline (`orbiscreen-transport`)**: Reconfigured GStreamer `appsrc` to `is-live=false` to prevent clock synchronization drift, and trimmed buffer queues (`appsink max-buffers=128`, channel capacity 32) to prevent frame queue latency accumulation.
 - **Client Playback and Dispatch Acceleration (Android Client)**: Added HTTP connection pooling with persistent keep-alive, switched input event dispatch to non-blocking asynchronous execution (`enqueue`), and tuned ExoPlayer live playback buffering to 20-50ms with automatic speed catch-up.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.1.
 - **Android Client**: Incremented `versionCode` to 51; updated `versionName` to "0.22.1".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.1.
@@ -1659,20 +1672,20 @@ Ultra-low latency streaming optimizations, 3 dedicated uinput virtual devices, d
 
 Direct touch reverse input precision, zero-snapback mouse pointer mapping, green screen video pipeline fix, and clean startup branding.
 
-### ✨ Added & Improved
-- **Zero-Snapback Virtual Pointer (`orbiscreen-input`)**: Added absolute coordinate axes (`Abs::X`, `Abs::Y`) and `InputProp::POINTER` directly to `mouse_keyboard`. Completely eliminated mouse pointer snapping back to the primary screen on touch lift by maintaining active pointer position on the virtual display.
+### Added & Improved
+- **Zero-Snapback Virtual Pointer (`orbiscreen-input`)**: Added absolute coordinate axes (`Abs::X`, `Abs::Y`) and `InputProp::POINTER` directly to `mouse_keyboard`. Completely removed mouse pointer snapping back to the primary screen on touch lift by maintaining active pointer position on the virtual display.
 - **KWin Virtual Output Binding (`orbiscreen-daemon`)**: Updated `bind_kwin_virtual_inputs` to explicitly set `mapToWorkspace = false` and implemented resilient retry passes (at 250ms, 500ms, and 1000ms) to ensure all virtual input devices are reliably bound to the target virtual monitor.
 - **Atomic Pointer Event Dispatch (Android Client & Web Client)**: Added `pointerAction` in `InputDispatcher.kt` to send movement coordinates and mouse button state atomically in strict FIFO sequence, preventing premature clicks at stale positions.
 - **Default Direct Touch Mode (`PrefsStore.kt` & `StreamScreen.kt`)**: Defaulted input mode to Direct Touchscreen mode (`isTouchMode = true`) on Android and persisted user preference across sessions.
-- **Dynamic Resize Mode Scaling (`PlayerSurface.kt`)**: Enhanced `computeContentRect` to automatically handle both `RESIZE_MODE_FIT` (aspect letterboxing) and `RESIZE_MODE_FILL` (fullscreen stretching), ensuring pixel-accurate 1:1 touch coordinate tracking directly beneath the user's finger.
+- **Dynamic Resize Mode Scaling (`PlayerSurface.kt`)**: Improved `computeContentRect` to automatically handle both `RESIZE_MODE_FIT` (aspect letterboxing) and `RESIZE_MODE_FILL` (fullscreen stretching), ensuring pixel-accurate 1:1 touch coordinate tracking directly beneath the user's finger.
 
-### 🐛 Fixed
+### Fixed
 - **Green Screen & MPEG-TS Stream Corruption (`orbiscreen-transport`)**:
-  - Eliminated packet dropping in GStreamer `appsink` by setting `drop=false` and increasing buffer queues to 1024 chunks.
+  - Removed packet dropping in GStreamer `appsink` by setting `drop=false` and increasing buffer queues to 1024 chunks.
   - Replaced lossy join-buffer with monotonic keyframe PTS synchronization and increased broadcast channel capacity to 128 packets.
 - **Clean Banner Branding (`orbiscreen-daemon`)**: Removed `(by shadow-x78)` from the ASCII art logo and startup CLI output.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **Cargo Workspace**: Bumped workspace package version to 0.22.0.
 - **Android Client**: Incremented `versionCode` to 50; updated `versionName` to "0.22.0".
 - **COPR / RPM Spec** (`data/orbiscreen-copr.spec`): Updated to version 0.22.0.
@@ -1684,12 +1697,12 @@ Direct touch reverse input precision, zero-snapback mouse pointer mapping, green
 
 Rich developer and system version card, comprehensive bilingual localization (Arabic & English) across web and Android clients, fully translated Arabic architecture diagrams, and streamlined packaging specifications.
 
-### ✨ Added
+### Added
 - **Rich Version & Developer Card (`orbiscreen -V`)**: Added status-card style display with Catppuccin color scheme, ASCII banner, developer attribution, live desktop environment detection, feature matrix, and JSON output support (`orbiscreen version --json`).
-- **Comprehensive Bilingual Localization**: Added pure JavaScript i18n switcher in the web client with instant English/Arabic toggle and RTL styling, refined Android string resources (`values-ar`), streamlined packaging descriptions, and polished technical documentation across all Markdown guides.
+- **Comprehensive Bilingual Localization**: Added pure JavaScript i18n switcher in the web client with immediate English/Arabic toggle and RTL styling, refined Android string resources (`values-ar`), streamlined packaging descriptions, and polished technical documentation across all Markdown guides.
 - **Arabic Architecture Diagram**: Fully translated system architecture diagrams into clear, standard technical Arabic in `docs/ARCHITECTURE_AR.md`, with complete quotation wrapping to prevent Mermaid parse errors.
 
-### 🧹 Packaging & Maintenance
+### Packaging & Maintenance
 - **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.21.0.
 - **debian/changelog**: Added 0.21.0-1 release for Ubuntu noble.
 - **PKGBUILD**: Bumped `pkgver` to 0.21.0.
@@ -1697,11 +1710,11 @@ Rich developer and system version card, comprehensive bilingual localization (Ar
 
 ## [v0.20.0] - 2026-09-04
 
-XDG Desktop Portal virtual display API, comprehensive stylus digitizer overhaul, touchpad drag-and-drop gesture, ChromeOS ADB support, token security hardening, and Wi-Fi latency optimizations.
+XDG Desktop Portal virtual display API, comprehensive stylus digitizer rework, touchpad drag-and-drop gesture, ChromeOS ADB support, token security hardening, and Wi-Fi latency optimizations.
 
-### ✨ Added
-- **XDG Desktop Portal Virtual Display API (`orbiscreen-capture`)**: Added native support for `SourceType::Virtual` in `ashpd` ScreenCast portal with seamless fallback to `SourceType::Monitor`. Enables rootless virtual monitor creation on GNOME and KDE Plasma Wayland sessions without requiring EVDI or root privileges.
-- **Stylus Digitizer Overhaul (`orbiscreen-input` & Android Client)**:
+### Added
+- **XDG Desktop Portal Virtual Display API (`orbiscreen-capture`)**: Added native support for `SourceType::Virtual` in `ashpd` ScreenCast portal with fallback to `SourceType::Monitor`. Enables rootless virtual monitor creation on GNOME and KDE Plasma Wayland sessions without requiring EVDI or root privileges.
+- **Stylus Digitizer Rebuild (`orbiscreen-input` & Android Client)**:
   - Added pointer hover motion listener (`setOnGenericMotionListener`) for stylus in-air tracking.
   - Resolved `NetworkOnMainThreadException` by offloading stylus network dispatch to background coroutines on `Dispatchers.IO` with `latestStylus` coalescing.
   - Fixed tilt math sign (`-altitudeDeg * cos(orientationRad)`).
@@ -1709,20 +1722,20 @@ XDG Desktop Portal virtual display API, comprehensive stylus digitizer overhaul,
 - **Touchpad Drag-and-Drop Gesture (`PlayerSurface.kt`)**: Added double-tap and drag gesture in Touchpad mode, keeping mouse button 1 pressed throughout the drag and releasing on touch lift.
 - **Virtual Display Coordinate Confinement (`xtest.rs` & `x11.rs`)**: Clamped mouse and stylus coordinates strictly within the virtual display geometry retrieved via XRandR and added `InputProp::DIRECT` to prevent cursor jumping across multiple physical monitors.
 - **Direct Touchscreen Mode Fix**: Decoupled absolute coordinate axes from mouse/keyboard to tablet/touch devices, routing touch events with synthetic `BTN_TOUCH`.
-- **ChromeOS ARC++ ADB Support (`adb.rs`)**: Added internal ADB fallback probing `100.115.92.2:5555` and `localhost:5555` for seamless tethering on Chromebooks (e.g. ASUS CM3001).
+- **ChromeOS ARC++ ADB Support (`adb.rs`)**: Added internal ADB fallback probing `100.115.92.2:5555` and `localhost:5555` for tethering on Chromebooks (e.g. ASUS CM3001).
 - **Stream Lifecycle & Fast Disconnect Detection (`PlayerHolder.kt`)**: Added explicit `StreamEvent.Disconnected` state, 500ms immediate `/health` probe on network error, and capped automatic reconnection retries at 3 to prevent infinite flickering reconnect loops.
 - **Rich Version & Developer Card (`orbiscreen -V`)**: Added status-card style display with Catppuccin color scheme, ASCII banner, developer attribution, live desktop environment detection, feature matrix, and JSON output support (`orbiscreen version --json`).
-- **Comprehensive Bilingual Localization & Copywriting**: Added pure JavaScript i18n switcher in the web client with instant English/Arabic toggle and RTL styling, refined Android string resources (`values-ar`), streamlined packaging descriptions, and polished technical documentation across all Markdown guides.
+- **Comprehensive Bilingual Localization & Copywriting**: Added pure JavaScript i18n switcher in the web client with immediate English/Arabic toggle and RTL styling, refined Android string resources (`values-ar`), streamlined packaging descriptions, and polished technical documentation across all Markdown guides.
 - **Architecture Diagram Fix**: Quoted all node and edge labels in Mermaid diagrams across `docs/ARCHITECTURE.md` and `docs/ARCHITECTURE_AR.md` to prevent syntax parse errors.
 
-### 🛡️ Security & Hardening
+### Security & Hardening
 - **Session Token Security & Bootstrap (`orbiscreen-transport`)**: Hardened token delivery and filesystem permissions (`0o600`). Web client bootstrap serves display geometry and token for zero-friction LAN discovery, supporting URL hash `#token=...` for direct links.
 - **Disk Token Permissions (`orbiscreen-daemon`)**: Enforced strict `0o600` permissions on `stream_token` file and `0o700` on parent directories.
 - **Production Expect Removal (`wlr_virtual_output.rs`)**: Replaced the single production `.expect()` with safe slice parsing returning `WlrootsVirtualOutputError::Sway`.
 - **Resolution Parameter Clamping**: Clamped input resolutions in `api_control` to `[320..=7680]` width and `[240..=4320]` height.
-- **Ultra-Low Latency Wi-Fi Tuning**: Tuned GOP keyframe interval to 6 (100ms) in hardware encoders, reduced GStreamer appsink buffers with `drop = true`, tuned ExoPlayer buffers to (40, 120, 20, 30) ms, and reduced mouse batching delay to 8ms.
+- **Low Latency Wi-Fi Tuning**: Tuned GOP keyframe interval to 6 (100ms) in hardware encoders, reduced GStreamer appsink buffers with `drop = true`, tuned ExoPlayer buffers to (40, 120, 20, 30) ms, and reduced mouse batching delay to 8ms.
 
-### 🧹 Code Cleanliness & Packaging
+### Code Cleanliness & Packaging
 - **Standardized Box-Drawing Comment Headers**: Standardized Unicode box-drawing headers across all shell scripts, spec files, and config files.
 - **Zero-Comment Compliance**: Verified zero comments after line 2 across all Rust, Kotlin, and web client source files.
 - **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.20.0.
@@ -1732,21 +1745,21 @@ XDG Desktop Portal virtual display API, comprehensive stylus digitizer overhaul,
 
 ## [v0.19.0] - 2026-09-04
 
-Full COSMIC desktop support, native Fedora CI and RPM packaging pipeline, RTL documentation overhaul, and codebase-wide zero-comment standards.
+Full COSMIC desktop support, native Fedora CI and RPM packaging pipeline, RTL documentation rework, and codebase-wide zero-comment standards.
 
-### ✨ Added
+### Added
 - **COSMIC Desktop Support (`capabilities.rs`)**: Added `Compositor::Cosmic` detection for System76's Smithay-based `cosmic-comp`. Implemented dedicated capture pipeline fallback (`evdi -> portal`), refined `KDE_FULL_SESSION` detection logic, and added comprehensive unit test suite.
 - **COSMIC Diagnostics & Auto-Fix (`orbiscreen doctor`)**: Added detection for `cosmic-comp` and `cosmic-randr` binaries, JSON diagnostic outputs, and distro auto-fix tokens for Pop!_OS and Ubuntu COSMIC sessions.
 - **Native Fedora CI Workflow (`.github/workflows/ci.yml`)**: Added native Fedora build job with RPM Fusion repositories, GStreamer dependencies, test execution, and automated RPM artifact packaging.
-- **RTL Arabic Documentation Overhaul**: Converted all Markdown tables across Arabic documentation to native RTL containers with BiDi isolation (`&rlm;`), and converted directory trees in `README_AR.md` and `docs/ARCHITECTURE_AR.md` into structured RTL tables with complete Arabic translations.
+- **RTL Arabic Documentation Rebuild**: Converted all Markdown tables across Arabic documentation to native RTL containers with BiDi isolation (`&rlm;`), and converted directory trees in `README_AR.md` and `docs/ARCHITECTURE_AR.md` into structured RTL tables with complete Arabic translations.
 
-### 🧹 Cleaned & Hardened
+### Cleaned & Hardened
 - **Zero-Comment Code Standards**: Enforced zero comments after line 2 across all Rust (`.rs`), Kotlin (`.kt`), and web client (`.js`, `.css`, `.html`) source files while preserving official credit headers.
 - **Standardized Configuration Headers**: Standardized Unicode boxed banner headers across all shell scripts, spec files, and environment templates (`.env.example`).
 - **Cleaned Typography**: Removed all em dashes and non-technical filler phrases across documentation and comments.
 - **Transport Test Hardening (`mpegts_mux_timestamps.rs`)**: Added graceful handling for environments without GStreamer x264/openh264 encoders.
 
-### 🔧 CI / Packaging
+### CI / Packaging
 - **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.19.0.
 - **debian/changelog**: Added 0.19.0-1 release for Ubuntu noble.
 - **PKGBUILD**: Bumped `pkgver` to 0.19.0.
@@ -1756,19 +1769,19 @@ Full COSMIC desktop support, native Fedora CI and RPM packaging pipeline, RTL do
 
 Full web client parity with Android Compose UI (direct hotkey typing, input isolation, and streamlined overlays), refined ASCII logo geometry, and packaging updates.
 
-### ✨ Added
+### Added
 - **Android 1:1 Web Client Keyboard (`KeyboardOverlay`)**: Replaced text input field with direct IME keystroke forwarding and a full Material 3 hotkey overlay featuring latched modifiers (`Ctrl`, `Alt`, `Shift`, `Win`), function keys (`F1`-`F12`), productivity shortcuts (`Undo`, `Copy`, `Paste`, `CAD`), and navigation controls.
 - **Brand Favicon Assets**: Added official high-resolution `favicon.svg` (vector ring with sapphire display dot), `favicon.png`, and `apple-touch-icon.png` for PWA and browser tab integration.
-- **Single-Element Streamlined Overlay**: Overhauled connection and error states with mutually exclusive graphics (Material spinner during connecting, official logo on disconnect, and dedicated action `[ ↻ Reconnect ]` button).
+- **Single-Element Streamlined Overlay**: Rebuilded connection and error states with mutually exclusive graphics (Material spinner during connecting, official logo on disconnect, and dedicated action `[ ↻ Reconnect ]` button).
 
-### 🛠️ Fixed & Improved
-- **VNC Input Isolation & Disconnect Handling**: Cursor is cleanly released and toolbar/controls are completely hidden upon stream termination; pointer events are blocked when disconnected to prevent accidental cursor capture.
+### Fixed & Improved
+- **VNC Input Isolation & Disconnect Handling**: Cursor is cleanly released and toolbar/controls are hidden upon stream termination; pointer events are blocked when disconnected to prevent accidental cursor capture.
 - **Esc & Fullscreen Separation**: `Esc` solely releases host pointer lock; `F11` independently toggles browser fullscreen.
 - **Refined ASCII Logo Geometry (`ui.rs`)**: Restored true 5-line circular ring contour and highlighted the orbiting satellite node via sapphire TrueColor accent without breaking block alignment.
 - **CLI Credit & Flag Streamlining**: Removed redundant attribution noise from `--version` output, cleaned GNU-style help footers, and pruned unused subcommands.
 - **X11 Input Driver Fix (`x11.rs`)**: Removed erroneous `BTN_TOOL_PEN` injection during mouse motion that caused cursor freezes.
 
-### 🔧 CI / Packaging
+### CI / Packaging
 - **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.18.3; included web client favicon assets.
 - **debian/changelog**: Added 0.18.3-1 release for Ubuntu noble.
 - **PKGBUILD**: Bumped `pkgver` to 0.18.3 and included web favicon assets.
@@ -1778,17 +1791,17 @@ Full web client parity with Android Compose UI (direct hotkey typing, input isol
 
 Modernized CLI interface with Catppuccin Mocha theme, official ASCII/ANSI vector logo, new interactive `status` command, clean code standards, and standardized credit headers.
 
-### ✨ Added
+### Added
 - **Modernized CLI Interface (`ui.rs`)**: Integrated Catppuccin Mocha 24-bit TrueColor palette (`#89b4fa`, `#74c7ec`, `#a6e3a1`, `#f9e2af`, `#f38ba8`), custom Clap v4 styling, rounded Unicode cards, and intelligent `NO_COLOR` and terminal auto-detection.
 - **Official ASCII/ANSI Banner**: Terminal rendering of the Orbiscreen ring and orbiting display dot with project highlights.
 - **New `orbiscreen status` Command**: Direct D-Bus client querying `com.orbiscreen.Daemon` for active display resolution, encoder, capture pipeline, client counts, USB status, and forwarded frame counts, with `--json` support.
-- **Enhanced Command Cards**: Modernized output formatting for `orbiscreen doctor`, `orbiscreen probe`, `orbiscreen list-displays`, and `orbiscreen start`.
+- **Improved Command Cards**: Modernized output formatting for `orbiscreen doctor`, `orbiscreen probe`, `orbiscreen list-displays`, and `orbiscreen start`.
 
-### 🧹 Cleaned & Standardized
+### Cleaned & Standardized
 - **Credit Header Standardization**: Enforced standard 2-line credit header followed by an empty line across all `.rs` and `.sh` files.
 - **Codebase Comment Cleanup**: Cleaned implementation comments across all modules and replaced doc comments on CLI flags with explicit Clap attributes.
 
-### 🔧 CI / Packaging
+### CI / Packaging
 - **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.18.2.
 - **debian/changelog**: Added 0.18.2-1 release for Ubuntu noble.
 - **PKGBUILD**: Bumped `pkgver` to 0.18.2.
@@ -1798,13 +1811,13 @@ Modernized CLI interface with Catppuccin Mocha theme, official ASCII/ANSI vector
 
 Pure CLI daemon architecture, removal of desktop application launcher, and synchronized package metadata across all distribution channels.
 
-### 🎨 Changed
+### Changed
 - **Pure CLI Daemon Architecture**: Completely removed `data/orbiscreen.desktop` and application launcher integration to focus Orbiscreen entirely on a headless and CLI daemon workflow.
 - **`install.sh` & `uninstall.sh`**: Stripped desktop database triggers (`update-desktop-database`, `gtk-update-icon-cache`) and application entry installations. Clean uninstallation now sweeps legacy files.
 - **Package Metadata Synchronization**: Unified and updated project descriptions across Debian/Ubuntu control, RPM spec, COPR spec, Arch Linux AUR PKGBUILD, and Fedora COPR project settings.
 - **Distribution Packages**: Cleaned `.deb` and `.rpm` file manifests to package only the CLI daemon, web client, and systemd user unit.
 
-### 🔧 CI / Packaging
+### CI / Packaging
 - **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Updated to version 0.18.1 with new changelog entry.
 - **debian/changelog**: Added 0.18.1-1 release for Ubuntu noble.
 - **PKGBUILD**: Bumped `pkgver` to 0.18.1.
@@ -1814,21 +1827,21 @@ Pure CLI daemon architecture, removal of desktop application launcher, and synch
 
 Native Graphic Digitizer (stylus pressure & tilt), auto-orientation virtual display, pure CLI daemon workflow, SEO-optimized README and banners, and comprehensive packaging improvements.
 
-### ✨ Added
+### Added
 - **Graphic Tablet Digitizer & Stylus Pressure/Tilt**: Full Linux `uinput` tablet digitizer support - `BTN_TOOL_PEN`, `BTN_TOUCH`, `ABS_PRESSURE` (4095 levels), `ABS_TILT_X/Y`. Android intercepts active stylus events (`TOOL_TYPE_STYLUS`/`TOOL_TYPE_ERASER`), reads normalized pressure (`ev.pressure`) and tilt (`AXIS_TILT`, `AXIS_ORIENTATION`), and forwards to `InputDispatcher.stylus()` → `POST /input`. Krita, GIMP, Blender, and Inkscape respond with full brush pressure sensitivity.
 - **Auto-Orientation Resolution Adaptation**: `StreamScreen.kt` now observes `LocalConfiguration.current.orientation`; on Landscape↔Portrait flip, it calls `viewModel.updateDimensions(curH, curW, ...)` to invoke `kscreen-doctor` on the host and swap the virtual display aspect ratio automatically - no black bars, no manual settings.
-- **Production-Grade SEO & Social Discovery**: Fully rewritten `README.md` and `README_AR.md` with `style=for-the-badge` shields, 1-click viral sharing buttons (Reddit, X/Twitter, Hacker News), comprehensive Spacedesk/Deskreen/Weylus/Sidecar comparison matrix, rich FAQ section targeting Google "People Also Ask" boxes, and popular use-case sections for search-intent optimization.
+- **README rework**: Fully rewritten `README.md` and `README_AR.md` with `style=for-the-badge` shields, share buttons (Reddit, X/Twitter, Hacker News), comprehensive Spacedesk/Deskreen/Weylus/Sidecar comparison matrix, rich FAQ section targeting Google "People Also Ask" boxes, and popular use-case sections for search-intent optimization.
 - **Professional SVG Repository Banner** (`assets/logo/orbiscreen-banner.svg`): 1280×400 dark-themed banner with crisp vector icons (no blurry filter halos), featuring precise SVG paths for Lightning, Monitor, and Stylus Pen icons, with a clean dotless brand logo.
 - **Friendly Capture Pipeline Error Guidance**: `resolve_frame_source` in daemon now emits human-readable `eprintln!` messages directing users to `orbiscreen doctor --fix` when the capture pipeline fails to initialize automatically.
 
-### 🎨 Changed
+### Changed
 - **`uninstall.sh` Cleanup**: Removes all installed daemon binary, service, and legacy configuration files.
 - **README badges** upgraded from `style=flat-square` to `style=for-the-badge` throughout for higher visual impact.
 - **CONTRIBUTING.md**: Removed stale `--exclude orbiscreen-gtk` flags from verification commands.
 - **ARCHITECTURE.md** (EN & AR): Documented the full Graphic Tablet Digitizer pipeline with `uinput` event codes and Android stylus axis mapping.
 - **`InputDispatcher.kt` `stylus()` method**: Fixed field names from `displayWidth`/`displayHeight` (constructor params, no longer in scope) to `streamWidth`/`streamHeight` (class-level volatile properties).
 
-### 🔧 CI / Packaging
+### CI / Packaging
 - **COPR / RPM spec** (`data/orbiscreen-copr.spec`): Added new 0.18.0 changelog entry.
 - **debian/changelog**: Updated to 0.18.0-1 for Ubuntu noble.
 - **PKGBUILD**: Updated `pkgver` to 0.18.0.
@@ -1837,26 +1850,26 @@ Native Graphic Digitizer (stylus pressure & tilt), auto-orientation virtual disp
 
 ## [v0.17.4] - 2026-09-02
 
-Zero-latency streaming overhaul with hardware NVENC optimization, framerate-matched damage pump, zero-backlog keyframe delivery, gesture fix for double-tap menu reveal, hide-eye icon update, and modern Arabic UI redesign of the exit modal and display settings sheet.
+Zero-latency streaming rework with hardware NVENC optimization, framerate-matched damage pump, zero-backlog keyframe delivery, gesture fix for double-tap menu reveal, hide-eye icon update, and modern Arabic UI redesign of the exit modal and display settings sheet.
 
-### ⚡ Performance & Low Latency
-- **Framerate-Matched Virtual Display Damage Pump**: Replaced the static 200ms damage pump timer in `kwin_virtual.rs` with a display framerate-matched interval (`16.6ms` for 60Hz), eliminating desktop frame throttling and delivering true 60 FPS streaming.
-- **Zero-Backlog Stream Connection**: Modified `join_buffer` in `orbiscreen-transport` to retain only the latest IDR keyframe and push a single packet on client connection. New clients start decoding immediately without queueing stale delta packets, eliminating the 1.5-3 second initial delay.
+### Performance & Low Latency
+- **Framerate-Matched Virtual Display Damage Pump**: Replaced the static 200ms damage pump timer in `kwin_virtual.rs` with a display framerate-matched interval (`16.6ms` for 60Hz), removing desktop frame throttling and delivering true 60 FPS streaming.
+- **Zero-Backlog Stream Connection**: Modified `join_buffer` in `orbiscreen-transport` to retain only the latest IDR keyframe and push a single packet on client connection. New clients start decoding immediately without queueing stale delta packets, removing the 1.5-3 second initial delay.
 - **Real-Time Capture Appsink**: Set `drop=true max-buffers=1` on the PipeWire GStreamer capture sink in `kwin_virtual.rs`, preventing frame queue accumulation during static-to-dynamic transitions.
-- **Hardware NVENC Verification**: Verified and prioritized NVIDIA hardware encoding (`nvh264enc`) with `tune=ultra-low-latency`, `zerolatency=true`, and `preset=p1` (<2.8ms per 1080p60 frame).
+- **Hardware NVENC Verification**: Verified and prioritized NVIDIA hardware encoding (`nvh264enc`) with `tune=low-latency`, `zerolatency=true`, and `preset=p1` (<2.8ms per 1080p60 frame).
 
-### 🐛 Bug Fixes & Interactions
+### Bug Fixes & Interactions
 - **Restored Double-Tap Gesture Detection**: Integrated an internal Android `GestureDetector` directly into `TouchOverlay`, allowing double-tap events to reliably reveal controls even when touch input injection is consuming screen events.
 - **Hide-Eye Icon Update**: Replaced `Visibility` (open eye) with `VisibilityOff` (eye with slash) in `ControlToolbar.kt` to clearly communicate the hide action.
 - **Cleaned Landscape Toolbar**: Pruned duplicate action buttons in landscape mode and ensured portrait toolbar strictly displays the 4 core icons (Mouse, Keyboard, Hide Eye, and Red Disconnect).
 - **Restored Credit Headers**: Maintained 2-line clean credit & GPL-3.0 license headers across all source files while keeping function bodies stripped of clutter.
 
-### 🎨 UI & UX Redesign
+### UI & UX Redesign
 - **Redesigned Exit Confirmation Modal**: Replaced the generic dialog with a frosted-glass Material 3 modal featuring localized Arabic typography, a soft glowing exit icon, and sleek action buttons.
 - **Revamped Display Settings Sheet**: Redesigned `ConnectionSettingsSheet` with an elegant drag handle, compact resolution chips, a dedicated phone screen matching card, sleek custom resolution inputs, and pure Arabic scale mode options.
 
-### 🔧 CI / Packaging
-- **Removed GTK4 from All Build Pipelines**: Eliminated `libgtk-4-dev`, `libadwaita-1-dev`, `libgraphene-1.0-dev` from `ci.yml` and `release.yml` system dependencies; dropped all `--exclude orbiscreen-gtk` flags from `clippy`, `build`, and `test` steps.
+### CI / Packaging
+- **Removed GTK4 from All Build Pipelines**: Removed `libgtk-4-dev`, `libadwaita-1-dev`, `libgraphene-1.0-dev` from `ci.yml` and `release.yml` system dependencies; dropped all `--exclude orbiscreen-gtk` flags from `clippy`, `build`, and `test` steps.
 - **Fixed Packaging Scripts**: Removed stale `orbiscreen-gtk` binary copy, GTK `.desktop` and `.metainfo` file references, and GTK runtime `Depends` from `package-deb.sh`, `package-rpm.sh`, and `package-appimage.sh`.
 - **Cleaned Per-Frame Log Noise**: Removed repetitive `frame_pump: chunk #N` and `source frame #N pushed` `info!` calls from the daemon; demoted the damage-pump startup log to `debug!` level.
 - **Cargo Fmt Compliance**: Formatted entire workspace to pass `cargo fmt --all -- --check`; zero Clippy warnings across all targets.
@@ -1865,83 +1878,83 @@ Zero-latency streaming overhaul with hardware NVENC optimization, framerate-matc
 
 Critical streaming fix for pitch black screen, sleek keyboard accessory bar, redesigned settings floating controls & sheet, eye button fix, back-button exit confirmation dialog, and project-wide documentation synchronization.
 
-### 🐛 Bug Fixes & Streaming Stability
+### Bug Fixes & Streaming Stability
 - **Fixed Pitch Black Screen on Connection**: Guaranteed immediate keyframe delivery upon stream connection by preserving the IDR keyframe at index 0 of `join_buffer` while keeping the latest delta frames, restoring non-live `appsrc` and non-dropping `appsink` in GStreamer, and setting safe low-latency buffer durations in ExoPlayer.
 - **Fixed Duplicate Eye Icon in Landscape**: Removed the redundant host-blanking eye icon from the stream toolbar, keeping a single, dedicated eye icon for hiding controls.
-- **Fixed Controls Hiding & Stealth Mode**: Tapping the eye icon now completely hides both the control toolbar and the floating corner button until the next session, with an intuitive double-tap gesture to restore them if desired.
+- **Fixed Controls Hiding & Stealth Mode**: Tapping the eye icon now hides both the control toolbar and the floating corner button until the next session, with an intuitive double-tap gesture to restore them if desired.
 
-### ✨ Added
+### Added
 - **Back-Button Exit Confirmation Dialog**: Intercepted the Android system back gesture and added a confirmation modal with clear Cancel and Disconnect actions, preventing accidental session terminations.
 
-### 🎨 UI & UX Redesign
-- **Slim Floating Keyboard Accessory Bar**: Completely replaced the bulky full-screen card overlay with an ultra-slim frosted glass bar resting directly atop Gboard, featuring latched `Ctrl`, `Alt`, and `Super` modifier states and no background scrim covering the desktop.
+### UI & UX Redesign
+- **Slim Floating Keyboard Accessory Bar**: Replaced the bulky full-screen card overlay with an slim frosted glass bar resting directly atop Gboard, featuring latched `Ctrl`, `Alt`, and `Super` modifier states and no background scrim covering the desktop.
 - **Redesigned Floating Controls FAB**: Replaced the plain dark circle with a polished frosted-glass floating button featuring glowing borders and smooth corner snapping.
 - **Redesigned Display Settings Sheet**: Cleaned up the connection settings bottom sheet with pure localized typography, removing awkward English tags in parentheses and providing modern resolution chips, phone dimension matching, and scale mode controls.
 
 ## [v0.17.2] - 2026-09-02
 
-Comprehensive UI/UX overhaul, ultra-low latency streaming (<100ms), robust mouse input injection, background idle & auto-resume, floating IME keyboard accessory bar, corner-snapping controls FAB, and dedicated stream display settings.
+Comprehensive UI/UX rework, low latency streaming (<100ms), robust mouse input injection, background idle & auto-resume, floating IME keyboard accessory bar, corner-snapping controls FAB, and dedicated stream display settings.
 
-### ✨ Added
+### Added
 - **Dedicated Stream Connection & Display Settings**: Integrated settings modal bottom sheet right from the stream toolbar - switch between standard presets (1080p, 720p, 1440p, 1200p, 4K), 1-tap adaptive matching to your device screen, or custom resolutions, plus display scale modes (Fit, Fill, Zoom).
-- **Floating IME Keyboard Accessory Bar**: Modifier and navigation shortcut keys now float seamlessly directly above the Android soft keyboard (Gboard) via `imePadding`, keeping shortcuts always accessible while typing.
+- **Floating IME Keyboard Accessory Bar**: Modifier and navigation shortcut keys now float cleanly directly above the Android soft keyboard (Gboard) via `imePadding`, keeping shortcuts always accessible while typing.
 - **Draggable Corner-Snapping Controls FAB**: Floating controls toggle button can be dragged freely across the screen and snaps automatically with a smooth spring animation to any of the four screen corners.
 - **Orientation-Adaptive Stream Toolbar**: Portrait mode now shows a clean, uncluttered 5-icon bar (Mouse, Keyboard, Settings, Eye to hide, and Red exit), while Landscape shows full controls. Removed obsolete back, terminal, and fullscreen buttons.
-- **Background Idle & Silent Auto-Resume**: Lifecycle-aware stream engine gracefully pauses when leaving the app and automatically reconnects upon returning, eliminating `SocketTimeoutException` error dialogs.
+- **Background Idle & Silent Auto-Resume**: Lifecycle-aware stream engine gracefully pauses when leaving the app and automatically reconnects upon returning, removing `SocketTimeoutException` error dialogs.
 
-### ⚡ Performance & Low Latency
+### Performance & Low Latency
 - **Sub-100ms Latency (<100ms)**: Slashed stream `join_buffer` from 32 historical packets (up to 6.4s of delay) down to 2 packets with live GStreamer pipeline parameters and low-latency ExoPlayer buffering, presenting the current desktop in real time.
 - **Fixed Mouse Movement in Both Modes**: Replaced request-cancelling `collectLatest` with a steady 60fps atomic dispatch loop in Android, and prioritized direct `/dev/uinput` injection on Wayland (with ACL access) for lag-free, 100% responsive mouse tracking.
 
-### 🎨 UI Harmonization
+### UI Harmonization
 - **Unified Design System**: Standardized 22.dp rounded corners, elevated surface cards, frosted glass status indicators, and matching 14.dp icon containers across Discovery, Settings, and Stream screens.
 
 ## [v0.17.1] - 2026-09-02
 
-Settings enhancements, project & creator credits, in-app update checking, and zero-buffering playback refinement.
+Settings improvements, project & creator credits, in-app update checking, and zero-buffering playback refinement.
 
-### ✨ Added
+### Added
 - **In-App Project & Creator Credits**: Added complete maintainer recognition for **shadow-x78**, direct links to the creator's GitHub profile and the Orbiscreen project repository, and GNU GPL-3.0 license details in the Android Settings screen.
 - **One-Tap Check for Updates**: Integrated real-time GitHub release discovery directly within the Android Settings screen - automatically queries the GitHub Releases API to detect new versions, notifying users with immediate download options or confirming up-to-date status.
 
-### ⚡ Performance & Polish
-- **Zero-Buffering Playback Mode**: Set buffer durations for playback and rebuffering to 0ms in ExoPlayer, enabling instant frame presentation upon packet arrival and preventing video stalling on static screens.
-- **Transparent Video Shutter**: Eliminated black screen obscuration during stream pauses and buffering transitions by making the PlayerView shutter transparent.
+### Performance & Polish
+- **Zero-Buffering Playback Mode**: Set buffer durations for playback and rebuffering to 0ms in ExoPlayer, enabling immediate frame presentation upon packet arrival and preventing video stalling on static screens.
+- **Transparent Video Shutter**: Removed black screen obscuration during stream pauses and buffering transitions by making the PlayerView shutter transparent.
 - **5Hz Damage Keepalive Pump**: Accelerated daemon keepalive pulses from 500ms to 200ms to continuously feed demuxers during static desktop sessions.
 
 ## [v0.17.0] - 2026-09-02
 
 Major user experience, input control, and low-latency streaming release for the Android client and backend packaging pipeline.
 
-### ✨ Added
+### Added
 - **Trackpad Mouse Control Mode**: Relative cursor movement directly from the phone screen with intuitive gestures - single-finger smooth motion pans the host cursor, single-finger tap triggers left click, two-finger tap triggers right click, and two-finger vertical drag activates the mouse scroll wheel.
-- **Mouse & Touch Mode Toggle**: A dedicated toolbar button allows seamless switching between Trackpad Mode and Direct Touchscreen Mode at any time during streaming.
+- **Mouse & Touch Mode Toggle**: A dedicated toolbar button allows switching between Trackpad Mode and Direct Touchscreen Mode at any time during streaming.
 - **Direct Keyboard Typing**: Bypasses cumbersome intermediate text boxes; activating the keyboard immediately connects the mobile system IME, forwarding typed characters and backspace events directly to the host PC in real time.
 - **Dedicated Toolbar Back Button**: Added a prominent back navigation button (`ArrowBack`) before the host IP address in the stream control toolbar for immediate 1-tap navigation back to discovery.
-- **High-contrast Keyboard Overlay**: Keyboard pill buttons restyled with dark surface background (`#262637`), subtle translucent borders, and bold white text (`Color.White`) for effortless legibility.
+- **High-contrast Keyboard Overlay**: Keyboard pill buttons restyled with dark surface background (`#262637`), subtle translucent borders, and bold white text (`Color.White`) for clear legibility.
 - **Debian / Ubuntu Launchpad PPA Automation**: Adapted source changelog generation to native package format (`${VERSION}~ubuntu${SERIES}1`), automated secret GPG key identification from imported keyrings, and added `--no-lintian` to debuild for uninterrupted automated PPA distribution.
 
-### ⚡ Performance & Low Latency
-- **Ultra-Low Latency Video Pipeline**: Tuned ExoPlayer LoadControl buffer durations down to 50ms - 150ms with `prioritizeTimeOverSizeThresholds`, eliminating the 1.5s - 5s accumulated delay and preventing stuttering.
+### Performance & Low Latency
+- **Low Latency Video Pipeline**: Tuned ExoPlayer LoadControl buffer durations down to 50ms - 150ms with `prioritizeTimeOverSizeThresholds`, removing the 1.5s - 5s accumulated delay and preventing stuttering.
 - **Non-intrusive Buffering State**: Kept the last rendered frame visible during static screen pauses instead of covering the screen with an opaque black spinner overlay.
-- **Robust Stream URL Builder**: Bulletproof URL construction preventing duplicate ports (`:8788:8788`) and malformed path parsing in OkHttp/Media3.
+- **Stable Stream URL Builder**: Bulletproof URL construction preventing duplicate ports (`:8788:8788`) and malformed path parsing in OkHttp/Media3.
 
 ## [v0.16.2] - 2026-09-01
 
 Full-project audit round five, after the USB feature (v0.16.0) and the distribution-repo groundwork (v0.16.1). All tooling gates green (clippy zero, fmt clean, 125 tests, cargo-deny clean, cargo-machete clean), zero inline comments in any code file, zero embedded secrets, all docs links and anchors resolve in both languages - and two real defects found and fixed, one of them proven by a live end-to-end test against a physical Android device.
 
-### 🐛 Fixed
-- **Graceful shutdown could leave the USB tunnel behind (proven live, then fixed):** the v0.16.0 supervisor task was detached, so when `main`'s select! caught Ctrl-C or D-Bus Stop and returned, the tokio runtime dropped the still-running supervisor mid-teardown - the exact stale-tunnel bug the feature was meant to eliminate, and my first live test confirmed it: after SIGINT, `adb reverse --list` still showed `tcp:8788`. The shutdown path is redesigned: `serve()` now owns the lifecycle - it races the HTTP accept loop against the daemon's shutdown channel and SIGINT itself, and on any exit it aborts the supervisor and runs `teardown_reverse_for_all` to completion before returning; `main` in turn sends the shutdown signal and *awaits* `serve_fut` (pinned) instead of abandoning it, then stops the encoder and pumps. Re-tested end-to-end against a real device: tunnel present while running, `ADB reverse tunnels removed for devices: [...]` logged on SIGINT, and `adb reverse --list` empty afterwards - the tunnel is now removed on Ctrl-C, D-Bus Stop, and serve's own error exit alike.
+### Fixed
+- **Graceful shutdown could leave the USB tunnel behind (proven live, then fixed):** the v0.16.0 supervisor task was detached, so when `main`'s select! caught Ctrl-C or D-Bus Stop and returned, the tokio runtime dropped the still-running supervisor mid-teardown - the exact stale-tunnel bug the feature was meant to remove, and my first live test confirmed it: after SIGINT, `adb reverse --list` still showed `tcp:8788`. The shutdown path is redesigned: `serve()` now owns the lifecycle - it races the HTTP accept loop against the daemon's shutdown channel and SIGINT itself, and on any exit it aborts the supervisor and runs `teardown_reverse_for_all` to completion before returning; `main` in turn sends the shutdown signal and *awaits* `serve_fut` (pinned) instead of abandoning it, then stops the encoder and pumps. Re-tested end-to-end against a real device: tunnel present while running, `ADB reverse tunnels removed for devices: [...]` logged on SIGINT, and `adb reverse --list` empty afterwards - the tunnel is now removed on Ctrl-C, D-Bus Stop, and serve's own error exit alike.
 - **GitHub expression inside a `run:` block (hardening):** the fork-PR check from v0.15.3 inlined `${{ github.event_name == ... }}` in the shell script. The expression only ever evaluates to true/false (no user-controlled text reaches the shell), but it violates GitHub's own hardening rule that workflow expressions never belong inside `run:`. The check now passes through an `env:` variable (`ORBISCREEN_FORK_PR`) and reads it as a plain environment variable - the same pattern as the secrets above it. A repo-wide scan confirms no other workflow inlines `${{ }}` in `run:`.
 
-### 🧹 Cleanup
+### Cleanup
 - **Post-tag "pin the checksum" commits broke the house commit format and the tag's integrity:** the two post-release commits that pinned each tag's archive checksum into the in-repo PKGBUILD used the day-to-day `orbiscreen | chore: …` form (no version) instead of the release form, and worse - the checksum commit always landed *after* the tag, so anything building from the tag got a PKGBUILD whose pinned sum pointed at the previous release and failed verification. The in-repo PKGBUILD now ships `sha256sums=('SKIP')` by design (a tag's archive checksum mathematically cannot exist before the release workflow finishes); the real pin happens at AUR publish time via `updpkgsums`, which writes it into the AUR copy of the PKGBUILD, never back into this repo. The PACKAGING publish flow (EN + AR) is updated accordingly, and no post-tag checksum commits will ever be needed again.
 
 ## [v0.16.1] - 2026-09-01
 
 The Linux distribution-repository groundwork: everything needed for Fedora COPR (via Packit) and the AUR now lives in the repo, ready for the one-time account activations, plus the AppStream metainfo every store front expects.
 
-### ✨ Added
+### Added
 - **AppStream metainfo** (`data/com.orbiscreen.OrbiscreenGtk.metainfo.xml`, validated clean with `appstreamcli`): presents the app in GNOME Software/Discover with bilingual EN/AR name/summary/description, homepage/bugtracker/donation URLs, launchable desktop-id, provides-binaries, OARS rating, and the release history for v0.16.0/v0.15.3/v0.15.2/v0.13.3 with their notes and the release URL. Packaged into every install tree: the COPR spec, the AUR PKGBUILD, and the deb/RPM/AppImage scripts all install it now (the local `data/orbiscreen.spec` gains it in both `%install` and `%files`).
 - **Fedora COPR automation** (`.packit.yaml` + `data/orbiscreen-copr.spec`): a new source-build spec (distinct from the local prebuilt-binary spec the `package-rpm.sh` script uses) that builds from the GitHub release tarball with cargo on rpmbuild itself - verified by producing a real warning-free SRPM locally - with `BuildRequires` for the GStreamer/GTK4/libadwaita/libevdev toolchains, the metainfo installed, `Recommends: android-tools` for USB transport, and `%check` running the test suite. Packit config: PR builds verify the spec on `fedora-stable` as a CI check, release-tag builds publish to the `shadow-x78/orbiscreen` COPR project. One-time maintainer steps documented in PACKAGING.
 - **Arch Linux AUR package** (`PKGBUILD` at the repo root, syntax-verified, tarball contents cross-checked): builds from the release tarball with `cargo build --release --locked`, runs the test suite in `check()`, installs the daemon, GTK panel, desktop entry, icon, metainfo, web client, systemd user unit, and the evdi installer helper; `optdepends` on `android-tools` (USB) and `evdi-dkms` (X11/GNOME), `options=('!lto')`, and the real v0.16.0 tarball checksum pinned. The publish/update flow (`makepkg --printsrcinfo > .SRCINFO`, then push over SSH to AUR) is documented in PACKAGING; `.gitignore` learns the local `makepkg` work dirs.
@@ -1951,7 +1964,7 @@ The Linux distribution-repository groundwork: everything needed for Fedora COPR 
 
 USB transport, completed. The audit rounds had pruned the half-finished adb lifecycle (v0.11.2 removed an unused `remove_reverse`, correctly dead at the time because nothing ever called it), which left USB as a best-effort one-shot: tunnels were created once at daemon start, never re-created for a device plugged in later, never cleaned up on stop, invisible to `doctor`, and unreported anywhere - while the Android app's USB card connected to a hardcoded `127.0.0.1:8788` with no feedback at all. This release closes the loop on both sides of the cable.
 
-### ✨ Added
+### Added
 - **Full `adb reverse` lifecycle on the host:** the transport now runs a persistent USB supervisor instead of a one-shot setup - it (re)establishes the reverse tunnel for every connected device every two seconds (`adb reverse` is idempotent, so this also self-heals tunnels that died with an unclean daemon exit, e.g. SIGKILL), logs each device attach/detach at info level, and on graceful shutdown (Ctrl-C or D-Bus `Stop`) removes every tunnel it created via the restored `remove_reverse`/`teardown_reverse_for_all` (the v0.11.1 functions, restored with unified error handling and an idempotent "listener not found" pass-through, plus a `reverse --list` parser and `reverse_tunnel_count`). A phone plugged in after `orbiscreen start` is streaming within two seconds, and a stopped daemon no longer leaves a stale tunnel on the device causing black-screen confusion on the next USB connect.
 - **USB visibility everywhere:** `orbiscreen doctor` gains a `usb:` line (adb installed? which devices? how many tunnels active? plus a JSON `usb` object in `--json` output for the GTK panel); `GET /health` and the D-Bus `GetStatus` payload both expose a live `usb_devices` count (the same surface pattern `auth_failures` got in v0.13.3), documented in DBUS_SPEC.md/DBUS_SPEC_AR.md.
 - **A USB card that tells the truth (Android):** the Discovery-screen USB card now probes `http://127.0.0.1:<port>/health` when shown and renders the actual state - **tunnel ready** (green check icon) or **no tunnel - start the daemon / reconnect the cable** - instead of always offering a blind connect; the port is no longer hardcoded: it reads `usbPort` from `PrefsStore` (default 8788, clamped to 1024-65535); and the Stream screen shows a **USB badge chip** next to the title when connected via 127.0.0.1 so it is obvious which transport carries the stream. `probeUsb` reuses the existing 1s-timeout OkHttp client so the card never blocks the UI.
@@ -1960,32 +1973,32 @@ USB transport, completed. The audit rounds had pruned the half-finished adb life
 
 Full-project audit round four, after three releases of heavy brand and documentation churn (v0.13.3 - v0.15.2). Every crate, client, script, workflow, document, and asset re-verified with live tooling: clippy zero warnings, fmt clean, 123 tests pass, cargo-deny clean, cargo-machete finds no unused dependencies, zero inline comments in any code file, zero secrets embedded, every README/docs link and anchor resolves in both languages.
 
-### 🐛 Fixed
+### Fixed
 - **Fork pull requests could never pass the Android workflow:** the signing step unconditionally fails when repo secrets are absent - which is exactly the case for every pull request opened from a fork (GitHub never exposes secrets to fork PRs). The keystore-preparation step now runs only on trusted events (push, dispatch, and same-repo PRs), and the build's unsigned-APK check is skipped with an explicit notice on fork PRs, so external contributors get a green unsigned build instead of a guaranteed red one. No secrets handling changed: the guard reads only event metadata.
 - **Two files still carried the plain pre-brand comment style:** `clients/web/index.html`'s license header and `clients/android/gradlew`'s starter description now use the house `─`-rule style with a `── Section ──` split, matching every other config file in the tree.
 
-### 🎨 Changed
+### Changed
 - **The READMEs now embed the mark from `assets/logo/` (project convention):** both language READMEs referenced the master SVG from `data/` while the full brand set (`orbiscreen-logo.svg` + the six PNG renders + preview) lived in `assets/logo/` unreferenced by anything but the changelog. The header image now points at `assets/logo/orbiscreen-logo.svg`, giving the brand directory its canonical consumer (the `data/` master stays the packaging/scripts reference, as before).
 
 ## [v0.15.2] - 2026-09-01
 
 The mark chosen by the maintainer from a rendered concept board. The v0.15.1 side-by-side pairing (hollow monitor rectangle + lit phone rectangle) was rejected for reading as two detached shapes rather than one form - boring, identity-less, and badly proportioned. Five concept directions were rendered as full preview boards (dark canvas, light canvas, and a simulated circular launcher icon for each) and reviewed visually; concept D - the interlock - was selected, then engineered into its final geometry.
 
-### 🎨 Changed
-- **The mark is the O of Orbiscreen as a display ring with the device screen riding its path:** a thick-stroked ring (r=170, stroke 54 on the logo grid) with a solid dot (r=62) centered on the ring's own path at its lower-right arc - the extension entering the host display, one unbroken form. A plain two-circle interlock inside a square canvas was proven unrenderable cleanly (two max-size circles in a 440-unit box either miss each other or swallow each other - the geometry forbids a light overlap), so the dot rides the ring's path instead: the interlock reads instantly while the ring alone carries the letterform. Flat, one accent color (Catppuccin Blue `#89b4fa`), two role classes (`.orbi-s` stroke, `.orbi-f` fill), the design story documented inside the SVG. The content box is exactly square (394x394 measured, ratio 1.000 at every render size from 48px to 512px) and dead-centered (measured center 256.0, 256.0); the full asset set (`assets/logo/` SVG master + 48/64/96/128/256/512 PNGs + dark-canvas preview) is regenerated, the Android adaptive foreground is redrawn from the same geometry with every blue pixel verified inside the 66/108 circular-mask safe zone (bbox 117..315 of 432 vs mask 72..360), and all density mipmaps (square and round) are re-rendered.
+### Changed
+- **The mark is the O of Orbiscreen as a display ring with the device screen riding its path:** a thick-stroked ring (r=170, stroke 54 on the logo grid) with a solid dot (r=62) centered on the ring's own path at its lower-right arc - the extension entering the host display, one unbroken form. A plain two-circle interlock inside a square canvas was proven unrenderable cleanly (two max-size circles in a 440-unit box either miss each other or swallow each other - the geometry forbids a light overlap), so the dot rides the ring's path instead: the interlock reads immediately while the ring alone carries the letterform. Flat, one accent color (Catppuccin Blue `#89b4fa`), two role classes (`.orbi-s` stroke, `.orbi-f` fill), the design story documented inside the SVG. The content box is exactly square (394x394 measured, ratio 1.000 at every render size from 48px to 512px) and dead-centered (measured center 256.0, 256.0); the full asset set (`assets/logo/` SVG master + 48/64/96/128/256/512 PNGs + dark-canvas preview) is regenerated, the Android adaptive foreground is redrawn from the same geometry with every blue pixel verified inside the 66/108 circular-mask safe zone (bbox 117..315 of 432 vs mask 72..360), and all density mipmaps (square and round) are re-rendered.
 
 ## [v0.15.1] - 2026-09-01
 
 The mark rebuilt on honest geometry. The v0.15.0 two-screen scene (rotated pair + floating stream arc + arrowhead) read as broken and mismatched - the -8 degree rotation put a visible slant on every edge, the arc floated unattached inside the hollow host screen, and the solid arrowhead collided with the phone's frame stroke, producing a fused blob at the join.
 
-### 🎨 Changed
-- **Every edge is now perfectly horizontal or vertical, and the composition has zero rotation, zero overlap, and zero decoration:** the mark is the pairing alone - the host monitor (a hollow rounded rectangle, 217x150 on the logo grid) beside the phone (a 170x414 rounded rectangle whose screen area is solid brand blue), with a 14-unit breath between them. No tilt, no arc, no arrow, no content bars: the two shapes read instantly as "computer screen + phone showing a screen", which is the product. The content box is exactly square (440x440 measured, ratio 1.000 at every render size from 48px to 512px) and dead-centered (measured center 256.0, 256.0 on the 512 canvas); both shapes share the vertical centerline of the mark. The full asset set (`assets/logo/` SVG master + 48/64/96/128/256/512 PNGs + dark-canvas preview) is regenerated, the Android adaptive foreground is redrawn axis-aligned from the same geometry with every blue pixel verified inside the 66/108 circular-mask safe zone, and all density mipmaps (square and round) are re-rendered from the new mark.
+### Changed
+- **Every edge is now perfectly horizontal or vertical, and the composition has zero rotation, zero overlap, and zero decoration:** the mark is the pairing alone - the host monitor (a hollow rounded rectangle, 217x150 on the logo grid) beside the phone (a 170x414 rounded rectangle whose screen area is solid brand blue), with a 14-unit breath between them. No tilt, no arc, no arrow, no content bars: the two shapes read immediately as "computer screen + phone showing a screen", which is the product. The content box is exactly square (440x440 measured, ratio 1.000 at every render size from 48px to 512px) and dead-centered (measured center 256.0, 256.0 on the 512 canvas); both shapes share the vertical centerline of the mark. The full asset set (`assets/logo/` SVG master + 48/64/96/128/256/512 PNGs + dark-canvas preview) is regenerated, the Android adaptive foreground is redrawn axis-aligned from the same geometry with every blue pixel verified inside the 66/108 circular-mask safe zone, and all density mipmaps (square and round) are re-rendered from the new mark.
 
 ## [v0.15.0] - 2026-09-01
 
 The mark now draws the product, and the READMEs now follow the unified project house style end to end. This release replaces the v0.14.0 mark with a picture of what Orbiscreen actually does, and rebuilds both READMEs from scratch in the project convention.
 
-### 🎨 Changed
+### Changed
 - **The mark is the product: host monitor, phone, stream arc:** the new logo draws the actual scene - a large host monitor with a portrait phone stepping in front of its corner, both leaning the same -8 degrees so the pair reads as one moving shape, and a stream arc carrying the signal from the host screen into the phone, ending in a solid arrowhead that touches the phone's edge. It is a two-screen scene with a signal, drawn flat in one color (Catppuccin Blue `#89b4fa`, the brand accent) with two role classes (`.orbi-s` stroke, `.orbi-f` fill), the design story documented inside the SVG. The geometry was solved numerically so the content box is exactly square (440x440 measured, ratio 1.000 at every render size from 48px to 512px) and dead-centered on the canvas (measured center 256.0, 256.0); at 48px the scene still reads: big screen, small screen, arrow. The full asset set under `assets/logo/` is regenerated from the new mark (vector master + 48/64/96/128/256/512 PNGs + dark-canvas preview), the Android adaptive foreground is redrawn from the same geometry inside the 66/108 safe zone (every blue pixel verified inside the circular mask keep-out), and all legacy density mipmaps are regenerated with proper circular masking.
 - **Both READMEs rebuilt in the unified repo house style, and cleaned of stale content:** the English and Arabic READMEs are rewritten top to bottom following the project repo convention - the logo opens the file at 180px with honest alt text describing the scene, the tables and sections mirror the project structure (problem-comparison table, highlights, per-platform support matrix, quick start from packages and from source, commands, client, architecture diagram, project-structure tree, per-language documentation table, five-step contributing, centered footer). Concretely fixed: the documentation table now links each guide by its own language file (the Arabic README links `ARCHITECTURE_AR.md`/`DE_SUPPORT_AR.md`/... directly instead of the English `docs/X.md · AR` double-link form); the stale seven-row development-phases status table (all "Completed", describing internal milestones with no value to a reader) is removed in both languages; the problem-comparison rows naming third-party projects (`spacedesk refuses officially`, `VirtScreen unmaintained`, `Weylus caps it to X11`) are replaced with honest capability rows that describe what Orbiscreen does rather than FUD about named competitors; the capture-preference config table moved out of the README into `docs/DE_SUPPORT.md`/`DE_SUPPORT_AR.md` (its proper home, next to the `auto` plan table) with a one-line pointer left behind; the `Sway / wlroots general` and `Hyprland` duplicate support-matrix rows are merged into one `Sway / Hyprland / wlroots` row; and the Arabic README's corrupted `دائماااً` (triple-alef typo) instances and the English README's outdated capture-backend comment block in the build instructions are gone.
 
@@ -1993,33 +2006,33 @@ The mark now draws the product, and the READMEs now follow the unified project h
 
 The project has its own mark. Redesigned with clean geometric precision: one flat single-color drawing whose geometry tells the product's story, verified programmatically, and shipped as a complete asset set plus a true adaptive Android icon.
 
-### ✨ Added
-- **The Orbiscreen mark - the frame, but whole:** the old logo was a detailed CRT monitor illustration (two nested bezel rects, a lens circle, a stand, a shadow bar, five colors on a translated group) that read as a gray box at launcher sizes and had no story to tell. The new mark is drawn flat, one color (Catppuccin Blue `#89b4fa`, the brand accent), two role classes (`.orbi-f` fill, `.orbi-s` stroke), and geometry that means something: a rounded display-bezel frame (the Linux host screen) drawn as one continuous ring; three transport dots riding its edge (each dot centered on the frame's own path - the top one on the top edge, the side two on the straight lower run of the left and right edges - so Wi-Fi, USB, and the browser client sit literally on the host's boundary); and the hero in the void: the double chevron `❯❯`, the stream signal advancing screen after screen. The design story is documented inside the SVG itself.
+### Added
+- **The Orbiscreen mark - the frame, but whole:** the old logo was a detailed CRT monitor illustration (two nested bezel rects, a lens circle, a stand, a shadow bar, five colors on a translated group) that read as a gray box at launcher sizes and had no story to tell. The new mark is drawn flat, one color (Catppuccin Blue `#89b4fa`, the brand accent), two role classes (`.orbi-f` fill, `.orbi-s` stroke), and geometry that means something: a rounded display-bezel frame (the Linux host screen) drawn as one continuous ring; three transport dots riding its edge (each dot centered on the frame's own path - the top one on the top edge, the side two on the straight lower run of the left and right edges - so Wi-Fi, USB, and the browser client sit literally on the host's boundary); and the hero in the void: the double chevron (`>`), the stream signal advancing screen after screen. The design story is documented inside the SVG itself.
 - **The complete asset set under `assets/logo/`:** vector master `orbiscreen-logo.svg` plus PNG renders at 48/64/96/128/256/512 and a dark-canvas preview (`orbiscreen-logo-preview.png`).
 - **A real adaptive Android icon:** the launcher foreground is now a vector `ic_launcher_foreground.xml` drawn from the same geometry (not a rasterized drawing squeezed into the wrong viewport like the old icon, whose 512-grid content was scaled 0.50 and pushed 124/128 off-center - visibly lopsided under every launcher mask). The mark now scales into the 66/108 adaptive safe zone with the content box verified programmatically: every blue pixel lands inside the circular mask's keep-out test (bbox 108..324 of 432, mask circle 72..360), so no launcher shape - circle, squircle, rounded square, or the tear-drop masks - ever clips the frame or a dot. The adaptive background is the brand dark (`#11111B`, matching `orbi_background`) instead of the old white that fought both the mark and the splash theme, and the monochrome layer (themed icons on Android 13+) reuses the same drawable. The legacy mipmaps are regenerated from the new mark for every density (48 through 192) with proper circular masking for `ic_launcher_round`, so pre-API-26 launchers get the same design instead of the old CRT drawing.
 - **`data/orbiscreen.svg` is the new official logo everywhere:** the README headers (EN + AR, with honest alt text describing the geometry), the desktop entry icon, and the install/packaging scripts (deb, RPM, AppImage rasterization) all pick up the mark from the single source file it always referenced - no script changes needed.
 
-### 🎨 Changed
+### Changed
 - **The mark is square and dead-centered by construction, not by eye:** the old CRT drawing's content box was 448x320 on a 512 canvas translated 16px down - a lopsided 95x82% footprint. The new geometry was solved so the content bounding box is exactly square (432x432, an 84.4% footprint with a 40px margin on every side) and its center measures (256.0, 256.0) on the 512 canvas - verified by rasterizing and measuring the alpha channel, and the same measurement holds at 48px (bbox 3..45 of 48, ratio 1.000). At launcher and favicon sizes the mark reads as the frame, the three dots, and the double chevron - no nested rectangles competing at 12px stroke widths.
 
 ## [v0.13.3] - 2026-09-01
 
 Full-project audit round three: every crate, client, script, workflow, and document re-verified with live tooling (clippy/fmt/tests/cargo-deny/machete all clean; 123 tests pass; zero dead code files, zero inline comments in code files, zero stale dependencies). Every finding fixed, every version home rotated in one release commit - and the release process itself is now documented the way it actually works.
 
-### 🐛 Fixed
+### Fixed
 - **Android version string lagged the workspace:** `versionName` was still `0.13.1` after the v0.13.2 release bump updated Cargo, lock, README badges, SECURITY, and PACKAGING but skipped the Gradle manifest. This release rotates every home together (see the CONTRIBUTING release process below) and bumps `versionCode` 27 → 28 so store tooling accepts the APK.
 - **PACKAGING docs described build commands that do not exist:** the `.deb`/`.rpm` sections instructed `cargo-deb`/`cargo-generate-rpm`, but the project has never shipped their metadata; the real builders are `scripts/package-deb.sh` and `scripts/package-rpm.sh` (+ `package-appimage.sh`, previously absent from the local-build list). The docs now reference the actual scripts and their tool requirements (`dpkg-deb`, `rpm-build`).
 - **PACKAGING and README docs advertised a Flatpak that was never shipped:** no flatpak manifest exists in the repo (and one is not technically viable for a daemon needing evdi, uinput, and raw compositor sockets); the bullet and the docs-table mention are removed from both language versions.
 - **PACKAGING docs claimed V1 APK signing:** the Gradle release config sets `enableV1Signing = false` (minSdk 26); the docs now say V2/V3 and reference the keystore env vars instead of the removed in-repo keystore.
 
-### 🔍 Diagnostics
+### Diagnostics
 - **`auth_failures` was counted but never surfaced:** the transport increments a counter on every unauthorized request, yet it appeared in neither `GET /health` nor the D-Bus `GetStatus` payload. It is now exposed on both (with a getter, tests, and DBUS_SPEC entries in English and Arabic), making token-probing activity observable without enabling debug logs.
 
-### 📖 Docs
-- **CONTRIBUTING now documents the real release process:** the generic branch/commit/PR sections collapse into a "Day-to-Day Work" block, and a new "Release Process" section lists every version home the bump must touch - the Cargo workspace (plus `cargo update -w` so the lock matches `--locked` builds), the Gradle `versionName`/`versionCode`, all thirteen doc badges (README/README_AR/SECURITY and eight docs files bilingual), the PACKAGING release-matrix line, and the SECURITY scope - plus the bump rule by CHANGELOG convention (`✨ Added` = minor, fixes/cleanup only = patch) and the one-commit-one-tag push that triggers the release workflow.
+### Docs
+- **CONTRIBUTING now documents the real release process:** the generic branch/commit/PR sections collapse into a "Day-to-Day Work" block, and a new "Release Process" section lists every version home the bump must touch - the Cargo workspace (plus `cargo update -w` so the lock matches `--locked` builds), the Gradle `versionName`/`versionCode`, all thirteen doc badges (README/README_AR/SECURITY and eight docs files bilingual), the PACKAGING release-matrix line, and the SECURITY scope - plus the bump rule by CHANGELOG convention (`Added` = minor, fixes/cleanup only = patch) and the one-commit-one-tag push that triggers the release workflow.
 - **`scripts/verify-stream.sh` and `scripts/setup-dev-env.sh` were referenced nowhere despite being useful:** both are now documented in TROUBLESHOOTING.md/TROUBLESHOOTING_AR.md (end-to-end stream verification with H.264 decode and black-frame detection; distro-detected dev dependency install) and CONTRIBUTING.md.
 
-### 🧹 Cleanup
+### Cleanup
 - Removed the stale `webrtc` desktop-entry keyword (the transport has been HTTP/MPEG-TS since v0.2); replaced with `streaming`.
 - Removed the dead `flatpak-builder-sources` entry from `.gitattributes` (no flatpak sources exist).
 - Added `.kotlin/` (Kotlin 2.x session dirs) to `.gitignore` alongside the existing Gradle ignores.
@@ -2029,53 +2042,53 @@ Full-project audit round three: every crate, client, script, workflow, and docum
 
 Hotfix: the web client rendered a permanent black screen after the v0.13.1 CSP hardening, and auth rejections were opaque in the daemon log. Both fixed, verified end-to-end against a live KDE/KWin virtual display.
 
-### 🐛 Fixed
+### Fixed
 - **Web client black screen (regression from v0.13.1):** the audit-added CSP meta `default-src 'self'` blocked the `blob:` MediaSource URL that the vendored mpegts.js attaches to the `<video>` element (`media-src` was unset, so `default-src` applied), so `play()` failed with `NotSupportedError` and the client looped on "Stream lost (media error)" with no picture. The policy is now `default-src 'self'; media-src 'self' blob:`, MSE playback restored, everything else still locked to same-origin. Verified live: token fetch, `401`→`200` on `/stream`, and a real 1920×1080 stream decoding and playing in-browser with no console errors.
 
-### 🔍 Diagnostics
+### Diagnostics
 - **Auth rejections are now self-explaining:** the `unauthorized request rejected` log carries the peer address, method + path, what was presented (`missing` / `bearer(len=…, prefix=…)` / `unexpected(scheme=…)`), whether a `?token=` was present, and the daemon's expected token prefix + length, so a stale-token vs old-client vs missing-header failure is identifiable from one log line.
 - Token generation now logs a short prefix for cross-checking against what a client presents; serving `/client/config.json` logs the requesting peer.
 
-### 🧹 Cleanup
+### Cleanup
 - Removed every em dash from the repo (log/error/UI strings, CI step names, changelog); range en dashes in the changelog normalized to plain hyphens.
 
 ## [v0.13.1] - 2026-08-27
 
 Full-project audit round two: the Rust transport/daemon, Android client, web client, shell scripts, and CI matrix re-audited line by line; all security, correctness, and packaging findings fixed or explicitly documented as accepted design.
 
-### 🌐 Web Client
+### Web Client
 - **Keyboard letter keys were wrong:** the QWERTY-layout Linux input codes were assigned to letters in alphabetical order, so every typed letter sent the wrong key (`KeyA` → KEY_Q, …). Each letter now maps to its real input code; numpad, function, and media keys audited against `linux/input-event-codes.h`.
 - **Pointer control was frozen under pointer lock:** `clientX/Y` do not move while locked. A virtual cursor now accumulates `movementX/Y`, so remote control actually works with a mouse.
 - **Touch devices could not control at all** when `requestPointerLock` was absent or rejected; pointer events fell back to direct absolute input, and lock failures are handled (including the unhandled promise rejection).
 - **Wheel scroll jumped ~12 steps per notch:** raw `deltaY` was sent as discrete steps; it is now normalized per `deltaMode` and clamped.
 - OS key auto-repeat no longer floods the daemon (`event.repeat` filtered); pointer coordinates clamp to the last valid pixel; the MSE-unsupported path no longer hides the overlay; a CSP meta (`default-src 'self'`) was added.
 
-### 📱 Android
+### Android
 - NSD discovery now stops when the discovery view model clears (previously leaked for the process lifetime); subnet-scan results merge into the same state pipeline instead of racing it.
 - The input dispatcher is (re)sized from the reported display dimensions, so touching the surface before `/api/info` returns no longer pins coordinate mapping to 1920×1080.
 - Manifest: removed the unused `CHANGE_WIFI_MULTICAST_LOCK` and `ACCESS_WIFI_STATE` permissions; V1 (JAR) APK signing disabled (minSdk 26 uses V2/V3).
 - `HostApi` reads response bodies with a bound; user agent comes from `BuildConfig`; dead ProGuard rules removed (the blanket `-keep` previously disabled all shrinking); dead UI branches, `RecentHost.label`, and the theme `dynamicColor` parameter removed; `as Activity` cast made safe.
 
-### 🐛 Fixed
+### Fixed
 - Input queue is bounded (1024) with explicit drop counting; stream clients capped with 503; join-buffer lock no longer spans blocking pushes; token comparison constant-time; `Bearer` matched case-insensitively with `WWW-Authenticate` on 401; `/health`/`/api/info` slimmed; auth failures logged at debug with peer addresses; adb serials charset-validated with proper spawn-error mapping; blocking `adb`/`systemctl`/package-manager calls moved off the async runtime; uninstall reports real failures and returns non-zero; portal state saved with a per-process temp-file nonce and permissions set before rename; wlr-screencopy size/stride math validated against compositor-supplied values; encoded chunks without PTS are dropped instead of timestamped to zero; watchdog exits once frames flow.
 - **Virtual-output creation never worked on sway:** the daemon sent the two-word command `create output`, but sway's IPC command is the single token `create_output` (verified against sway 1.6 through master), so sway always rejected it with `Unknown/invalid command 'create'`. The daemon now sends `create_output`.
 - **Virtual-output teardown was invalid on sway:** sway has no `output … remove` subcommand (checked 1.6 through master). The daemon now attempts `remove` and, when the compositor rejects it, falls back to `output … disable` so the output stops receiving frames; `create()` also waits for the requested mode to settle before reporting dimensions instead of returning mid-modeset. Found by the new sway headless CI job, which exercises virtual output end-to-end for the first time.
 
-### ⚡ Scripts & CI
+### Scripts & CI
 - `package-appimage.sh`: `find` no longer scans non-existent distro lib dirs (aborted the build under `pipefail`); AppImage output name follows `uname -m`.
 - `setup-dev-env.sh`: corrected Fedora names (`libwayland-client`, `xorg-x11-server-utils`), stopped offering un-packaged `libevdi`/`evdi` from official repos, and completed every distro list with the X11/wayland/GTK4 dev packages CI actually needs.
 - GitHub issue templates rewritten to the issue-forms schema (the legacy front matter made GitHub fail to load them); the PR template front matter removed.
 - `install.sh` stops the running user service and installs binaries via temp+rename (no more `ETXTBSY`); install/uninstall/package scripts guard their working directory; evdi module check uses `/sys/module` (no `lsmod | grep -q` SIGPIPE); deb/rpm maintainer scripts deduplicate logged-in users and clean stale staging.
 - Release workflow: signing secrets are verified explicitly before use, keystore written with `umask 077` and removed on every exit path, `keytool` uses `-storepass:env`, release notes extracted without regex interpolation with a fallback, VERSION quoted throughout, and job timeouts added. The Linux tarball bundles a README instead of a repo-layout installer, and README instructions match.
 
-### 🗑️ Removed
+### Removed
 - Dead code: `FramePool::pooled_count` (test-only), manual `Debug` on the D-Bus server, the `unreachable!`-padded stylus match in the uinput backend, the web client's dead letter-key shims.
 
 ## [v0.13.0] - 2026-08-27
 
 Desktop-environment parity release: the full KDE-level experience (a real compositor-native virtual display, no root, no dialogs) now extends to wlroots compositors, portal grants persist across runs on GNOME, input injection is rootless on X11 and portal-free on wlroots, and per-frame allocations/copies were removed across the whole pipeline.
 
-### ✨ Added
+### Added
 - **`orbiscreen doctor`** (`--json` for the GTK panel): prints the detected session/compositor, the exact ordered capture plan `auto` will follow, EVDI module state, portal presence on the session bus, saved permission grants, swaymsg/hyprctl availability, wlroots virtual-output IPC reachability, and `/dev/uinput` writability, each finding paired with the fix.
 - **`orbiscreen doctor --fix [--yes]`:** detects the distro from `/etc/os-release` (dnf/apt/pacman/zypper incl. `ID_LIKE` derivatives), offers to install the EVDI package (`evdi` / `evdi-dkms` + headers), loads the module, and re-verifies.
 - **Central environment analyzer** (`capabilities.rs`): session + compositor detection from `XDG_SESSION_TYPE`, `WAYLAND_DISPLAY`, `XDG_CURRENT_DESKTOP`, `DESKTOP_SESSION`, `KDE_FULL_SESSION`, `HYPRLAND_INSTANCE_SIGNATURE`, `SWAYSOCK`, `GAMESCOPE_WAYLAND_DISPLAY`, with a full detection-matrix test suite.
@@ -2085,7 +2098,7 @@ Desktop-environment parity release: the full KDE-level experience (a real compos
 - **New capture preference `screencopy`** (`[capture] preferred = "screencopy"`), accepted by config validation.
 - **Compositor-native virtual outputs on wlroots** (`WlrootsVirtualOutput`): the daemon creates a headless output via Sway IPC (`SWAYSOCK`, native i3-ipc framing, `create output` + mode) or Hyprland IPC (`HYPRLAND_INSTANCE_SIGNATURE` socket, `output create/destroy`), waits until the output is advertised and active, captures it by name with screencopy, and removes the output on stop/crash/drop. IPC failure falls back cleanly to mirroring an existing output; the doctor explains which IPC (if any) is reachable.
 - **CI integration test on headless sway:** a dedicated job spawns sway with `WLR_BACKENDS=headless` and exercises real screencopy capture, virtual-output create/list/drop lifecycle, and output teardown.
-- **Dialog-free portal sessions:** ScreenCast permissions are persisted via restore tokens (`PersistMode::ExplicitlyRevoked`) in `$XDG_STATE_HOME/orbiscreen/portal.json`; a failed/stale token automatically retries with a fresh selection. After the first grant, GNOME streams start instantly with no dialog.
+- **Dialog-free portal sessions:** ScreenCast permissions are persisted via restore tokens (`PersistMode::ExplicitlyRevoked`) in `$XDG_STATE_HOME/orbiscreen/portal.json`; a failed/stale token automatically retries with a fresh selection. After the first grant, GNOME streams start immediately with no dialog.
 - The RemoteDesktop **input** session persists its grant the same way (separate token).
 - `doctor` reports whether each grant is saved.
 - **wlroots-native input injection** (`virtual-keyboard-unstable-v1` + `wlr-virtual-pointer-unstable-v1`, protocol XML vendored): absolute pointer events and keyboard injection directly on the Wayland socket, no `xdg-desktop-portal-wlr` needed. Pointer coordinates are normalized to the captured output when one is known.
@@ -2095,7 +2108,7 @@ Desktop-environment parity release: the full KDE-level experience (a real compos
 - **X11 capture upgraded to MIT-SHM:** one persistent shared image (memfd + `attach_fd`, requires MIT-SHM ≥ 1.2) that the X server writes into directly (no per-frame reply payload over the socket), with automatic fallback to plain `GetImage` when the extension is absent (verified live against Xwayland).
 - **Identical-frame skipping on X11 mirroring:** a fast 128-bit frame hash suppresses duplicate frames, so an idle mirrored desktop no longer burns CPU re-encoding unchanged content (keepalive pacing unchanged).
 
-### 🧪 Tests
+### Tests
 - Frame-assembly unit tests (stride stripping, premultiplied alpha, truncation), frame-pool recycling/cap tests, hash tests, distro-detection tests for `doctor --fix`, capability matrix tests, plus the sway-headless and live-DISPLAY X11 integration tests.
 
 ### ⏳ Deferred to a follow-up
@@ -2107,7 +2120,7 @@ Desktop-environment parity release: the full KDE-level experience (a real compos
 
 Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, build, tests, audit, machete, deny, shellcheck, gradle assemble+lint) re-run and all findings fixed.
 
-### 🐛 Fixed
+### Fixed
 - **EVDI pump never terminated on fatal errors:** after the kernel closed the event channel or the registered buffer vanished, the pump thread retried the failed operation forever and warned every 50 ms while the daemon kept streaming stale keepalive frames. Terminal errors now end the source, which flows through as a clean capture-pump shutdown.
 - **KWin virtual-display open blocked a tokio worker:** `KwinVirtualCapture::open` performs blocking wayland round-trips, permission-file retries (up to 2.5 s) and a 5 s handshake deadline; called from an async context it stalled a runtime thread for up to ~7.5 s. The open now runs on `spawn_blocking`.
 - **Damage pump zombie after compositor close:** when the compositor closed the layer-shell surface the pump kept attaching/committing to the dead surface forever and swallowed roundtrip errors. It now exits on `Closed` and on connection errors.
@@ -2119,119 +2132,119 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 - A relative `XDG_CONFIG_HOME` is now ignored per the XDG spec (same filter `XDG_DATA_HOME` already had).
 - The MPEG-TS integration test's monotonicity check compared every timestamp against the *first* frame instead of its predecessor; it now catches real ordering regressions.
 
-### 📱 Android
+### Android
 - **Tapping Refresh killed discovery permanently:** `DiscoveryService.stop()` cancelled the caller-supplied `viewModelScope`, freezing the host list and silently ignoring every subsequent restart. The service now owns its own scope, and `restart()` waits for the NsdManager stop callback before discovering again (also removing a start/stop race that could throw on some devices).
 - **Auto-reconnect built the player with an empty token:** the reconnect job called `build()`, whose first action was `reconnectJob?.cancel()`, cancelling the very coroutine it ran in; the resulting `CancellationException` was swallowed by the token fetch, so every reconnect streamed unauthenticated into a 401 loop. External builds cancel pending reconnects; the reconnect path no longer cancels itself and no longer swallows cancellation.
 - The `DiscoveryService`/gateway provider captured the Activity context into a ViewModel; it now uses the application context.
 - "Forget recent host" in Settings left the stale card on screen until navigation; the row now recomposes immediately.
 - `roundIcon` pointed at the square launcher mipmap; it now references `@mipmap/ic_launcher_round`.
 
-### 🔒 Security
+### Security
 - `event-listener` 5.4.1 → 5.4.2 (RUSTSEC-2026-0221, unsound `!Send` tag across threads). The remaining `derivative` unmaintained advisory is unfixable upstream (`evdi` 0.8.0 is the final release) and stays an accepted warning.
 - The damage pump's shared-memory file moved from a predictable fixed path in `/tmp` to an anonymous `memfd_create` region: no world-writable pathname, no cross-instance interference, nothing left on disk.
 - Android release workflow: fails fast when `ANDROID_KEY_PASSWORD` is unset, rejects an unsigned APK after `assembleRelease` (previously uploadable), and removes the decoded keystore in an `if: always()` cleanup step.
 
-### 🗑️ Removed
+### Removed
 - `transport.webrtc_port_range` config field: dead since the WebRTC teardown (v0.12.1), normalized but never read. Existing config files containing it still parse (the key is ignored).
 - Dead code: `VirtualDisplay::open_at`/indexed node selection and the `spec()` getter, `EncodeError::EncoderUnavailable`, Android `HostApi.health`/`sendControl`, `InputDispatcher.wheel`/`stylus`, `DiscoveryViewModel.saveRecent`, `StreamViewModel.toggleToolbar` + the never-changing `toolbarVisible` (toolbar is always shown), the navigation route's unused `label` parameter, the unreachable "idle" branch of the discovery status banner, 15 unused theme colors, 10 unused strings, 8 unused XML colors and dead imports across the client.
 - The empty deb `postinst` script and the `packaging/` directory (the AppImage build merged into `scripts/build-appimage.sh`, with `package-appimage.sh` kept as the stable entry point used by the release workflow).
 
-### 🔧 Changed
+### Changed
 - `scripts/install.sh` now also builds and installs `orbiscreen-gtk`; previously the installed desktop entry's `Exec=orbiscreen-gtk` pointed at a binary the script never installed (the GTK build is best-effort so the daemon still installs where GTK 4 dev libraries are missing). The desktop entry's `Icon=` now matches the icon filename every installer ships, and `uninstall.sh` removes the GTK binary too.
 - `package-deb.sh` builds both binaries when missing (previously copied them blindly) and carries a valid RFC822 `Maintainer` address; `package-rpm.sh` checks for both binaries, not only the daemon.
 - AppImage build script: fixed a shellcheck SC2227 redirection placed between `find` actions.
 
-### 📝 Documentation
+### Documentation
 - `DBUS_SPEC.md` / `DBUS_SPEC_AR.md`: `GetConfig` example matches the current schema (removed the deleted `display.count` and `webrtc_port_range` lines, added the `[capture]` section).
 - Bug-report template no longer suggests a `RUST_LOG` target for the long-removed `webrtc_rs` crate.
 - `SECURITY.md` / `PACKAGING.md` / `PACKAGING_AR.md` version matrices updated to the current release.
 
 ## [v0.12.5] - 2026-08-26
 
-### 🐛 Fixed
+### Fixed
 - **Unbounded frame channel in the portal/mirror capture path:** the Wayland portal backend passed raw BGRA frames (~8 MB/frame at 1080p) over an unbounded channel, so a stalled consumer could grow memory without limit, the exact failure mode the KWin backend's bounded queue (v0.12.0) was built to prevent. The portal path now uses the same bounded channel (capacity 2) with drop-on-full and a debug log.
 - **Config silently ignored under systemd:** the default `--config` was the relative path `orbiscreen.toml`, and no install path (manual / deb / rpm) set `WorkingDirectory=` or passed `--config`, so the service resolved the file against `$HOME` and silently fell back to defaults; custom resolution, port or encoder choices never took effect. The default is now the XDG path `$XDG_CONFIG_HOME/orbiscreen/orbiscreen.toml` (`~/.config/orbiscreen/orbiscreen.toml` when unset), used identically by the daemon, the GTK panel and the systemd user unit, and documented in the README and INSTALL guide.
 - **Session token duplicated in the stream URL:** the Android client sent the token both as an `Authorization: Bearer` header (the actual authentication source) and as a `?token=` query parameter; the query parameter is gone, removing a leak path through verbose HTTP/ExoPlayer logs.
 - **X11 capture errors lost their detail:** `GetImage` reply failures were collapsed to a constant error code `0`; real X11 protocol error codes are now surfaced, and connection failures are reported as a distinct connect error.
 - **Android: deprecated OkHttp API:** `RequestBody.create(...)` in the control API client replaced with the `toRequestBody(...)` extension, matching the rest of the client.
 
-### 🔒 Security
+### Security
 - **Android `network_security_config.xml`:** removed the dead `<domain-config>` LAN list: Android `<domain>` entries do not match CIDR ranges, so the list matched only network/broadcast addresses and enforced nothing. Cleartext HTTP remains globally permitted by design (the app only contacts LAN hosts the user selects via mDNS or manual entry); the decision is now stated explicitly in `SECURITY.md`.
 
-### 🗑️ Removed
+### Removed
 - **`display.count` config field:** it was read for display purposes only and never created more than one virtual display, so it looked configurable but had no effect. Removed from the config schema, `list-displays` output, GTK panel and tests until real multi-display support lands.
 - Unused `gstreamer-video` dependency from `orbiscreen-encode` (confirmed by `cargo machete`).
 - Orphaned allow-list entries in `deny.toml` (licenses encountered by no current dependency).
 
-### 🔧 Changed
+### Changed
 - Comment policy applied project-wide: explanatory comments removed from code files while every source, config and template file carries a consistent top-of-file header (GPL-3.0-or-later notice + repository link, banner-style for config/CI files); third-party vendored code (`clients/web/vendor/mpegts.js`) untouched.
 - Missing final newlines added across manifests, config and web files (`.editorconfig` `insert_final_newline` compliance).
 
-### 📝 Documentation
+### Documentation
 - README / README_AR and docs/INSTALL / INSTALL_AR: XDG config location, `--config` override, and a dedicated **Configuration** install section.
 - SECURITY.md: cleartext-HTTP decision for the Android client documented next to the token threat model.
 
 ## [v0.12.4] - 2026-08-26
 
-### ✨ Added
+### Added
 - **Client diagnostics in `/health`:** new `stream_starts` and `auth_failures` counters, plus a warning line with the peer address on every rejected request, making "phone shows nothing" diagnosable from the server side in one curl.
 - Web client now plays with ~100 ms of buffer: IO stash disabled and live-latency chasing tuned to chase whenever buffered latency exceeds 1 s down to 200 ms (`liveSync` enabled).
 
-### 🔧 Changed
+### Changed
 - `scripts/verify-stream.sh` no longer hard-requires ffprobe; it falls back to ffmpeg-only detection when ffprobe is missing or broken.
 
 ## [v0.12.3] - 2026-08-25
 
-### 🐛 Fixed
+### Fixed
 - **Growing playback latency ("slow stream"):** stream timestamps advanced one frame duration per pushed packet regardless of real elapsed time, so during idle periods PTS ran many times slower than the wall clock and live players accumulated delay they could never chase back. Timestamps now follow the wall clock: keepalives stamp 500 ms apart, active streaming stamps at real time.
 - **Garbage frames right after connecting:** new clients previously started receiving packets from the middle of a GOP, deltas without their references, which decoders render as corruption until the next natural keyframe. The transport now keeps the current GOP since its last keyframe and replays it to every joining client under the pump lock before going live, making joins gap-free, duplicate-free and instant.
 - **Silent mid-stream packet loss:** a slow client's mux queue used to drop chunks quietly, corrupting that client's decode until an arbitrary keyframe. Queues no longer emit holes; on overflow the client's stream ends cleanly instead, and clients rejoin at a keyframe via the self-healing reconnect. After any broadcast lag, clients also freeze on the last good frame and resume at the next keyframe rather than decoding orphaned deltas.
 
-### 🔧 Changed
+### Changed
 - Removed the obsolete EVDI install hint from RPM `%post` and deb `postinst` scriptlets (EVDI is opt-in; KDE Wayland needs no kernel module) and corrected the deb description accordingly.
 - Added `ORBISCREEN_ENCODER_DUMP=<path>` diagnostics hook: appends raw Annex-B encoder output to a file for bitstream debugging.
 
 ## [v0.12.2] - 2026-08-25
 
-### 🐛 Fixed
-- **Black stream on idle desktop (the "no image at all" bug):** compositors deliver screencast frames on damage only, and a freshly created virtual display is completely static; the capture received exactly one pre-paint black buffer and froze on it forever. A new damage pump keeps the virtual output recompositing (~2 fps) via an invisible, click-transparent layer-shell surface, so the capture always reflects the real display content.
+### Fixed
+- **Black stream on idle desktop (the "no image at all" bug):** compositors deliver screencast frames on damage only, and a freshly created virtual display is static; the capture received exactly one pre-paint black buffer and froze on it forever. A new damage pump keeps the virtual output recompositing (~2 fps) via an invisible, click-transparent layer-shell surface, so the capture always reflects the real display content.
 - **Corrupted H.264 bitstream from forced key units:** `UpstreamForceKeyUnitEvent` on the x264enc src pad produced malformed I-frames (decoder errors like `out of range intra chroma pred mode`, black concealment output) regardless of threading mode. Forced key units are gone; clean joins are guaranteed by the intact delta chain plus natural IDRs (`key-int-max` lowered 30 → 10, worst-case idle join ≤ 5 s, active join ≤ 200 ms).
 - **Startup blocked forever on the input portal:** the daemon now waits at most 20 s for the RemoteDesktop portal and starts streaming anyway with a clear warning when it hangs or needs interactive approval; remote control comes online on the next restart once granted.
 
-### 🔧 Changed
+### Changed
 - x264enc runs with `sliced-threads=false` and 2 frame threads: slice-level threading (implicit in `zerolatency`) is fragile around keyframe requests and produced 18 slices per frame; frame-level threading keeps each access unit atomic.
 
 ## [v0.12.1] - 2026-08-25
 
-### ✨ Added
+### Added
 - **Mirror capture mode:** `[capture] preferred = "mirror"` streams your real desktop (picked in the portal share dialog) instead of a second virtual monitor, for when you want to *see* your screen rather than extend it.
 - **Detailed `/health`:** now returns JSON with `version`, `encoder`, `frames_forwarded`, `active_clients`, `total_clients` and `uptime_seconds`, making stream diagnosis a single curl.
 - **`scripts/verify-stream.sh`:** end-to-end stream sanity check: records a few seconds of `/stream`, decodes with ffprobe and measures frame brightness to catch black/empty-stream regressions automatically.
 - **Full project audit hardening:** GitHub Actions pinned to commit SHAs (supply-chain), `gitleaks`/`shellcheck`/`cargo-deny` clean runs documented, comment policy applied (comment-free code files, banner-style headers on config files).
 
-### 🔧 Changed
+### Changed
 - **EVDI is opt-in.** `[capture] preferred = "evdi"` requests the EVDI DRM virtual display explicitly; on Wayland, `auto` never touches EVDI anymore, so the recurring `EVDI kernel module not active` line is gone on KDE and the portal is reached directly on other compositors. On X11, `auto` still uses EVDI when its module is already loaded.
 - The encoder-to-transport video channel is bounded (64 packets) so a stalled transport backpressures the pipeline instead of growing memory without limit.
 
-### 🐛 Fixed
+### Fixed
 - **New clients saw an endless black screen on idle virtual displays.** KWin delivers virtual-display frames on damage only: a static desktop stops producing frames entirely, and keepalive re-pushes encoded as deltas, which `h264parse`/`mpegtsmux` hold back until the first keyframe, so a freshly connected client received nothing. The daemon now re-pushes the last frame every 500 ms **with a forced IDR**, so any new client decodes within half a second no matter how idle the display is.
 - **Android: the app never recovers after a daemon restart.** The stream token is rotated on every daemon start, but the Android client cached it forever; every reconnect looped on 401 with a black screen. The player now re-fetches a fresh token before each reconnect/retry, and input/control pick up rotated tokens automatically (periodic refresh + `InputDispatcher.updateToken`), mirroring the web client's self-healing reconnect.
 - **Android: `build.gradle.kts` hard-failed configuration without a signing keystore**, blocking `lintDebug`/`assembleDebug` on dev machines. Signing is now conditional (release builds unsigned with a warning when secrets are absent) and CI explicitly rejects unsigned APKs.
 
 ## [v0.12.0] - 2026-08-24
 
-### ✨ Added
+### Added
 - **KWin virtual display backend (no root, no portal):** on KDE Plasma the daemon now creates a real virtual monitor (`Virtual-ORBISCREEN`, visible in Display Settings) through KWin's `zkde_screencast_unstable_v1` Wayland protocol and streams it over PipeWire directly, bypassing xdg-desktop-portal entirely, so no share dialog appears and the portal's crash-prone path is avoided. KWin only exposes the protocol to allow-listed executables, so the daemon maintains `~/.local/share/applications/orbiscreen.kwin.desktop` (user-writable, no sudo) with `X-KDE-Wayland-Interfaces=zkde_screencast_unstable_v1` and its own executable path, refreshing the KService cache and retrying the connection until the grant is visible. Closing the stream removes the virtual output automatically. New `[capture] preferred = "auto" | "kwin-virtual" | "portal"` config option; `auto` (default) tries KWin first on Wayland and falls back to the portal on non-KDE compositors, while explicit preferences fail loudly on non-Wayland sessions instead of silently capturing the real desktop.
 - **Web client self-healing reconnect:** after a daemon restart the stream token changes, and any already-open browser tab used to loop forever on a silent black screen (the overlay was hidden and the stale token was never refreshed). The client now re-shows the status overlay on stream loss and re-fetches `/client/config.json` before each reconnect, so tabs recover automatically once the daemon is back.
 
-### 🔧 Changed
+### Changed
 - Capture fallback log no longer claims a portal dialog is always required; the hint is logged only when the portal path is actually taken.
 - Frame validation is shared between the portal and KWin backends (`sample_to_captured_frame`), so size-mismatch and malformed-sample diagnostics can no longer drift; the KWin backend uses a bounded frame queue (drops under stall instead of growing without limit).
 - A compositor-side close of the virtual output is reported as terminal (`CaptureSession::is_ended`) and stops the capture pump instead of retrying forever with warning spam.
 
 ## [v0.11.2] - 2026-08-23
 
-### 🐛 Fixed
+### Fixed
 - **X11 input registration:** the uinput device registered keys only up to `KEY_KPDOT` (code 83), so the kernel silently dropped everything above it: arrow keys, Insert/Delete/Home/End/PageUp/PageDown, right Ctrl/Alt, Meta, F11/F12 and most numpad keys never reached the host on the X11 path; wheel input sent `REL_WHEEL` without registering the axis at all. The virtual touchscreen now registers the full key range (`KEY_MAX`) plus `REL_WHEEL`, making every mapped client key functional.
 - **Stream task panic on short packets:** the non-NAL debug log sliced `bytes[..4]` unguarded, so any packet shorter than 4 bytes killed the per-client streaming task; the slice is now length-clamped.
 - **Daemon exit on D-Bus failure:** when the session bus was unavailable, dropping the D-Bus handles closed the shutdown watch channel, so the daemon exited immediately after start with a misleading "D-Bus Stop received" log; a keep-alive sender now holds the channel open until a real stop.
@@ -2250,46 +2263,46 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 - **Web control gating (mouse hijack):** moving the mouse over the browser player forwarded every movement as absolute pointer injection, yanking the host cursor across monitors. Control now requires an explicit click that engages Pointer Lock ("Click to control" hint, Esc to release); wheel and keyboard follow the same gate.
 - **evdi module helper bundled:** `install-evdi-module.sh` ships inside the deb/RPM packages with a post-install hint, and it now builds the module automatically from DisplayLink main when no prebuilt `evdi.ko` is found (required on kernels newer than the vendored 1.9.1 sources support).
 
-### 🔒 Security
+### Security
 - **systemd hardening:** `NoNewPrivileges=true` added to all shipped user units (install.sh, deb builder, RPM spec).
 - **Android permissions pruned:** removed unused `VIBRATE`, `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` from the manifest.
 - Full security re-audit: constant-time token comparison, bounded queues, `/api/control` auth + fixed-argument commands, no WebView in the Android client, OkHttp timeouts everywhere, secrets only via CI env; verified sound, no changes required.
 
-### 🗑️ Removed
+### Removed
 - Dead transport API: `find_usb_device()`, `remove_reverse()`, `first_device_serial()` (+ their tests); the dead `StreamUrl.mimeType()` with its suppress/import; the unused synchronous `InputInjector::open()`.
 - The unreferenced `gen-key-script` GPG helper.
 - Residual inline comments across Rust/Kotlin/web/shell/spec/drawable sources: code files keep only the standard two-line license headers, while env-style config files (`gradle.properties`, ProGuard rules, `deny.toml`, `rustfmt.toml`, `.gitignore`, `.editorconfig`, RPM spec, desktop entry, `lint.xml`, AndroidManifest) carry uniform decorative section banners instead.
 
-### 🔧 Changed
+### Changed
 - Release workflow builds with `--locked`; Android `versionCode` 17 → 18.
 
 ## [v0.11.1] - 2026-08-16
 
-### 🐛 Fixed
+### Fixed
 - **Android discovery staleness:** vanished mDNS services are now actually removed from the host list (the lost-service event previously carried no address, so stale entries lingered forever); subnet-sweep candidates are verified with the daemon's own `/api/info` before being listed.
 - **Structured concurrency:** the subnet scanner rethrows `CancellationException` so leaving the discovery screen genuinely stops in-flight probes; the player's supervisor scope and OkHttp dispatcher are shut down on release.
 - **Android 12+ gateway detection:** `WifiManager.dhcpInfo` (deprecated, null without location grant) is replaced with `ConnectivityManager.getLinkProperties()`, so the subnet sweep works on modern Android; SDK level raised (`compileSdk 35`) to match `targetSdk 35`.
 - **Web remote control:** pressed pointer buttons are tracked in a set and all released on `pointercancel`/`pointerleave` (previously only button 1 and only while buttons were held, leaving stuck buttons on the host); keystrokes are no longer forwarded while the stream is still connecting; playback rejection now triggers the reconnect scheduler.
 
-### 🗑️ Removed
+### Removed
 - **Dead code across all crates:** unused dependencies (`evdi-sys`, `libc`, `gstreamer-video`), unused public API (`open_many`, `remove_all_nodes`, `device_node_index`, `write_debug_ppm`, `stream()`, `TouchCalibration`, `fullname()`, the dead `query_status`/`call_get_status` chain), and the `Start()` no-op method from the D-Bus surface (starting stays a systemd job).
 - **Unused client surface:** `TouchCalibration`, the legacy pre-Compose `activity_main.xml`, unused Gradle dependencies (`appcompat`, `security-crypto`, `media3-exoplayer-hls`), the dead `syncWebClient` asset step, unused strings/colors resources, and the half-wired `label` navigation argument.
 - **Stale packaging assets:** unreferenced icons in `data/` (only `orbiscreen.svg` is used), the superseded `packaging/debian/` dir, and the never-built `packaging/flatpak/` manifest.
 - **Inline comments** were stripped project-wide; only the per-file license header remains.
 
-### 🔧 Changed
+### Changed
 - `rand` bumped to 0.9 in `orbiscreen-transport`; Android `versionCode` 16 → 17.
 
 ## [v0.11.0] - 2026-08-16
 
-### 💥 Breaking
+### Breaking
 - **Token auth for media & control endpoints:** `/stream`, `/input`, and `/api/control` now require a per-session access token (32 random bytes, regenerated on every daemon start). Clients present it via `Authorization: Bearer <token>` or `?token=<token>`. Android clients get it from mDNS discovery TXT / `/client/config.json`; the bundled web client bootstraps from `/client/config.json`. `/health`, `/api/info`, `/client/*` remain public.
 - **Keystore removed from the repository:** the Android release signing key is no longer shipped with the source (it remains in git history for anyone who pulled earlier). Builders must supply their own signing key; APKs signed with the old key have a different signature, so uninstall the old app before installing newly signed releases.
 - **Dead transport paths removed:** the legacy `/ws` WebSocket and WebRTC `/sdp` signaling endpoints are gone. WebRTC is fully replaced by MPEG-TS over HTTP; `webrtc_port_range` is kept only as a compatibility placeholder.
 - **`orbiscreen stop` is now real:** instead of a no-op, it asks the running daemon to shut itself down gracefully through the D-Bus session service (`Stop()`), reporting "daemon is not running" when the service is absent.
 - **Android Stream toolbar:** the dead "Open files" action (no backend since the WebRTC era) was removed from the control toolbar.
 
-### ✨ Added
+### Added
 - **evdi is now the primary frame source:** `orbiscreen-display` reads the real virtual-display framebuffer through the evdi DRM interface, so clients see the actual second monitor the compositor draws on (previously the capture fallback was always used). On hosts without the evdi kernel module the daemon degrades gracefully to Wayland portal / X11 capture of the primary desktop and logs a clear warning.
 - **Web client:** a browser client is bundled and served by the daemon at `http://<host>:8788/`, playing MPEG-TS live via MediaSource Extensions using the locally vendored `mpegts.js` (no CDN dependency, works offline on the LAN).
 - **D-Bus live status:** `GetStatus()` returns a JSON object with live fields (`running`, `frames_forwarded`, `active_clients`, `total_clients`, `encoder`, `capture_backend`); `ListClients()` reports real counts from transport stats; `GetConfig()` dumps the sanitized TOML config; `Stop()` triggers a graceful shutdown.
@@ -2297,7 +2310,7 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 - **`/api/control` real host tools:** lock (`loginctl`/`xdg-screensaver`), blank/unblank (DPMS via sway/hyprland/xset), and `ctrl_alt_del` injection; arbitrary URL `open` is explicitly rejected.
 - **GTK panel rewrite:** the GTK4 app now talks to the daemon over zbus with live status polling, honest Stop-only behavior with toast feedback, and real settings from the daemon config.
 
-### 🐛 Fixed
+### Fixed
 - **Stream/input dimension alignment:** pointer coordinates are scaled through the capture region reported to clients, so touch and mouse land in the right place regardless of display scaling.
 - **Bounded channels:** the per-client MPEG-TS path uses a bounded channel and drops chunks for stalled consumers instead of growing daemon memory without limit; stream lag tolerates `Lagged` broadcast errors until the next keyframe instead of disconnecting.
 - **Android translation breakage:** removed the dangling `onOpenFiles` reference in StreamScreen/ControlToolbar/strings.xml that kept Kotlin resources out of sync.
@@ -2307,23 +2320,23 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 - **Player build break:** removed the nonexistent `setTargetLiveOffsetMs` call (not part of media3 1.3.1's `DefaultLivePlaybackSpeedControl.Builder`); the live-edge target is set per media via `MediaItem.LiveConfiguration.setTargetOffsetMs`.
 - **Input injection hardening:** pointer buttons outside the registered range (0 or >8) are rejected instead of being silently mapped to left-click, wheel deltas are clamped before the integer cast, and a zero wheel delta no longer emits a bare SYN_REPORT; the Wayland portal injector teardown only spawns the session close when a Tokio runtime context exists, so dropping it outside the runtime can no longer panic from `drop`.
 
-### 🔒 Security
+### Security
 - **mDNS token redaction:** daemon events are now logged by kind only, never via `Debug` (whose `ServiceInfo` rendering can include the TXT record carrying the session access token); the monitor thread also switched from a 60 s receive-timeout to a blocking receive, so daemon events keep being consumed instead of dropping out after the first idle minute.
 - Corrected SECURITY.md: the daemon binds `0.0.0.0:8788` (not `127.0.0.1`), endpoints are now token-protected (not "unauthenticated by design"), and the token model + keystore rotation are documented, including limitations against a determined LAN attacker.
 
-### 📚 Docs
+### Docs
 - Rewrote `docs/DBUS_SPEC.md` to match the real interface (JSON GetStatus, TOML GetConfig, systemd-only Start); added streaming/client troubleshooting guides (wrong screen via missing evdi, no picture without MSE, missing x264 plugin, 401 token flow, D-Bus service absent); refreshed READMEs for the web client, token model, and evdi requirement.
 
 ## [v0.10.7] - 2026-08-12
 
-### 🐛 Fixed
+### Fixed
 - **Wayland portal stall (1-5 fps):** Encoder `appsrc` was missing `is-live=true` and `do-timestamp=true`. With Wayland's bursty deliverable from `pipewiresrc` and x264's `tune=zerolatency` assumptions, frames backed up in the encoder queue and never reached the appsink. Watchdog showed constant "N frames pushed" with no growth. Now the appsrc timestamps each buffer on arrival, so the encoder treats live input as a stream rather than one giant blob.
 - **Stream PTS jumping:** The transport's appsrc previously had `do-timestamp=true` which overrode the encoder's real PTS values, causing mpegtsmux to see wildly out-of-order timestamps and emit nothing. Now we use the real PTS emitted by `h264parse` (after `config-interval=1` ensures SPS/PPS lands on each IDR).
-- **NAL garbage filter:** Added a strict H264 start-code validator on the streaming push path so out-of-band packets never reach `gst_base_parse_handle_buffer`, eliminating the `SIGSEGV` seen when a client disconnected mid-frame.
+- **NAL garbage filter:** Added a strict H264 start-code validator on the streaming push path so out-of-band packets never reach `gst_base_parse_handle_buffer`, removing the `SIGSEGV` seen when a client disconnected mid-frame.
 
 ## [v0.10.6] - 2026-08-11
 
-### 🐛 Fixed
+### Fixed
 - **`/stream` returning 0 bytes:** Streamed MPEG-TS pipeline lacked explicit `video/x-h264` caps on `appsrc`. Without caps, `mpegtsmux` never classified incoming NAL units as keyframe-anchored video and withheld output indefinitely. Clients saw `200 OK` with an empty body.
 - **Slow frame pacing (1-2 fps instead of 60):** Wayland capture pipeline lacked explicit frame size caps. The `videoscale video/x-raw,format=BGRA,width=WIDTH,height=HEIGHT` chain was missing so `pipewiresrc` negotiated its own resolution and `videoconvert` overhead ballooned. Added explicit caps plus stride-mismatch detection that drops frames whose buffer size doesn't match `W*H*4`.
 - **`/api/info` and `/api/control` 404:** Routes weren't registered with the axum `Router` at all. Added fully wired handlers backed by `AppState` so the Android client can discover resolution / encoder / version and trigger host control actions.
@@ -2334,25 +2347,25 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 
 ## [v0.10.5] - 2026-08-11
 
-### 🐛 Fixed
+### Fixed
 - **Android Launcher Icon Distortion:** The previous `ic_launcher_foreground.xml` used corner-radius arcs (`A24,24`) on the monitor outline which the VectorDrawable renderer stretched, making the icon look rubbery and off from the brand SVG. Rebuilt all pathData with explicit `h`/`v`/`a` commands matching `data/orbiscreen-app.svg` exactly (monitor fill `#1E1E2E` with blue stroke, inner screen bezel, white accent arc, blue stand neck, slate base). Art now scales to 0.50 within a centered `(128, 124)` translate so it sits perfectly inside the adaptive safe zone.
 - **Legacy Launcher PNGs:** Regenerated all `mipmap-*dpi/ic_launcher.png` from the corrected vector so the install-time icon (used by launchers that don't support adaptive icons) renders sharp and non-stretched.
 - **x264 `repeat-headers` Crash:** Setting the property unconditionally panicked on newer GStreamer builds where `GstX264Enc` no longer exposes it. Wrapped in `find_property(...).is_some()` since `tune=zerolatency` already enables repeat headers internally.
 
 ## [v0.10.4] - 2026-08-11
 
-### 🐛 Fixed
+### Fixed
 - **Android Launcher Icon Background:** Adaptive icons (`ic_launcher.xml`, `ic_launcher_round.xml`) used `@android:color/transparent` so the launcher showed a black square around the artwork on many OEM launchers - switched to a real `@color/ic_launcher_background` (#FFFFFF) resource.
 - **Android Launcher Icon Oversized:** Foreground scale reduced from `0.66` to `0.56` inside `ic_launcher_foreground.xml`, keeping the artwork inside the adaptive safe zone so it renders smaller and non-intrusive after install.
 
-### 🔧 Changed
+### Changed
 - **Legacy Launcher PNGs:** Regenerated every `mipmap-*dpi/ic_launcher.png` from `data/orbiscreen-app.svg` on a white background with properly scaled artwork (was full-bleed on transparent).
 - **README Restyle:** Reworked both `README.md` and `README_AR.md` to the concise project pattern (comparison table, highlights list, screen-summary table for the Android app instead of long prose, full uninstall command documented).
 - **Docs Typography:** Replaced all em dashes with standard hyphens across `README*.md`, `CHANGELOG.md`, `SECURITY.md`, and `docs/*.md` for a cleaner, tool-agnostic documentation style.
 
 ## [v0.10.3] - 2026-08-10
 
-### 🐛 Fixed
+### Fixed
 - **EDID Range-Limits Descriptor:** Write the `0xFD` tag at byte 72 (descriptor start) instead of byte 75, so virtual-monitor EDID blocks validate against strict DRM parsers.
 - **Mouse Buttons Dropped:** Register `BTN_LEFT..=BTN_TASK` with the uinput device - clicks were silently discarded because only keyboard codes were declared.
 - **Wayland Session Leak:** Close the `RemoteDesktop` portal session on drop so the compositor's screen-sharing indicator disappears with the daemon.
@@ -2360,14 +2373,14 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 - **Stream Pipeline Panics:** Return `503 SERVICE_UNAVAILABLE` from `/stream` when the GStreamer pipeline can't be built, instead of panicking the axum worker.
 - **MPEG-TS Packet Panics:** Replace `unwrap()` calls inside the per-client broadcast task with graceful `warn + break`, so a lagging client can't crash the daemon.
 - **mDNS Fullname:** Build the real service fullname (`instance._orbiscreen._tcp.local.`) for `unregister()` so the record is actually removed when the advertiser drops.
-- **ADB Scan Robustness:** Skip malformed `adb devices` lines instead of aborting the scan on the first one.
+- **ADB Scan Stableness:** Skip malformed `adb devices` lines instead of aborting the scan on the first one.
 - **Config Hardening:** Add `#[serde(default)]` to all config sections and clamp degenerate values (`fps=0` divide-by-zero, `bitrate` overflow, inverted port ranges, `count=0`).
 - **Encoder Bitrate Units:** Pass kbit/s verbatim to VAAPI/NVENC instead of multiplying by 1000 (hardware encoders silently received a 1000× too-high target).
 - **Encoder Resource Leaks:** Send EOS before `State::Null` so tail frames flush, cap the appsrc queue (~8 MB), and `Drop`-shutdown the pipeline cleanly.
 - **Wheel/Key/Input Bounds:** Round wheel deltas instead of truncating, clamp stylus tilt to ±90°, reject `u16`-overflowing key codes, and `saturating_sub` in `clamp_point` for zero-size specs.
 - **Coordinate Scaling:** Scale raw `{x,y}` pointer payloads through the capture region (the stream's source of truth) so hand-written clients land in the right place.
 
-### 📱 Android
+### Android
 - **Wire Protocol Alignment:** `InputDispatcher` now sends the tagged envelopes the daemon actually deserializes (`{"Pointer":{...}}`, `{"Key":{...}}`, `{"Stylus":{"Tilt":{...}}}`) - previously wheel/stylus/key events failed to parse.
 - **Linux Key Codes:** The soft keyboard emits evdev codes (`a`=30, space=57, enter=28, backspace=14) instead of Android `KeyEvent` codes, which the host rejected.
 - **Stream URL:** Point ExoPlayer at `/stream` (the served route) instead of the nonexistent `/stream.ts?fmt=mp2t`.
@@ -2375,39 +2388,39 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 - **Host:Port Validation:** Reject out-of-range ports and IPv4 octets > 255 in the manual-entry field.
 - **Launcher Icon:** White-background adaptive launcher for SDK < 26 (PNG fallbacks), vector foreground scaled into the safe zone for SDK 26+.
 
-### 🌐 Web Client
+### Web Client
 - **Protocol:** Rewrite `app.js` to send the same tagged `Pointer`/`Key`/`Stylus` envelopes as Android; delete the dead WebRTC `/sdp` negotiation path (`/sdp` always 503s).
 - **Pointer Mapping:** Correct for `object-fit: contain` letterboxing so taps land where the video renders, not where the element is.
 - **Pointer Capture:** Add `setPointerCapture` + `pointercancel` so drags past the video edge don't leave host buttons stuck.
 - **Key Translation:** Map DOM `KeyboardEvent.code` to Linux evdev codes (1:1 table) instead of the broken `keyCode` numerical passthrough.
 
-### 🔧 Changed
+### Changed
 - **Icons:** `data/orbiscreen.svg` and `data/orbiscreen-app.svg` now ship a white rounded-rect background; all raster icons (Linux `data/*.png`, every Android `mipmap-*/ic_launcher.png`) are regenerated from the SVG with a white background.
 - **AppImage Builder:** Replace the hand-painted placeholder PNG with a `magick` rasterization of the real logo (white background).
 - **Docs:** English docs and new `README_AR.md` / `docs/*_AR.md` now follow the reference style (ASCII banner, hex Tailwind badges, `Language` switcher, anchored sections, centered footer).
 
 ## [v0.10.2] - 2026-07-27
 
-### 📱 Android
+### Android
 - **Brand Palette:** Replace Material You dynamic color with Catppuccin Mocha / Latte palettes matching `data/orbiscreen-app.svg` so app chrome (status/nav bars, splash, launcher icon background) matches the logo.
 - **Splash Screen & Adaptive Launcher:** Add a SplashScreen with brand background and a vector adaptive launcher foreground mirroring the SVG.
 - **Connect-time Crash Fix:** Move ExoPlayer construction to the Main thread (previously `playerHolder.build()` ran inside `withContext(Dispatchers.IO)`, which killed the process the moment the user tapped Connect).
 - **Error Hardening:** Harden `build()` against construction failures so they surface as `StreamEvent.Error` instead of crashing.
 
-### 🔄 Updated
+### Updated
 - **Version Bump:** Bump Cargo workspace version to `0.10.2` and Android `versionName` to `0.10.2` (`versionCode = 10`).
 - **Documentation:** Update all documentation files (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `docs/*`) to `v0.10.2`.
 
 ## [v0.10.1] - 2026-07-27
 
-### 🔄 Updated
+### Updated
 - **Workspace Bump:** Bump workspace `Cargo.toml` version to `0.10.1`.
 - **Android Bump:** Bump Android `versionName` to `0.10.1`.
 - **Cargo.lock:** Refresh `Cargo.lock` path-crate entries for version `0.10.1`.
 
 ## [v0.10.0] - 2026-07-27
 
-### ✨ Added
+### Added
 - **Material 3 UI:** Migrate Android client to Material 3 + Jetpack Compose.
 - **Live Discovery:** Add Spacedesk-style live NSD scan with manual `host:port` entry.
 - **Subnet Scanner:** Add optional subnet scanner for networks without mDNS.
@@ -2417,55 +2430,55 @@ Full-project audit round: every diagnostic gate (fmt, clippy `-D warnings`, buil
 - **Soft Keyboard:** Add soft keyboard overlay with system IME handoff.
 - **Settings Screen:** Add settings screen with theme, decoder, scanner, and recent host options.
 
-### 🐛 Fixed
+### Fixed
 - **Black Screen:** Fix black screen on connect by setting explicit MPEG-TS MIME type and using `OkHttpDataSource` with zero read-timeout.
 - **Error Handling:** Surface ExoPlayer errors through `StreamEvent.Error` instead of silent black surface.
 
-### 🔄 Updated
+### Updated
 - **Build & Dependencies:** Add Compose BOM, `navigation-compose`, `material-icons-extended`, proguard rules for Media3/OkHttp/Compose/NSD, and opt-in lint rules.
 - **Documentation:** refreshed across `README.md`, `docs/ARCHITECTURE.md`, `DBUS_SPEC.md`, `INSTALL.md`, `PACKAGING.md`, `TROUBLESHOOTING.md`, and `SECURITY.md`.
 
 ## [v0.9.0] - 2026-07-26
 
-### ✨ Added
+### Added
 - **Artifact Signing:** Implement universal artifact signing for Android release APK (production keystore) and Linux packages (RPM, DEB, AppImage GPG keys).
 
-### 📝 Documentation
+### Documentation
 - Document signing process in `SECURITY.md`.
 
 ## [v0.8.7] - 2026-07-26
 
-### ⚡ Optimized
+### Optimized
 - **Native Player Pipeline:** Replace WebView/WebRTC path with native GStreamer + ExoPlayer.
 - **Zero-Config Discovery:** Add mDNS auto-discovery on Android.
 - **Touch Injection:** Stream touch events into Linux Wayland compositor via `uinput` and `evdev`.
 
-### 🐛 Fixed
+### Fixed
 - **Portal Capture Fallback:** Drop failing EVDI dependency and use XDG Desktop Portal for capture.
 - **Build & Formatting:** Resolve `cargo fmt`, `clippy`, and Android Kotlin compilation errors.
 
 ## [v0.7.4] - 2026-07-25
 
-### ✨ Added
+### Added
 - **Uninstall Command:** Add `orbiscreen uninstall` command for clean removal.
 
-### 🐛 Fixed
+### Fixed
 - **Web Client Assets:** Bundle web client files (`index.html`, `app.js`, `style.css`) in packages and resolve fallback paths across `~/.local/share`, `/usr/share`, `/app/share`.
 
 ## [v0.7.3] - 2026-07-25
 
-### ⚡ CI & Packaging
+### CI & Packaging
 - Inject dynamic packaging versions and generate SHA256 checksums for all release artifacts.
 
-### 📝 Documentation
+### Documentation
 - Reformat `README.md`, `ARCHITECTURE.md`, `DBUS_SPEC.md`, `PACKAGING.md`, `TROUBLESHOOTING.md`.
 
 ## [v0.7.2] - 2026-07-24
 
-### 🐛 Fixed
+### Fixed
 - **CPU Loop:** Rate-limit capture frame pump with `tokio::time::sleep` to prevent 100% CPU usage.
 
 ## [v0.7.1] - 2026-07-24
 
-### 🐛 Fixed
+### Fixed
 - **Android Launch Crash:** Wrap `MainActivity` init in try/catch and fix malformed HTML in WebView fallback.

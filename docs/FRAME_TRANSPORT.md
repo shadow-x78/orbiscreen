@@ -2,10 +2,7 @@
 
 # Frame Transport - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.30.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.30.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.30.9-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![Version](https://img.shields.io/badge/version-0.31.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.31.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -66,7 +63,7 @@ flowchart LR
 3. **Encode.** Hardware H.264 preferred (VA-API / NVENC), CBR 8 Mbps, no B-frames, infinite GOP, intra-refresh, one-frame VBV. `h264parse config-interval=1` (and `repeat-sequence-header` when present) so an IDR should carry SPS/PPS. `is_keyframe` is `!DELTA_UNIT`.
 4. **Split by `video_carrier` (Wi-Fi) or USB lane.**
    - **Keyframe** → reliable: `encode_video` (length-prefixed WT frame). If SPS/PPS are missing, the last cached pair is prepended (`with_parameter_sets`). Datagram `seq` does not increment. On USB the same blob is packed into AOA frames (max 16 379-byte payload, one USB URB each) and written on the **priority** queue.
-   - **P-frame** → datagrams on Wi-Fi: split into `frag` / `frags` at the path MTU. `seq` increments by one per P-AU. On USB the packed AU is `try_send` on a depth-2 video queue; if that is full the P-frame is dropped and an IDR is requested (USB bulk does not lose packets — a full queue means the tablet is behind).
+   - **P-frame** → datagrams on Wi-Fi: split into `frag` / `frags` at the path MTU. `seq` increments by one per P-AU. On USB the packed AU is `try_send` on a depth-2 video queue; if that is full the P-frame is dropped and an IDR is requested (USB bulk does not lose packets, a full queue means the tablet is behind).
 5. **Client.**
    - First IDR on the reliable stream configures the decoder (Android: MediaCodec `csd-0`/`csd-1` from SPS/PPS; web: WebCodecs `avc1.…` from SPS) and calls `onReliableKeyframe()` so the datagram assembler treats the next P as the start of a GOP. USB skips the assembler: AOA payloads concatenate into `IdrFrames.Reader` and go straight to MediaCodec.
    - P-datagrams are reassembled (`DatagramAssembler` / `AuReorder`). In-order `seq` is fed to the decoder. A one-seq hole is held briefly (~48 ms) in case of reorder.

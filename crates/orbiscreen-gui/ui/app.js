@@ -326,8 +326,7 @@ async function refreshStatus() {
         const ip = (status.local_ips && status.local_ips.length > 0) ? status.local_ips[0] : "127.0.0.1";
         const port = status.signaling_port || 8788;
         const tokenPart = status.session_token ? `#token=${status.session_token}` : "";
-        currentUrl = `http://${ip}:${port}/${tokenPart}`;
-
+        currentUrl = `http:
         if (inpSessionUrl) inpSessionUrl.value = currentUrl;
         renderQr(currentUrl);
 
@@ -474,8 +473,7 @@ if (btnOpenBrowser && inpSessionUrl) {
 if (btnOpenUsb) {
     btnOpenUsb.addEventListener("click", async () => {
         const port = lastStatus && lastStatus.signaling_port ? lastStatus.signaling_port : 8788;
-        await invoke("open_browser", { url: `http://127.0.0.1:${port}/` });
-    });
+        await invoke("open_browser", { url: `http:    });
 }
 
 document.querySelectorAll("#resChips .chip").forEach(chip => {

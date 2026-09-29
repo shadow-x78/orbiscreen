@@ -1,19 +1,5 @@
 //---------------------------------------------------------------------
 //
-// QR Code Generator for JavaScript
-//
-// Copyright (c) 2009 Kazuhiko Arase
-//
-// URL: http://www.d-project.com/
-//
-// Licensed under the MIT license:
-//  http://www.opensource.org/licenses/mit-license.php
-//
-// The word 'QR Code' is registered trademark of
-// DENSO WAVE INCORPORATED
-//  http://www.denso-wave.com/qrcode/faqpatent-e.html
-//
-//---------------------------------------------------------------------
 
 var qrcode = function() {
 
@@ -1887,8 +1873,7 @@ var qrcode = function() {
       out.writeShort(_width);
       out.writeShort(_height);
 
-      out.writeByte(0x80); // 2bit
-      out.writeByte(0);
+      out.writeByte(0x80);       out.writeByte(0);
       out.writeByte(0);
 
 

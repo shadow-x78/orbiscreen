@@ -1735,8 +1735,8 @@ fn cleanup_lingering_audio_sinks() {
 }
 
 async fn bind_kwin_virtual_inputs(preferred_output: String) {
-    for delay_ms in [250, 500, 1000, 2000] {
-        tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+    for _attempt in 0..6 {
+        tokio::time::sleep(std::time::Duration::from_millis(120)).await;
         let Some(target_output) = orbiscreen_capture::kwin_virtual::preferred_tablet_output(Some(
             preferred_output.as_str(),
         )) else {
@@ -1760,7 +1760,7 @@ async fn bind_kwin_virtual_inputs(preferred_output: String) {
             )
             .await;
             if bound >= 2 {
-                break;
+                return;
             }
         }
     }

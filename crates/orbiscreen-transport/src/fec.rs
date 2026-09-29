@@ -3,8 +3,6 @@
 
 use std::sync::OnceLock;
 
-/// Largest data-shard count whose Cauchy columns stay inside GF(256)
-/// when four parity rows occupy field elements 0..3.
 pub const MAX_FEC_DATA_SHARDS: usize = 252;
 pub const FEC_BLOCK_FLAG: u8 = 0x02;
 

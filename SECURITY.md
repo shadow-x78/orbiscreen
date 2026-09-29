@@ -11,7 +11,7 @@
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Supported Versions](#supported-versions)
 - [Reporting a Vulnerability](#reporting)
@@ -23,7 +23,7 @@
 ---
 
 <a id="supported-versions"></a>
-## 🛡️ Supported Versions
+## Supported Versions
 
 | Version | Supported |
 |---------|-----------|
@@ -37,7 +37,7 @@ Only the latest minor release receives security updates. Ensure you build from `
 ---
 
 <a id="reporting"></a>
-## 🚨 Reporting a Vulnerability
+## Reporting a Vulnerability
 
 If you discover a security vulnerability in Orbiscreen, please report it **responsibly** and **privately**.
 
@@ -70,7 +70,7 @@ If you discover a security vulnerability in Orbiscreen, please report it **respo
 ---
 
 <a id="disclosure"></a>
-## 📢 Disclosure Policy
+## Disclosure Policy
 
 We follow a **coordinated disclosure** model:
 
@@ -85,9 +85,9 @@ We follow a **coordinated disclosure** model:
 ---
 
 <a id="considerations"></a>
-## 🔍 Security Considerations
+## Security Considerations
 
-### Scope (v0.25.9)
+### Scope (v0.31.4)
 
 Orbiscreen is a Linux host daemon plus a Material 3 Android client and a browser web client that:
 - Creates compositor-native virtual displays without root: KWin's `zkde_screencast_unstable_v1` on Plasma, headless outputs via sway/Hyprland IPC on wlroots, falling back to the `evdi` kernel module or primary-desktop capture (Wayland portal or X11) when unavailable
@@ -110,7 +110,7 @@ Clients obtain the token in two ways:
 
 **Threat model:** anyone who can reach the HTTP port can read `/client/config.json` and therefore learn the token. The token is therefore **abuse protection against casual/unintended use** (scanners, wrong-device connections, neighbors probing the port), **not** protection against a determined attacker on your LAN. It stops nothing from an attacker who already has network access to the port, and it is transmitted in cleartext.
 
-- **TLS is planned** for a future release; until then the session token rides over plain HTTP. The USB transport (Android Open Accessory bulk) keeps the stream entirely inside the USB cable — no LAN exposure at all on that path — and the token is still required.
+- **TLS is planned** for a future release; until then the session token rides over plain HTTP. The USB transport (Android Open Accessory bulk) keeps the stream entirely inside the USB cable, no LAN exposure at all on that path, and the token is still required.
 - The Android client's `network_security_config.xml` therefore permits cleartext HTTP globally. This is deliberate: the app only ever connects to LAN hosts the user selects (mDNS discovery or manual entry), and Android's per-domain cleartext exceptions cannot express arbitrary LAN IP addresses. All requests still require the per-session token.
 - The token is regenerated on every daemon start, so restarting the daemon invalidates all previously issued tokens.
 - `/health`, `/api/info`, `/client/config.json`, `/client/*` stay public by design (liveness, metadata, web-client bootstrap).
@@ -163,9 +163,9 @@ The Android release signing key (`orbiscreen-release.keystore`) was removed from
 ---
 
 <a id="audit"></a>
-## 🔬 Security Audit
+## Security Audit
 
-Orbiscreen (v0.27.4) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose), a small browser web client (WebTransport + WebCodecs `VideoDecoder`), and a Linux desktop GUI control center (Tauri v2 + WebKitGTK). A running daemon performs:
+Orbiscreen (v0.31.4) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose), a small browser web client (WebTransport + WebCodecs `VideoDecoder`), and a Linux desktop GUI control center (Tauri v2 + WebKitGTK). A running daemon performs:
  
 - `open()` on `/dev/dri/card*` evdi nodes for capture
 - Compositor IPC over session-local Unix sockets: sway i3-ipc (`$SWAYSOCK`) and Hyprland (`HYPRLAND_INSTANCE_SIGNATURE`) to create/destroy headless outputs
@@ -183,11 +183,11 @@ All logic is readable in plain Rust and Kotlin. If you perform an audit, please 
 ---
 
 <a id="hall-of-fame"></a>
-## 🏆 Hall of Fame
+## Hall of Fame
 
 We thank the following security researchers for responsible disclosure:
 
-*(None yet - be the first!)*
+*No entries credited yet.*
 
 ---
 

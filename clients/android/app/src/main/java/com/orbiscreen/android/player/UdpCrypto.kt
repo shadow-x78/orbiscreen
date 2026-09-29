@@ -8,7 +8,7 @@ import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-/** AES-256-GCM datagrams. Clear header is ORB2 || key id || nonce. Plaintext is ORB1. */
+
 object UdpCrypto {
     const val DIR_CLIENT = 0
     const val DIR_HOST = 1
@@ -97,7 +97,7 @@ object UdpCrypto {
     }
 }
 
-/** Client or host side of one issued key. Nonces count up; replays inside the window are dropped. */
+
 class UdpSessionCrypto(
     private val keyId: ByteArray,
     private val secret: ByteArray,
@@ -186,7 +186,7 @@ object UdpInbound {
     }
 }
 
-/** LAN video target. HTTP stays on the pinned proxy; datagrams go to [host]. */
+
 data class UdpVideoTarget(
     val host: String,
     val port: Int,

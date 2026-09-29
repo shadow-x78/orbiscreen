@@ -2,10 +2,7 @@
 
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.30.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الإصدار](https://img.shields.io/badge/version-0.30.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الإصدار](https://img.shields.io/badge/version-0.30.9-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الإصدار](https://img.shields.io/badge/version-0.31.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.31.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -14,13 +11,13 @@
 
 ---
 
-## 🌐 اللغة
+## اللغة
 
 <a href="TROUBLESHOOTING.md">🇬🇧 English</a> · <a href="TROUBLESHOOTING_AR.md">🇸🇦 العربية</a>
 
 ---
 
-## 📋 المحتويات
+## المحتويات
 
 ### إجراءات سير عمل CI (`‎.github/workflows/ci.yml`)
 
@@ -76,7 +73,7 @@
 ---
 
 <a id="ci-fmt"></a>
-## 🧪 إجراء CI: `Format (cargo fmt)`
+## إجراء CI: `Format (cargo fmt)`
 
 **العَرَض:**
 ```
@@ -90,7 +87,7 @@ Diff in /home/runner/work/orbiscreen/orbiscreen/crates/...:
 ```bash
 cargo fmt --all
 git add -A
-git commit -m "orbiscreen | v0.25.9 | style: cargo fmt --all"
+git commit -m "orbiscreen | v0.31.3 | style: cargo fmt --all"
 ```
 
 **الوقاية:**
@@ -99,7 +96,7 @@ git commit -m "orbiscreen | v0.25.9 | style: cargo fmt --all"
 ---
 
 <a id="ci-clippy"></a>
-## 🧪 إجراء CI: `Clippy (deny warnings)`
+## إجراء CI: `Clippy (deny warnings)`
 
 **العَرَض:**
 ```
@@ -115,7 +112,7 @@ error: this operation is not supported for derived errors
 cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | head -50
 cargo clippy --workspace --all-targets --locked --fix
 git add -A
-git commit -m "orbiscreen | v0.25.9 | fix: resolve clippy warnings"
+git commit -m "orbiscreen | v0.31.3 | fix: resolve clippy warnings"
 ```
 
 **الوقاية:**
@@ -124,7 +121,7 @@ git commit -m "orbiscreen | v0.25.9 | fix: resolve clippy warnings"
 ---
 
 <a id="ci-build"></a>
-## 🧪 إجراء CI: `Build` (`cargo build --workspace --locked`)
+## إجراء CI: `Build` (`cargo build --workspace --locked`)
 
 **العَرَض:**
 ```
@@ -136,13 +133,13 @@ error[E0463]: can't find crate for `gstreamer`
 cargo update -p gstreamer
 cargo build --workspace --locked
 git add Cargo.lock
-git commit -m "orbiscreen | v0.25.9 | chore: refresh Cargo.lock"
+git commit -m "orbiscreen | v0.31.3 | chore: refresh Cargo.lock"
 ```
 
 ---
 
 <a id="ci-test"></a>
-## 🧪 إجراء CI: `Test` ‏(`cargo test --workspace --locked`)
+## إجراء CI: `Test` ‏(`cargo test --workspace --locked`)
 
 تفترض الاختبارات وجود إضافات GStreamer على المضيف (`x264enc`، `vaapih264enc`، `nvh264enc`). ثبّتها محلياً:
 ```bash
@@ -152,14 +149,14 @@ sudo dnf install gstreamer1.0-plugins-{good,bad,ugly,libav}
 ---
 
 <a id="ci-deny"></a>
-## 🧪 إجراء CI: `Run cargo-deny`
+## إجراء CI: `Run cargo-deny`
 
 هذا فحص **غير مانع** لأغراض معلوماتية. راجع `deny.toml` لقائمة السماح.
 
 ---
 
 <a id="ci-android"></a>
-## 🧪 إجراء CI: `Android assembleDebug` + `lintDebug`
+## إجراء CI: `Android assembleDebug` + `lintDebug`
 
 يشغّل سير عمل Android الأمر `./gradlew :app:assembleDebug :app:lintDebug`. الإخفاقات الشائعة:
 
@@ -169,7 +166,7 @@ sudo dnf install gstreamer1.0-plugins-{good,bad,ugly,libav}
 ---
 
 <a id="runtime-evdi"></a>
-## 🚀 وقت التشغيل: فشل `orbiscreen start` - `kernel module is not installed`
+## وقت التشغيل: فشل `orbiscreen start` - `kernel module is not installed`
 
 **العرَض:**
 ```
@@ -199,7 +196,7 @@ Error: evdi kernel module is not installed
 ---
 
 <a id="runtime-kwin"></a>
-## 🚀 وقت التشغيل: KDE Plasma (شاشة افتراضية بدون evdi وبدون root)
+## وقت التشغيل: KDE Plasma (شاشة افتراضية بدون evdi وبدون root)
 
 **الأعراض:** يسجّل `orbiscreen start` رسالة `EVDI kernel module not active` ولا تريد بناء وحدة نواة.
 
@@ -215,20 +212,20 @@ Error: evdi kernel module is not installed
 ---
 
 <a id="runtime-wayland"></a>
-## 🚀 وقت التشغيل: واجهة الالتقاط غير متاحة على Wayland
+## وقت التشغيل: واجهة الالتقاط غير متاحة على Wayland
 
 استخدم `CaptureSession::open_with_preference()` (الـ daemon يفعل ذلك مسبقاً).
 
 ---
 
 <a id="runtime-lints"></a>
-## 🚀 وقت التشغيل: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`
+## وقت التشغيل: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`
 
 استخدم `#[allow(missing_debug_implementations)]` أو `#[allow(unsafe_code)]` على النوع أو الدالة المعنية.
 
 ---
 
-## 📱 أجهزة وعميل Android
+## أجهزة وعميل Android
 
 <a id="android-chromebook-adb"></a>
 ### Android / ChromeOS: فشل اتصال ADB أو بقاء الرسالة "Looking for host" على ASUS Chromebook CM3001
@@ -240,9 +237,9 @@ Error: evdi kernel module is not installed
 يعزل نظام ChromeOS تطبيقات أندرويد داخل حاوية ARC++ مع نطاق شبكة فرعي خاص (`100.115.92.0/28`). بث USB يستخدم Android Open Accessory، وليس `adb reverse` إلى Crostini.
 
 **الحل:**
-- يقوم Orbiscreen v0.20.0 تلقائياً بفحص وتوجيه المنفذ الداخلي لبوابة ARC++ على `100.115.92.2:5555` إلى جانب `localhost:5555`.
-- في إعدادات ChromeOS، انتقل إلى **خيارات متقدمة** -> **المطورون** -> **تطوير تطبيقات Android** وفعّل **تصحيح أخطاء ADB**.
-- أعد تشغيل الجهاز إن طُلب منك ذلك، ثم شغّل `orbiscreen start` داخل طرفية لينكس، وسيتصل التطبيق فورياً عبر USB.
+- شغّل `orbiscreen start` داخل حاوية لينكس، ثم اقبل حوار إذن ملحق USB على جانب Android (Orbiscreen Display Server).
+- عندما لا تكون AOA جاهزة، يظل العميل يفحص بوابات ARC / مشاركة USB ‏(`100.115.92.2`، ...) على منفذ الإشارة.
+- بث USB نفسه يتم عبر Android Open Accessory ولا يتطلب تفعيل تصحيح USB ولا `adb reverse`.
 
 ---
 
@@ -259,8 +256,8 @@ Error: evdi kernel module is not installed
 في الإصدارات السابقة، كانت حزم شبكة القلم تُرسل مباشرة على الخيط الرسومي الرئيسي لتطبيق أندرويد. كما كانت واجهة الاستماع لحركة التحليق `ACTION_HOVER_MOVE` غير مفعلة، ولم تكن إشارة رفع القلم تُرسل عند وصول الضغط إلى صفر.
 
 **الحل:**
-- حدّث التطبيق إلى الإصدار **v0.20.0** أو أحدث.
-- ينقل v0.20.0 معالجة حزم القلم بالكامل إلى خلفية غير متزامنة عبر `Dispatchers.IO` مع دمج الأحداث السريعة عبر `latestStylus` لمنع تجمد الواجهة أو انهيار التطبيق.
+- حدّث التطبيق إلى الإصدار **v0.31.3** أو أحدث.
+- ينقل v0.31.3 معالجة حزم القلم بالكامل إلى خلفية غير متزامنة عبر `Dispatchers.IO` مع دمج الأحداث السريعة عبر `latestStylus` لمنع تجمد الواجهة أو انهيار التطبيق.
 - يفعل `setOnGenericMotionListener` لتتبع حركة المؤشر في الهواء أثناء تحليق القلم.
 - يصحح معادلة زاوية الميلان (`-altitudeDeg * cos(orientationRad)`) ويرسل إشارة `BTN_TOOL_PEN: RELEASED` عند رفع القلم وانعدام الضغط.
 
@@ -276,7 +273,7 @@ Error: evdi kernel module is not installed
 كان وضع لوحة اللمس سابقاً يفسر جميع الحركات كمجرد تحريك للمؤشر دون دعم إيماءة السحب.
 
 **الحل:**
-- التحديث إلى **v0.20.0**.
+- التحديث إلى **v0.31.3**.
 - **النقر المزدوج مع السحب:** انقر مرتين سريعاً على الشاشة مع إبقاء إصبعك مضغوطاً في النقرة الثانية. أثناء تحريك إصبعك، يظل زر الفأرة الأيسر مضغوطاً لسحب النوافذ أو نقل الملفات أو تحديد النصوص بسلاسة.
 - رفع إصبعك عن الشاشة يحرر زر الفأرة فوراً.
 
@@ -292,7 +289,7 @@ Error: evdi kernel module is not installed
 يجب إنشاء `PlayerHolder.build()` على الخيط الرئيسي. يتطلب ExoPlayer الإنشاء على الخيط الرئيسي؛ وإنشاء مكوّنات المشغّل على خيوط IO يرمي استثناءات وصول خيطي تنهي العملية.
 
 **الإصلاح:**
-- حدّث إلى `orbiscreen-android-release.apk` الإصدار **v0.20.0** أو أحدث.
+- حدّث إلى `orbiscreen-android-release.apk` الإصدار **v0.31.3** أو أحدث.
 - ينشئ `StreamViewModel` مشغّل ExoPlayer على `Dispatchers.Main` مع تحصين عبر try-catch لتظهر الأخطاء كبطاقة `StreamEvent.Error` قابلة لإعادة المحاولة بدل الانهيار.
 
 ---
@@ -307,7 +304,7 @@ Error: evdi kernel module is not installed
 محاولة ExoPlayer التعرف التلقائي على نوع الوسائط (MIME sniffing) لمسار `/stream` والتراجع لسطح أسود عند تعذر الكشف التلقائي.
 
 **الإصلاح:**
-- حدّث إلى `orbiscreen-android-release.apk` الإصدار **v0.20.0** أو أحدث.
+- حدّث إلى `orbiscreen-android-release.apk` الإصدار **v0.31.3** أو أحدث.
 - يقوم `PlayerHolder` بضبط `MediaItem` بنوع صريح `setMimeType(MimeTypes.VIDEO_MP2T)` لفك ترميز البث مباشرة دون الحاجة للتعرف التلقائي.
 - تظهر الأخطاء كبطاقة إعادة محاولة واضحة بدل السطح الأسود.
 
@@ -366,7 +363,7 @@ orbiscreen start
 مشاكل سابقة متعلقة بـ WebView في الإصدارات القديمة.
 
 **الإصلاح:**
-يعتمد تطبيق Orbiscreen على Jetpack Compose + `PlayerView` أصيلاً دون WebView. تأكد من تثبيت `orbiscreen-android-release.apk` الإصدار **v0.20.0** أو أحدث. إذا واجهت أي مشكلة، التقط السجل عبر `adb logcat *:E | grep orbiscreen` وافتح بلاغاً في GitHub.
+يعتمد تطبيق Orbiscreen على Jetpack Compose + `PlayerView` أصيلاً دون WebView. تأكد من تثبيت `orbiscreen-android-release.apk` الإصدار **v0.31.3** أو أحدث. إذا واجهت أي مشكلة، التقط السجل عبر `adb logcat *:E | grep orbiscreen` وافتح بلاغاً في GitHub.
 
 ---
 
@@ -386,7 +383,7 @@ USB يستخدم Android Open Accessory وليس `adb reverse`. تأكد من:
 عدد الملحقات لدى الدامن مرئي عبر `GET /health`‏ (`usb_devices`) وفي `GetStatus` عبر D-Bus.
 
 <a id="streaming-wifi-latency"></a>
-## ⚡ البث: بطء شديد أو تقطيع في حركة الفأرة عبر شبكة 5GHz Wi-Fi
+## البث: بطء شديد أو تقطيع في حركة الفأرة عبر شبكة 5GHz Wi-Fi
 
 **العَرَض:**
 عند الاتصال عبر شبكة واي فاي 5GHz (مثل أجهزة Lenovo Tab أو الهواتف)، تبدو حركة الفأرة ثقيلة جداً أو متأخرة بفارق زمني ملحوظ، أو يتأخر بث الشاشة عن المضيف.
@@ -397,16 +394,16 @@ USB يستخدم Android Open Accessory وليس `adb reverse`. تأكد من:
 3. تجميع أحداث الفأرة بفاصل زمني طويل نسبياً.
 
 **الحل:**
-- يقوم الإصدار v0.20.0 بضبط مسار البث بالكامل لأدنى كمون واستجابة فورية:
-  - **إطار مفتاحي كل 6 إطارات (GOP 6):** ترسل المرمّزات العتادية إطاراً مفتاحياً كل 100ms، مما يتيح استعادة البث اللحظية فور حدوث أي تشويش دون تراكم.
-  - **توليف ذاكرة ExoPlayer (40-120ms):** تخفيض التخزين المؤقت إلى 40ms كحد أدنى و 120ms كحد أقصى للحفاظ على البث المباشر اللحظي.
-  - **حلقة إرسال الفأرة 8ms:** تقليص نافذة تجميع الفأرة إلى 8ms لمنح استجابة فائقة تماثل شاشات 120Hz.
+- يقوم الإصدار v0.31.3 بضبط مسار البث بالكامل لأدنى كمون واستجابة فورية:
+  - **إطار مفتاحي كل 6 إطارات (GOP 6):** ترسل المرمّزات العتادية إطاراً مفتاحياً كل 100ms، ما يسمح باستعادة سريعة عند التشويش أو فقد الحزم.
+  - **توليف ذاكرة ExoPlayer (40-120ms):** تخفيض التخزين المؤقت إلى 40ms كحد أدنى و 120ms كحد أقصى لإبقاء العرض عند أحدث إطار.
+  - **حلقة إرسال الفأرة 8ms:** تقليص نافذة تجميع الفأرة إلى 8ms لمواكبة معدّلات تحديث تصل إلى 120Hz.
 - تأكد من ضبط راوتر Wi-Fi 5GHz على قناة غير مزدحمة وبعرض نطاق 80MHz.
 
 ---
 
 <a id="stream-disconnect-retry"></a>
-## 🔁 البث: وميض وإعادة اتصال لانهائية عند حدوث خطأ في البث بدل التعرف على انقطاع الاتصال
+## البث: وميض وإعادة اتصال لانهائية عند حدوث خطأ في البث بدل التعرف على انقطاع الاتصال
 
 **العَرَض:**
 عند إيقاف خادم لينكس أو تعطل الشبكة، يظل تطبيق أندرويد يومض ويحاول إعادة الاتصال بلا نهاية دون إظهار شاشة توقف واضحة.
@@ -415,14 +412,14 @@ USB يستخدم Android Open Accessory وليس `adb reverse`. تأكد من:
 كانت المشغلات تفتقر إلى حالة انقطاع صريحة، وتستمر في محاولات الاتصال دون حد أقصى.
 
 **الحل:**
-- في v0.20.0، أُضيفت حالة صريحة `StreamEvent.Disconnected`.
+- في v0.31.3، أُضيفت حالة صريحة `StreamEvent.Disconnected`.
 - فور حدوث خطأ في الشبكة، يُطلق التطبيق فحصاً سريعاً خلال 500ms لنقطة `/health` للتأكد من حالة الخادم.
 - حُددت محاولات إعادة الاتصال بـ 3 محاولات فقط؛ وعند تعذر الوصول للخادم يعرض التطبيق بطاقة انقطاع الاتصال مع زر لإعادة المحاولة اليدوية.
 
 ---
 
 <a id="cursor-clamping"></a>
-## 🖥 تعدد الشاشات / X11: هروب مؤشر الفأرة من الشاشة الافتراضية إلى الشاشات المادية الأخرى
+## تعدد الشاشات / X11: هروب مؤشر الفأرة من الشاشة الافتراضية إلى الشاشات المادية الأخرى
 
 **العَرَض:**
 عند تحريك الفأرة أو القلم على التابلت، يقفز المؤشر خارج حدود الشاشة الافتراضية إلى شاشة اللابتوب أو الشاشات المادية الأخرى.
@@ -431,13 +428,13 @@ USB يستخدم Android Open Accessory وليس `adb reverse`. تأكد من:
 حقن إحداثيات XTEST بدون تقييد أبعاد المخرج يمتد على كامل مساحة سطح المكتب المجمعة.
 
 **الحل:**
-- في v0.20.0، يستعلم Orbiscreen عن أبعاد الشاشة الافتراضية بدقة عبر XRandR ويقيد حركة المؤشر والقلم تماماً داخل مستطيل الشاشة الافتراضية (`InputProp::DIRECT`).
+- في v0.31.3، يستعلم Orbiscreen عن أبعاد الشاشة الافتراضية بدقة عبر XRandR ويقيد حركة المؤشر والقلم تماماً داخل مستطيل الشاشة الافتراضية (`InputProp::DIRECT`).
 - ينحصر المؤشر داخل شاشة التابلت دون القفز إلى الشاشات الأخرى.
 
 ---
 
 <a id="wrong-screen"></a>
-## 🖥 العميل يعرض الشاشة الخطأ (سطح المكتب الرئيسي بدل الشاشة الافتراضية)
+## العميل يعرض الشاشة الخطأ (سطح المكتب الرئيسي بدل الشاشة الافتراضية)
 
 **العرض:**
 يتصل عميل Android/الويب ويعرض فيديو، لكنه يعكس سطح مكتب المضيف الرئيسي بدل شاشة ثانية نظيفة. سحب النوافذ إلى شاشة ثانية لا يفعل شيئاً.
@@ -460,24 +457,23 @@ USB يستخدم Android Open Accessory وليس `adb reverse`. تأكد من:
 ---
 
 <a id="web-no-picture"></a>
-## 🌐 عميل الويب يُحمَّل لكن بلا صورة
+## عميل الويب يُحمَّل لكن بلا صورة
 
 **العرض:**
-`http://<host>:8788/` يُحمل، وشريط الحالة يظل يعرض "Connecting to stream…" أو يبلغ فوراً "This browser does not support MSE playback".
+`https://<host>:8790/client/` يُحمل، وطبقة الحالة تظل على "Connecting"، أو تظهر رسالة "Unsupported browser" تطلب Chrome أو Brave أو Edge.
 
 **السبب:**
-عميل الويب يفك MPEG-TS عبر `mpegts.js` المورّدة محلياً ويضخ H.264 إلى MediaSource Extensions (MSE). المتصفحات بدون MSE أو مع حظر التشغيل التلقائي لن تستطيع فك البث. لا يوجد مسار WebRTC.
+عميل الويب يفتح جلسة WebTransport ويفك وحدات Annex-B عبر WebCodecs ‏`VideoDecoder`‏ على عنصر canvas. مسارا HTTP ‏`/` و `/client/`‏ على منفذ الإشارة يعيدان التوجيه إلى هناك. يجب قبول الشهادة الذاتية التوقيع مرة واحدة؛ ويعيد الدامن استخدام `$XDG_CONFIG_HOME/orbiscreen/wt-cert.pem` (مع `wt-key.pem`) بين عمليات إعادة التشغيل. المتصفحات بدون ‏`VideoDecoder`‏ (مثل Firefox Mobile) لا تفك البث إطلاقاً. لا يوجد مسار MSE ولا WebRTC.
 
 **الإصلاح:**
-1. استخدم متصفحاً يدعم البث الحي عبر MSE: Chrome أو Firefox أو Edge على سطح المكتب. لا يدعم Safari على iOS فيديو MSE، وFirefox على الهاتف بدون MSE أيضاً.
-2. إذا حظر المتصفح التشغيل التلقائي، انقر على الفيديو مرة لبدء التشغيل.
-3. تأكد أن الصفحة خدمها الدامن نفسه (يُحمل `vendor/mpegts.js` من `/client/vendor/mpegts.js`) - ليس نسخة قديمة مخزونة مؤقتاً.
-4. تحقق من وحدة التحكم/الشبكة في أدوات المطوّر: 401 على `/stream` تعني فشل مسار التوكن - راجع [رفض 401](#token-401).
+1. افتح الصفحة في Chrome أو Brave أو Edge أو أي متصفح Chromium آخر. Firefox Mobile لا يدعم ‏WebCodecs `VideoDecoder`‏.
+2. تأكد أن الصفحة خُدمت عبر HTTPS على منفذ WebTransport ‏(`signaling_port + 2`، أي 8790 عادةً)‏ وأنك قبلت الشهادة.
+3. راجع وحدة التحكم/الشبكة في أدوات المطور: خطأ 401 على `/au` أو فشل رسالة Hello يعني أن مسار التوكن تعطّل - راجع [رفض 401](#token-401).
 
 ---
 
 <a id="no-encoder"></a>
-## 🎞 لا يوجد مُرمَّز - البث يبدأ لكنه يفشل (غياب x264)
+## لا يوجد مُرمَّز - البث يبدأ لكنه يفشل (غياب x264)
 
 **العرض:**
 يبدأ الدامن ويتصل العملاء، لكن الفيديو لا يصل أو يظهر في السجل خطأ ربط عناصر GStreamer يذكر `x264enc` / `no element found`.
@@ -501,7 +497,7 @@ gst-inspect-1.0 x264enc
 ---
 
 <a id="token-401"></a>
-## 🔑 رفض 401 من `/stream` أو `/input` أو `/api/control` (التوكن)
+## رفض 401 من `/stream` أو `/input` أو `/api/control` (التوكن)
 
 **العرض:**
 يحصل العملاء (Android أو الويب أو سكربتات مكتوبة يدوياً) على `401 Unauthorized`. ‏`curl http://host:8788/health` يعمل بشكل طبيعي، لكن `/stream` و`/input` و`/api/control` ترفض الطلب.
@@ -524,7 +520,7 @@ gst-inspect-1.0 x264enc
    ```bash
    orbiscreen doctor
    # أو قراءة ملف التوكن المحمي بصلاحيات 0o600:
-   cat ~/.config/orbiscreen/stream_token
+   cat ~/.config/orbiscreen/token
    ```
 3. يستقبل تطبيق أندرويد التوكن تلقائياً عبر سجلات mDNS TXT. وفي حال الإضافة اليدوية لمضيف، أدخل التوكن في نافذة الإعدادات.
 4. مرر التوكن في السكربتات عبر ترويسة المصادقة:
@@ -535,7 +531,7 @@ gst-inspect-1.0 x264enc
 ---
 
 <a id="dbus-missing"></a>
-## 🚌 الـ daemon غير موجود على D-Bus
+## الـ daemon غير موجود على D-Bus
 
 **العرض:**
 يطبع `orbiscreen stop` الرسالة `daemon is not running (no com.orbiscreen.Daemon on the session bus)`
@@ -558,18 +554,18 @@ gst-inspect-1.0 x264enc
 ---
 
 <a id="daemon-cpu"></a>
-## 🚀 الـ Daemon: استهلاك 100% للمعالج أو تجمّد
+## الـ Daemon: استهلاك 100% للمعالج أو تجمّد
 
 **السبب:**
 كانت حلقة الالتقاط تعمل دون إخلاء للمعالج أو تراكم غير محدود في الطابور.
 
 **الإصلاح:**
-حدّث إلى الإصدار الأخير (v0.25.9 أو أحدث).
+حدّث إلى الإصدار الأخير (v0.31.3 أو أحدث).
 
 ---
 
 <a id="still-stuck"></a>
-## 🛟 ما زلت عالقاً؟
+## ما زلت عالقاً؟
 
 <a id="re-run-job"></a>
 ### إعادة تشغيل مهمة CI واحدة

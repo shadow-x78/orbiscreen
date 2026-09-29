@@ -5,11 +5,6 @@ package com.orbiscreen.android.usb
 
 import java.net.Socket
 
-/**
- * Reads one accepted AOA proxy socket. Closing the socket, including from
- * [UsbAccessoryManager.stopAccessory], must return instead of throwing:
- * an exception here is an uncaught coroutine failure and Android kills the process.
- */
 internal object AoaAcceptedSocket {
     fun readLoop(socket: Socket, running: () -> Boolean = { true }, onChunk: (ByteArray, Int) -> Unit) {
         val input = try {
