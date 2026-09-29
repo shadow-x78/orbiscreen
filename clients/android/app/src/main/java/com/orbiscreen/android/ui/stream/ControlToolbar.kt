@@ -6,6 +6,7 @@ package com.orbiscreen.android.ui.stream
 import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,7 +93,11 @@ fun ControlToolbar(
                 )
             }
 
-            Column(modifier = Modifier.padding(end = 6.dp)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 6.dp),
+            ) {
                 if (!isPortrait) {
                     Text(
                         text = hostLabel,
@@ -113,6 +118,7 @@ fun ControlToolbar(
                     color = Color.White.copy(alpha = 0.7f),
                     fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
 

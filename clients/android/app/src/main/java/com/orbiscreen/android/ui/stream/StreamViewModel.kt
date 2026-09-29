@@ -389,14 +389,10 @@ class StreamViewModel(
                 android.content.res.Configuration.ORIENTATION_PORTRAIT
             val targetW = if (isPortrait) minOf(presetW, presetH) else maxOf(presetW, presetH)
             val targetH = if (isPortrait) maxOf(presetW, presetH) else minOf(presetW, presetH)
-            val w = session?.width
-                ?: targetW.takeIf { it > 0 }
-                ?: hostInfo?.width
-                ?: identity.width
-            val h = session?.height
-                ?: targetH.takeIf { it > 0 }
-                ?: hostInfo?.height
-                ?: identity.height
+            // Only fall back to the host-reported session size when no preset is set,
+            // so the user's saved resolution preference always takes priority on connect.
+            val w = if (presetW > 0) targetW else (session?.width ?: hostInfo?.width ?: identity.width)
+            val h = if (presetH > 0) targetH else (session?.height ?: hostInfo?.height ?: identity.height)
             _state.value = _state.value.copy(
                 displayWidth = w,
                 displayHeight = h,
