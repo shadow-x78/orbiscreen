@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.31.5
+Version:        0.31.4
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -144,8 +144,8 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
-* Tue Sep 30 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.5-1
-- Release 0.31.5: fix host-side latency and to robustly survive USB/AOA protocol errors and resolution changes; add AppImage update metadata (zsync) and dynamic desktop entry.
+* Tue Sep 30 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.4-1
+- Release 0.31.4: fix host-side latency and to robustly survive USB/AOA protocol errors and resolution changes; add AppImage update metadata (zsync) and dynamic desktop entry.
 
 * Mon Sep 21 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.2-1
 - Release 0.31.2: Bump version to 0.31.2 across all packages; Android versionCode 117; performance fixes for buffering, frame dropping, and capture frame pacing.
