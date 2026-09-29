@@ -54,6 +54,7 @@ struct Session {
     shutdown: watch::Sender<bool>,
     capture: Option<Arc<KwinVirtualCapture>>,
     encoder: Option<Arc<Encoder>>,
+    video_pump_handle: Option<tokio::task::JoinHandle<()>>,
 }
 
 pub fn spawn_hub(cfg: HubConfig) -> DisplayCtl {
@@ -558,7 +559,7 @@ async fn open_session(
 
     let (video_tx, _) = broadcast::channel::<H264Packet>(64);
     let video_out = video_tx.clone();
-    tokio::spawn(async move {
+    let video_pump_handle = tokio::spawn(async move {
         let mut ts_base: Option<u64> = None;
         while let Some(chunk) = encoded_rx.recv().await {
             let base = *ts_base.get_or_insert(chunk.pts_ns);
@@ -609,6 +610,7 @@ async fn open_session(
         shutdown: shutdown_tx,
         capture: Some(capture),
         encoder: Some(encoder),
+        video_pump_handle: Some(video_pump_handle),
     })
 }
 
@@ -756,6 +758,9 @@ fn close_session(sessions: &mut HashMap<String, Session>, id: &str) {
 }
 
 fn close_session_inner(mut session: Session) {
+    if let Some(h) = session.video_pump_handle.take() {
+        h.abort();
+    }
     let _ = session.shutdown.send(true);
     if let Some(encoder) = session.encoder.take() {
         encoder.stop();
