@@ -255,8 +255,22 @@ fn run(
     surface.commit();
 
     let mut flip = false;
+    // Pace against an absolute deadline instead of a fixed sleep so the
+    // dispatch/commit work does not push the effective period past the
+    // target (a plain 16ms sleep yielded ~50fps in practice).
+    let mut next_commit = std::time::Instant::now();
     loop {
-        std::thread::sleep(period);
+        if stop.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+        next_commit += period;
+        let now = std::time::Instant::now();
+        if next_commit > now {
+            std::thread::sleep(next_commit - now);
+        } else {
+            // Behind schedule: give up the backlog and resync.
+            next_commit = std::time::Instant::now();
+        }
         if stop.load(Ordering::Relaxed) {
             return Ok(());
         }

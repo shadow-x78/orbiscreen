@@ -4,6 +4,27 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.31.7] - 2026-09-30
+
+### Fixed
+- Resize stream stall (FPS 0 after a resolution change): the display hub now tracks the video pump `JoinHandle` in the session and aborts it on close, so the broadcast sender is actually dropped. Previously a cloned sender inside the spawned pump task kept the channel alive, the AOA `recv()` never observed `Closed`, never re-attached, and the stream froze completely until the accessory was unplugged.
+- Damage pump pacing: commits are paced against an absolute monotonic deadline instead of a fixed sleep, removing dispatch/commit overhead from the effective period (a plain 16 ms sleep plus ~4 ms of work capped throughput near 50 FPS).
+- Android: the user's saved resolution preset now takes priority over the host-reported session size when opening a display, so reconnecting to an existing host resumes at the saved 1080p instead of falling back to native.
+- Android: the toolbar info row (resolution / encoder / delay) fills the available width, so it is no longer cramped against the icon buttons.
+
+### Changed
+- Android: reduced ExoPlayer buffer durations from 500/2000/200/500 ms back to 30/80/15/25 ms, restoring the documented 25-40 ms glass-to-glass latency that the inflated buffers had pushed to 350-400 ms.
+- CHANGELOG: all PR and author references converted to plain text (no markdown links), and the empty `[Unreleased]` section removed.
+- Version bumped to 0.31.7 across the Cargo workspace, Android (`versionCode` 122), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
+## [v0.31.6] - 2026-09-29
+
+### Added
+- Arabic translation of the frame transport guide: `docs/FRAME_TRANSPORT_AR.md`.
+
+### Fixed
+- Fedora CI: GitHub Actions runners cannot reach `mirrors.rpmfusion.org` directly, so the workflow now installs the `rpmfusion-free-release` meta-package which resolves to the correct mirror via DNF.
+
 ## [v0.31.4] - 2026-09-29
 
 ### Fixed
