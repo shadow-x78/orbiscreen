@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.31.8
+Version:        0.31.9
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -144,6 +144,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.9-1
+- Release 0.31.9: fix resize switchover latency and `no display session` error; encoder now honors requested fps on resize.
+
 * Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.8-1
 - Release 0.31.8: restore stable ExoPlayer buffers and toolbar layout on Android; repair web client template literals broken by the comment-removal pass.
 

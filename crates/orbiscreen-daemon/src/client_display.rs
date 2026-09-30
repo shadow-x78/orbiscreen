@@ -46,6 +46,7 @@ struct Session {
     client_key: Option<String>,
 
     bitrate_kbps: Option<u32>,
+    refresh_hz: u32,
     video_tx: broadcast::Sender<H264Packet>,
     idr_tx: mpsc::Sender<()>,
     input_tx: mpsc::Sender<IncomingInput>,
@@ -66,6 +67,7 @@ pub fn spawn_hub(cfg: HubConfig) -> DisplayCtl {
 async fn run_hub(mut cfg: HubConfig, mut rx: mpsc::Receiver<DisplayCommand>) {
     let mut sessions: HashMap<String, Session> = HashMap::new();
     let mut idle_at: HashMap<String, tokio::time::Instant> = HashMap::new();
+    let mut aliases: HashMap<String, String> = HashMap::new();
     let mut idle_tick = tokio::time::interval(Duration::from_millis(250));
     idle_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
@@ -75,12 +77,12 @@ async fn run_hub(mut cfg: HubConfig, mut rx: mpsc::Receiver<DisplayCommand>) {
                 if let DisplayCommand::Shutdown { reply } = cmd {
                     let ids: Vec<String> = sessions.keys().cloned().collect();
                     for id in ids {
-                        close_session(&mut sessions, &id);
+                        close_session(&mut sessions, &mut aliases, &id);
                     }
                     let _ = reply.send(());
                     break;
                 }
-                handle_cmd(&mut cfg, &mut sessions, &mut idle_at, cmd).await;
+                handle_cmd(&mut cfg, &mut sessions, &mut idle_at, &mut aliases, cmd).await;
             }
             _ = idle_tick.tick() => {
                 let now = tokio::time::Instant::now();
@@ -122,9 +124,9 @@ async fn run_hub(mut cfg: HubConfig, mut rx: mpsc::Receiver<DisplayCommand>) {
                             );
                         }
                         idle_at.remove(&id);
-                        if sessions.contains_key(&id) {
-                            close_session(&mut sessions, &id);
-                        }
+                    if sessions.contains_key(&id) {
+                        close_session(&mut sessions, &mut aliases, &id);
+                    }
                     } else {
                                                                         idle_at.remove(&id);
                     }
@@ -134,7 +136,7 @@ async fn run_hub(mut cfg: HubConfig, mut rx: mpsc::Receiver<DisplayCommand>) {
     }
     let ids: Vec<String> = sessions.keys().cloned().collect();
     for id in ids {
-        close_session(&mut sessions, &id);
+        close_session(&mut sessions, &mut aliases, &id);
     }
 }
 
@@ -156,6 +158,7 @@ async fn handle_cmd(
     cfg: &mut HubConfig,
     sessions: &mut HashMap<String, Session>,
     idle_at: &mut HashMap<String, tokio::time::Instant>,
+    aliases: &mut HashMap<String, String>,
     cmd: DisplayCommand,
 ) {
     match cmd {
@@ -201,7 +204,16 @@ async fn handle_cmd(
                     }
                 }
             }
-            let result = open_session(cfg, name, key, target_w, target_h, bitrate_kbps).await;
+            let result = open_session(
+                cfg,
+                name,
+                key,
+                target_w,
+                target_h,
+                bitrate_kbps,
+                cfg.refresh_hz,
+            )
+            .await;
             if let Ok(session) = result {
                 let info = session.info.clone();
                 idle_at.insert(info.id.clone(), tokio::time::Instant::now());
@@ -213,10 +225,11 @@ async fn handle_cmd(
         }
         DisplayCommand::Release { id } => {
             idle_at.remove(&id);
-            close_session(sessions, &id);
+            close_session(sessions, aliases, &id);
         }
         DisplayCommand::Attach { id, key, reply } => {
-            let chosen = resolve_attach_session_id(sessions, id.as_deref(), key.as_deref());
+            let chosen =
+                resolve_attach_session_id(sessions, aliases, id.as_deref(), key.as_deref());
             let sid = match chosen {
                 Some(sid) => sid,
                 None if (id.is_none() || id.as_deref() == Some("")) && sessions.is_empty() => {
@@ -230,7 +243,9 @@ async fn handle_cmd(
                     } else {
                         1080
                     };
-                    match open_session(cfg, "default".to_string(), None, w, h, None).await {
+                    match open_session(cfg, "default".to_string(), None, w, h, None, cfg.refresh_hz)
+                        .await
+                    {
                         Ok(session) => {
                             let sid = session.info.id.clone();
                             idle_at.insert(sid.clone(), tokio::time::Instant::now());
@@ -270,6 +285,7 @@ async fn handle_cmd(
         DisplayCommand::Idr { id } => {
             let chosen = resolve_id(
                 sessions,
+                aliases,
                 if id.is_empty() {
                     None
                 } else {
@@ -295,13 +311,16 @@ async fn handle_cmd(
             id,
             width,
             height,
+            refresh_hz,
             reply,
         } => {
             let Some(old) = sessions.get(&id) else {
                 let _ = reply.send(Err("unknown session".into()));
                 return;
             };
-            if old.info.width == width && old.info.height == height {
+            let new_refresh = refresh_hz.unwrap_or(cfg.refresh_hz).clamp(30, 240);
+            if old.info.width == width && old.info.height == height && old.refresh_hz == new_refresh
+            {
                 let _ = reply.send(Ok(old.info.clone()));
                 return;
             }
@@ -319,6 +338,7 @@ async fn handle_cmd(
                 width,
                 height,
                 request.bitrate_kbps,
+                new_refresh,
             )
             .await
             {
@@ -326,7 +346,14 @@ async fn handle_cmd(
                     let info = new_session.info.clone();
                     let sid = info.id.clone();
                     let carry = adopt_resize_state(new_session, request, idle_at);
-                    sessions.insert(sid, carry);
+                    sessions.insert(sid.clone(), carry);
+
+                    for target in aliases.values_mut() {
+                        if *target == id {
+                            *target = sid.clone();
+                        }
+                    }
+                    aliases.insert(id.clone(), sid);
 
                     if let Some(old) = sessions.remove(&id) {
                         close_session_inner(old);
@@ -339,12 +366,12 @@ async fn handle_cmd(
             }
         }
         DisplayCommand::Lookup { id, reply } => {
-            let chosen = resolve_id(sessions, id.as_deref());
+            let chosen = resolve_id(sessions, aliases, id.as_deref());
             let info = chosen.and_then(|sid| sessions.get(&sid).map(|s| s.info.clone()));
             let _ = reply.send(info);
         }
         DisplayCommand::Input { id, event } => {
-            let chosen = resolve_id(sessions, id.as_deref());
+            let chosen = resolve_id(sessions, aliases, id.as_deref());
             if let Some(sid) = chosen {
                 if let Some(session) = sessions.get(&sid) {
                     let _ = session.input_tx.try_send(event);
@@ -365,12 +392,21 @@ async fn handle_cmd(
 
 fn resolve_attach_session_id(
     sessions: &HashMap<String, Session>,
+    aliases: &HashMap<String, String>,
     id: Option<&str>,
     key: Option<&str>,
 ) -> Option<String> {
     if let Some(req_id) = id.filter(|s| !s.is_empty()) {
         if sessions.contains_key(req_id) {
             return Some(req_id.to_string());
+        }
+        let mut hop = req_id;
+        for _ in 0..8 {
+            match aliases.get(hop) {
+                Some(next) if sessions.contains_key(next) => return Some(next.clone()),
+                Some(next) => hop = next.as_str(),
+                None => break,
+            }
         }
         if let Some(s) = sessions
             .values()
@@ -407,10 +443,22 @@ fn resolve_attach_session_id(
         .map(|s| s.info.id.clone())
 }
 
-fn resolve_id(sessions: &HashMap<String, Session>, id: Option<&str>) -> Option<String> {
+fn resolve_id(
+    sessions: &HashMap<String, Session>,
+    aliases: &HashMap<String, String>,
+    id: Option<&str>,
+) -> Option<String> {
     if let Some(req) = id.filter(|s| !s.is_empty()) {
         if sessions.contains_key(req) {
             return Some(req.to_string());
+        }
+        let mut hop = req;
+        for _ in 0..8 {
+            match aliases.get(hop) {
+                Some(next) if sessions.contains_key(next) => return Some(next.clone()),
+                Some(next) => hop = next.as_str(),
+                None => break,
+            }
         }
         if let Some(s) = sessions
             .values()
@@ -483,6 +531,7 @@ async fn open_session(
     width: u32,
     height: u32,
     bitrate_kbps: Option<u32>,
+    refresh_hz: u32,
 ) -> Result<Session, String> {
     let width = width.clamp(320, 7680);
     let height = height.clamp(240, 4320);
@@ -532,7 +581,7 @@ async fn open_session(
         if cfg.bitrate_kbps > 0 && cfg.bitrate_kbps != 8000 {
             cfg.bitrate_kbps
         } else {
-            orbiscreen_encode::suggested_bitrate_kbps(actual_w, actual_h, cfg.refresh_hz)
+            orbiscreen_encode::suggested_bitrate_kbps(actual_w, actual_h, refresh_hz)
         }
     });
 
@@ -541,7 +590,7 @@ async fn open_session(
         bitrate_kbps: target_bitrate,
         width: actual_w,
         height: actual_h,
-        framerate: cfg.refresh_hz,
+        framerate: refresh_hz,
     })
     .map_err(|e| e.to_string())?;
     let encoder_name = encoder_label(encoder.kind());
@@ -577,7 +626,7 @@ async fn open_session(
     spawn_capture_pump(
         Arc::clone(&capture),
         Arc::clone(&encoder),
-        cfg.refresh_hz,
+        refresh_hz,
         shutdown_rx,
     );
     spawn_input_pump(
@@ -602,6 +651,7 @@ async fn open_session(
         client_name: name,
         client_key: key,
         bitrate_kbps,
+        refresh_hz,
         video_tx,
         idr_tx,
         input_tx,
@@ -751,27 +801,50 @@ fn spawn_input_pump(
     });
 }
 
-fn close_session(sessions: &mut HashMap<String, Session>, id: &str) {
+fn close_session(
+    sessions: &mut HashMap<String, Session>,
+    aliases: &mut HashMap<String, String>,
+    id: &str,
+) {
     if let Some(session) = sessions.remove(id) {
         close_session_inner(session);
     }
+    aliases.retain(|_, v| v != id);
 }
 
-fn close_session_inner(mut session: Session) {
-    if let Some(h) = session.video_pump_handle.take() {
+fn close_session_inner(session: Session) {
+    let Session {
+        mut video_pump_handle,
+        shutdown,
+        encoder,
+        capture,
+        info,
+        ..
+    } = session;
+    if let Some(h) = video_pump_handle.take() {
         h.abort();
     }
-    let _ = session.shutdown.send(true);
-    if let Some(encoder) = session.encoder.take() {
-        encoder.stop();
+    let _ = shutdown.send(true);
+    // Dropping the broadcast sender here (not inside the blocking teardown) is
+    // what lets viewers observe `Closed` immediately and re-attach to the
+    // replacement session without waiting for the encoder/GStreamer drain.
+    let encoder_stop = encoder;
+    let capture_drop = capture;
+    if encoder_stop.is_none() && capture_drop.is_none() {
+        return;
     }
-    if let Some(capture) = session.capture.take() {
-        info!(
-            connector = %session.info.connector,
-            "closed client virtual output"
-        );
-        drop(capture);
-    }
+    tokio::task::spawn_blocking(move || {
+        if let Some(encoder) = encoder_stop.as_ref() {
+            encoder.stop();
+        }
+        if let Some(capture) = capture_drop {
+            info!(
+                connector = %info.connector,
+                "closed client virtual output"
+            );
+            drop(capture);
+        }
+    });
 }
 
 pub(crate) fn event_paths_from_introspect(xml: &str) -> Vec<String> {
@@ -926,6 +999,7 @@ mod tests {
             client_name: "test".into(),
             client_key: None,
             bitrate_kbps: None,
+            refresh_hz: 60,
             video_tx,
             idr_tx,
             input_tx,
@@ -1032,6 +1106,7 @@ mod tests {
     #[test]
     fn resolve_attach_session_id_prefers_key_unattached_and_newest() {
         use super::resolve_attach_session_id;
+        let aliases = HashMap::new();
         let mut sessions = HashMap::new();
         let mut s1 = session_with("1", true);
         s1.client_key = Some("device-a".into());
@@ -1044,19 +1119,19 @@ mod tests {
         sessions.insert("2".into(), s2);
 
         assert_eq!(
-            resolve_attach_session_id(&sessions, Some("1"), None).as_deref(),
+            resolve_attach_session_id(&sessions, &aliases, Some("1"), None).as_deref(),
             Some("1")
         );
         assert_eq!(
-            resolve_attach_session_id(&sessions, None, Some("device-a")).as_deref(),
+            resolve_attach_session_id(&sessions, &aliases, None, Some("device-a")).as_deref(),
             Some("1")
         );
         assert_eq!(
-            resolve_attach_session_id(&sessions, None, Some("device-b")).as_deref(),
+            resolve_attach_session_id(&sessions, &aliases, None, Some("device-b")).as_deref(),
             Some("2")
         );
         assert_eq!(
-            resolve_attach_session_id(&sessions, None, None).as_deref(),
+            resolve_attach_session_id(&sessions, &aliases, None, None).as_deref(),
             Some("2")
         );
 
@@ -1064,7 +1139,7 @@ mod tests {
             s.viewers = 1;
         }
         assert_eq!(
-            resolve_attach_session_id(&sessions, None, None).as_deref(),
+            resolve_attach_session_id(&sessions, &aliases, None, None).as_deref(),
             Some("2")
         );
     }

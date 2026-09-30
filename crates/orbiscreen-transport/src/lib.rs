@@ -1287,7 +1287,7 @@ async fn api_control(
                         .map(|info| info.id)
                         .unwrap_or_default();
                 }
-                match ctl.resize(&session, width, height).await {
+                match ctl.resize(&session, width, height, Some(fps)).await {
                     Ok(info) => {
                         return (
                             StatusCode::OK,

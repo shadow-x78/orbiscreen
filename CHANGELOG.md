@@ -4,6 +4,16 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.31.9] - 2026-09-30
+
+### Fixed
+- Resize: AOA native video re-attach no longer emits a spurious `re-attach failed: no display session` warning after the display size changes from the Android client. The hub now records an `old_id -> new_id` alias on every resolution switch, so the AOA pump's stale session id resolves to the replacement session in a single attempt instead of failing once and falling back.
+- Resize: the framerate sent by the client (`SetResolution fps`) now reaches the GStreamer encoder and the capture pump. Previously the hub rebuilt the session at its global `refresh_hz` (90 Hz) even when the client requested 60 Hz, causing encoder/host pacing to outrun the client decoder, a growing delay past 1200 ms, and decoder starvation on mid-range Android hardware.
+- Resize latency: `encoder.stop()` and GStreamer pipeline drain are now offloaded to a `spawn_blocking` task; the broadcast sender is dropped synchronously so the AOA pump sees `Closed` immediately and re-attaches without waiting for the old pipeline to finish blocking on the hub event loop.
+
+### Changed
+- Version bumped to 0.31.9 across the Cargo workspace, Android (`versionCode` 124), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.31.8] - 2026-09-30
 
 ### Fixed

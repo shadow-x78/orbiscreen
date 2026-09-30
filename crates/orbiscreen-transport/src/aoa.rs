@@ -445,11 +445,13 @@ async fn run_native_video(
                     if stop.load(Ordering::Relaxed) || !running.load(Ordering::Relaxed) {
                         break;
                     }
-                                                            warn!("AOA video broadcast closed session={sid}; re-attaching");
-                    tokio::time::sleep(Duration::from_millis(100)).await;
-                                                            let mut attempt = session.clone();
+                    info!("AOA video broadcast closed session={sid}; re-attaching");
+                    let mut attempt = Some(sid.clone());
                     let mut reattached = false;
-                    for _ in 0..2 {
+                    for try_idx in 0..2 {
+                        if try_idx > 0 {
+                            tokio::time::sleep(Duration::from_millis(100)).await;
+                        }
                         let att = match attempt.clone() {
                             Some(id) => displays.attach(Some(id), None).await,
                             None => displays.attach(None, None).await,

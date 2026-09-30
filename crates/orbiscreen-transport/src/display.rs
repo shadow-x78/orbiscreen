@@ -50,6 +50,7 @@ pub enum DisplayCommand {
         id: String,
         width: u32,
         height: u32,
+        refresh_hz: Option<u32>,
         reply: oneshot::Sender<Result<DisplayInfo, String>>,
     },
     Lookup {
@@ -163,13 +164,20 @@ impl DisplayCtl {
             .await;
     }
 
-    pub async fn resize(&self, id: &str, width: u32, height: u32) -> Result<DisplayInfo, String> {
+    pub async fn resize(
+        &self,
+        id: &str,
+        width: u32,
+        height: u32,
+        refresh_hz: Option<u32>,
+    ) -> Result<DisplayInfo, String> {
         let (reply, rx) = oneshot::channel();
         self.tx
             .send(DisplayCommand::Resize {
                 id: id.to_string(),
                 width,
                 height,
+                refresh_hz,
                 reply,
             })
             .await

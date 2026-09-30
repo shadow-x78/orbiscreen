@@ -84,7 +84,7 @@ impl OrbiscreenDbusServer {
         if let Some(ctl) = &self.handles.displays {
             ctl.set_defaults(width, height, fps).await;
             if let Some(info) = ctl.lookup(None).await {
-                let _ = ctl.resize(&info.id, width, height).await;
+                let _ = ctl.resize(&info.id, width, height, Some(fps)).await;
             }
             return format!("Resolution updated to {width}x{height}@{fps}Hz");
         }
