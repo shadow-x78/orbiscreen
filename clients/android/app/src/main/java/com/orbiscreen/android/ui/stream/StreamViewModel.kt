@@ -389,12 +389,12 @@ class StreamViewModel(
                 android.content.res.Configuration.ORIENTATION_PORTRAIT
             val targetW = if (isPortrait) minOf(presetW, presetH) else maxOf(presetW, presetH)
             val targetH = if (isPortrait) maxOf(presetW, presetH) else minOf(presetW, presetH)
-            val w = session?.width
-                ?: targetW.takeIf { it > 0 }
+             val w = targetW.takeIf { it > 0 }
+                ?: session?.width
                 ?: hostInfo?.width
                 ?: identity.width
-            val h = session?.height
-                ?: targetH.takeIf { it > 0 }
+             val h = targetH.takeIf { it > 0 }
+                ?: session?.height
                 ?: hostInfo?.height
                 ?: identity.height
             _state.value = _state.value.copy(

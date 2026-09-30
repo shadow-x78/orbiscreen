@@ -4,8 +4,6 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
 ## [v0.31.4] - 2026-09-29
 
 ### Fixed
@@ -22,13 +20,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [v0.31.3] - 2026-09-27
 
 ### Added
-- USB/AOA native video path: length-prefixed H.264 access units are carried on the accessory bulk channel straight into MediaCodec, replacing MPEG-TS/ExoPlayer on USB (`adb reverse` is not used) (PR #82 by @sentinelt)
-- Stream statistics overlay for the Web and Android clients: glass-to-glass delay, frame age, received-bytes rate, and an I/P/D frame histogram for the last minute, with a toolbar toggle (PR #82 by @sentinelt)
+- USB/AOA native video path: length-prefixed H.264 access units are carried on the accessory bulk channel straight into MediaCodec, replacing MPEG-TS/ExoPlayer on USB (`adb reverse` is not used) PR #82 by sentinelt
+- Stream statistics overlay for the Web and Android clients: glass-to-glass delay, frame age, received-bytes rate, and an I/P/D frame histogram for the last minute, with a toolbar toggle PR #82 by sentinelt
 - Arabic translations for the stats overlay strings (`stats_toggle`, `stats_title`, `stats_delay`, `stats_age`, `stats_received`, `stats_frames`, `stats_window`, `stats_fps`)
 
 ### Fixed
-- Android USB accessory permission dialog loop: a cancelled prompt is remembered until the accessory detaches or the USB card is tapped again (PR #82 by @sentinelt)
-- Android stats HUD footer clipping: the frame-age field has a fixed width and the HUD height follows its content (PR #82 by @sentinelt)
+- Android USB accessory permission dialog loop: a cancelled prompt is remembered until the accessory detaches or the USB card is tapped again PR #82 by sentinelt
+- Android stats HUD footer clipping: the frame-age field has a fixed width and the HUD height follows its content PR #82 by sentinelt
 - `cargo fmt` failure in `crates/orbiscreen-transport/src/udp_crypto.rs`
 
 ### Changed
@@ -389,17 +387,17 @@ Fix dual screen USB AOA accessory routing, guard Android input pipeline against 
 Introduce WebTransport Annex-B web streaming with WebCodecs hardware decoding, one-frame VBV CBR rate control for low latency, reliable IDR and parameter set distribution with Reed-Solomon FEC for P-frame datagrams, robust Android client AU reordering and packet loss recovery, and bump the release matrix across all platforms.
 
 ### Features
-- **WebTransport Annex-B and WebCodecs web client (#80 by @sentinelt)**:
+- **WebTransport Annex-B and WebCodecs web client PR #80 by  @sentinelt)**:
   - Chromium opens WebTransport on `signaling_port + 2` (`wt_port`) with `serverCertificateHashes` and decodes Annex-B access units with `VideoDecoder` onto a canvas.
   - P-frames ride QUIC datagrams (unreliable). Hello, ping/pong, and IDR stay on the control stream. The same port serves the UI over HTTPS; HTTP `/` and `/client/` redirect there. Android keeps HTTP on `:8788`.
   - The self-signed certificate is stored in `$XDG_CONFIG_HOME/orbiscreen/wt-cert.pem` and `wt-key.pem` (`0o600`, parent `0o700`) and reused across restarts (14-day WebTransport cap).
-- **Reed-Solomon FEC on P-frame datagrams (#80 by @sentinelt)**:
+- **Reed-Solomon FEC on P-frame datagrams PR #80 by  @sentinelt)**:
   - Systematic Cauchy RS over GF(256). Ladder: 1-3 fragments no FEC; 4-16 +2; 17-64 +3; 65+ +4. IDRs stay on the reliable stream.
-- **Reliable IDR and SPS/PPS (#80 by @sentinelt)**:
+- **Reliable IDR and SPS/PPS PR #80 by  @sentinelt)**:
   - Keyframes (SPS/PPS prepended when missing) go on the WebTransport control stream and on TCP `GET /idr` for Android. A reliable IDR resets the datagram assembler so the next P-frame starts a new GOP.
-- **One-frame VBV/CPB rate control (#80 by @sentinelt)**:
+- **One-frame VBV/CPB rate control PR #80 by  @sentinelt)**:
   - Hardware and software H.264 encoders size the coded-picture buffer to one frame of the CBR target so a single IDR cannot occupy hundreds of milliseconds of wire time.
-- **Frame transport guide (#80 by @sentinelt)**:
+- **Frame transport guide PR #80 by  @sentinelt)**:
   - Added comprehensive `docs/FRAME_TRANSPORT.md` documenting I/P/IDR/GOP terminology, AU datagram/reliable stream partitioning, and hold-until-IDR packet loss recovery.
 
 ### Performance & Low Latency
@@ -429,11 +427,11 @@ Introduce WebTransport Annex-B web streaming with WebCodecs hardware decoding, o
 Introduce per-client KWin virtual displays and isolated touch scoping to support multiple simultaneous tablets, expand KWin input device introspection beyond event63, add automatic fallback session creation on attach for full backwards compatibility with legacy clients, and bump the release matrix across all platforms.
 
 ### Features
-- **Per-client KWin virtual outputs (#79 by @sentinelt)**:
+- **Per-client KWin virtual outputs (#79 by sentinelt)**:
   - The daemon dynamically creates dedicated virtual outputs per client (`Virtual-Orbi-<key>`) based on `POST /api/session` with device identity and native resolution.
   - Multiple tablets can connect concurrently, each maintaining its own independent geometry, layout, and resolution.
   - Virtual displays automatically tear down on `DELETE /api/session`, UDP Bye, or after an idle timeout.
-- **Isolated Touch Scoping (#79 by @sentinelt)**:
+- **Isolated Touch Scoping (#79 by sentinelt)**:
   - Touch input carries `X-Orbiscreen-Session` and scopes to each client's specific virtual output so simultaneous users do not interfere with each other.
   - Expanded KWin input device node introspection past `event63` (into `event256+`) to guarantee uinput binding on modern kernels.
   - Web touch mode posts absolute `Touch` coordinates instead of relative mouse movement.
@@ -636,10 +634,10 @@ Fix broken pipe error on host session lock via client shutdown notification, rem
 
 ## [v0.28.1] - 2026-09-14
 
-Drop stale frames and remove stream latency accumulation over Wi-Fi and USB AOA, clamp PTS timeline desync across frame gaps, multi-thread software color conversion, and constrain transport buffer queues (PR [#78](https://github.com/shadow-x78/orbiscreen/pull/78) by [@Yashb404](https://github.com/Yashb404)).
+Drop stale frames and remove stream latency accumulation over Wi-Fi and USB AOA, clamp PTS timeline desync across frame gaps, multi-thread software color conversion, and constrain transport buffer queues PR #78 by Yashb404.
 
 ### Bug Fixes
-- **Drop Stale Frames & Remove Stream Latency Accumulation (PR [#78](https://github.com/shadow-x78/orbiscreen/pull/78) by [@Yashb404](https://github.com/Yashb404))**:
+- **Drop Stale Frames & Remove Stream Latency Accumulation PR #78 by Yashb404**:
   - Configure HTTP MPEG-TS pipeline with `is-live=true do-timestamp=true` and `appsink drop=true sync=false max-buffers=1`, ensuring stale frames are dropped immediately under backpressure instead of accumulating seconds of video and input latency.
   - Fix PTS timeline desync in `stream_handler` by clamping PTS delta across frame gaps (>250ms) to nominal frame time, preventing client decoder buffer inflation after laptop suspend/resume or heavy stalls.
   - Reduce AOA USB accessory `sync_channel` capacity from 64 to 8 chunks to remove host-side transport queueing.
@@ -1105,7 +1103,7 @@ Linux Desktop GUI redesign into a native Control Center, fix missing system tray
 Measure UDP PMTU without truncated ACKs or fragment stalls, expand Android receive buffer to full datagram size, and reject unsendable probe packets immediately without waiting for timeouts.
 
 ### Performance & Low Latency
-- **UDP PMTU Measurement & Probe Rejection (`orbiscreen-transport`, Android Client - PR [#74](https://github.com/shadow-x78/orbiscreen/pull/74) by [@sentinelt](https://github.com/sentinelt))**:
+- **UDP PMTU Measurement & Probe Rejection (`orbiscreen-transport`, Android Client - PR #74 by sentinelt)**:
   - Android reused a `DatagramPacket` without resetting its `length`, which caused probe ACKs to report the previous packet's size (often a 21-byte pong), stalling DPLPMTUD discovery or locking it onto a tiny datagram. The receive cap is now explicitly reset before every `receive`.
   - Android UDP receive buffer enlarged to full datagram capacity (`65,507` bytes).
   - Truncated ACKs now reject the in-flight probe size rather than corrupting the search floor.
@@ -1267,7 +1265,7 @@ Multi-target GitHub Deployments tracking, automated direct APT repository sync o
 Enable infinite GOP length, periodic intra-refresh for x264enc, and on-demand IDR keyframe recovery for low-latency streaming without periodic network spikes.
 
 ### Performance & Low Latency
-- **Infinite GOP + On-Demand IDR Recovery (`orbiscreen-encode`, `orbiscreen-transport`, Android, Web - PR [#72](https://github.com/shadow-x78/orbiscreen/pull/72) by [@sentinelt](https://github.com/sentinelt))**:
+- **Infinite GOP + On-Demand IDR Recovery (`orbiscreen-encode`, `orbiscreen-transport`, Android, Web - PR #72 by sentinelt)**:
   - Encoders no longer emit forced keyframes every 60 frames. GOP length uses the encoder property maximum (`key-int-max` / `gop-size` / `keyframe-period`); `x264enc` also enables periodic intra-refresh to keep P-frames small and predictable.
   - Recovery is on-demand: clients request an IDR keyframe via `POST /api/control` (`action: idr` / `action: keyframe`).
   - Joining a `/stream` session and lagged muxer subscribers automatically request an IDR.
@@ -1288,7 +1286,7 @@ Enable infinite GOP length, periodic intra-refresh for x264enc, and on-demand ID
 Select GStreamer vah264enc hardware encoder, fallback through NVENC candidates, warn when falling back to software x264, and tune VA-API pipeline for low latency.
 
 ### Performance & Low Latency
-- **Hardware H.264 Encoder Detection & VA Low Latency (`orbiscreen-encode` - PR [#71](https://github.com/shadow-x78/orbiscreen/pull/71) by [@sentinelt](https://github.com/sentinelt))**:
+- **Hardware H.264 Encoder Detection & VA Low Latency (`orbiscreen-encode` - PR #71 by sentinelt)**:
   - Auto mode now probes modern GStreamer `vah264enc` (current VA plugin) as well as legacy `vaapih264enc` and NVENC factory names (`nvh264enc`, `nvcudah264enc`, `nvautogpuh264enc`).
   - Emits a clear warning when falling back to software `x264enc` instead of silently encoding 1440p+ displays on the CPU.
   - Tuned `vah264enc` pipeline for low latency (`cbr`, `target-usage=7`, `ref-frames=1`, `b-frames=0`, `key-int-max=60`).
@@ -1306,7 +1304,7 @@ Select GStreamer vah264enc hardware encoder, fallback through NVENC candidates, 
 Shrink HTTP MPEG-TS transport queues, backpressure on full queue, reduce Android live offset to 24 ms, and enable MediaCodec low-latency decoding for low latency streaming.
 
 ### Performance & Low Latency
-- **HTTP MPEG-TS Transport Queue & Low Latency Decoding (`orbiscreen-transport`, Android, Web - PR [#70](https://github.com/shadow-x78/orbiscreen/pull/70) by [@sentinelt](https://github.com/sentinelt))**:
+- **HTTP MPEG-TS Transport Queue & Low Latency Decoding (`orbiscreen-transport`, Android, Web - PR #70 by sentinelt)**:
   - Per-client muxer keeps four sink buffers and a 16-slot HTTP queue instead of 512 / 1024 queued chunks.
   - HTTP send no longer drops MPEG-TS packets on a full queue (which desynced the decoder). The muxer backpressures instead; a stalled `appsrc` push resyncs on the next keyframe.
   - Android ExoPlayer live offset cut to 24 ms (8-48 ms) with 32-64 ms load control, `FEATURE_LowLatency` decoder preference, and MediaCodec low-latency flags.
