@@ -1744,7 +1744,8 @@ async function startStream(opts = {}) {
         setOverlayState(
             "error",
             "Open the HTTPS client",
-            `WebTransport needs a secure page. Open https:        );
+            `WebTransport needs a secure page. Open https://${window.location.host}/client/`
+        );
         return;
     }
     if (typeof VideoDecoder !== "function") {
@@ -1780,7 +1781,7 @@ async function startStream(opts = {}) {
     }
 
     const host = OrbiAnnexB.pickWtHost(cfg, window.location.hostname);
-    const url = `https:    waitingForKeyframe = true;
+    const url = `https://` + window.location.hostname + `:8790/orbiscreen`;
 
     try {
         const hash = OrbiAnnexB.hashFromBase64(hashB64);

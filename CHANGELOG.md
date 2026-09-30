@@ -4,6 +4,16 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.31.8] - 2026-09-30
+
+### Fixed
+- Android: restored ExoPlayer buffer durations to 500/2000/200/500 ms. The reduced 30/80/15/25 ms values from v0.31.7 starved the decoder during resolution switches on mid-range hardware, freezing playback and inflating delay past 1000 ms.
+- Android: reverted the toolbar info-row layout change; the toolbar keeps its original compact size with every action button (input mode, keyboard, lock, settings, statistics, hide, disconnect) visible.
+- Web client: repaired two template literals in `app.js` that were truncated by the comment-removal pass (`https:` cut mid-URL), which broke JavaScript parsing with `SyntaxError: missing ) after argument list`.
+
+### Changed
+- Version bumped to 0.31.8 across the Cargo workspace, Android (`versionCode` 123), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.31.7] - 2026-09-30
 
 ### Fixed

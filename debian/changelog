@@ -1,3 +1,12 @@
+orbiscreen (0.31.8-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.31.8 for Ubuntu noble.
+  * Android: restore stable ExoPlayer buffers and original toolbar layout.
+  * Web client: repair template literals truncated by the comment-removal pass.
+  * Bump version to 0.31.8 across all packages; Android versionCode 123.
+
+ -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 01 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.31.7-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.31.7 for Ubuntu noble.
