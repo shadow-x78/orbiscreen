@@ -1,3 +1,13 @@
+orbiscreen (0.32.0-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.32.0 for Ubuntu noble.
+  * Fix resize switchover: remove ~400 ms hub stall and `no display session` error on resolution change.
+  * Encoder now honors the requested fps on resize instead of re-encoding at the default refresh rate.
+  * AOA re-attach resolves resized sessions automatically without a 100 ms blind delay.
+  * Bump version to 0.32.0 across all packages; Android versionCode 125.
+
+  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 01 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.31.9-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.31.9 for Ubuntu noble.
