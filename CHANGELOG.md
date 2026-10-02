@@ -4,6 +4,15 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.32.1] - 2026-10-02
+
+### Fixed
+- Touch injection: removed redundant `AbsEvent::X/Y` writes emitted after `finish_slot()` had already committed the slot coordinates, and removed duplicate `BTN_TOUCH` PRESSED/RELEASED writes that preceded the real press/release pairs. The doubled events produced phantom touches on compositors that re-process every `BTN_TOUCH` transition.
+
+### Changed
+- `run_hub` idle reap loop: re-indented the reap branch so `idle_at.remove` and `close_session` read as nested under the `if reap` guard with the `else` branch aligned. Indentation only, no behavior change.
+- Version bumped to 0.32.1 across the Cargo workspace, Android (`versionCode` 126), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.32.0] - 2026-10-01
 
 ### Fixed

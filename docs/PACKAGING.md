@@ -31,12 +31,12 @@
 
 When cutting a release, the version must be updated across all packages:
 
-- `Cargo.toml`: `[workspace.package].version = "0.32.0"`
-- `clients/android/app/build.gradle.kts`: `versionName = "0.32.0"`, `versionCode = 125`
-- `crates/orbiscreen-gui/tauri.conf.json`: `"version": "0.32.0"`
-- `PKGBUILD`: `pkgver=0.32.0`
-- `debian/changelog`: new entry for `0.32.0-1`
-- `data/orbiscreen-copr.spec`: `Version: 0.32.0`
+- `Cargo.toml`: `[workspace.package].version = "0.32.1"`
+- `clients/android/app/build.gradle.kts`: `versionName = "0.32.1"`, `versionCode = 126`
+- `crates/orbiscreen-gui/tauri.conf.json`: `"version": "0.32.1"`
+- `PKGBUILD`: `pkgver=0.32.1`
+- `debian/changelog`: new entry for `0.32.1-1`
+- `data/orbiscreen-copr.spec`: `Version: 0.32.1`
 
 Use the check script:
 
@@ -49,7 +49,7 @@ cargo run -p orbiscreen-daemon -- --version
 <a id="packaging-matrix"></a>
 ## Packaging Matrix
 
-The release matrix is: `0.32.0` (workspace), `versionCode = 125` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
+The release matrix is: `0.32.1` (workspace), `versionCode = 126` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
 
 Orbiscreen provides build configurations and package definitions for all major Linux distributions and Android:
 
@@ -212,7 +212,7 @@ ORBISCREEN_KEY_PASSWORD=**** \
 
 ### Output
 - `app/build/outputs/apk/release/app-release.apk` (signed, V2/V3)
-- Version code: `125` (0.32.0), auto-incremented per release
+- Version code: `126` (0.32.1), auto-incremented per release
 
 ### Verification
 ```bash

@@ -373,15 +373,9 @@ impl UinputInjector {
 
             slot_writer = slot_writer.set_position(xi, yi)?;
             writer = slot_writer.finish_slot()?;
-            writer = writer.write_events(&[
-                AbsEvent::new(Abs::X, xi).into(),
-                AbsEvent::new(Abs::Y, yi).into(),
-            ])?;
 
             if !self.button_touch_down {
                 self.button_touch_down = true;
-                writer =
-                    writer.write_events(&[KEv::new(Key::BTN_TOUCH, KeyState::PRESSED).into()])?;
                 writer = writer.write_events(&[
                     KEv::new(Key::BTN_TOUCH, KeyState::PRESSED).into(),
                     KEv::new(Key::BTN_LEFT, KeyState::PRESSED).into(),
@@ -398,8 +392,6 @@ impl UinputInjector {
 
             if self.touch_active_count == 0 && self.button_touch_down {
                 self.button_touch_down = false;
-                writer =
-                    writer.write_events(&[KEv::new(Key::BTN_TOUCH, KeyState::RELEASED).into()])?;
                 writer = writer.write_events(&[
                     KEv::new(Key::BTN_TOUCH, KeyState::RELEASED).into(),
                     KEv::new(Key::BTN_LEFT, KeyState::RELEASED).into(),

@@ -1,3 +1,12 @@
+orbiscreen (0.32.1-1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.32.1 for Ubuntu noble.
+  * Fix touch injection: remove redundant AbsEvent::X/Y writes emitted after finish_slot() and duplicate BTN_TOUCH PRESSED/RELEASED events that caused phantom touches.
+  * Re-indent the run_hub idle reap branch so close_session and idle_at.remove read as nested under the `if reap` guard. Indentation only, no behavior change.
+  * Bump version to 0.32.1 across all packages; Android versionCode 126.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 02 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.32.0-1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.32.0 for Ubuntu noble.

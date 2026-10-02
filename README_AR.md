@@ -8,7 +8,7 @@
 
 شاشة ثانية لنظام Linux باستخدام جهاز لوحي أو هاتف Android.
 
-[![الإصدار](https://img.shields.io/badge/version-0.32.0-2563eb?style=for-the-badge)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.32.1-2563eb?style=for-the-badge)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=for-the-badge)
 ![المنصة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge)

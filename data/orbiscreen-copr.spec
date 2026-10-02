@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.32.0
+Version:        0.32.1
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -144,6 +144,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Thu Oct 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.1-1
+- Release 0.32.1: fix duplicate BTN_TOUCH writes and redundant AbsEvent::X/Y writes in touch injection; re-indent hub idle reap branch.
+
 * Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.0-1
 - Release 0.32.0: fix resize switchover latency, fps-aware resize, AOA session alias.
 

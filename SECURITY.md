@@ -87,7 +87,7 @@ We follow a **coordinated disclosure** model:
 <a id="considerations"></a>
 ## Security Considerations
 
-### Scope (v0.32.0)
+### Scope (v0.32.1)
 
 Orbiscreen is a Linux host daemon plus a Material 3 Android client and a browser web client that:
 - Creates compositor-native virtual displays without root: KWin's `zkde_screencast_unstable_v1` on Plasma, headless outputs via sway/Hyprland IPC on wlroots, falling back to the `evdi` kernel module or primary-desktop capture (Wayland portal or X11) when unavailable
@@ -165,7 +165,7 @@ The Android release signing key (`orbiscreen-release.keystore`) was removed from
 <a id="audit"></a>
 ## Security Audit
 
-Orbiscreen (v0.32.0) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose), a small browser web client (WebTransport + WebCodecs `VideoDecoder`), and a Linux desktop GUI control center (Tauri v2 + WebKitGTK). A running daemon performs:
+Orbiscreen (v0.32.1) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose), a small browser web client (WebTransport + WebCodecs `VideoDecoder`), and a Linux desktop GUI control center (Tauri v2 + WebKitGTK). A running daemon performs:
  
 - `open()` on `/dev/dri/card*` evdi nodes for capture
 - Compositor IPC over session-local Unix sockets: sway i3-ipc (`$SWAYSOCK`) and Hyprland (`HYPRLAND_INSTANCE_SIGNATURE`) to create/destroy headless outputs

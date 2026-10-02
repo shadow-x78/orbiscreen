@@ -124,11 +124,11 @@ async fn run_hub(mut cfg: HubConfig, mut rx: mpsc::Receiver<DisplayCommand>) {
                             );
                         }
                         idle_at.remove(&id);
-                    if sessions.contains_key(&id) {
-                        close_session(&mut sessions, &mut aliases, &id);
-                    }
+                        if sessions.contains_key(&id) {
+                            close_session(&mut sessions, &mut aliases, &id);
+                        }
                     } else {
-                                                                        idle_at.remove(&id);
+                        idle_at.remove(&id);
                     }
                 }
             }
