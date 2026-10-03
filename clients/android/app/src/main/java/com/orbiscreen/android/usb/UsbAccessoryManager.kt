@@ -1,4 +1,3 @@
-
 package com.orbiscreen.android.usb
 
 import android.content.Context
@@ -252,9 +251,6 @@ object UsbAccessoryManager {
                 break
             }
 
-            // The stream id must be unique among live sockets: overwriting a live entry
-            // would route the old connection's frames on the new socket, and the old
-            // reader's cleanup would then drop the new entry.
             var streamId = nextStreamId.getAndIncrement().toShort()
             if (streamId.toInt() > MAX_STREAM_ID || activeStreams.containsKey(streamId)) {
                 val free = (1..MAX_STREAM_ID).firstOrNull { !activeStreams.containsKey(it.toShort()) }

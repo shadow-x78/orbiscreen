@@ -9,7 +9,6 @@ use zbus::interface;
 
 #[derive(Debug)]
 pub struct DaemonHandles {
-    /// uid the daemon itself runs as; the only uid allowed to drive this interface.
     pub owner_uid: u32,
     pub is_running: Arc<AtomicBool>,
     pub stats: Arc<Stats>,
@@ -30,12 +29,6 @@ impl OrbiscreenDbusServer {
         Self { handles }
     }
 
-    /// Resolves the calling process's uid from the D-Bus message sender.
-    ///
-    /// The bus itself already restricts who may reach a session-bus name, so this is not a
-    /// privilege boundary against other users. It is a guard against a *different* process
-    /// in the same session: without it, any application the user runs can stop the daemon,
-    /// rewrite `orbiscreen.toml`, and have `set_resolution` spawn `kscreen-doctor`.
     async fn caller_uid(
         &self,
         connection: &zbus::Connection,
@@ -61,7 +54,6 @@ impl OrbiscreenDbusServer {
             .map_err(|e| format!("cannot resolve caller credentials: {e}"))
     }
 
-    /// Rejects a caller that is not the user the daemon runs as.
     async fn authorize(
         &self,
         connection: &zbus::Connection,
@@ -82,12 +74,6 @@ impl OrbiscreenDbusServer {
     }
 }
 
-/// uid of the running process, read once when the handles are built so the check cannot
-/// be influenced by anything a caller controls.
-///
-/// `MetadataExt::uid` is stable std and needs no `unsafe`, which matters because the
-/// daemon crate denies `unsafe_code`. `/proc/self` is authoritative on the only platform
-/// this daemon targets.
 pub fn current_uid() -> u32 {
     #[cfg(unix)]
     {
@@ -184,7 +170,6 @@ impl OrbiscreenDbusServer {
 }
 
 impl OrbiscreenDbusServer {
-    /// True only for the uid the daemon itself runs as.
     fn allows(&self, caller_uid: u32) -> bool {
         caller_uid == self.handles.owner_uid
     }

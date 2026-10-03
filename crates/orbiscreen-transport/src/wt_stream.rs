@@ -88,9 +88,6 @@ fn cert_usable(der: &[u8], slack: Duration) -> bool {
     )
 }
 
-/// A certificate is usable when it is already valid and stays valid past the renew slack.
-/// not_before used to be ignored, so a certificate that only becomes valid later was kept
-/// on disk and served even though no client could validate it yet.
 fn within_validity(not_before: i64, not_after: i64, slack_secs: i64, now: i64) -> bool {
     if not_before > now {
         return false;
@@ -252,8 +249,6 @@ impl StreamAuth {
         has_displays: bool,
     ) -> Option<Self> {
         if !shared_token.is_empty() && token_eq(credential, shared_token) {
-            // The shared token opens sessions itself and therefore carries no paired owner,
-            // but it must not attach to a session that a paired client owns.
             if let Some(registry) = registry {
                 if !session.is_empty() && registry.session_owner(session).is_some() {
                     return None;
@@ -779,14 +774,11 @@ mod tests {
     #[test]
     fn shared_token_cannot_attach_to_a_paired_clients_session() {
         let (registry, _, _) = paired_registry();
-        // The shared token owns no session of its own, so it may not attach to one that a
-        // paired client owns.
         assert!(
             StreamAuth::authenticate("shared", "shared", Some(&registry), "owned-session", true)
                 .is_none(),
             "shared token reached a session owned by a paired client"
         );
-        // Unowned sessions still work, so legacy clients are unaffected.
         assert!(matches!(
             StreamAuth::authenticate("shared", "shared", Some(&registry), "", true),
             Some(StreamAuth::Shared)
@@ -802,15 +794,10 @@ mod tests {
         const DAY: i64 = 86_400;
         let now = 1_700_000_000;
         let slack = 30 * DAY;
-        // Not yet valid: must not be served.
         assert!(!within_validity(now + DAY, now + 400 * DAY, slack, now));
-        // Valid but inside the renew slack: replaced.
         assert!(!within_validity(now - 400 * DAY, now + DAY, slack, now));
-        // Already expired.
         assert!(!within_validity(now - 400 * DAY, now - DAY, slack, now));
-        // Comfortably valid.
         assert!(within_validity(now - DAY, now + 400 * DAY, slack, now));
-        // Exactly at not_before is valid.
         assert!(within_validity(now, now + 400 * DAY, slack, now));
     }
 

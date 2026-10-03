@@ -111,15 +111,6 @@ struct Mapping {
 impl Mapping {
     #[allow(unsafe_code)]
     fn new(fd: RawFd, len: usize) -> Result<Self, CaptureError> {
-        // SAFETY: `fd` is `file.as_raw_fd()` for the `std::fs::File` still alive in
-        // `open_shm_segment`, so the descriptor is open and Rust-owned across this call and cannot
-        // be closed or recycled underneath `mmap`. `len` is the frame size computed by the caller
-        // as `width * height * 4`, and `ftruncate(file.as_raw_fd(), len as i64)` has already
-        // returned 0 (the caller checks that before reaching here), so the memfd is exactly `len`
-        // bytes long and mapping all of it cannot raise SIGBUS. `null_mut()` lets the kernel pick
-        // the address; `MAP_SHARED` is required so the X server process sees the same pages. The
-        // result is compared against `MAP_FAILED` immediately below, and only a non-`MAP_FAILED`
-        // address is stored in `self.ptr`.
         let ptr = unsafe {
             libc::mmap(
                 std::ptr::null_mut(),
@@ -144,12 +135,6 @@ impl Mapping {
 
     #[allow(unsafe_code)]
     fn as_slice(&self) -> &[u8] {
-        // SAFETY: `self.ptr` and `self.len` are exactly the address and byte length passed to the
-        // successful `mmap` in `Mapping::new`, stored only after the `MAP_FAILED` check. So `ptr`
-        // is non-null and mapped for reads across all `len` bytes, `len` is never larger than the
-        // mapping, and `*mut u8` has alignment 1 so the address is correctly aligned for the
-        // element type. Both fields are private to this module and have no interior mutability,
-        // so `len` cannot grow after the mapping was created.
         unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
     }
 }
@@ -158,48 +143,13 @@ impl Drop for Mapping {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
         if !self.ptr.is_null() {
-            // SAFETY: The `is_null` guard rules out `MAP_FAILED` (`(void*)-1`), which is the only
-            // way `self.ptr` could be an invalid descriptor for `munmap`. `self.len` is the byte
-            // length handed to `mmap` in `Mapping::new` and is unchangeable since, so `munmap`
-            // is asked to unmap exactly the region it mapped. `&mut self` comes from `Drop`, which
-            // the compiler only runs with unique ownership of the `Mapping`, so no `&[u8]` yielded
-            // earlier by `as_slice` (which borrows `&self`) is still live and reading the region.
             unsafe { libc::munmap(self.ptr.cast(), self.len) };
         }
     }
 }
 
-// SAFETY: `Send` (not `Sync`) is all that is claimed, and it is exactly what
-// `Mutex<Option<ShmSegment>>` needs to be `Sync` so the `Arc` clone of it can be moved into
-// `spawn_blocking` in `X11Capture::next_frame`. `Mapping` carries no state besides the mapping
-// itself, and ownership of it is unique, so moving it to another thread cannot duplicate access.
-// Mutual exclusion is supplied by that `Mutex`: the only way to reach the mapping is
-// `as_slice(&self)`, called from `capture_changed_frame` while the `shm_guard` returned by
-// `shm.lock()` is held, and the derived `&[u8]` is copied into the pooled frame buffer before
-// that guard is released, so no reference into the region ever crosses a thread boundary.
-// Because `Sync` is deliberately not implemented, a `&Mapping` can never be shared across
-// threads -- only exclusive ownership moves.
-// What *is* concurrently shared is the memfd page cache itself: the mapping is `MAP_SHARED`, so
-// the separate X server process writes the pixels through `shm::get_image` while we read them.
-// That is the intended MIT-SHM contract, and it is not a Rust data race because the server's
-// writes are fenced by the request/reply round trip -- `shm_frame_source` blocks on the
-// `GetImage` reply and rejects the segment unless `reply.size >= expected` before `as_slice`
-// is ever called.
 #[allow(unsafe_code)]
 unsafe impl Send for Mapping {}
-// SAFETY: Every field moves as one unit, and each is `Send` on its own: `shm::Seg` is a plain
-// resource id, `Arc<XCBConnection>` is `Send + Sync` because x11rb declares
-// `unsafe impl Send`/`unsafe impl Sync` for `XcbConnectionWrapper` (its internal locking
-// serializes requests on the shared display socket), `std::fs::File` is `Send`, and `Mapping`
-// is `Send` by the impl directly above. Moving the struct wholesale preserves the invariant that
-// `seg`, `conn`, `_file` and `mapping` all describe the same attached segment; the fields are
-// private to this module, so they cannot be split across threads to break that pairing.
-// The retained `Arc<XCBConnection>` clone is what keeps the connection alive for
-// `Drop::drop` -> `shm::detach(&self.conn, self.seg)`. `Drop` needs `&mut self`, i.e. exclusive
-// access, which the same `Mutex` guarantees: the only path that drops the segment is the
-// `shm_guard.take()` in `capture_changed_frame`, which requires the guard and therefore cannot
-// race another thread that still holds it. As with `Mapping`, `Sync` is deliberately not
-// implemented, so `&ShmSegment` is never shared across threads.
 #[allow(unsafe_code)]
 unsafe impl Send for ShmSegment {}
 
@@ -207,12 +157,6 @@ unsafe impl Send for ShmSegment {}
 fn anonymous_memfd(label: &str) -> Result<OwnedFd, CaptureError> {
     let name =
         std::ffi::CString::new(label).map_err(|e| CaptureError::Io(format!("shm name: {e}")))?;
-    // SAFETY: `name` is the `CString` built by `CString::new(label)` just above and propagated
-    // with `?` on failure, so it is NUL-terminated, contains no interior NUL, and outlives this
-    // call -- `memfd_create` reads the name and never retains the pointer. `MFD_CLOEXEC` keeps
-    // the descriptor from leaking into any `exec`ed child. The `-1` return is checked on the next
-    // line, so an error never reaches `OwnedFd::from_raw_fd`, and the descriptor is not yet owned
-    // by any Rust type, so nothing can close or recycle it before that hand-off.
     let fd = unsafe { libc::memfd_create(name.as_ptr(), libc::MFD_CLOEXEC) };
     if fd < 0 {
         return Err(CaptureError::Io(format!(
@@ -220,12 +164,6 @@ fn anonymous_memfd(label: &str) -> Result<OwnedFd, CaptureError> {
             std::io::Error::last_os_error()
         )));
     }
-    // SAFETY: `from_raw_fd` requires a valid descriptor, and `fd < 0` was rejected above, so
-    // `fd >= 0` is a live memfd. Ownership transfer is unique and total: the raw `fd` was never
-    // wrapped in an `OwnedFd` or `File`, was never duplicated, and is not read again after this
-    // line, so there is no path that closes it twice and none that leaks it. From here the
-    // descriptor is released exactly once by `OwnedFd`'s `Drop`, and `memfd_to_file` moves that
-    // `OwnedFd` into a `std::fs::File` with no further raw-fd round trip.
     Ok(unsafe { OwnedFd::from_raw_fd(fd) })
 }
 
@@ -281,13 +219,6 @@ fn memfd_to_file(fd: OwnedFd) -> std::fs::File {
 
 #[allow(unsafe_code)]
 fn ftruncate(fd: RawFd, len: i64) -> i32 {
-    // SAFETY: `fd` is `file.as_raw_fd()` on the `std::fs::File` that the caller still owns and
-    // keeps alive across this call, so the descriptor is open and cannot be closed or recycled
-    // underneath `ftruncate`. `len` is `width * height * 4` computed as a `usize`; the cast to
-    // `libc::off_t` widens into i64 and the caller builds the argument as `i64`, so the size
-    // reaches the kernel untruncated. The caller checks for a non-zero return and falls back to
-    // plain `GetImage` on failure, so the memfd is only mapped once it is confirmed to be exactly
-    // `len` bytes long -- which is what makes the later `mmap` of `len` bytes SIGBUS-free.
     unsafe { libc::ftruncate(fd, len as libc::off_t) }
 }
 

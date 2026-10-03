@@ -1,4 +1,3 @@
-
 package com.orbiscreen.android.player
 
 import android.content.Context
@@ -130,7 +129,6 @@ class PlayerHolder(
 
     private var okHttp: OkHttpClient? = null
 
-    /** Recreated after release(), so a retry never runs against a shut-down client. */
     private fun httpClient(): OkHttpClient =
         okHttp ?: OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
@@ -144,11 +142,6 @@ class PlayerHolder(
         okHttp = null
     }
 
-    /**
-     * Liveness probe. It used to build a fresh OkHttpClient per call, and OkHttpClient owns
-     * a connection pool plus a dispatcher thread pool, so every reconnect attempt and every
-     * poll leaked one of each.
-     */
     private val probeHttp: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(500, TimeUnit.MILLISECONDS)

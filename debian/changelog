@@ -1,3 +1,11 @@
+orbiscreen (0.32.9~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.32.9 for Ubuntu noble.
+  * chore: remove the inline comments added during this series.
+  * Bump version to 0.32.9 across all packages; Android versionCode 134.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.32.8~ubuntunoble1) noble; urgency=medium
 
   * Release 0.32.8 for Ubuntu noble.

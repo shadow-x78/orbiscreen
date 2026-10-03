@@ -57,7 +57,6 @@ const AOA_GET_PROTOCOL: u8 = 51;
 const AOA_SEND_STRING: u8 = 52;
 const AOA_START_ACCESSORY: u8 = 53;
 const PRIO_QUEUE_CAP: usize = 8;
-/// Upper bound on simultaneously open AOA data streams.
 const MAX_AOA_STREAMS: usize = 16;
 
 const CONTROL_SEND_TIMEOUT: Duration = Duration::from_millis(500);
@@ -236,15 +235,6 @@ fn ctrl_transfer(
         timeout: timeout_ms,
         data: buf.as_mut_ptr(),
     };
-    // SAFETY: `ctrl` is fully initialized by the literal above, and `#[repr(C)]` gives it the
-    // kernel's `struct usbdevfs_ctrltransfer` layout field for field (u8, u8, u16, u16, u16, u32,
-    // pointer = 24 B = the 0x18 size in the `USBDEVFS_CONTROL = 0xc0185500` `_IOWR` encoding), so
-    // the copy-in/copy-out lands on the offsets the kernel uses. `length` is
-    // `u16::try_from(buf.len()).unwrap_or(u16::MAX)` = `min(buf.len(), u16::MAX) <= buf.len()`,
-    // so the kernel never writes past the `&mut [u8]` that `data` points at; the empty `dummy`
-    // slice passed by `start_aoa` gives `length == 0` and a non-null aligned pointer, so nothing
-    // is copied. `buf` is borrowed mutably for the whole call, so the kernel's `copy_to_user`
-    // cannot race an alias, and `fd` is a dev-node descriptor the callers keep open across it.
     unsafe { ioctl(fd, USBDEVFS_CONTROL, &mut ctrl) }
 }
 
@@ -366,15 +356,6 @@ fn bulk_write_slice(fd: i32, ep: u32, data: &[u8], running: &AtomicBool) -> bool
             _pad: 0,
             data: data[offset..].as_ptr() as *mut u8,
         };
-        // SAFETY: the loop condition keeps `offset < data.len()`, so
-        // `to_write = min(data.len() - offset, MAX_PAYLOAD_LEN)` lies in `1..=data.len() - offset`
-        // and `len` never exceeds the bytes reachable from `data[offset..]`; `offset` grows by at
-        // most `len` per call, so that bound holds on every iteration. `ep` is the OUT endpoint
-        // reported by `detect_endpoints`, so usbfs only does `copy_from_user` on `data` and never
-        // writes through the `*mut u8` that the kernel's `void *data` field requires.
-        // `UsbDevFsBulkTransfer` is `#[repr(C)]` with the kernel's explicit `__u32 pad`, so it is
-        // 24 B, the 0x18 size in `USBDEVFS_BULK = 0xc0185502`; `bulk` is a live, uniquely
-        // borrowed local, `data` is a live `&[u8]` here, and `fd` is still the open dev node.
         let written = unsafe { ioctl(fd, USBDEVFS_BULK, &mut bulk) };
         if written < 0 {
             let err = std::io::Error::last_os_error();
@@ -617,22 +598,8 @@ pub fn run_accessory_bridge(
             flags: 0,
             driver: [0u8; 256],
         };
-        // SAFETY: `dc` is fully initialized by the literal above and `#[repr(C)]` gives it the
-        // kernel's `struct usbdevfs_disconnect` layout (`__u32 interface`, `__u32 flags`,
-        // `char driver[256]` = 264 B, the 0x108 size in `USBDEVFS_DISCONNECT_CLAIM =
-        // 0x8108551b`), so the kernel writes only fields that exist at the offsets it expects.
-        // `interface` is the `iface` value claimed (and later released) below, `flags` is 0 so no
-        // driver-name string is expected back, and the all-zero `driver` array gives the kernel
-        // 256 writable bytes to fill. `fd` is still the open dev-node descriptor, and `&mut dc`
-        // points at a live, uniquely borrowed stack value for the length of the call.
         let mut res = unsafe { ioctl(fd, USBDEVFS_DISCONNECT_CLAIM, &mut dc) };
         if res < 0 {
-            // SAFETY: `iface` is a live, initialized `u32` local (0, the interface this bridge
-            // claims and releases again at the end), and `USBDEVFS_CLAIMINTERFACE = 0x8004550f`
-            // encodes `_IOR('U', 15, 4)`: usbfs reads exactly one `unsigned int` from the
-            // argument and writes none back, so `&iface` is a valid pointer to 4 readable
-            // initialized bytes. `fd` is the descriptor of the `/dev/bus/usb/*` `File` that is
-            // still in scope at the top of this function, so the ioctl targets a live usbfs node.
             res = unsafe { ioctl(fd, USBDEVFS_CLAIMINTERFACE, &iface) };
         }
         if res >= 0 {
@@ -712,15 +679,6 @@ pub fn run_accessory_bridge(
             _pad: 0,
             data: rx_buf.as_mut_ptr(),
         };
-        // SAFETY: `rx_buf` is the `vec![0u8; MAX_PAYLOAD_LEN + FRAME_HEADER_LEN]` allocated once
-        // before this loop and is never resized, moved, or reborrowed while the ioctl runs, so
-        // `len = rx_buf.len() as u32` is its exact byte length and `as_mut_ptr()` is a uniquely
-        // borrowed, writable region of that size. `ep` is the IN endpoint, so usbfs `copy_to_user`s
-        // at most `len` bytes -- the buffer actually passed -- into it, and the non-negative return
-        // is bounded by that same `len` and is used only behind the `read_bytes < 0` check below
-        // and the `&rx_buf[..read_bytes]` slice that follows. `UsbDevFsBulkTransfer` is
-        // `#[repr(C)]` with the kernel's `__u32 pad`, 24 B = the 0x18 size in
-        // `USBDEVFS_BULK = 0xc0185502`, and `bulk` is a live, uniquely borrowed local.
         let read_bytes = unsafe { ioctl(fd, USBDEVFS_BULK, &mut bulk) };
         if read_bytes < 0 {
             let err = std::io::Error::last_os_error();
@@ -813,17 +771,6 @@ pub fn run_accessory_bridge(
                             let _ = tcp_stream.set_read_timeout(Some(Duration::from_millis(1500)));
                             let raw_sock_fd = tcp_stream.as_raw_fd();
                             let sock_buf_size: libc::c_int = 32768;
-                            // SAFETY: `raw_sock_fd` is the descriptor of `tcp_stream`, the
-                            // `TcpStream` bound in this `Ok` arm; it stays alive for the rest of
-                            // the function, and the later `try_clone`s hand out dups of the same
-                            // socket, so the fd is valid and open across both calls.
-                            // `sock_buf_size` is a live, initialized `libc::c_int`, the pointer
-                            // passed is its address, and the length is
-                            // `size_of_val(&sock_buf_size)` = 4, exactly the `int` the kernel
-                            // reads for `SO_RCVBUF`/`SO_SNDBUF`; both options only read the
-                            // value, so the `*const c_void` cast can never be written through.
-                            // Tuning failures are advisory, so ignoring the return needs no
-                            // check to stay memory-safe.
                             unsafe {
                                 libc::setsockopt(
                                     raw_sock_fd,
@@ -845,9 +792,6 @@ pub fn run_accessory_bridge(
                             if let Ok(stream_for_map) = tcp_stream.try_clone() {
                                 let mut map = tcp_streams.lock().unwrap_or_else(|p| p.into_inner());
                                 if map.len() >= MAX_AOA_STREAMS && !map.contains_key(&stream_id) {
-                                    // A device can open unbounded stream ids; each one costs a
-                                    // loopback connection plus reader threads. Refuse the new
-                                    // stream and close its socket instead of growing.
                                     warn!(
                                         stream_id,
                                         open_streams = map.len(),
@@ -984,13 +928,6 @@ pub fn run_accessory_bridge(
         }
     }
     let _ = writer_handle.join();
-    // SAFETY: `iface` is the same `u32` (0) passed to the claim ioctls above, so it names the
-    // interface the kernel is being asked to release, and `USBDEVFS_RELEASEINTERFACE =
-    // 0x80045510` encodes `_IOR('U', 16, 4)`: usbfs reads one `unsigned int` from the argument
-    // and writes none back, so `&iface` is a valid pointer to 4 readable bytes of a live local.
-    // `fd` is still open -- the `std::fs::File` the descriptor came from is still in scope here,
-    // so nothing has closed or recycled it -- and the release happens only after
-    // `writer_handle.join()`, so no thread can still be transferring on the interface.
     unsafe { ioctl(fd, USBDEVFS_RELEASEINTERFACE, &iface) };
     info!("AOA accessory released on {:?}", device.dev_node);
     Ok(())

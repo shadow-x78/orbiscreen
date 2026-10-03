@@ -1,4 +1,3 @@
-
 package com.orbiscreen.android
 
 import android.content.BroadcastReceiver
@@ -118,9 +117,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun finish() {
-        // Swallow the first back press that follows a USB accessory attach, so the attach
-        // flow is not cancelled mid-handshake. Clearing the action makes every later press
-        // close the activity normally.
         if (intent?.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
             intent?.action = null
             return
@@ -198,9 +194,6 @@ private fun App(prefs: PrefsStore) {
             },
         ) {
             val activity = context as? android.app.Activity
-            // MainActivity is exported, so these extras can come from any app on the device.
-            // HostSpec accepts only a plain IPv4 address or hostname and a 1-65535 port,
-            // which also keeps "/" and other route separators out of the nav argument.
             val requested = activity?.intent?.let { intent ->
                 val host = intent.getStringExtra("host") ?: return@let null
                 HostSpec.parse("$host:${intent.getIntExtra("port", 8788)}")

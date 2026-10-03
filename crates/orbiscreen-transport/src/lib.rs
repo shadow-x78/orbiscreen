@@ -487,8 +487,6 @@ async fn alt_svc_h3(
             axum::http::HeaderValue::from_static("no-store"),
         );
     }
-    // Only meaningful on this (TLS) listener, so a browser keeps using it instead of
-    // silently falling back to the cleartext port on the next visit.
     response.headers_mut().insert(
         "strict-transport-security",
         axum::http::HeaderValue::from_static("max-age=31536000"),
@@ -533,15 +531,6 @@ pub(crate) fn should_redirect_browser_to_https(path: &str) -> bool {
     matches!(path, "/" | "/client" | "/client/" | "/client/index.html")
 }
 
-/// Paths that carry a bearer token, user input, or a pairing decision. Served over the
-/// cleartext listener they would put the session credential, keystrokes and approval
-/// choices on the wire in the clear, so they are redirected to the TLS listener instead.
-///
-/// `/health` and `/api/info` are deliberately excluded: a device has to be able to read
-/// the host's version, display geometry and TLS port before it has a certificate to pin,
-/// and neither response contains a credential. `/client/*` static assets are public and
-/// carry nothing; the browser entry points are already upgraded by
-/// [`should_redirect_browser_to_https`].
 fn should_redirect_to_https(path: &str) -> bool {
     const TLS_ONLY: &[&str] = &[
         "/api/session",
@@ -606,8 +595,6 @@ async fn http_to_https(
         .path_and_query()
         .map(|p| p.as_str())
         .unwrap_or(path);
-    // 308 keeps the method and body, so a POST /input follows the redirect intact and a
-    // native client re-sends its Authorization header.
     axum::response::Redirect::temporary(&https_redirect_location(host, pq, port)).into_response()
 }
 
@@ -650,12 +637,6 @@ async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
     }))
 }
 
-/// Reads `?token=` from a query string.
-///
-/// Disabled by default: a credential in the query lands in proxy and server access logs,
-/// in browser history and in the `Referer` header of every subresource request. The
-/// shipped clients all present `Authorization: Bearer` instead, so re-enable this only
-/// for a third-party integration that cannot set headers.
 fn query_token(uri_query: Option<&str>) -> Option<&str> {
     if !query_token_allowed() {
         return None;
@@ -666,8 +647,6 @@ fn query_token(uri_query: Option<&str>) -> Option<&str> {
         .filter(|t| !t.is_empty())
 }
 
-/// Latched on first use so the daemon cannot be flipped mid-flight by an environment
-/// change that a later request would observe differently.
 fn query_token_allowed() -> bool {
     use std::sync::OnceLock;
     static ALLOWED: OnceLock<bool> = OnceLock::new();
@@ -708,8 +687,6 @@ fn request_credential(request: &axum::extract::Request) -> Option<String> {
     })
 }
 
-/// Same credential resolution as [`request_credential`], for handlers that only hold
-/// the header map and raw query (the WebSocket handshake).
 fn header_credential(headers: &HeaderMap, query: Option<&str>) -> String {
     bearer_from_headers(headers)
         .or_else(|| query_token(query).map(str::to_string))
@@ -925,9 +902,6 @@ fn session_action_allowed(state: &AppState, credential: &str, session_id: &str) 
             .pairing
             .verify(credential)
             .is_some_and(|client| client.client_id == owner),
-        // An unowned session can only have been opened with a host-side credential, so
-        // only those may drive it. Failing open here would let any paired credential
-        // close, resize, or force an IDR on a session it does not own.
         None => {
             (!state.token.is_empty() && token_eq(credential, &state.token))
                 || token_eq(credential, &state.loopback_token)
@@ -935,9 +909,6 @@ fn session_action_allowed(state: &AppState, credential: &str, session_id: &str) 
     }
 }
 
-/// A client-supplied `x-orbiscreen-session` may only address a session the calling
-/// credential is allowed to drive. An absent or empty id stays unrouted so the hub
-/// still resolves the single unambiguous session on its own.
 fn input_session_allowed(state: &AppState, credential: &str, session: Option<&str>) -> bool {
     match session.map(str::trim) {
         None | Some("") => true,
@@ -1654,7 +1625,6 @@ fn push_h264_packet(
 }
 
 const MAX_STREAM_CLIENTS: usize = 8;
-/// Input events are a few hundred bytes; anything larger is a malformed or hostile frame.
 const MAX_INPUT_MESSAGE_BYTES: usize = 64 * 1024;
 
 async fn au_handler(
@@ -2202,7 +2172,6 @@ mod tests {
         }
     }
 
-    /// Approves two paired clients and returns the state plus their credentials and ids.
     fn two_client_state() -> (AppState, String, String, String, String) {
         let registry = pairing::PairingRegistry::load_from(None).unwrap();
         let request_a = registry.request("TabletA", "192.0.2.9").unwrap();
@@ -2400,9 +2369,6 @@ mod tests {
             (Some("Bearer wrong"), "", false),
             (Some("Basic test-credential"), "", false),
             (Some("Bearer "), "", false),
-            // A credential in the query string is refused unless
-            // ORBISCREEN_ALLOW_QUERY_TOKEN is set, because it leaks into logs, history
-            // and Referer headers.
             (None, "?token=test-credential", false),
             (None, "?token=wrong", false),
             (None, "", false),
@@ -2444,8 +2410,6 @@ mod tests {
                 "{path} carries credentials but was still served over cleartext"
             );
         }
-        // Discovery and public assets stay reachable without a certificate, so a device
-        // can learn the host's version and TLS port before it has anything to pin.
         for path in [
             "/health",
             "/api/info",

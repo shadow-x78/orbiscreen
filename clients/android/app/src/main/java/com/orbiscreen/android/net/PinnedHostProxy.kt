@@ -20,7 +20,6 @@ import kotlin.concurrent.thread
 
 internal fun pinnedProxyAllows(path: String): Boolean = path in PINNED_PROXY_PATHS
 
-/** A WebSocket upgrade response head is a few hundred bytes; anything larger is an attack. */
 private const val MAX_UPGRADE_HEAD_BYTES = 64 * 1024
 
 private val PINNED_PROXY_PATHS = setOf(
@@ -156,15 +155,6 @@ class PinnedHostProxy internal constructor(
         }
     }
 
-
-    /**
-     * Replays a WebSocket upgrade verbatim and then relays bytes in both directions.
-     *
-     * The request is forwarded byte for byte rather than rebuilt, because the handshake needs
-     * `Sec-WebSocket-Key` to survive untouched and OkHttp's `execute()` cannot carry an upgrade.
-     * TLS reuses this proxy's own pinned client, so the host certificate is verified exactly as
-     * it is for every other proxied request.
-     */
     private fun relayUpgrade(
         downstream: Socket,
         input: BufferedInputStream,
@@ -230,14 +220,6 @@ class PinnedHostProxy internal constructor(
         }
     }
 
-    /**
-     * Puts the host credential on the replayed request line.
-     *
-     * It has to extend the target's query string. Appending a fourth whitespace-delimited field
-     * turned the request line into `GET /input/ws HTTP/1.1 token=...`, which hyper answers with
-     * 400, and leaving it out sent the proxy's own loopback token, which the daemon answers with
-     * 401.
-     */
     private fun injectCredential(rawHead: ByteArray): String {
         val text = String(rawHead, Charsets.ISO_8859_1)
         val end = text.indexOf("\r\n")

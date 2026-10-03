@@ -1,4 +1,3 @@
-
 const I18N = {
     en: {
         btnInputMode: "Input Mode",
@@ -522,8 +521,6 @@ let reconnectTimer = null;
 let reconnectDelay = 1000;
 let userDisconnected = false;
 let auReader = null;
-// Bumped by destroyPlayer(); every long-lived read loop captures it and stops as soon as
-// the value changes, so a loop from a previous session can never feed a new decoder.
 let streamGeneration = 0;
 const MAX_RECONNECT_DELAY = 10000;
 let clockOffsetNs = 0n;
@@ -1504,8 +1501,6 @@ function destroyPlayer() {
     latencyWatchdog = null;
     clearInterval(holeWatchdog);
     holeWatchdog = null;
-    // A queued animation frame survives disconnect and would still POST to /input,
-    // because sendInput only needs the token and the display session id.
     if (statsRaf) {
         cancelAnimationFrame(statsRaf);
         statsRaf = 0;

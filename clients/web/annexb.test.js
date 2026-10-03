@@ -1,4 +1,3 @@
-
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const annexb = require("./annexb.js");
@@ -300,8 +299,6 @@ test("a well-formed PING frame still decodes", () => {
 
 test("FrameReader drops the reassembly buffer instead of growing without bound", () => {
     const reader = new annexb.FrameReader();
-    // A peer that announces a 1 MiB frame and then stalls: every chunk is a valid prefix
-    // that never completes, so the buffer used to grow without limit.
     const chunk = new Uint8Array(64 * 1024);
     chunk.set([0x00, 0x10, 0x00, 0x00], 0);
     for (let i = 0; i < 80; i += 1) reader.push(chunk);
@@ -330,7 +327,6 @@ test("incomplete multi-block access units do not accumulate in the assembler", (
     const width = 8;
     const asm = new annexb.DatagramAssembler();
     for (let seq = 1; seq <= 40; seq += 1) {
-        // Block 0 of 2 only, so the AU can never complete and `partial` would grow.
         asm.push(annexb.encodeVideoDatagram(seq, 0, k, false, BigInt(seq), 2n, new Uint8Array(width)), 0);
         assert.deepEqual(asm.push(annexb.encodeVideoDatagram(seq, 1, k, false, BigInt(seq), 2n, new Uint8Array(width)), 0), []);
     }

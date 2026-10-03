@@ -1187,8 +1187,6 @@ fn run_uninstall() -> ExitCode {
         _ => warn!("HOME is not set or not absolute; skipping user-level removal"),
     }
 
-    // These need root. Without it the removals fail and are reported, which is why the
-    // run_uninstall summary counts errors instead of claiming success.
     remove_file(Path::new("/usr/bin/orbiscreen"), &mut failures);
     remove_file(Path::new("/usr/bin/orbiscreen-gui"), &mut failures);
     remove_file(
@@ -1208,9 +1206,6 @@ fn run_uninstall() -> ExitCode {
     }
 }
 
-/// Reads the session token the daemon generated on start. A missing or unreadable file
-/// yields an empty string rather than a plausible-looking literal, so it can never be
-/// mistaken for a usable credential in the banner or in JSON output.
 fn read_active_token() -> String {
     match std::fs::read_to_string(orbiscreen_core::default_token_path()) {
         Ok(raw) => raw.trim().to_string(),

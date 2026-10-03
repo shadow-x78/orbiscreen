@@ -391,8 +391,6 @@ impl UdpKeyRing {
         let mut map = self.lock();
         let issued = Self::live(&mut map, id)?;
         Self::touch(issued);
-        // saturating_add can never yield 0, so this counter never repeats a host nonce
-        // inside the replay window.
         issued.host_counter = issued.host_counter.saturating_add(1);
         let nonce_bytes = nonce(DIR_HOST, issued.host_counter);
         Some((

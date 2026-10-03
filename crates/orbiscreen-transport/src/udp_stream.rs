@@ -25,8 +25,6 @@ pub const PROBE_HEADER_LEN: usize = 7;
 pub const MIN_DATAGRAM: usize = 576;
 pub const BASE_DATAGRAM: usize = 1200;
 pub const DEFAULT_MAX_DATAGRAM: usize = 1472;
-/// Same ceiling the HTTP/WebTransport stream paths enforce, so one known UDP key cannot
-/// create more encoders than an equivalent HTTP client could.
 pub const DEFAULT_MAX_CLIENTS: usize = 8;
 pub const MAX_PAYLOAD: usize = BASE_DATAGRAM - VIDEO_HEADER_LEN;
 const CLIENT_TTL: Duration = Duration::from_secs(5);
@@ -43,7 +41,6 @@ pub struct UdpLimits {
     pub max_datagram: usize,
     pub drop_above: Option<usize>,
     pub loss_pct: u8,
-    /// Upper bound on simultaneously tracked UDP clients. Matches the HTTP stream cap.
     pub max_clients: usize,
 }
 
@@ -764,14 +761,6 @@ fn set_dont_fragment(sock: &std::net::UdpSocket) {
     let fd = sock.as_raw_fd();
     let val: libc::c_int = libc::IP_PMTUDISC_PROBE;
     #[allow(unsafe_code)]
-    // SAFETY: `fd` is `sock.as_raw_fd()` of the `std::net::UdpSocket` whose owner outlives this
-    // call (`bind_udp_socket` hands the same socket to `UdpSocket::from_std`), so the descriptor
-    // is valid and still a socket. `val` is a live, initialized `libc::c_int` and `addr_of!(val)`
-    // forms no intermediate reference, so the pointer spans `size_of_val(&val)` = 4 initialized
-    // bytes -- exactly the `int` the kernel reads for `IP_MTU_DISCOVER`. That option only reads
-    // the value, so the `*const c_void` cast is never written through, and `IP_PMTUDISC_PROBE`
-    // is a plain enum value with no further pointer or length contract attached to it. The
-    // non-zero return is inspected on the next line and only logged.
     let rc = unsafe {
         libc::setsockopt(
             fd,

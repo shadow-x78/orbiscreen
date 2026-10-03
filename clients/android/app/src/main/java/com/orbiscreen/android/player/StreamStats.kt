@@ -1,4 +1,3 @@
-
 package com.orbiscreen.android.player
 
 data class StatsSnapshot(
@@ -34,8 +33,6 @@ class StreamStats(
     private val presented = IntArray(n)
     private var head = 0
     private var cursorBucket = Long.MIN_VALUE
-    // Written from the playback thread and read from the UI polling thread under `lock`;
-    // the lock only guards the ring buffers, so these need their own visibility.
     @Volatile private var delayMs: Int? = null
     @Volatile private var presentedSentNs: Long = 0L
     @Volatile private var presentedAtMs: Long = 0L

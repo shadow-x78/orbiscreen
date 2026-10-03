@@ -2,7 +2,7 @@
 
 # Multi-Distro Packaging Guide - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.32.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.32.9-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -31,12 +31,12 @@
 
 When cutting a release, the version must be updated across all packages:
 
-- `Cargo.toml`: `[workspace.package].version = "0.32.8"`
-- `clients/android/app/build.gradle.kts`: `versionName = "0.32.8"`, `versionCode = 133`
-- `crates/orbiscreen-gui/tauri.conf.json`: `"version": "0.32.8"`
-- `PKGBUILD`: `pkgver=0.32.8`
-- `debian/changelog`: new entry for `0.32.8-1`
-- `data/orbiscreen-copr.spec`: `Version: 0.32.8`
+- `Cargo.toml`: `[workspace.package].version = "0.32.9"`
+- `clients/android/app/build.gradle.kts`: `versionName = "0.32.9"`, `versionCode = 134`
+- `crates/orbiscreen-gui/tauri.conf.json`: `"version": "0.32.9"`
+- `PKGBUILD`: `pkgver=0.32.9`
+- `debian/changelog`: new entry for `0.32.9-1`
+- `data/orbiscreen-copr.spec`: `Version: 0.32.9`
 
 Verify with the consistency check, which compares every location above against the Cargo
 workspace and exits non-zero on any mismatch. It runs in CI as well:
@@ -53,7 +53,7 @@ does not detect drift between the packaging files.
 <a id="packaging-matrix"></a>
 ## Packaging Matrix
 
-The release matrix is: `0.32.8` (workspace), `versionCode = 133` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
+The release matrix is: `0.32.9` (workspace), `versionCode = 134` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
 
 Orbiscreen provides build configurations and package definitions for all major Linux distributions and Android:
 
@@ -216,7 +216,7 @@ ORBISCREEN_KEY_PASSWORD=**** \
 
 ### Output
 - `app/build/outputs/apk/release/app-release.apk` (signed, V2/V3)
-- Version code: `133` (0.32.8), edited by hand. Android requires a strictly increasing
+- Version code: `134` (0.32.9), edited by hand. Android requires a strictly increasing
   integer, so it cannot track a semantic version; bump it by one per release.
   `scripts/check-versions.sh` verifies that it still matches the value quoted in this
   document, but it cannot tell you whether the release needs to advance it.

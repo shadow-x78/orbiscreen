@@ -1,4 +1,3 @@
-
 package com.orbiscreen.android.ui.stream
 
 import android.content.Context
@@ -28,7 +27,6 @@ private const val TOKEN_REFRESH_INTERVAL_MS = 30_000L
 private const val CONNECT_TIMEOUT_MS = 45_000L
 
 private const val GEOMETRY_POLL_INTERVAL_MS = 5_000L
-/// How often to re-ask for an IDR while a handshake has produced no picture yet.
 private const val IDR_RETRY_INTERVAL_MS = 1_000L
 
 enum class LoginStage { Checking, ConfirmFingerprint, Pending, Failed, Ready }
@@ -539,7 +537,6 @@ class StreamViewModel(
             inputDispatcher = it
         }
         
-        
         dispatcher.sessionId = displaySessionId
         sessionToken?.let { dispatcher.updateToken(it) }
         dispatcher.resize(state.value.displayWidth, state.value.displayHeight)
@@ -568,7 +565,6 @@ class StreamViewModel(
         playerHolder.release()
         val closingHost = transportHost
         val closingPort = transportPort
-        // viewModelScope is cancelled in onCleared(), so nothing outlives the ViewModel.
         viewModelScope.launch {
             try {
                 if (!id.isNullOrBlank() && !token.isNullOrBlank()) {

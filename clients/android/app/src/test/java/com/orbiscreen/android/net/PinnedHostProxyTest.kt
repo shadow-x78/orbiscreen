@@ -6,11 +6,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * The proxy answers requests by rebuilding them through OkHttp, which cannot carry a WebSocket
- * upgrade. `GET /input/ws` was therefore re-issued as a plain GET, the server refused the
- * upgrade, and every input event fell back to a synchronous HTTP POST.
- */
 class PinnedHostProxyTest {
     @Test
     fun theInputWebSocketPathIsAllowedThroughTheProxy() {

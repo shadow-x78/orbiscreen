@@ -42,9 +42,6 @@ pub fn set_autostart(enabled: bool) -> Result<(), String> {
 
 #[tauri::command]
 pub fn open_browser(url: String) -> Result<(), String> {
-    // The argument reaches a webview-exposed command, so refuse anything that is not a
-    // plain http/https URL: xdg-open would otherwise happily launch file:// or a handler
-    // scheme with a URL we did not intend to open.
     let rest = match url.split_once("://") {
         Some((scheme, rest))
             if scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https") =>
