@@ -1,3 +1,11 @@
+orbiscreen (0.33.0~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.33.0 for Ubuntu noble.
+  * chore: promote 0.32.10 to the 0.33.0 minor release.
+  * Bump version to 0.33.0 across all packages; Android versionCode 136.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.32.10~ubuntunoble1) noble; urgency=medium
 
   * Release 0.32.10 for Ubuntu noble.

@@ -4,6 +4,12 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.33.0] - 2026-10-03
+
+### Changed
+- chore: promote 0.32.10 to the 0.33.0 minor release.
+- Version bumped to 0.33.0 across the Cargo workspace, Android (`versionCode` 136), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.32.10] - 2026-10-03
 
 ### Changed

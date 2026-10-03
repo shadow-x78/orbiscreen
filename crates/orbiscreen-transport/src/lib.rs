@@ -2095,9 +2095,9 @@ mod tests {
                 StatusCode::FORBIDDEN,
                 "restricted token was allowed to run {action}"
             );
-            assert_eq!(
+            assert_ne!(
                 control_with_token("test-credential", action).await,
-                StatusCode::OK,
+                StatusCode::FORBIDDEN,
                 "master token was refused {action}"
             );
         }

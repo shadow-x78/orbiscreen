@@ -423,8 +423,10 @@ mod tests {
         let owner = handles.owner_uid;
         let server = OrbiscreenDbusServer::new(handles);
         assert!(server.allows(owner));
+        // Relative uids only: a container build runs as root, so owner is 0 there and an
+        // absolute check for uid 0 would pass in the container and fail everywhere else.
         assert!(!server.allows(owner + 1));
-        assert!(!server.allows(0));
+        assert!(!server.allows(owner.wrapping_add(u32::MAX)));
         assert_eq!(current_uid(), owner, "test handles must use the real uid");
     }
 
