@@ -1,6 +1,3 @@
-// Orbiscreen - main.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 mod commands;
 mod daemon_client;
 

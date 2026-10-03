@@ -1,5 +1,3 @@
-// Orbiscreen - PlayerSurface.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.ui.stream
 
@@ -28,14 +26,12 @@ private const val TAG = "Orbi.Surface"
 
 private class TouchCallbacksHolder(
     var isTouchMode: Boolean,
-    var onMove: (Float, Float, Int, Int) -> Unit,
     var onPointer: (Float?, Float?, Int, Int, Int, Boolean) -> Unit,
     var onTouch: (Int, Int, Float, Float, Int, Int, Boolean, Boolean) -> Unit,
     var onDeltaMove: (Float, Float) -> Unit,
     var onLeftClick: () -> Unit,
     var onRightClick: () -> Unit,
     var onScroll: (Double) -> Unit,
-    var onDoubleTap: (() -> Unit)?,
     var onStylus: ((Float, Float, Int, Int, Float, Float, Float) -> Unit)? = null,
     var scaleMode: Int = 0,
     var streamWidth: Int = 1920,
@@ -103,7 +99,6 @@ fun PlayerSurface(
     player: ExoPlayer?,
     udp: SurfaceTarget? = null,
     isTouchMode: Boolean,
-    onMove: (Float, Float, Int, Int) -> Unit,
     onPointer: (Float?, Float?, Int, Int, Int, Boolean) -> Unit,
     onTouch: (Int, Int, Float, Float, Int, Int, Boolean, Boolean) -> Unit,
     onDeltaMove: (Float, Float) -> Unit,
@@ -114,20 +109,17 @@ fun PlayerSurface(
     streamWidth: Int = 1920,
     streamHeight: Int = 1080,
     scaleMode: Int = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
-    onDoubleTap: (() -> Unit)? = null,
     onStylus: ((Float, Float, Int, Int, Float, Float, Float) -> Unit)? = null,
 ) {
     val holder = remember {
         TouchCallbacksHolder(
             isTouchMode = isTouchMode,
-            onMove = onMove,
             onPointer = onPointer,
             onTouch = onTouch,
             onDeltaMove = onDeltaMove,
             onLeftClick = onLeftClick,
             onRightClick = onRightClick,
             onScroll = onScroll,
-            onDoubleTap = onDoubleTap,
             onStylus = onStylus,
         )
     }
@@ -136,17 +128,15 @@ fun PlayerSurface(
     holder.scaleMode = scaleMode
     holder.streamWidth = streamWidth
     holder.streamHeight = streamHeight
-    holder.onMove = onMove
     holder.onPointer = onPointer
     holder.onTouch = onTouch
     holder.onDeltaMove = onDeltaMove
     holder.onLeftClick = onLeftClick
     holder.onRightClick = onRightClick
     holder.onScroll = onScroll
-    holder.onDoubleTap = onDoubleTap
     holder.onStylus = onStylus
 
-    key(udp != null, udp) {
+    key(udp != null) {
     AndroidView(
         modifier = modifier.fillMaxSize(),
         factory = { ctx ->
@@ -193,7 +183,9 @@ fun PlayerSurface(
 
                 setOnGenericMotionListener { _, ev ->
                     val toolType = ev.getToolType(0)
-                    if ((toolType == MotionEvent.TOOL_TYPE_STYLUS || toolType == MotionEvent.TOOL_TYPE_ERASER) && holder.onStylus != null) {
+                    val isStylusTool =
+                        toolType == MotionEvent.TOOL_TYPE_STYLUS || toolType == MotionEvent.TOOL_TYPE_ERASER
+                    if (isStylusTool && holder.onStylus != null) {
                         val cr = computeContentRect(width, height, holder.streamWidth, holder.streamHeight, holder.scaleMode)
                         val cx = (ev.x - cr.offsetX).coerceIn(0f, cr.w)
                         val cy = (ev.y - cr.offsetY).coerceIn(0f, cr.h)

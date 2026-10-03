@@ -1,5 +1,3 @@
-// Orbiscreen - InputDispatcher.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.input
 
@@ -55,9 +53,23 @@ internal class OrderedInputQueue<T>(capacity: Int = 64) {
         var consumed = false
     }
 
+    companion object {
+        const val OVERFLOW_CAPACITY = 256
+    }
+
     private val channel = Channel<Entry<T>>(capacity)
+
     private val producerLock = Any()
+
+    private val overflow = ArrayDeque<Entry<T>>()
+
+    private val closing = Channel<Unit>(Channel.CONFLATED)
+
     private var tail: Entry<T>? = null
+
+    var droppedDiscretes = 0
+        private set
+
     @Volatile
     private var closed = false
 
@@ -73,50 +85,89 @@ internal class OrderedInputQueue<T>(capacity: Int = 64) {
             }
         }
         val entry = Entry(values, motionKey)
-        val sent = channel.trySend(entry).isSuccess
-        if (!sent) {
-            if (motionKey == null) {
-                if (channel.trySendBlocking(entry).isFailure) return false
-            } else {
-                return false
+        val queued = when {
+            channel.trySend(entry).isSuccess -> true
+            motionKey != null -> {
+                false
+            }
+            else -> {
+                if (overflow.size < OVERFLOW_CAPACITY) {
+                    overflow.addLast(entry)
+                    true
+                } else {
+                    droppedDiscretes++
+                    false
+                }
             }
         }
-        tail = entry
-        true
+        if (queued) tail = entry
+        return queued
     }
 
-    suspend fun drain(deliver: (T, Boolean) -> Unit) {
-        try {
-            for (entry in channel) {
-                var currentEntry = entry
-                while (currentEntry.motionKey != null) {
-                    val next = channel.tryReceive().getOrNull() ?: break
-                    if (next.motionKey == currentEntry.motionKey) {
-                        currentEntry = next
-                    } else {
-                        val values = synchronized(currentEntry) {
-                            currentEntry.consumed = true
-                            currentEntry.values
-                        }
-                        val isMotion = currentEntry.motionKey != null
-                        for (value in values) deliver(value, isMotion)
-                        currentEntry = next
-                    }
-                }
+    private fun promoteOverflow() = synchronized(producerLock) {
+        while (overflow.isNotEmpty()) {
+            if (channel.trySend(overflow.first()).isFailure) break
+            overflow.removeFirst()
+        }
+    }
+
+    private fun deliverEntry(entry: Entry<T>, deliver: (T, Boolean) -> Unit) {
+        var currentEntry = entry
+        while (currentEntry.motionKey != null) {
+            val next = channel.tryReceive().getOrNull() ?: break
+            if (next.motionKey == currentEntry.motionKey) {
+                currentEntry = next
+            } else {
                 val values = synchronized(currentEntry) {
                     currentEntry.consumed = true
                     currentEntry.values
                 }
-                val isMotion = currentEntry.motionKey != null
-                        for (value in values) deliver(value, isMotion)
+                for (value in values) deliver(value, true)
+                currentEntry = next
+            }
+        }
+        val values = synchronized(currentEntry) {
+            currentEntry.consumed = true
+            currentEntry.values
+        }
+        val isMotion = currentEntry.motionKey != null
+        for (value in values) deliver(value, isMotion)
+    }
+
+    suspend fun drain(deliver: (T, Boolean) -> Unit) {
+        try {
+            while (true) {
+                promoteOverflow()
+                val entry = kotlinx.coroutines.selects.select {
+                    channel.onReceiveCatching { it.getOrNull() }
+                    closing.onReceive { null }
+                }
+                if (entry == null) {
+                    while (true) {
+                        promoteOverflow()
+                        val rest = channel.tryReceive().getOrNull() ?: break
+                        deliverEntry(rest, deliver)
+                    }
+                    val stranded = synchronized(producerLock) {
+                        if (overflow.isEmpty()) emptyList()
+                        else overflow.toList().also { overflow.clear() }
+                    }
+                    for (entry in stranded) deliverEntry(entry, deliver)
+                    return
+                }
+                deliverEntry(entry, deliver)
             }
         } catch (_: kotlinx.coroutines.CancellationException) {
         }
     }
 
     fun close() {
-        closed = true
-        channel.close()
+        val first = synchronized(producerLock) {
+            val was = closed
+            closed = true
+            !was
+        }
+        if (first) closing.trySend(Unit)
     }
 }
 
@@ -301,6 +352,7 @@ class InputDispatcher(
     }
 
     @Synchronized
+
     fun stylus(
         xPx: Float,
         yPx: Float,
@@ -347,7 +399,7 @@ class InputDispatcher(
             put("code", code)
             put("pressed", pressed)
         })
-        queue.submit(listOf(payload))
+        queue.submit(listOf(payload), motionKey = if (pressed) "key:$code" else null)
     }
 
     fun control(
@@ -400,6 +452,8 @@ class InputDispatcher(
     }
 
     private var lastUnauthorizedMs = 0L
+    private var lastMotionFallbackLogMs = 0L
+    private var motionFallbackCount = 0
 
     private fun send(payload: JSONObject, isMotion: Boolean = false) {
         try {
@@ -409,9 +463,22 @@ class InputDispatcher(
             if (ws != null) {
                 sentViaWs = ws.send(payload.toString())
             }
-            
-            if (isMotion || sentViaWs) {
+
+            if (sentViaWs) {
                 return
+            }
+
+            if (isMotion) {
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - lastMotionFallbackLogMs > 1000L) {
+                    lastMotionFallbackLogMs = now
+                    motionFallbackCount++
+                    Log.w(
+                        TAG,
+                        "input WebSocket unavailable; $motionFallbackCount motion events " +
+                            "in the last second fell back to HTTP"
+                    )
+                }
             }
 
             val t = tokenProvider?.invoke()?.takeIf { it.isNotBlank() } ?: token
@@ -426,7 +493,6 @@ class InputDispatcher(
             val sid = sessionIdProvider?.invoke()?.takeIf { it.isNotBlank() } ?: sessionId
             sid?.takeIf { it.isNotBlank() }?.let { builder.header("X-Orbiscreen-Session", it) }
             val call = http.newCall(builder.build())
-            call.timeout().timeout(1, TimeUnit.SECONDS)
             call.timeout().timeout(500, TimeUnit.MILLISECONDS)
             call.execute().use { resp ->
                 if (resp.code == 401) {

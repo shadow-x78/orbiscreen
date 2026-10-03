@@ -1,5 +1,3 @@
-// Orbiscreen - ClientIdentity.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.net
 
@@ -17,13 +15,19 @@ data class ClientIdentity(
     val bitrateKbps: Int,
 ) {
     companion object {
-        fun from(context: Context): ClientIdentity {
+        fun from(
+            context: Context,
+            requestedWidth: Int = 0,
+            requestedHeight: Int = 0,
+        ): ClientIdentity {
             val resolverName = Settings.Global.getString(resolver(context), Settings.Global.DEVICE_NAME)
             val name = resolverName
                 ?.trim()
                 ?.takeIf { it.isNotEmpty() }
                 ?: Build.MODEL.ifBlank { "Android" }
-            val (w, h) = nativePixels(context)
+            val (nativeW, nativeH) = nativePixels(context)
+            val w = requestedWidth.takeIf { it > 0 } ?: nativeW
+            val h = requestedHeight.takeIf { it > 0 } ?: nativeH
             return ClientIdentity(
                 name = name,
                 key = deviceKey(context),

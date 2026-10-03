@@ -24,6 +24,13 @@ on:
           - '41'
           - '40'
 
+concurrency:
+  group: fedora-${{ github.event.inputs.fedora_version || 'latest' }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -31,11 +38,13 @@ jobs:
   fedora:
     name: Fedora (${{ github.event.inputs.fedora_version || 'latest' }}) - Build, Test & RPM
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     container:
       image: fedora:${{ github.event.inputs.fedora_version || 'latest' }}
       options: --user root
 
     steps:
+      # ── Dependencies ──
       - name: Install system build dependencies via DNF
         run: |
           dnf install -y --setopt=install_weak_deps=False \
@@ -66,6 +75,7 @@ jobs:
             libsoup3-devel \
             libayatana-appindicator-gtk3-devel
 
+      # ── Checkout ──
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -81,12 +91,14 @@ jobs:
           cargo --version
           rpmbuild --version
 
+      # ── Build ──
       - name: Cargo Build (Release)
         run: cargo build --workspace --release --locked --verbose
 
       - name: Cargo Test
         run: cargo test --workspace --locked --verbose
 
+      # ── Packaging ──
       - name: Build Fedora RPM Package
         run: |
           chmod +x scripts/package-rpm.sh
@@ -98,7 +110,6 @@ jobs:
           ls -la *.rpm
 
       - name: Verify COPR Spec & Build SRPM
-        continue-on-error: true
         run: |
           chmod +x scripts/packit-archive.sh
           ./scripts/packit-archive.sh

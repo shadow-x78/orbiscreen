@@ -6,7 +6,7 @@
 # Maintainer: shadow-x78 <107577376+shadow-x78@users.noreply.github.com>
 
 pkgname=orbiscreen
-pkgver=0.32.1
+pkgver=0.32.2
 pkgrel=1
 pkgdesc="Turn Android devices into high-performance secondary monitors for Linux (Wayland & X11)"
 arch=('x86_64')
@@ -62,10 +62,9 @@ package() {
     install -Dm0755 scripts/install-evdi-module.sh "${pkgdir}/usr/share/orbiscreen/install-evdi-module.sh"
     install -Dm0644 data/99-orbiscreen-usb.rules "${pkgdir}/usr/lib/udev/rules.d/99-orbiscreen-usb.rules"
 
-    for f in index.html style.css app.js annexb.js favicon.svg favicon.png apple-touch-icon.png; do
+    for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
         install -Dm0644 "clients/web/${f}" "${pkgdir}/usr/share/orbiscreen/client/${f}"
     done
-    install -Dm0644 clients/web/vendor/mpegts.js "${pkgdir}/usr/share/orbiscreen/client/vendor/mpegts.js"
 
     install -Dm0644 /dev/null "${pkgdir}/usr/lib/systemd/user/orbiscreen.service"
     cat > "${pkgdir}/usr/lib/systemd/user/orbiscreen.service" << 'EOF'

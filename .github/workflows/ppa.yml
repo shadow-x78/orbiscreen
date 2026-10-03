@@ -1,3 +1,10 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - Launchpad PPA Publish Workflow
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+
+# ── Triggers ──
+# Runs on a version tag, or manually with an explicit Ubuntu series.
 name: Publish to Launchpad PPA
 
 on:
@@ -16,32 +23,48 @@ on:
           - jammy
           - oracular
 
+concurrency:
+  group: ppa-${{ github.event.inputs.series || 'noble' }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   build-and-upload-ppa:
     name: Build & Upload Source Package to PPA
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
+
+      # ── Toolchain ──
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
 
+      # ── Build & Packaging Dependencies ──
       - name: Install Debian packaging dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential debhelper devscripts dput dpkg-dev pkg-config \
             libglib2.0-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
-            libevdev-dev libxkbcommon-dev
+            libevdev-dev libxkbcommon-dev \
+            libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libsoup-3.0-dev \
+            libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
 
+      # ── Pre-Upload Verification ──
+      # Matches debian/rules exactly, so a green pre-check means debuild will be green.
       - name: Verify source build before upload
         run: |
-          cargo build --release --workspace --locked --exclude orbiscreen-gui
-          cargo test --workspace --locked --exclude orbiscreen-gui
+          cargo build --release --workspace --locked
+          cargo test --workspace --locked
 
+      # ── Offline Build ──
       - name: Vendor Cargo dependencies
         run: |
           cargo vendor vendor/
@@ -54,15 +77,31 @@ jobs:
           directory = "vendor"
           CFG
 
+      # ── Release Signing ──
       - name: Configure GPG key for signing
         env:
-          GPG_KEY: ${{ secrets.PPA_GPG_KEY || secrets.RPM_GPG_KEY }}
+          GPG_KEY: ${{ secrets.PPA_GPG_KEY }}
         run: |
           if [ -z "$GPG_KEY" ]; then
-            echo "::error::Please add PPA_GPG_KEY (or RPM_GPG_KEY) to repository secrets"
+            echo "::error::Please add a dedicated PPA_GPG_KEY secret to this repository."
+            echo "       It must not be the same key as RPM_GPG_KEY: upload capability must"
+            echo "       stay separate from package-signing capability."
             exit 1
           fi
-          echo "$GPG_KEY" | base64 -d 2>/dev/null | gpg --batch --import || echo "$GPG_KEY" | gpg --batch --import
+          KEYRING_FILE="$(mktemp)"
+          chmod 600 "$KEYRING_FILE"
+          if printf '%s' "$GPG_KEY" | base64 -d > "$KEYRING_FILE" 2>/dev/null \
+             && grep -q 'BEGIN PGP PRIVATE KEY BLOCK' "$KEYRING_FILE"; then
+            :
+          elif printf '%s' "$GPG_KEY" > "$KEYRING_FILE" && grep -q 'BEGIN PGP PRIVATE KEY BLOCK' "$KEYRING_FILE"; then
+            :
+          else
+            echo "::error::PPA_GPG_KEY is neither a base64-encoded nor an armored private key"
+            rm -f "$KEYRING_FILE"
+            exit 1
+          fi
+          gpg --batch --import "$KEYRING_FILE"
+          rm -f "$KEYRING_FILE"
           GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '$1=="sec"{print $5; exit}')
           if [ -z "$GPG_KEY_ID" ]; then
             echo "::error::No secret key found after importing GPG_KEY"
@@ -70,9 +109,12 @@ jobs:
           fi
           echo "GPG_KEY_ID=$GPG_KEY_ID" >> "$GITHUB_ENV"
 
+      # ── Distribution Metadata ──
       - name: Prepare debian/changelog for target series
+        env:
+          SERIES_INPUT: ${{ github.event.inputs.series || 'noble' }}
         run: |
-          SERIES="${{ github.event.inputs.series || 'noble' }}"
+          SERIES="$SERIES_INPUT"
           VERSION="${GITHUB_REF_NAME#v}"
           if [ "$VERSION" = "main" ] || [ -z "$VERSION" ]; then
             VERSION="$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')"
@@ -85,24 +127,17 @@ jobs:
            -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  $(date -R)
           CHLOG
 
+      # ── Source Package ──
       - name: Build Debian Source Package
         run: |
           debuild --no-lintian -S -sa -d -k"${GPG_KEY_ID}" -p"gpg --batch --pinentry-mode loopback"
 
+      # ── Upload Transport ──
       - name: Configure dput
         run: |
           cat << 'EOF' > ~/.dput.cf
           [DEFAULT]
           passive_ftp = 1
-          allow_unsigned_uploads = 1
-
-          [ppa]
-          fqdn = ppa.launchpad.net
-          method = ftp
-          incoming = ~%(ppa)s/ubuntu/
-          login = anonymous
-          passive_ftp = 1
-          allow_unsigned_uploads = 1
 
           [orbiscreen-ppa]
           fqdn = ppa.launchpad.net
@@ -110,9 +145,9 @@ jobs:
           incoming = ~shadow-x78/ubuntu/ppa/
           login = anonymous
           passive_ftp = 1
-          allow_unsigned_uploads = 1
           EOF
 
+      # ── Publish ──
       - name: Upload to Launchpad PPA via dput
         run: |
           CHANGES_FILE=$(ls ../orbiscreen_*_source.changes | tail -n 1)

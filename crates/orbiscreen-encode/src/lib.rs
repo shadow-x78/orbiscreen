@@ -1,6 +1,3 @@
-// Orbiscreen - lib.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use gstreamer::glib;
@@ -55,6 +52,7 @@ pub struct EncodeParams {
     pub width: u32,
     pub height: u32,
     pub framerate: u32,
+    pub vbv_frames: u32,
 }
 
 impl Default for EncodeParams {
@@ -65,6 +63,7 @@ impl Default for EncodeParams {
             width: 1920,
             height: 1080,
             framerate: 60,
+            vbv_frames: 1,
         }
     }
 }
@@ -168,20 +167,34 @@ pub fn one_frame_vbv_kb(bitrate_kbps: u32, framerate: u32) -> u32 {
     bitrate_kbps.max(1).div_ceil(fps).max(1)
 }
 
-pub fn low_latency_vbv_ms(framerate: u32) -> u32 {
+pub fn scaled_vbv_ms(frames: u32, framerate: u32) -> u32 {
     let fps = framerate.max(1);
-    (1000u32 / fps * 4).clamp(50, 200)
+    let frames = frames.clamp(1, 8);
+    if frames == 1 {
+        return one_frame_vbv_ms(framerate);
+    }
+    (1000u32 / fps * frames).clamp(50, 200)
 }
 
-pub fn low_latency_vbv_kb(bitrate_kbps: u32, framerate: u32) -> u32 {
+pub fn scaled_vbv_kb(frames: u32, bitrate_kbps: u32, framerate: u32) -> u32 {
     let fps = framerate.max(1);
+    let frames = frames.clamp(1, 8);
+    if frames == 1 {
+        return one_frame_vbv_kb(bitrate_kbps, framerate);
+    }
     let one_frame = bitrate_kbps.max(1).div_ceil(fps).max(1);
-    (one_frame * 4).max(200)
+    (one_frame * frames).max(200)
 }
 
-fn configure_one_frame_vbv(encoder: &gstreamer::Element, bitrate_kbps: u32, framerate: u32) {
-    let vbv_ms = low_latency_vbv_ms(framerate);
-    let vbv_kb = low_latency_vbv_kb(bitrate_kbps, framerate);
+fn configure_one_frame_vbv(
+    encoder: &gstreamer::Element,
+    bitrate_kbps: u32,
+    framerate: u32,
+    frames: u32,
+) {
+    let frames = frames.clamp(1, 8);
+    let vbv_ms = scaled_vbv_ms(frames, framerate);
+    let vbv_kb = scaled_vbv_kb(frames, bitrate_kbps, framerate);
     set_u32_if_present(encoder, "vbv-buf-capacity", vbv_ms);
     set_u32_if_present(encoder, "cpb-size", vbv_kb);
     set_u32_if_present(encoder, "vbv-buffer-size", vbv_kb);
@@ -398,7 +411,12 @@ impl Encoder {
                 encoder.set_property_from_str("bframes", "0");
             }
         }
-        configure_one_frame_vbv(&encoder, params.bitrate_kbps, params.framerate);
+        configure_one_frame_vbv(
+            &encoder,
+            params.bitrate_kbps,
+            params.framerate,
+            params.vbv_frames,
+        );
         configure_infinite_gop(&encoder);
 
         let h264parse = make_element("h264parse")?;
@@ -750,6 +768,7 @@ mod tests {
             width: 64,
             height: 64,
             framerate: 60,
+            vbv_frames: 1,
         }) {
             Ok(enc) => Some(enc),
             Err(e) => {
@@ -760,8 +779,8 @@ mod tests {
     }
 
     fn assert_live_one_frame_vbv(enc: &Encoder) {
-        let want_ms = low_latency_vbv_ms(60);
-        let want_kb = low_latency_vbv_kb(8000, 60);
+        let want_ms = one_frame_vbv_ms(60);
+        let want_kb = one_frame_vbv_kb(8000, 60);
         if enc.encoder.find_property("vbv-buf-capacity").is_some() {
             let got = enc.encoder.property::<u32>("vbv-buf-capacity");
             assert_ne!(
@@ -777,7 +796,7 @@ mod tests {
             if got != want_kb {
                 assert!(
                     got >= want_kb,
-                    "vah264enc cpb-size {got} is below low-latency {want_kb}"
+                    "vah264enc cpb-size {got} is below the one-frame window {want_kb}"
                 );
             }
         }
@@ -817,11 +836,12 @@ mod tests {
         let Ok(enc) = make_element("vah264enc") else {
             return;
         };
-        configure_one_frame_vbv(&enc, 8000, 60);
-        assert_eq!(enc.property::<u32>("cpb-size"), 134);
-        assert_eq!(
+        configure_one_frame_vbv(&enc, 8000, 60, 1);
+        assert_eq!(enc.property::<u32>("cpb-size"), one_frame_vbv_kb(8000, 60));
+        assert_ne!(
             enc.property::<u32>("cpb-size"),
-            low_latency_vbv_kb(8000, 60)
+            scaled_vbv_kb(4, 8000, 60),
+            "production is still on the four-frame window"
         );
     }
 
@@ -869,6 +889,7 @@ mod tests {
             width: 64,
             height: 64,
             framerate: 30,
+            vbv_frames: 1,
         });
         if let Ok(encoder) = encoder {
             encoder.request_keyframe();
@@ -885,6 +906,7 @@ mod tests {
             width: 64,
             height: 64,
             framerate: 30,
+            vbv_frames: 1,
         }) {
             Ok(e) => e,
             Err(_) => return,

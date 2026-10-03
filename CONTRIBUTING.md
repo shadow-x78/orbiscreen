@@ -31,8 +31,8 @@ A release is ONE commit containing the pending work plus the version bump:
 
 ```bash
 cargo fmt --all --check
-cargo clippy --workspace --exclude orbiscreen-gtk --all-targets --locked -- -D warnings
-cargo test --workspace --exclude orbiscreen-gtk --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
 cargo deny check
 
 git add -A

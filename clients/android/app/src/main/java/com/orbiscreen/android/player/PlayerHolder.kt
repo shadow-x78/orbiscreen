@@ -1,5 +1,3 @@
-// Orbiscreen - PlayerHolder.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.player
 
@@ -48,6 +46,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 sealed interface StreamEvent {
@@ -58,6 +57,9 @@ sealed interface StreamEvent {
     data class Error(val code: Int, val message: String) : StreamEvent
     data class Disconnected(val reason: String) : StreamEvent
 }
+
+internal fun StreamEvent.isTerminalOrPlaying(): Boolean =
+    this is StreamEvent.Playing || this is StreamEvent.Disconnected || this is StreamEvent.Error
 
 private data class StreamTarget(
     val host: String,
@@ -111,11 +113,9 @@ class PlayerHolder(
             try {
                 val token = target.tokenProvider()
                 val sid = target.session?.id.orEmpty()
-                val body = if (sid.isNotBlank()) {
-                    """{"action":"idr","session":"$sid"}"""
-                } else {
-                    """{"action":"idr"}"""
-                }.toRequestBody("application/json".toMediaType())
+                val payload = JSONObject().put("action", "idr")
+                if (sid.isNotBlank()) payload.put("session", sid)
+                val body = payload.toString().toRequestBody("application/json".toMediaType())
                 val reqBuilder = Request.Builder()
                     .url("http://${target.host}:${target.port}/api/control")
                     .header("Authorization", "Bearer $token")
@@ -188,8 +188,9 @@ class PlayerHolder(
             session = session?.id,
             key = identityKey,
         )
-        android.util.Log.i("OrbiPlayer", "connecting to stream: $uri")
-        _event.value = StreamEvent.Connecting(uri)
+        val displayUri = android.net.Uri.parse(StreamUrl.redact(uri))
+        android.util.Log.i("OrbiPlayer", "connecting to stream: $displayUri")
+        _event.value = StreamEvent.Connecting(displayUri)
 
         val info = try {
             com.orbiscreen.android.net.HostApi().info(host, port)
@@ -392,6 +393,9 @@ class PlayerHolder(
                                 Player.STATE_IDLE -> {
                                     bufferingWatchdogJob?.cancel()
                                     bufferingWatchdogJob = null
+                                    if (!isBackgrounded && !_event.value.isTerminalOrPlaying()) {
+                                        handleFailure(-1, "Stream stalled")
+                                    }
                                 }
                             }
                         }

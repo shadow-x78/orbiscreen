@@ -1,5 +1,3 @@
-// Orbiscreen - StreamViewModel.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.ui.stream
 
@@ -22,9 +20,14 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
 
 private const val TOKEN_REFRESH_INTERVAL_MS = 30_000L
+
+private const val CONNECT_TIMEOUT_MS = 45_000L
+
+private const val GEOMETRY_POLL_INTERVAL_MS = 5_000L
 
 enum class LoginStage { Checking, ConfirmFingerprint, Pending, Failed, Ready }
 
@@ -34,6 +37,39 @@ data class LoginState(
     val message: String = "Connecting securely to host…",
     val saved: Boolean = false,
 )
+
+internal fun resolveSelectedResolution(
+    preset: String,
+    nativeW: Int,
+    nativeH: Int,
+): Pair<Int, Int> {
+    val (w, h) = when {
+        preset == "720p" -> 1280 to 720
+        preset == "1080p" -> 1920 to 1080
+        preset == "1440p" -> 2560 to 1440
+        preset == "2k" -> 2560 to 1600
+        preset.startsWith("custom_") -> {
+            val parts = preset.removePrefix("custom_").split("x")
+            if (parts.size == 2) {
+                (parts[0].toIntOrNull() ?: nativeW) to (parts[1].toIntOrNull() ?: nativeH)
+            } else {
+                nativeW to nativeH
+            }
+        }
+        else -> nativeW to nativeH
+    }
+    if (w <= 0 || h <= 0) {
+        return if (nativeW > 0 && nativeH > 0) {
+            maxOf(nativeW, nativeH) to minOf(nativeW, nativeH)
+        } else {
+            DEFAULT_STREAM_W to DEFAULT_STREAM_H
+        }
+    }
+    return maxOf(w, h) to minOf(w, h)
+}
+
+internal const val DEFAULT_STREAM_W = 1920
+internal const val DEFAULT_STREAM_H = 1080
 
 data class StreamState(
     val host: String,
@@ -46,6 +82,7 @@ data class StreamState(
     val keyboardVisible: Boolean = false,
     val scaleMode: Int = 0,
     val resolutionLabel: String = "1920x1080",
+    val notice: String? = null,
 )
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -68,6 +105,9 @@ class StreamViewModel(
     private val holders = MutableStateFlow(PlayerHolder(context, prefs))
     private val playerHolder get() = holders.value
     private var inputDispatcher: InputDispatcher? = null
+    private val _inputGeneration = MutableStateFlow(0)
+
+    val inputGeneration: StateFlow<Int> = _inputGeneration.asStateFlow()
     private var sessionToken: String? = null
     private var displaySessionId: String? = null
     private var lastIdrAtMs = 0L
@@ -116,6 +156,38 @@ class StreamViewModel(
         val nativeH = minOf(physW, physH)
         val refreshRate = mode?.refreshRate?.toInt()?.coerceIn(30, 240) ?: 60
         return Triple(nativeW, nativeH, refreshRate)
+    }
+
+    private fun hasLocalResolutionChoice(): Boolean {
+        val preset = prefs.resolutionPreset
+        return preset.isNotEmpty() && preset != "native" && !preset.startsWith("custom_")
+    }
+
+    private suspend fun refreshHostGeometry() {
+        val current = _state.value
+        val w = current.displayWidth
+        val h = current.displayHeight
+        if (w <= 0 || h <= 0) return
+        val info = withContext(Dispatchers.IO) {
+            runCatching { hostApi.info(transportHost, transportPort) }.getOrNull()
+        } ?: return
+        val hw = info.width
+        val hh = info.height
+        if (hw <= 0 || hh <= 0) return
+        if (hw == w && hh == h) return
+        if (hasLocalResolutionChoice()) return
+        val longEdge = maxOf(hw, hh)
+        val shortEdge = minOf(hw, hh)
+        _state.value = _state.value.copy(
+            displayWidth = longEdge,
+            displayHeight = shortEdge,
+            resolutionLabel = "${longEdge}x$shortEdge",
+        )
+    }
+
+    private fun selectedResolution(): Pair<Int, Int> {
+        val (nativeW, nativeH, _) = detectNativeDisplay()
+        return resolveSelectedResolution(prefs.resolutionPreset, nativeW, nativeH)
     }
 
     private suspend fun waitForAoaProxy() {
@@ -188,6 +260,12 @@ class StreamViewModel(
             }
         }
         viewModelScope.launch {
+            launch {
+                while (isActive) {
+                    delay(GEOMETRY_POLL_INTERVAL_MS)
+                    refreshHostGeometry()
+                }
+            }
             while (isActive && !isLan) {
                 delay(TOKEN_REFRESH_INTERVAL_MS)
                 freshToken(forceRefresh = true)
@@ -318,6 +396,7 @@ class StreamViewModel(
         waitingForKeyframe = false
         inputDispatcher?.release()
         inputDispatcher = null
+        _inputGeneration.value += 1
         proxy?.close()
         proxy = null
         sessionToken = null
@@ -350,7 +429,12 @@ class StreamViewModel(
             sessionToken = info.first
             info.first?.let { inputDispatcher?.updateToken(it) }
             val token = info.first.orEmpty()
-            val identity = com.orbiscreen.android.net.ClientIdentity.from(context)
+            val (requestedW, requestedH) = selectedResolution()
+            val identity = com.orbiscreen.android.net.ClientIdentity.from(
+                context,
+                requestedW,
+                requestedH,
+            )
             val session = if (token.isNotBlank()) {
                 hostApi.openSession(transportHost, transportPort, token, identity)
             } else {
@@ -366,35 +450,13 @@ class StreamViewModel(
                 )
                 return
             }
-            val (nativeW, nativeH, _) = detectNativeDisplay()
-            
-            val preset = prefs.resolutionPreset
-            val (presetW, presetH) = when {
-                preset == "720p" -> 1280 to 720
-                preset == "1080p" -> 1920 to 1080
-                preset == "1440p" -> 2560 to 1440
-                preset == "2k" -> 2560 to 1600
-                preset.startsWith("custom_") -> {
-                    val parts = preset.removePrefix("custom_").split("x")
-                    if (parts.size == 2) {
-                        (parts[0].toIntOrNull() ?: nativeW) to (parts[1].toIntOrNull() ?: nativeH)
-                    } else {
-                        nativeW to nativeH
-                    }
-                }
-                else -> nativeW to nativeH
-            }
-            
-            val isPortrait = context.resources.configuration.orientation ==
-                android.content.res.Configuration.ORIENTATION_PORTRAIT
-            val targetW = if (isPortrait) minOf(presetW, presetH) else maxOf(presetW, presetH)
-            val targetH = if (isPortrait) maxOf(presetW, presetH) else minOf(presetW, presetH)
-             val w = targetW.takeIf { it > 0 }
-                ?: session?.width
+            val (targetW, targetH) = selectedResolution()
+            val w = session?.width?.takeIf { it > 0 }
+                ?: targetW.takeIf { it > 0 }
                 ?: hostInfo?.width
                 ?: identity.width
-             val h = targetH.takeIf { it > 0 }
-                ?: session?.height
+            val h = session?.height?.takeIf { it > 0 }
+                ?: targetH.takeIf { it > 0 }
                 ?: hostInfo?.height
                 ?: identity.height
             _state.value = _state.value.copy(
@@ -517,7 +579,12 @@ class StreamViewModel(
 
     private suspend fun reopenDisplaySession(): com.orbiscreen.android.net.HostApi.SessionInfo? {
         val token = freshToken(forceRefresh = true)
-        val identity = com.orbiscreen.android.net.ClientIdentity.from(context)
+        val (requestedW, requestedH) = selectedResolution()
+        val identity = com.orbiscreen.android.net.ClientIdentity.from(
+            context,
+            requestedW,
+            requestedH,
+        )
         val session = if (token.isNotBlank()) {
             hostApi.openSession(transportHost, transportPort, token, identity)
         } else {
@@ -544,7 +611,18 @@ class StreamViewModel(
     }
 
     fun lock() {
-        ensureInput().control("lock")
+        ensureInput().control("lock") { ok ->
+            if (!ok) {
+                _state.value = _state.value.copy(
+                    notice = "The host refused the lock request. Over USB, host desktop actions " +
+                        "need the session token from the host's start banner."
+                )
+            }
+        }
+    }
+
+    fun dismissNotice() {
+        _state.value = _state.value.copy(notice = null)
     }
 
     fun setScaleMode(mode: Int) {
@@ -558,39 +636,24 @@ class StreamViewModel(
 
     fun setResolutionPreset(preset: String, w: Int, h: Int) {
         prefs.resolutionPreset = preset
-        val (nativeW, nativeH, _) = detectNativeDisplay()
-        val (presetW, presetH) = when {
-            preset == "720p" -> 1280 to 720
-            preset == "1080p" -> 1920 to 1080
-            preset == "1440p" -> 2560 to 1440
-            preset == "2k" -> 2560 to 1600
-            preset.startsWith("custom_") -> {
-                val parts = preset.removePrefix("custom_").split("x")
-                if (parts.size == 2) {
-                    (parts[0].toIntOrNull() ?: nativeW) to (parts[1].toIntOrNull() ?: nativeH)
-                } else {
-                    nativeW to nativeH
-                }
-            }
-            else -> nativeW to nativeH
-        }
-        val isPortrait = context.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
-        val targetW = if (isPortrait) minOf(presetW, presetH) else maxOf(presetW, presetH)
-        val targetH = if (isPortrait) maxOf(presetW, presetH) else minOf(presetW, presetH)
+        val (targetW, targetH) = selectedResolution()
         updateDimensions(targetW, targetH, if (preset == "native") "Native" else "${targetW}x${targetH}")
     }
 
     fun updateDimensions(w: Int, h: Int, label: String = "${w}x${h}", fps: Int = 60) {
         if (w > 0 && h > 0) {
+            val longEdge = maxOf(w, h)
+            val shortEdge = minOf(w, h)
+            prefs.resolutionPreset = "custom_${longEdge}x$shortEdge"
             _state.value = _state.value.copy(
-                displayWidth = w,
-                displayHeight = h,
+                displayWidth = longEdge,
+                displayHeight = shortEdge,
                 resolutionLabel = label,
             )
-            inputDispatcher?.resize(w, h)
+            inputDispatcher?.resize(longEdge, shortEdge)
             ensureInput().control("set_resolution", org.json.JSONObject().apply {
-                put("width", w)
-                put("height", h)
+                put("width", longEdge)
+                put("height", shortEdge)
                 put("fps", fps)
                 displaySessionId?.let { put("session", it) }
             })

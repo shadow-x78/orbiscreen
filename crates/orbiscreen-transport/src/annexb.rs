@@ -1,6 +1,3 @@
-// Orbiscreen - annexb.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SpsPps {
     pub sps: Vec<u8>,

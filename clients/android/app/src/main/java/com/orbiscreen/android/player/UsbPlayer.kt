@@ -1,5 +1,3 @@
-// Orbiscreen - UsbPlayer.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.player
 
@@ -45,6 +43,8 @@ class UsbPlayer(
     private val running = AtomicBoolean(false)
     private var configured = false
     private var waitKey = true
+    private var waitKeySinceMs = 0L
+    private var idrAskedWhileWaiting = false
     private var sps: ByteArray? = null
     private var pps: ByteArray? = null
     private var width: Int = 1920
@@ -53,6 +53,7 @@ class UsbPlayer(
     private val lastIdr = AtomicLong(0)
     private val sentQueue = ArrayDeque<Long>()
     private val payloads = ArrayBlockingQueue<ByteArray>(256)
+
     private val openAck = AtomicLong(Long.MIN_VALUE)
     @Volatile private var openLatch: CountDownLatch? = null
     private var pumpJob: Job? = null
@@ -66,13 +67,14 @@ class UsbPlayer(
         surface = s
         if (same) return
         configured = false
-        waitKey = true
-        requestIdr()
+        enterWaitKey()
     }
 
+    @Synchronized
     override fun detachSurface() {
         surface = null
         releaseCodec()
+        sentQueue.clear()
     }
 
     fun start(sessionId: String?, width: Int, height: Int): Boolean {
@@ -121,7 +123,9 @@ class UsbPlayer(
         if (token.isNotBlank()) q.add("token=$token")
         if (!session.isNullOrBlank()) q.add("session=$session")
         if (q.isNotEmpty()) url.append('?').append(q.joinToString("&"))
-        _event.value = StreamEvent.Connecting(Uri.parse(url.toString()))
+        _event.value = StreamEvent.Connecting(
+            Uri.parse(com.orbiscreen.android.player.StreamUrl.redact(Uri.parse(url.toString())))
+        )
         val opened = CountDownLatch(1)
         val httpOk = AtomicBoolean(false)
         pumpJob = scope.launch {
@@ -181,6 +185,8 @@ class UsbPlayer(
         this.height = height
         stats.reset()
         waitKey = true
+        idrAskedWhileWaiting = false
+        waitKeySinceMs = 0L
         configured = false
         sps = null
         pps = null
@@ -206,12 +212,17 @@ class UsbPlayer(
         payloads.clear()
         openLatch?.countDown()
         openLatch = null
-        releaseCodec()
-        sentQueue.clear()
+        resetStreamState()
         aoaMode = false
         if (was) {
             _event.value = StreamEvent.Idle
         }
+    }
+
+    @Synchronized
+    private fun resetStreamState() {
+        releaseCodec()
+        sentQueue.clear()
     }
 
     fun requestIdr() {
@@ -221,12 +232,24 @@ class UsbPlayer(
         onIdr()
     }
 
+    private fun requestIdrWhileStarved(nowMs: Long = System.currentTimeMillis()): Boolean {
+        if (idrAskedWhileWaiting && nowMs - waitKeySinceMs < STARVED_IDR_RETRY_MS) return false
+        idrAskedWhileWaiting = true
+        waitKeySinceMs = nowMs
+        requestIdr()
+        return true
+    }
+
+    private fun enterWaitKey() {
+        waitKey = true
+        requestIdrWhileStarved()
+    }
+
     override fun onVideoPayload(payload: ByteArray) {
         if (!running.get()) return
         stats.noteBytes(payload.size.toLong())
         if (!payloads.offer(payload)) {
-            waitKey = true
-            requestIdr()
+            enterWaitKey()
         }
     }
 
@@ -239,6 +262,9 @@ class UsbPlayer(
         Log.w(TAG, "host closed native video")
         running.set(false)
         openLatch?.countDown()
+        if (_event.value is StreamEvent.Playing || _event.value is StreamEvent.Buffering) {
+            _event.value = StreamEvent.Disconnected("Host closed the USB video stream")
+        }
     }
 
     private fun pumpLoop() {
@@ -264,14 +290,19 @@ class UsbPlayer(
             stats.noteDelay(glass)
         }
         stats.noteFrame(H264.classifyAccessUnit(v.au))
+        if (!v.key && payloads.size > STALE_PAYLOAD_WATERMARK) {
+            enterWaitKey()
+            return
+        }
         if (waitKey && !v.key) {
             stats.noteDropped()
-            requestIdr()
+            requestIdrWhileStarved()
             return
         }
         if (v.key) {
             extractSpsPps(v.au)
             waitKey = false
+            idrAskedWhileWaiting = false
             if (_event.value !is StreamEvent.Playing) _event.value = StreamEvent.Playing
         }
         feedCodec(v.au, v.key, v.sentNs)
@@ -337,7 +368,7 @@ class UsbPlayer(
         val c = codec ?: return
         if (waitKey && !key) {
             stats.noteDropped()
-            requestIdr()
+            requestIdrWhileStarved()
             return
         }
         try {
@@ -350,16 +381,14 @@ class UsbPlayer(
             if (inIx < 0) {
                 Log.w(TAG, "codec input full; hold until IDR")
                 stats.noteDropped()
-                waitKey = true
-                requestIdr()
+                enterWaitKey()
                 return
             }
             val inBuf = c.getInputBuffer(inIx) ?: return
             if (inBuf.remaining() < au.size) {
                 c.queueInputBuffer(inIx, 0, 0, 0, 0)
                 stats.noteDropped()
-                waitKey = true
-                requestIdr()
+                enterWaitKey()
                 drainOutputs(c, sentNs)
                 return
             }
@@ -377,8 +406,7 @@ class UsbPlayer(
             Log.w(TAG, "codec feed: ${e.message}")
             stats.noteDropped()
             configured = false
-            waitKey = true
-            requestIdr()
+            enterWaitKey()
         }
     }
 
@@ -393,6 +421,7 @@ class UsbPlayer(
         }
     }
 
+    @Synchronized
     private fun releaseCodec() {
         try { codec?.stop() } catch (_: Exception) {}
         try { codec?.release() } catch (_: Exception) {}
@@ -418,5 +447,10 @@ class UsbPlayer(
         out[3] = 1
         System.arraycopy(nal, 0, out, 4, nal.size)
         return out
+    }
+
+    private companion object {
+        const val STALE_PAYLOAD_WATERMARK = 32
+        const val STARVED_IDR_RETRY_MS = 500L
     }
 }

@@ -162,6 +162,7 @@ html, body {
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 0;
 }
 
 .brandLogo {
@@ -174,6 +175,7 @@ html, body {
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
 }
 
 .brandName {
@@ -197,6 +199,7 @@ html, body {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-shrink: 0;
 }
 
 .statusPill {
@@ -463,7 +466,7 @@ html, body {
 
 .connectGrid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 14px;
     height: calc(100% - 50px);
 }
@@ -476,6 +479,7 @@ html, body {
     border-radius: var(--radius-lg);
     padding: 16px;
     box-shadow: var(--shadow-card);
+    min-width: 0;
 }
 
 .cardPairing {
@@ -543,6 +547,9 @@ html, body {
 
 .urlInputWrapper {
     flex: 1;
+    /* Flex items default to min-width:auto, which floors them at the intrinsic width of the
+       <input> inside and pushes the URL row past the window edge. */
+    min-width: 0;
 }
 
 .urlInputWrapper input {
@@ -711,7 +718,14 @@ html, body {
 
 .specsGrid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* `1fr` is `minmax(auto, 1fr)`, so each track is floored at the min-content width of its
+       card and the grid refuses to shrink. That min-content propagated up through
+       .statusHeroCard -> .connectCol and pinned the whole window to 720px, clipping the GUI
+       because html/body clip overflow.
+       `auto-fit` with an explicit floor lets the cards drop to two columns when the value text
+       ("1920 x 1080 @ 60Hz") would not fit at three, instead of falling back to the ellipsis
+       in .specCard strong. */
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
     gap: 8px;
 }
 
@@ -723,6 +737,7 @@ html, body {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
 }
 
 .specLabel {
@@ -991,7 +1006,7 @@ input:checked + .slider:before {
 
 .diagGrid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
 }
 
@@ -1104,4 +1119,41 @@ input:checked + .slider:before {
 
 [dir="rtl"] {
     text-align: right;
+}
+
+/* The window used to need a hard 720px because the two-column connect grid could not shrink
+   below its content. Its tracks are minmax(0, 1fr) now, and below these widths the side-by-side
+   layouts stack so the control center stays usable when the user shrinks the window. */
+@media (max-width: 700px) {
+    .connectGrid {
+        grid-template-columns: minmax(0, 1fr);
+        height: auto;
+    }
+
+    .navSegments {
+        flex-wrap: wrap;
+    }
+
+    .segmentBtn {
+        flex: 1 1 auto;
+    }
+}
+
+@media (max-width: 520px) {
+    .diagGrid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .modeSwitch {
+        flex-wrap: wrap;
+    }
+
+    /* The header cannot fit the status pill beside the brand at this width, so let the brand
+       title truncate rather than pushing the action buttons off the edge. */
+    .brandName,
+    .versionBadge {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 }

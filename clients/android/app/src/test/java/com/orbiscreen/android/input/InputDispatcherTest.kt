@@ -2,6 +2,7 @@ package com.orbiscreen.android.input
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
@@ -102,7 +103,7 @@ class InputDispatcherTest {
     }
 
     @Test
-    fun fullQueueBackpressuresWithoutDroppingReleases() = runBlocking {
+    fun aFullQueueNeverBlocksTheProducerAndStillDeliversEveryDiscrete() = runBlocking {
         val queue = OrderedInputQueue<Int>(capacity = 2)
         queue.submit(listOf(0))
         queue.submit(listOf(1))
@@ -115,13 +116,52 @@ class InputDispatcherTest {
             queue.close()
         }
         assertTrue(started.await(2, TimeUnit.SECONDS))
-        assertFalse(submitted.await(100, TimeUnit.MILLISECONDS))
+        assertTrue(
+            "producer blocked on a full queue",
+            submitted.await(2, TimeUnit.SECONDS)
+        )
         val delivered = mutableListOf<Int>()
         withTimeout(5_000) {
             queue.drain { v, _ -> delivered.add(v) }
             producer.await()
         }
         assertEquals((0..129).toList(), delivered)
+    }
+
+    @Test
+    fun motionIsDroppedRatherThanParkedWhenTheQueueIsFull() = runBlocking {
+        val queue = OrderedInputQueue<String>(capacity = 2)
+        queue.submit(listOf("a"))
+        queue.submit(listOf("b"))
+        assertFalse(queue.submit(listOf("c"), motionKey = "pointer"))
+        queue.close()
+        val delivered = mutableListOf<String>()
+        withTimeout(5_000) { queue.drain { v, _ -> delivered.add(v) } }
+        assertEquals(listOf("a", "b"), delivered)
+    }
+
+    @Test
+    fun aDroppedMotionSampleDoesNotPoisonLaterMotion() = runBlocking {
+        val queue = OrderedInputQueue<String>(capacity = 2)
+        queue.submit(listOf("a"))
+        queue.submit(listOf("b"))
+        assertFalse(queue.submit(listOf("dropped"), motionKey = "pointer"))
+        val delivered = mutableListOf<String>()
+        val consumer = async(Dispatchers.IO) {
+            queue.drain { v, _ -> delivered.add(v) }
+        }
+        withTimeout(5_000) {
+            repeat(8) {
+                delay(30)
+                queue.submit(listOf("move$it"), motionKey = "pointer")
+            }
+            queue.close()
+            consumer.await()
+        }
+        assertTrue(
+            "later motion was discarded after a drop: $delivered",
+            delivered.any { it.startsWith("move") }
+        )
     }
 
     @Test
@@ -182,5 +222,17 @@ class InputDispatcherTest {
         val delivered = mutableListOf<String>()
         queue.drain { v, _ -> delivered.add(v) }
         assertEquals(listOf("down", "up"), delivered)
+    }
+
+    @Test
+    fun theBacklogIsCappedRatherThanGrowingWithoutBound() {
+        val queue = OrderedInputQueue<Int>(capacity = 1)
+        queue.submit(listOf(0))
+        val accepted = (1..OrderedInputQueue.OVERFLOW_CAPACITY + 50).count { queue.submit(listOf(it)) }
+        assertTrue(
+            "backlog accepted everything: accepted=$accepted dropped=${queue.droppedDiscretes}",
+            queue.droppedDiscretes > 0
+        )
+        queue.close()
     }
 }

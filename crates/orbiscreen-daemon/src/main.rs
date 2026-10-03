@@ -1,6 +1,3 @@
-// Orbiscreen - main.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 pub mod client_display;
 pub mod dbus;
 pub mod ui;
@@ -74,6 +71,28 @@ enum Command {
 
         #[arg(short, long, help = "Run in background as a systemd user service")]
         daemon: bool,
+
+        #[arg(
+            long,
+            value_name = "PIXELS",
+            help = "Virtual display width for this run (e.g. 1280)"
+        )]
+        width: Option<u32>,
+
+        #[arg(
+            long,
+            alias = "hieght",
+            value_name = "PIXELS",
+            help = "Virtual display height for this run (e.g. 800)"
+        )]
+        height: Option<u32>,
+
+        #[arg(
+            long,
+            value_name = "HZ",
+            help = "Virtual display refresh rate for this run (e.g. 60)"
+        )]
+        fps: Option<u32>,
     },
     #[command(about = "Stop the running Orbiscreen daemon", alias = "down")]
     Stop,
@@ -311,7 +330,7 @@ async fn main() -> ExitCode {
         .config
         .clone()
         .unwrap_or_else(orbiscreen_core::default_config_path);
-    let cfg = match load_or_default_config(&config_path) {
+    let mut cfg = match load_or_default_config(&config_path) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("config error: {e}");
@@ -320,8 +339,32 @@ async fn main() -> ExitCode {
     };
 
     match cli.command {
-        Some(Command::Start { no_mdns, daemon }) => {
+        Some(Command::Start {
+            no_mdns,
+            daemon,
+            width,
+            height,
+            fps,
+        }) => {
+            let explicit_size = width.is_some() || height.is_some() || fps.is_some();
+            if let Some(w) = width {
+                cfg.display.width = w;
+            }
+            if let Some(h) = height {
+                cfg.display.height = h;
+            }
+            if let Some(f) = fps {
+                cfg.display.refresh_rate_hz = f;
+            }
             if daemon {
+                if explicit_size {
+                    eprintln!(
+                        "{} --width/--height/--fps are ignored with --daemon, which only hands over to systemd.",
+                        ui::badge_warn()
+                    );
+                    eprintln!("   Use 'orbiscreen display set {}x{}@{}' to change the service's display size.",
+                        cfg.display.width, cfg.display.height, cfg.display.refresh_rate_hz);
+                }
                 run_service_action(ServiceAction::Start).await
             } else {
                 if is_daemon_already_running(cfg.transport.signaling_port).await {
@@ -335,6 +378,21 @@ async fn main() -> ExitCode {
                         "   Run 'orbiscreen status' to view live status, or 'orbiscreen stop' to stop it.\n"
                     );
                     return ExitCode::SUCCESS;
+                }
+                if explicit_size {
+                    ui::print_banner();
+                    println!();
+                    println!(
+                        "{} Starting at {}x{} @ {} Hz (this run only)",
+                        ui::badge_info(),
+                        cfg.display.width,
+                        cfg.display.height,
+                        cfg.display.refresh_rate_hz
+                    );
+                    println!(
+                        "   Persist it with: orbiscreen display set {}x{}@{}\n",
+                        cfg.display.width, cfg.display.height, cfg.display.refresh_rate_hz
+                    );
                 }
                 match run_start(cfg, no_mdns).await {
                     Ok(()) => ExitCode::SUCCESS,
@@ -548,10 +606,7 @@ async fn run_status(json: bool, port: u16) -> ExitCode {
                     .and_then(|v| v.as_u64())
                     .unwrap_or(u64::from(port)) as u16;
 
-                let token = std::fs::read_to_string(orbiscreen_core::default_token_path())
-                    .unwrap_or_else(|_| "token-active".to_string())
-                    .trim()
-                    .to_string();
+                let token = read_active_token();
 
                 ui::print_banner();
                 ui::print_status_dashboard(
@@ -595,10 +650,7 @@ async fn run_status(json: bool, port: u16) -> ExitCode {
                     .and_then(|v| v.as_u64())
                     .unwrap_or(60);
                 let capture = "Virtual";
-                let token = std::fs::read_to_string(orbiscreen_core::default_token_path())
-                    .unwrap_or_else(|_| "token-active".to_string())
-                    .trim()
-                    .to_string();
+                let token = read_active_token();
 
                 if json {
                     println!(
@@ -810,8 +862,8 @@ async fn run_display(config_path: &Path, action: Option<DisplayAction>) -> ExitC
                         cfg.display.refresh_rate_hz,
                         config_path.display()
                     );
-                    if let Ok(conn) = zbus::Connection::session().await {
-                        if let Ok(msg) = dbus::call_set_resolution(
+                    match zbus::Connection::session().await {
+                        Ok(conn) => match dbus::call_set_resolution(
                             &conn,
                             cfg.display.width,
                             cfg.display.height,
@@ -819,7 +871,25 @@ async fn run_display(config_path: &Path, action: Option<DisplayAction>) -> ExitC
                         )
                         .await
                         {
-                            println!("{} {msg}", ui::badge_ok());
+                            Ok(msg) => println!("{} {msg}", ui::badge_ok()),
+                            Err(e) => {
+                                eprintln!(
+                                    "{} Saved, but the running daemon rejected the change: {e}",
+                                    ui::badge_warn()
+                                );
+                                eprintln!(
+                                    "   The new size takes effect the next time Orbiscreen starts."
+                                );
+                            }
+                        },
+                        Err(e) => {
+                            eprintln!(
+                                "{} Saved, but no session bus was available: {e}",
+                                ui::badge_warn()
+                            );
+                            eprintln!(
+                                "   The new size takes effect the next time Orbiscreen starts."
+                            );
                         }
                     }
                     ExitCode::SUCCESS
@@ -1112,28 +1182,17 @@ fn run_uninstall() -> ExitCode {
                 &home.join(".config/systemd/user/orbiscreen.service"),
                 &mut failures,
             );
-            remove_file(
-                &home.join(".local/share/applications/com.orbiscreen.OrbiscreenGtk.desktop"),
-                &mut failures,
-            );
-            remove_file(
-                &home.join(
-                    ".local/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg",
-                ),
-                &mut failures,
-            );
             remove_dir(&home.join(".local/share/orbiscreen"), &mut failures);
         }
         _ => warn!("HOME is not set or not absolute; skipping user-level removal"),
     }
 
+    // These need root. Without it the removals fail and are reported, which is why the
+    // run_uninstall summary counts errors instead of claiming success.
     remove_file(Path::new("/usr/bin/orbiscreen"), &mut failures);
+    remove_file(Path::new("/usr/bin/orbiscreen-gui"), &mut failures);
     remove_file(
-        Path::new("/usr/share/applications/com.orbiscreen.OrbiscreenGtk.desktop"),
-        &mut failures,
-    );
-    remove_file(
-        Path::new("/usr/share/icons/hicolor/scalable/apps/com.orbiscreen.OrbiscreenGtk.svg"),
+        Path::new("/usr/share/applications/orbiscreen.desktop"),
         &mut failures,
     );
     remove_dir(Path::new("/usr/share/orbiscreen"), &mut failures);
@@ -1146,6 +1205,22 @@ fn run_uninstall() -> ExitCode {
             "[Orbiscreen] Uninstallation finished with {failures} error(s); see warnings above."
         );
         ExitCode::from(1)
+    }
+}
+
+/// Reads the session token the daemon generated on start. A missing or unreadable file
+/// yields an empty string rather than a plausible-looking literal, so it can never be
+/// mistaken for a usable credential in the banner or in JSON output.
+fn read_active_token() -> String {
+    match std::fs::read_to_string(orbiscreen_core::default_token_path()) {
+        Ok(raw) => raw.trim().to_string(),
+        Err(e) => {
+            warn!(
+                "session token unavailable ({}); run `orbiscreen token` to mint a new one",
+                e
+            );
+            String::new()
+        }
     }
 }
 
@@ -1191,48 +1266,51 @@ fn resolve_client_dir() -> PathBuf {
 
 fn load_or_create_token() -> String {
     let token_path = orbiscreen_core::default_token_path();
-    let saved_token = std::fs::read_to_string(&token_path)
-        .ok()
-        .map(|s| s.trim().to_string())
-        .filter(|s| s.len() >= 32);
-    let token_to_use = saved_token.unwrap_or_else(|| {
-        let t = orbiscreen_transport::generate_token();
-        if let Some(parent) = token_path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt as _;
-                let _ = std::fs::set_permissions(parent, std::fs::Permissions::from_mode(0o700));
-            }
+    let t = orbiscreen_transport::generate_token();
+    if let Some(parent) = token_path.parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            eprintln!("could not create {}: {e}", parent.display());
         }
         #[cfg(unix)]
         {
+            use std::os::unix::fs::PermissionsExt as _;
+            if let Err(e) = std::fs::set_permissions(parent, std::fs::Permissions::from_mode(0o700))
+            {
+                eprintln!(
+                    "could not restrict permissions on {}: {e}",
+                    parent.display()
+                );
+            }
+        }
+    }
+    let write_result = {
+        #[cfg(unix)]
+        {
             use std::io::Write as _;
-            use std::os::unix::fs::OpenOptionsExt as _;
-            if let Ok(mut file) = std::fs::OpenOptions::new()
+            use std::os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _};
+            std::fs::OpenOptions::new()
                 .create(true)
                 .write(true)
                 .truncate(true)
                 .mode(0o600)
                 .open(&token_path)
-            {
-                let _ = file.write_all(t.as_bytes());
-            }
+                .and_then(|mut file| {
+                    file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
+                    file.write_all(t.as_bytes())
+                })
         }
         #[cfg(not(unix))]
         {
-            let _ = std::fs::write(&token_path, &t);
+            std::fs::write(&token_path, &t)
         }
-        t
-    });
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt as _;
-        if token_path.exists() {
-            let _ = std::fs::set_permissions(&token_path, std::fs::Permissions::from_mode(0o600));
-        }
+    };
+    if let Err(e) = write_result {
+        eprintln!(
+            "could not persist the session token to {}: {e}",
+            token_path.display()
+        );
     }
-    token_to_use
+    t
 }
 
 async fn run_start_per_client(
@@ -1252,7 +1330,7 @@ async fn run_start_per_client(
         refresh_hz: cfg.display.refresh_rate_hz,
         default_width: cfg.display.width,
         default_height: cfg.display.height,
-        has_explicit_override: false,
+        has_explicit_override: cfg.display.pinned,
     });
 
     let stats = std::sync::Arc::new(Stats::default());
@@ -1743,7 +1821,7 @@ async fn bind_kwin_virtual_inputs(preferred_output: String) {
             continue;
         };
         if let Ok(conn) = zbus::Connection::session().await {
-            let is_secondary = target_output.contains('2');
+            let is_secondary = orbiscreen_input::is_secondary_output_name(&target_output);
             let bound = crate::client_display::bind_named_kwin_devices(
                 &conn,
                 target_output.as_str(),
@@ -2420,6 +2498,7 @@ async fn run_secondary_display_session(
         width: actual_dims.0,
         height: actual_dims.1,
         framerate: spec.refresh_rate_hz,
+        vbv_frames: 1,
     })?;
     let encoder_name = match encoder.kind() {
         EncoderKind::Auto => "auto",
@@ -2820,6 +2899,7 @@ async fn run_start(
         width: actual_dims.0,
         height: actual_dims.1,
         framerate: spec.refresh_rate_hz,
+        vbv_frames: 1,
     })?;
     let encoder_name = match encoder.kind() {
         EncoderKind::Auto => "auto",

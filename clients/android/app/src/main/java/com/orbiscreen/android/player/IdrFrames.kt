@@ -1,11 +1,11 @@
-// Orbiscreen - IdrFrames.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.player
 
 object IdrFrames {
     const val TYPE_VIDEO: Int = 1
     const val MAX_FRAME: Int = 4 * 1024 * 1024
+
+    const val FRAME_HEADER_LEN: Int = 4
 
     data class Video(
         val key: Boolean,
@@ -36,21 +36,66 @@ object IdrFrames {
     }
 
     class Reader {
-        private var buf = ByteArray(0)
+        private var buf = ByteArray(INITIAL_CAPACITY)
+
+        private var used = 0
+
+        private var scan = 0
+
+        var resyncSkips = 0
+            private set
+
+        var overflowResets = 0
+            private set
 
         fun push(chunk: ByteArray) {
             if (chunk.isEmpty()) return
-            val next = ByteArray(buf.size + chunk.size)
-            System.arraycopy(buf, 0, next, 0, buf.size)
-            System.arraycopy(chunk, 0, next, buf.size, chunk.size)
-            buf = next
+            if (used + chunk.size > MAX_FRAME + FRAME_HEADER_LEN) {
+                overflowResets++
+                used = 0
+                scan = 0
+                return
+            }
+            if (used + chunk.size > buf.size) {
+                var capacity = buf.size.coerceAtLeast(INITIAL_CAPACITY)
+                while (capacity < used + chunk.size) capacity *= 2
+                buf = buf.copyOf(capacity.coerceAtMost(MAX_FRAME + FRAME_HEADER_LEN))
+            }
+            System.arraycopy(chunk, 0, buf, used, chunk.size)
+            used += chunk.size
+        }
+
+        private fun headerLength(offset: Int): Int? {
+            if (offset + FRAME_HEADER_LEN > used) return null
+            val n = ((buf[offset].toInt() and 0xff) shl 24) or
+                ((buf[offset + 1].toInt() and 0xff) shl 16) or
+                ((buf[offset + 2].toInt() and 0xff) shl 8) or
+                (buf[offset + 3].toInt() and 0xff)
+            return if (n <= 0 || n > MAX_FRAME) null else n
         }
 
         fun pop(): Video? {
-            val split = split(buf) ?: return null
-            val (body, used) = split
-            buf = buf.copyOfRange(used, buf.size)
-            return decodeVideo(body)
+            while (true) {
+                val n = headerLength(scan)
+                if (n == null) {
+                    if (scan + FRAME_HEADER_LEN > used) return null
+                    scan++
+                    resyncSkips++
+                    continue
+                }
+                val bodyStart = scan + FRAME_HEADER_LEN
+                if (bodyStart + n > used) return null
+                val body = buf.copyOfRange(bodyStart, bodyStart + n)
+                val consumed = bodyStart + n
+                System.arraycopy(buf, consumed, buf, 0, used - consumed)
+                used -= consumed
+                scan = 0
+                return decodeVideo(body)
+            }
+        }
+
+        private companion object {
+            const val INITIAL_CAPACITY = 1 shl 16
         }
     }
 

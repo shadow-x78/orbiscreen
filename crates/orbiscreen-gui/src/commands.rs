@@ -1,6 +1,3 @@
-// Orbiscreen - commands.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use crate::daemon_client::{DaemonClient, DaemonStatus};
 
 #[tauri::command]
@@ -45,8 +42,25 @@ pub fn set_autostart(enabled: bool) -> Result<(), String> {
 
 #[tauri::command]
 pub fn open_browser(url: String) -> Result<(), String> {
-    let _ = std::process::Command::new("xdg-open").arg(url).spawn();
-    Ok(())
+    // The argument reaches a webview-exposed command, so refuse anything that is not a
+    // plain http/https URL: xdg-open would otherwise happily launch file:// or a handler
+    // scheme with a URL we did not intend to open.
+    let rest = match url.split_once("://") {
+        Some((scheme, rest))
+            if scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https") =>
+        {
+            rest
+        }
+        _ => return Err("only http and https URLs can be opened".into()),
+    };
+    if rest.is_empty() || rest.contains(['\n', '\r', '\0']) {
+        return Err("malformed URL".into());
+    }
+    std::process::Command::new("xdg-open")
+        .arg(&url)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("failed to launch a browser: {e}"))
 }
 
 #[tauri::command]

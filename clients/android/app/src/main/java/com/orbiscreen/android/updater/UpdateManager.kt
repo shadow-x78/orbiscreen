@@ -1,5 +1,3 @@
-// Orbiscreen - UpdateManager.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.updater
 
@@ -176,15 +174,20 @@ class UpdateManager(private val context: Context) {
                     onProgress(DownloadProgress.Verifying)
                 }
                 val expectedSha = fetchExpectedSha256(release.sha256Url)
-                if (!expectedSha.isNullOrEmpty()) {
-                    val computedSha = computeSha256(targetFile)
-                    if (!computedSha.equals(expectedSha, ignoreCase = true)) {
-                        targetFile.delete()
-                        withContext(Dispatchers.Main) {
-                            onProgress(DownloadProgress.Failed("Checksum mismatch"))
-                        }
-                        return@withContext null
+                if (expectedSha.isNullOrBlank()) {
+                    targetFile.delete()
+                    withContext(Dispatchers.Main) {
+                        onProgress(DownloadProgress.Failed("Could not fetch the update checksum"))
                     }
+                    return@withContext null
+                }
+                val computedSha = computeSha256(targetFile)
+                if (!computedSha.equals(expectedSha, ignoreCase = true)) {
+                    targetFile.delete()
+                    withContext(Dispatchers.Main) {
+                        onProgress(DownloadProgress.Failed("Checksum mismatch"))
+                    }
+                    return@withContext null
                 }
             }
 

@@ -1,10 +1,11 @@
-// Orbiscreen - lib.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 pub mod wayland;
 pub mod wlroots;
 pub mod x11;
 pub mod xtest;
+
+pub fn is_secondary_output_name(name: &str) -> bool {
+    x11::is_secondary_output(name)
+}
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

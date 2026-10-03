@@ -55,11 +55,9 @@ install -m 0644 %{_projectroot}/data/orbiscreen.desktop %{buildroot}/usr/share/a
 install -m 0644 %{_projectroot}/data/99-orbiscreen-usb.rules %{buildroot}/usr/lib/udev/rules.d/99-orbiscreen-usb.rules
 install -m 0755 %{_projectroot}/scripts/install-evdi-module.sh %{buildroot}/usr/share/orbiscreen/install-evdi-module.sh
 
-for f in index.html style.css app.js annexb.js favicon.svg favicon.png apple-touch-icon.png; do
+for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     install -m 0644 "%{_projectroot}/clients/web/$f" "%{buildroot}/usr/share/orbiscreen/client/$f"
 done
-mkdir -p %{buildroot}/usr/share/orbiscreen/client/vendor
-install -m 0644 %{_projectroot}/clients/web/vendor/mpegts.js %{buildroot}/usr/share/orbiscreen/client/vendor/mpegts.js
 
 cat << 'EOF' > %{buildroot}/usr/lib/systemd/user/orbiscreen.service
 [Unit]
@@ -80,30 +78,30 @@ EOF
 
 # ── Post-Install Script ──
 %post
-/bin/touch --no-create /usr/share/icons/hicolor &>/dev/null || :
+/bin/touch --no-create /usr/share/icons/hicolor >/dev/null 2>&1 || :
 if [ -x /usr/bin/gtk-update-icon-cache ]; then
-    /usr/bin/gtk-update-icon-cache /usr/share/icons/hicolor &>/dev/null || :
+    /usr/bin/gtk-update-icon-cache /usr/share/icons/hicolor >/dev/null 2>&1 || :
 fi
 if [ -x /usr/bin/update-desktop-database ]; then
-    /usr/bin/update-desktop-database /usr/share/applications &>/dev/null || :
+    /usr/bin/update-desktop-database /usr/share/applications >/dev/null 2>&1 || :
 fi
 
 # ── Uninstall Script ──
 %preun
 if [ $1 -eq 0 ]; then
-    for u in $(users); do
-        su -s /bin/sh -c "systemctl --user stop orbiscreen || true" "$u" || true
+    for u in $(users | tr ' ' '\n' | tail -n +2 | sort -u); do
+        su -s /bin/sh -c "systemctl --user disable --now orbiscreen || true" "$u" || true
     done
 fi
 
 %postun
 if [ $1 -eq 0 ]; then
-    /bin/touch --no-create /usr/share/icons/hicolor &>/dev/null || :
+    /bin/touch --no-create /usr/share/icons/hicolor >/dev/null 2>&1 || :
     if [ -x /usr/bin/gtk-update-icon-cache ]; then
-        /usr/bin/gtk-update-icon-cache /usr/share/icons/hicolor &>/dev/null || :
+        /usr/bin/gtk-update-icon-cache /usr/share/icons/hicolor >/dev/null 2>&1 || :
     fi
     if [ -x /usr/bin/update-desktop-database ]; then
-        /usr/bin/update-desktop-database /usr/share/applications &>/dev/null || :
+        /usr/bin/update-desktop-database /usr/share/applications >/dev/null 2>&1 || :
     fi
     echo "Orbiscreen has been removed."
 fi
@@ -124,10 +122,10 @@ fi
 /usr/share/orbiscreen/client/style.css
 /usr/share/orbiscreen/client/app.js
 /usr/share/orbiscreen/client/annexb.js
+/usr/share/orbiscreen/client/stats.js
 /usr/share/orbiscreen/client/favicon.svg
 /usr/share/orbiscreen/client/favicon.png
 /usr/share/orbiscreen/client/apple-touch-icon.png
-/usr/share/orbiscreen/client/vendor/mpegts.js
 /usr/share/orbiscreen/install-evdi-module.sh
 
 %changelog

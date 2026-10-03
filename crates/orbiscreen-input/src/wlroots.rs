@@ -1,8 +1,5 @@
-// Orbiscreen - wlroots.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use std::os::fd::{AsFd, AsRawFd};
-use std::sync::mpsc::{RecvTimeoutError, Sender};
+use std::sync::mpsc::{RecvTimeoutError, SyncSender};
 use std::time::{Duration, Instant};
 
 use tracing::{debug, info, warn};
@@ -54,6 +51,10 @@ use vk_proto::client::zwp_virtual_keyboard_v1::{self as vk_proto_mod, ZwpVirtual
 
 const HANDSHAKE_DEADLINE: Duration = Duration::from_secs(3);
 const DRAIN_PAUSE: Duration = Duration::from_millis(20);
+
+const CMD_QUEUE_CAPACITY: usize = 256;
+
+const KEY_ENQUEUE_WAIT: Duration = Duration::from_millis(50);
 const WHEEL_STEP_VALUE: f64 = 15.0;
 
 enum WlCmd {
@@ -230,7 +231,7 @@ fn compile_keymap() -> Result<Vec<u8>, String> {
 }
 
 pub struct WlrootsInjector {
-    tx: Sender<WlCmd>,
+    tx: SyncSender<WlCmd>,
     thread: Option<std::thread::JoinHandle<()>>,
 }
 
@@ -323,7 +324,7 @@ impl WlrootsInjector {
              no root"
         );
 
-        let (tx, rx) = std::sync::mpsc::channel::<WlCmd>();
+        let (tx, rx) = std::sync::mpsc::sync_channel::<WlCmd>(CMD_QUEUE_CAPACITY);
         let extent = (spec.width.max(1), spec.height.max(1));
         let thread = std::thread::Builder::new()
             .name("orbiscreen-wlr-input".into())
@@ -337,14 +338,29 @@ impl WlrootsInjector {
 
     pub fn inject_pointer_sync(&self, event: PointerEvent) -> Result<(), InputError> {
         self.tx
-            .send(WlCmd::Pointer(event))
-            .map_err(|_| InputError::Uinput("wlroots input worker exited".into()))
+            .try_send(WlCmd::Pointer(event))
+            .map_err(|_| InputError::Uinput("wlroots input queue full or worker exited".into()))
     }
 
     pub fn inject_key_sync(&self, event: KeyEvent) -> Result<(), InputError> {
-        self.tx
-            .send(WlCmd::Key(event))
-            .map_err(|_| InputError::Uinput("wlroots input worker exited".into()))
+        let deadline = std::time::Instant::now() + KEY_ENQUEUE_WAIT;
+        loop {
+            match self.tx.try_send(WlCmd::Key(event)) {
+                Ok(()) => return Ok(()),
+                Err(std::sync::mpsc::TrySendError::Disconnected(_)) => {
+                    return Err(InputError::Uinput("wlroots input worker exited".into()));
+                }
+                Err(std::sync::mpsc::TrySendError::Full(event)) => {
+                    if std::time::Instant::now() >= deadline {
+                        let _ = event;
+                        return Err(InputError::Uinput(
+                            "wlroots input queue full; key event dropped".into(),
+                        ));
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(1));
+                }
+            }
+        }
     }
 
     pub async fn inject_pointer(&self, event: PointerEvent) -> Result<(), InputError> {

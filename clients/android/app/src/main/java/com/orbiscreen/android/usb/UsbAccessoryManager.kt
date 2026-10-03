@@ -1,5 +1,3 @@
-// Orbiscreen - UsbAccessoryManager.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.usb
 
@@ -38,6 +36,7 @@ object UsbAccessoryManager {
     private const val FRAME_HEADER_LEN = 5
     private const val MAX_PAYLOAD_LEN = 16384
     private const val VIDEO_STREAM_ID: Short = 0
+    private const val MAX_STREAM_ID = 32700
 
     private val scope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, error ->
@@ -253,9 +252,19 @@ object UsbAccessoryManager {
                 break
             }
 
-            val rawId = nextStreamId.getAndIncrement()
-            if (rawId > 32700) nextStreamId.set(1)
-            val streamId = rawId.toShort()
+            // The stream id must be unique among live sockets: overwriting a live entry
+            // would route the old connection's frames on the new socket, and the old
+            // reader's cleanup would then drop the new entry.
+            var streamId = nextStreamId.getAndIncrement().toShort()
+            if (streamId.toInt() > MAX_STREAM_ID || activeStreams.containsKey(streamId)) {
+                val free = (1..MAX_STREAM_ID).firstOrNull { !activeStreams.containsKey(it.toShort()) }
+                if (free == null) {
+                    try { clientSocket.close() } catch (_: Exception) {}
+                    continue
+                }
+                streamId = free.toShort()
+                nextStreamId.set(free + 1)
+            }
             activeStreams[streamId] = clientSocket
 
             scope.launch {

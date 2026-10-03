@@ -1,5 +1,3 @@
-// Orbiscreen - annexb.test.js (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -285,4 +283,56 @@ test("parity first does not open a pending AU; all data still emits", () => {
     assert.equal(out.length, 1);
     assert.deepEqual(Array.from(out[0].au), Array.from(body));
     assert.deepEqual(asm.push(annexb.encodeVideoDatagram(4, k + 1, k, false, 1n, 2n, parity[1]), 1), []);
+});
+
+test("a truncated PING frame reports truncation instead of throwing on BigInt", () => {
+    assert.throws(
+        () => annexb.decodeMessage(Uint8Array.of(4)),
+        /truncated/,
+    );
+});
+
+test("a well-formed PING frame still decodes", () => {
+    const msg = annexb.decodeMessage(annexb.encodePing(1234n).subarray(4));
+    assert.equal(msg.type, "ping");
+    assert.equal(msg.t0Ns, 1234n);
+});
+
+test("FrameReader drops the reassembly buffer instead of growing without bound", () => {
+    const reader = new annexb.FrameReader();
+    // A peer that announces a 1 MiB frame and then stalls: every chunk is a valid prefix
+    // that never completes, so the buffer used to grow without limit.
+    const chunk = new Uint8Array(64 * 1024);
+    chunk.set([0x00, 0x10, 0x00, 0x00], 0);
+    for (let i = 0; i < 80; i += 1) reader.push(chunk);
+    assert.ok(
+        reader.buf.length <= annexb.MAX_FRAME,
+        `buffer grew to ${reader.buf.length}, above MAX_FRAME ${annexb.MAX_FRAME}`,
+    );
+    assert.ok(
+        reader.buf.length < 80 * 64 * 1024,
+        `buffer was never reset (${reader.buf.length} bytes)`,
+    );
+    assert.equal(reader.pop(), null);
+});
+
+test("FrameReader still decodes a complete frame", () => {
+    const reader = new annexb.FrameReader();
+    reader.push(annexb.encodePing(7n));
+    const msg = reader.pop();
+    assert.equal(msg.type, "ping");
+    assert.equal(msg.t0Ns, 7n);
+    assert.equal(reader.pop(), null);
+});
+
+test("incomplete multi-block access units do not accumulate in the assembler", () => {
+    const k = 4;
+    const width = 8;
+    const asm = new annexb.DatagramAssembler();
+    for (let seq = 1; seq <= 40; seq += 1) {
+        // Block 0 of 2 only, so the AU can never complete and `partial` would grow.
+        asm.push(annexb.encodeVideoDatagram(seq, 0, k, false, BigInt(seq), 2n, new Uint8Array(width)), 0);
+        assert.deepEqual(asm.push(annexb.encodeVideoDatagram(seq, 1, k, false, BigInt(seq), 2n, new Uint8Array(width)), 0), []);
+    }
+    assert.ok(asm.partial.size <= 8, `partial grew to ${asm.partial.size}`);
 });

@@ -3,31 +3,10 @@
 
 async function invoke(cmd, args = {}) {
     const tauriInvoke = window.__TAURI__?.core?.invoke;
-    if (typeof tauriInvoke === "function") {
-        return await tauriInvoke(cmd, args);
+    if (typeof tauriInvoke !== "function") {
+        throw new Error("Tauri IPC is unavailable");
     }
-    if (cmd === "get_status") {
-        return {
-            running: false,
-            frames_forwarded: 0,
-            active_clients: 0,
-            total_clients: 0,
-            auth_failures: 0,
-            usb_devices: 0,
-            encoder: "NVENC (nvh264enc)",
-            capture_backend: "KWin Wayland",
-            display_width: 1920,
-            display_height: 1080,
-            display_fps: 60,
-            signaling_port: 54321,
-            udp_port: 54322,
-            local_ips: ["192.168.1.145"],
-            session_token: "orb_token"
-        };
-    }
-    if (cmd === "get_autostart") return false;
-    if (cmd === "get_app_version") return "0.31.0";
-    return null;
+    return await tauriInvoke(cmd, args);
 }
 
 const I18N = {
@@ -326,7 +305,7 @@ async function refreshStatus() {
         const ip = (status.local_ips && status.local_ips.length > 0) ? status.local_ips[0] : "127.0.0.1";
         const port = status.signaling_port || 8788;
         const tokenPart = status.session_token ? `#token=${status.session_token}` : "";
-        currentUrl = `http:
+        currentUrl = `http://${ip}:${port}/client/${tokenPart}`;
         if (inpSessionUrl) inpSessionUrl.value = currentUrl;
         renderQr(currentUrl);
 
@@ -473,7 +452,8 @@ if (btnOpenBrowser && inpSessionUrl) {
 if (btnOpenUsb) {
     btnOpenUsb.addEventListener("click", async () => {
         const port = lastStatus && lastStatus.signaling_port ? lastStatus.signaling_port : 8788;
-        await invoke("open_browser", { url: `http:    });
+        await invoke("open_browser", { url: `http://127.0.0.1:${port}/client/` });
+    });
 }
 
 document.querySelectorAll("#resChips .chip").forEach(chip => {

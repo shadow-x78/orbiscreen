@@ -1,6 +1,3 @@
-// Orbiscreen - x11.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use std::io;
 
 use evdevil::event::{
@@ -29,6 +26,7 @@ pub struct UinputInjector {
     tablet: UinputDevice,
     ts_name: String,
     tab_name: String,
+    output_name: Option<String>,
     prod_offset: u16,
     width: u32,
     height: u32,
@@ -39,6 +37,7 @@ pub struct UinputInjector {
     touch_slot_id: [i32; crate::MAX_TOUCH_SLOTS],
     touch_active_count: u8,
     button_touch_down: bool,
+    pen_release_at: Option<std::time::Instant>,
 }
 
 impl UinputInjector {
@@ -49,7 +48,7 @@ impl UinputInjector {
         let width_axis = AbsInfo::new(0, spec.width.saturating_sub(1) as i32);
         let height_axis = AbsInfo::new(0, spec.height.saturating_sub(1) as i32);
 
-        let is_secondary = spec.output_name.as_deref().is_some_and(|s| s.contains('2'));
+        let is_secondary = spec.output_name.as_deref().is_some_and(is_secondary_output);
         let prod_offset = if is_secondary { 0x0010 } else { 0x0000 };
         let (mk_name, ts_name, tab_name) =
             if let Some(label) = spec.device_label.as_deref().filter(|s| !s.is_empty()) {
@@ -139,7 +138,8 @@ impl UinputInjector {
             .build(&tab_name)?;
 
         info!("opened uinput devices: mouse/keyboard, touchscreen, and tablet");
-        if let Some(output) = spec.output_name.as_deref().filter(|s| !s.is_empty()) {
+        let output_name = spec.output_name.clone().filter(|s| !s.is_empty());
+        if let Some(output) = output_name.as_deref() {
             configure_kwin_device(&[&mk_name, &ts_name, &tab_name], output);
         }
 
@@ -149,6 +149,7 @@ impl UinputInjector {
             tablet,
             ts_name,
             tab_name,
+            output_name,
             prod_offset,
             width: spec.width,
             height: spec.height,
@@ -159,6 +160,7 @@ impl UinputInjector {
             touch_slot_id: [-1; crate::MAX_TOUCH_SLOTS],
             touch_active_count: 0,
             button_touch_down: false,
+            pen_release_at: None,
         };
         let _ = injector.release_tools();
         Ok(injector)
@@ -246,6 +248,9 @@ impl UinputInjector {
         self.touch_active_count = 0;
         self.cursor_x = (self.cursor_x).clamp(0.0, f64::from(width.saturating_sub(1)));
         self.cursor_y = (self.cursor_y).clamp(0.0, f64::from(height.saturating_sub(1)));
+        if let Some(output) = self.output_name.clone() {
+            configure_kwin_device(&[&self.ts_name, &self.tab_name], &output);
+        }
         info!(width, height, "recreated uinput devices for resized output");
         Ok(())
     }
@@ -254,10 +259,14 @@ impl UinputInjector {
         match event {
             PointerEvent::Move { x, y } => {
                 let (xi, yi) = self.clamp_point(x, y);
-                let dx = xi - self.cursor_x.round() as i32;
-                let dy = yi - self.cursor_y.round() as i32;
-                self.cursor_x = f64::from(xi);
-                self.cursor_y = f64::from(yi);
+                let want = (f64::from(xi) - self.cursor_x, f64::from(yi) - self.cursor_y);
+                let ((nx, ny), (dx, dy)) = clamped_relative(
+                    (self.cursor_x, self.cursor_y),
+                    want,
+                    (self.width, self.height),
+                );
+                self.cursor_x = f64::from(nx);
+                self.cursor_y = f64::from(ny);
                 if dx != 0 || dy != 0 {
                     let events = vec![
                         RelEvent::new(Rel::X, dx).into(),
@@ -349,7 +358,7 @@ impl UinputInjector {
             if (!was_active && self.touch_active_count == 0)
                 || (id_changed && self.touch_active_count == 1)
             {
-                self.release_tools()?;
+                self.release_touch_only()?;
             }
         }
 
@@ -373,6 +382,11 @@ impl UinputInjector {
 
             slot_writer = slot_writer.set_position(xi, yi)?;
             writer = slot_writer.finish_slot()?;
+
+            writer = writer.write_events(&[
+                AbsEvent::new(Abs::X, xi).into(),
+                AbsEvent::new(Abs::Y, yi).into(),
+            ])?;
 
             if !self.button_touch_down {
                 self.button_touch_down = true;
@@ -401,6 +415,27 @@ impl UinputInjector {
 
         writer.finish()?;
         Ok(())
+    }
+
+    pub fn release_touch_only(&mut self) -> Result<(), InputError> {
+        self.button_1_pressed = false;
+        self.button_touch_down = false;
+        let mut events: Vec<InputEvent> = Vec::new();
+        for raw in 0x110..=0x117u16 {
+            events.push(KEv::new(Key::from_raw(raw), KeyState::RELEASED).into());
+        }
+        for raw in 1..=248u16 {
+            events.push(KEv::new(Key::from_raw(raw), KeyState::RELEASED).into());
+        }
+        events.push(SynEvent::new(Syn::REPORT).into());
+        self.mouse_keyboard.write_events(&events)?;
+        self.touchscreen
+            .write_events(&[
+                KEv::new(Key::BTN_TOUCH, KeyState::RELEASED).into(),
+                KEv::new(Key::BTN_LEFT, KeyState::RELEASED).into(),
+                SynEvent::new(Syn::REPORT).into(),
+            ])
+            .map_err(|e| InputError::Uinput(e.to_string()))
     }
 
     pub fn release_tools(&mut self) -> Result<(), InputError> {
@@ -432,9 +467,37 @@ impl UinputInjector {
         Ok(())
     }
 
+    fn handle_pen_proximity(&mut self) -> Result<(), InputError> {
+        match pen_proximity_action(self.pen_release_at.is_some(), false) {
+            PenProximity::Release => {
+                self.pen_release_at = None;
+                self.release_tools()
+            }
+            PenProximity::Cancel => {
+                self.pen_release_at = None;
+                Ok(())
+            }
+            PenProximity::Ignore => {
+                self.pen_release_at = Some(std::time::Instant::now());
+                self.button_touch_down = false;
+                self.tablet
+                    .write_events(&[
+                        KEv::new(Key::BTN_TOUCH, KeyState::RELEASED).into(),
+                        KEv::new(Key::BTN_STYLUS, KeyState::RELEASED).into(),
+                        KEv::new(Key::BTN_STYLUS2, KeyState::RELEASED).into(),
+                        SynEvent::new(Syn::REPORT).into(),
+                    ])
+                    .map_err(|e| InputError::Uinput(e.to_string()))
+            }
+        }
+    }
+
     pub fn inject_stylus(&mut self, event: StylusEvent) -> Result<(), InputError> {
+        if let StylusEvent::Proximity {} = event {
+            return self.handle_pen_proximity();
+        }
         let (x, y, pressure, tilt) = match event {
-            StylusEvent::Proximity {} => return self.release_tools(),
+            StylusEvent::Proximity {} => unreachable!("handled above"),
             StylusEvent::Pressure { x, y, pressure } => (x, y, pressure, None),
             StylusEvent::Tilt {
                 x,
@@ -444,6 +507,19 @@ impl UinputInjector {
                 tilt_y_deg,
             } => (x, y, pressure, Some((tilt_x_deg, tilt_y_deg))),
         };
+        match pen_proximity_action(
+            self.pen_release_at.is_some(),
+            self.pen_release_at
+                .is_some_and(|at| std::time::Instant::now() >= at),
+        ) {
+            PenProximity::Release => {
+                self.release_tools()?;
+                self.pen_release_at = None;
+                return Ok(());
+            }
+            PenProximity::Cancel => self.pen_release_at = None,
+            PenProximity::Ignore => {}
+        }
         let (xi, yi) = self.clamp_point(x, y);
         self.cursor_x = f64::from(xi);
         self.cursor_y = f64::from(yi);
@@ -455,17 +531,11 @@ impl UinputInjector {
         } else {
             KeyState::RELEASED
         };
-
         let mut events: Vec<InputEvent> = Vec::with_capacity(8);
         events.push(AbsEvent::new(Abs::X, xi).into());
         events.push(AbsEvent::new(Abs::Y, yi).into());
         events.push(AbsEvent::new(Abs::PRESSURE, pressure_val).into());
-        let pen_state = if is_touching {
-            KeyState::PRESSED
-        } else {
-            KeyState::RELEASED
-        };
-        events.push(KEv::new(Key::BTN_TOOL_PEN, pen_state).into());
+        events.push(KEv::new(Key::BTN_TOOL_PEN, KeyState::PRESSED).into());
         events.push(KEv::new(Key::BTN_TOUCH, touch_state).into());
         if let Some((tx, ty)) = tilt {
             let tx = tx.clamp(f64::from(TILT_MIN), f64::from(TILT_MAX)) as i32;
@@ -477,6 +547,10 @@ impl UinputInjector {
         self.tablet.write_events(&events)?;
         Ok(())
     }
+}
+
+pub(crate) fn is_secondary_output(name: &str) -> bool {
+    name.ends_with("-2")
 }
 
 fn configure_kwin_device(device_names: &[&str], output_name: &str) {
@@ -532,6 +606,26 @@ pub fn button_code(button: u32) -> u32 {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum PenProximity {
+    Ignore,
+    Cancel,
+    Release,
+}
+
+pub(crate) fn pen_proximity_action(
+    pending_release: bool,
+    stylus_sample_since: bool,
+) -> PenProximity {
+    if !pending_release {
+        PenProximity::Ignore
+    } else if stylus_sample_since {
+        PenProximity::Cancel
+    } else {
+        PenProximity::Release
+    }
+}
+
 fn button_key(button: u32) -> Option<Key> {
     let raw = button_code(button);
     (1..=8).contains(&button).then(|| Key::from_raw(raw as u16))
@@ -557,7 +651,10 @@ pub fn clamped_relative(
 
 #[cfg(test)]
 mod tests {
-    use super::{button_code, button_key, clamped_relative};
+    use super::{
+        button_code, button_key, clamped_relative, is_secondary_output, pen_proximity_action,
+        PenProximity,
+    };
 
     #[test]
     fn buttons_six_through_eight_map_distinctly_not_left() {
@@ -601,5 +698,62 @@ mod tests {
             assert_eq!(delta, (0, 0));
             cursor = (f64::from(pos.0), f64::from(pos.1));
         }
+    }
+
+    #[test]
+    fn absolute_move_from_a_foreign_cursor_cannot_emit_a_huge_jump() {
+        let tablet = (2560.0, 1600.0);
+        let cursor_on_other_monitor = (5000.0, 800.0);
+        let target = (1200.0, 800.0);
+
+        let raw_dx = (target.0 - cursor_on_other_monitor.0) as i32;
+        assert!(raw_dx.abs() > 3000, "old path produced the runaway jump");
+
+        let clamped_from = (tablet.0 - 1.0, target.1);
+        let (pos, delta) = clamped_relative(
+            clamped_from,
+            (target.0 - clamped_from.0, target.1 - clamped_from.1),
+            (tablet.0 as u32, tablet.1 as u32),
+        );
+        assert_eq!(pos, (1200, 800));
+        assert_eq!(delta.1, 0);
+        assert!(delta.0.abs() < 2000, "delta still too large: {delta:?}");
+    }
+
+    #[test]
+    fn secondary_output_matches_the_names_capture_actually_produces() {
+        assert!(!is_secondary_output("Virtual-ORBISCREEN"));
+        assert!(is_secondary_output("Virtual-ORBISCREEN-2"));
+
+        assert!(!is_secondary_output("Virtual-ORBISCREEN-12342"));
+        assert!(!is_secondary_output("Virtual-ORBISCREEN-4321"));
+
+        assert!(!is_secondary_output("Virtual-Orbi-9d41ad1e"));
+        assert!(is_secondary_output("Virtual-Orbi-9d41ad1e-2"));
+        assert!(!is_secondary_output("Virtual-Orbi-12345678"));
+    }
+
+    #[test]
+    fn a_bursty_pen_edge_does_not_drop_the_tool() {
+        assert_eq!(
+            pen_proximity_action(false, false),
+            PenProximity::Ignore,
+            "an edge with nothing pending carries no information"
+        );
+        assert_eq!(
+            pen_proximity_action(true, true),
+            PenProximity::Cancel,
+            "the pen spoke after the edge, so it never left"
+        );
+        assert_eq!(
+            pen_proximity_action(true, false),
+            PenProximity::Release,
+            "the edge stood, so the pen really left"
+        );
+    }
+
+    #[test]
+    fn a_single_edge_alone_never_releases_the_tool() {
+        assert_eq!(pen_proximity_action(false, false), PenProximity::Ignore);
     }
 }

@@ -1,5 +1,3 @@
-// Orbiscreen - StreamScreen.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.ui.stream
 
@@ -285,14 +283,14 @@ fun StreamScreen(
             }
         }
         if ((player != null || surfacePlayer != null) && state.event !is StreamEvent.Disconnected) {
-            val input = remember { viewModel.ensureInput() }
+            val inputGeneration by viewModel.inputGeneration.collectAsState()
+            val input = remember(inputGeneration) { viewModel.ensureInput() }
             PlayerSurface(
                 player = player,
                 udp = surfacePlayer,
                 isTouchMode = isTouchMode,
                 streamWidth = state.displayWidth,
                 streamHeight = state.displayHeight,
-                onMove = { x, y, w, h -> input.move(x, y, w, h) },
                 onPointer = { x, y, w, h, btn, pressed ->
                     input.pointerAction(x, y, w, h, btn, pressed)
                 },
@@ -307,7 +305,6 @@ fun StreamScreen(
                     input.stylus(x, y, w, h, pressure, tiltX, tiltY)
                 },
                 scaleMode = state.scaleMode,
-                onDoubleTap = null,
             )
         }
         if (state.event !is StreamEvent.Playing && state.event !is StreamEvent.Buffering) {
@@ -346,6 +343,8 @@ fun StreamScreen(
                     prefs.showStats = showStats
                 },
                 onLock = viewModel::lock,
+                notice = state.notice,
+                onDismissNotice = viewModel::dismissNotice,
                 onHideControls = {
                     showControls = false
                 },

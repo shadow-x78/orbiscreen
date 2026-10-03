@@ -1,11 +1,11 @@
 <div align="center">
 
-# نقل الإطارات - Orbiscreen
+# Frame Transport - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.31.6-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
-[![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
+[![الإصدار](https://img.shields.io/badge/version-0.32.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الترخيص](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
-![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
+![المنصة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
 
 </div>
 
@@ -17,158 +17,93 @@
 
 ---
 
-كيف تنتقل صورة مشفّرة من مضيف الترميز إلى المفكّك على اللوحة؟ **Wi-Fi:** عبر بروتوكولي UDP (Android) أو WebTransport (Web). **USB/AOA:** عبر frames Annex-B على قناة USB bulk إلى MediaCodec. HTTPS / `GET /stream` يبقى كاحتياطي فقط لإذا فشل المصادقة الأصلية.
+كيف تنتقل الصورة المرمَّزة من مُرمِّز المضيف إلى فاكّ الترميز في اللوح اللوحي. عبر Wi-Fi: UDP في أندرويد وWebTransport في الويب (تخطيطات الحزم في [UDP_TRANSPORT.md](UDP_TRANSPORT_AR.md)). عبر USB/AOA: وحدات الوصول Annex-B نفسها في إطارات الإكسسوار على القنوات الجماعية إلى MediaCodec. ويبقى MPEG-TS عبر `GET /stream`Reserve كبديل USB فقط إذا فشلت المصافحة الأصلية.
 
 ---
 
 ## 1. المصطلحات
 
-| المصطلح | معناه هنا |
+| المصطلح | المعنى هنا |
 | --- | --- |
-| **وحدة الوصول (AU)** | صورة مشفّرة واحدة بصيغة Annex-B: بدايات شيفرة + وحدات NAL. يقوم المشفر بإنتاج الوحدات، ويقوم المفكك بفك ترميزها. |
-| **NAL** | وحدة تجريد الشبكة (Network Abstraction Layer). الأنواع المهمة هي: SPS (7)، PPS (8)، شبكة غير-IDR (1)، شبكة IDR (5). |
-| **إطار I** | صورة مشفّرة من نفسها فقط (intra). يمكنك فك ترميز هذه الصورة بدون أي صورة أخرى. |
-| **IDR** | إطار فوري خاص يُفرّغ قائمة مراجع فك التشفير. لا يمكن لأي إطار بعده استخدام أي إطار قبله. هذه نقطة الاسترداد (Recovery Point). |
-| **إطار P** | إطار يحتاج إلى إطارات سابقة ما زالت في المفكّك. أصغر من IDR. يمكن التخلص من إطار P متأخّر، لكن فقدانه في سلسلة يفسد كل شيء حتى استرداد IDR. |
-| **Keyframe** | مؤشر (H.264 | `!DELTA_UNIT` flag). من منظومة GStreamer. يُستخدم وجه التحويل FXQ لـ stream. |
-| **SPS** | مجموعة معلمات التسلسل. تتضمن Profile / level / dimentions. جزء من رمز `avc1.…`. ليست بيانات صورة. |
-| **PPS** | مجموعة معلمات الصورة. وضع entropy والافتراضيات. تستدعي id الخاصة بكل SPS. |
-| **GOP** | مجموعة من الصور: IDR بالإضافة إلى إطارات P التي تعتمد عليها. يستخدم Orbiscreen **GOP بلا نهاية**: بدون IDR دوري. التحديث هو intra-refresh بالإضافة إلى IDR عند الطلب. |
-| **تحديث Intra** | كل P-frames تتضمن قسمتين مختلطين من إطارات الكلمات داخلية I-frames. خلال حوالي ثانية تُحدَّث الصورة كاملة دون IDR كبير. |
-| **VBV / CPB** | مخزن الفيديو (VBV) / مُخزن الصورة المشفرة (CPB). يحد حجم AU oсидere تقريباً 1 frame متوسط. |
-| **Datagram** | حزمة قابلة للإشعاع : UDP or QUIC packet. يمكن التخلص من الإطار/UU/Cجlate.Untime rebounds. |
-| **Reliable stream** | بيانات رتبة-organized / no drop : used for IDR/SPS/PPS provided via HTTP/WebTransport or AOA prio channel. |
-| **`seq` / `frag` / `frags`** | Datagram AU/sequence (round robin at 65536). Fragment index/count (umbsize). (Reliable IDRs)تحمّلود `seq` ولا تزيدها. |
-| **`hold-until-IDR`** | After losing the connection, the client does not accept more P-frames in the decoder until an IDR arrives. Latest picture stays on screen while. |
+| **وحدة الوصول (AU)** | صورة واحدة مرمَّزة بصيغة Annex-B: رموز بداية وحدات NAL. يُصدر المُرمِّز وحدات وصول، ويفكّها العميل. |
+| **NAL** | وحدة طبقة تجريد الشبكة. المفيد هنا: SPS (7) وPPS (8) وشريحة غير IDR (1) وشريحة IDR (5). |
+| **إطار I** | صورة مرمَّزة من نفسها وحدها (تداخلية). يمكنك فك ترميز *هذه* الصورة دون غيرها. وقد تشير إطارات P اللاحقة إلى صور *قبل* إطار I هذا. |
+| **IDR** | تحديث فوري لفاكّ الترميز. إطار I خاص يفرغ قائمة مراجع فاكّ الترميز أيضاً. لا يجوز لأي ما يليه استخدام أي إطار سابق له. وهو نقطة التعافي بعد الفقد أو بعد انضمام جديد. |
+| **إطار P** | صورة متوقَّعة. تحتاج صوراً سابقة ما زالت في فاكّ الترميز. أصغر من IDR. يمكن إسقاط إطار P متأخر؛ لكن ثقباً في سلسلة إطارات P يُفسد كل شيء حتى IDR التالي. |
+| **الإطار المفتاحي** | في هذه الشيفرة، علم `!DELTA_UNIT` في GStreamer. طلب فرض وحدة مفتاحية يهدف إلى إنتاج IDR. تحمل المسار الموثوق وحدات الوصول تلك. |
+| **SPS** | مجموعة معاملات التسلسل. المستوى والملف الشخصي والحجم المرمَّز ونص الترميز `avc1.…`. ليست بيانات صورة. |
+| **PPS** | مجموعة معاملات الصورة. نمط الأنتروبيا والقيم الافتراضية المرتبطة. تشير إلى SPS بالمعرّف. |
+| **GOP** | مجموعة صور: إطار IDR مع إطارات P التي تعتمد عليه. تستخدم Orbiscreen **GOP لا نهائياً**: لا يوجد IDR دوري. التحديث هو تجديد داخلي إضافة إلى IDR عند الطلب. |
+| **التجديد الداخلي** | كل إطار P يتضمن شريطاً متحركاً من الكتل التداخلية. خلال نحو ثانية تتجدد الصورة كاملة دون IDR ضخم. يمكن لإطار P مفقود أن يُشفي مع مرور الموجة. |
+| **VBV / CPB** | مخزن الفيديو / الصورة المرمَّزة. يحدّ الحجم الأقصى لوحدة وصول واحدة. تضبط Orbiscreen هذا على **إطار واحد** من هدف CBR حتى لا يشغل IDR مئات الأجزاء من الثانية من الشبكة. |
+| **مخطط البيانات** | حزمة غير موثوقة: UDP أو مخطط بيانات QUIC في WebTransport. يمكن إسقاط إطار متأخر. الفقد محو. |
+| **المسار الموثوق** | بايتات مرتَّبة مُعاد إرسالها: تدفّق تحكّم WebTransport، أو `GET /idr` عبر TCP. يُستخدم للإطار IDR مع SPS/PPS حتى تصل إطار التعافي كاملة. |
+| **`seq` / `frag` / `frags`** | تسلسل وحدات الوصول في مخطط البيانات (يلتف عند 65536)، فهرس الجزء، عدد الأجزاء. إطارات IDR الموثوقة **لا** تحمل `seq` ولا تُقدّمه. |
+| **الانتظار حتى IDR** | بعد ثقب، لا يمرّر العميل إطارات P إضافية إلى فاكّ الترميز حتى يصل IDR. تبقى آخر صورة سليمة على الشاشة. |
 
 ---
 
-## 2. Normal flow (التدفق العادي)
+## 2. التدفق الطبيعي
 
 ```mermaid
 flowchart LR
-  cap["Capture BGRA"] --> enc["Encode H.264 AU"]
-  enc -->|"is_keyframe"| rel["Reliable: WT control, GET /idr, or AOA prio"]
-  enc -->|"P-frame"| dg["UDP/QUIC datagrams or AOA video queue"]
-  rel --> dec["Decoder"]
-  dg --> asm["Assembler / USB reassembly"]
+  cap["التقاط BGRA"] --> enc["ترميز H.264 AU"]
+  enc -->|"is_keyframe"| rel["موثوق: تحكّم WT، GET /idr، أو أولوية AOA"]
+  enc -->|"إطار P"| dg["مخططات UDP/QUIC أو طابور فيديو AOA"]
+  rel --> dec["فاكّ الترميز"]
+  dg --> asm["المُجمِّع / إعادة التجميع عبر USB"]
   asm --> dec
 ```
 
-1. **الكجلسة**. طلب العميل `POST /api/session` (name, device key, size). يفتح display virtual والمشفر الفرعي إضافةً. Observe left port: `signaling_port` (8788), video: UDP `8789`, /WebTransport `8790`.USB video doesn't use these ports.
-2. **المصادقة**. Android Wi-Fi: UDP Hello (token + session id) → Hello-Ack → DPLPMTUD until reaching PathMTU size (~1472B max). Then GET /idr over TCP for keys.
-3. **The step**. تشير المراسلات/frames الرئيسية IPCال PPCSPS via the reliable stream دftp, مثلماi9 WebTransport or the local stream. P-frames فقط تصل via unreliable streams (UDP).
-4. **التجميع**. if an IDR comes as a large packet, it gets fragmented and reassembled. If you later receive Аксis skip. (Sice stream).och
-5. **فك الترميز**. خلود جي الأجهsummit Annex-B AUات.
-6. **الاسترداد**. If you see some loss or 유关注的焦点, it asks for IDR BEFORE appending nextIDR. Should make sure the client puts focus on theframe once again.
+1. **الجلسة.** ينفّذ العميل `POST /api/session` (الاسم ومفتاح الجهاز والمقاس). هذا يفتح مخرجاً افتراضياً لكل عميل ومُرمِّزاً خاصاً به. تبقى قناة الإشارة HTTP على `signaling_port` (8788). منفذان للفيديو: UDP على `8789` وWebTransport على `8790`. فيديو USB لا يستخدم هذين المنفذين.
+2. **المصافحة.**
+   - أندرويد على Wi-Fi: Hello عبر UDP (توكن + معرّف جلسة) ← Hello-Ack ← DPLPMTUD حتى تأكيد حجم مخطط بيانات (حتى نحو ‎1472 بايت). ثم `GET /idr` عبر TCP لمفاتيح الإطار.
+   - أندرويد على USB: إكسسوار AOA فقط (بدون `adb reverse`). الـHTTP الخاص بالجلسة والإدخال يمر عبر بروكسي TCP الخاص بـAOA. الفيديو تدفّق AOA أصلي: `OPEN|VIDEO` مع معرّف الجلسة، ويرد المضيف بإثارة مؤقّت من 8 بايتات، ثم وحدات وصول `encode_video` بطول مُسبق. إذا فشلت مصافحة الفيديو الأصلية، فإن `GET /au` على البروكسي نفسه يغذّي MediaCodec. ولا يُستخدم MPEG-TS مع ExoPlayer على USB.
+   - الويب: صفحة HTTPS، ثم WebTransport مع `serverCertificateHashes`، ثم Hello على التدفّق ثنائي الاتجاه ← Hello-Ack. وتستخدم إطارات P مخططات بيانات QUIC (بسقف نحو 1024 بايت).
+3. **الترميز.** H.264 العتادي مُفضَّل (VA-API / NVENC) بمعدل 8 ميغابت/ث CBR، بلا إطارات B، وGOP لا نهائي، وتجديد داخلي، وVBV بحجم إطار واحد. `h264parse config-interval=1` (و`repeat-sequence-header` عند توفره) حتى يحمل IDR على SPS/PPS. و`is_keyframe` هو `!DELTA_UNIT`.
+4. **التقسيم حسب `video_carrier` (Wi-Fi) أو حسب مسار USB.**
+   - **الإطار المفتاحي** ← موثوق: `encode_video` (إطار WT بطول مُسبق). إن كانت SPS/PPS مفقودة، تُضاف آخر زوج مخزَّن في المقدمة (`with_parameter_sets`). ولا يزداد `seq` للمخططات. وعلى USB تُحزَّم نفس الكتلة في إطارات AOA (حمولة قصوى 16‏379 بايت، إFRA واحد لكل URB) وتُكتب على طابور **الأولوية**.
+   - **إطار P** ← مخططات بيانات على Wi-Fi: يُقسَّم إلى `frag` / `frags` عند MTU المسار. يزداد `seq` بمقدار واحد لكل وحدة وصول P. وعلى USB تُرسَل الوحدة المحزَّمة بـ`try_send` على طابور فيديو بسعة 2؛ فإن امتلأ يُسقط إطار P ويُطلب IDR (القناة الجماعية عبر USB لا تفقد حزماً، وامتلاء الطابور يعني أن اللوح متأخر).
+5. **العميل.**
+   - أول IDR على المسار الموثوق يهيّئ فاكّ الترميز (أندرويد: MediaCodec من SPS/PPS عبر `csd-0`/`csd-1`؛ الويب: WebCodecs `avc1.…` من SPS) ويستدعي `onReliableKeyframe()` ليتعامل المُجمِّع مع P التالي كبداية GOP. ويتخطّى USB المُجمِّع: تُدمج حِمل AOA في `IdrFrames.Reader` وتذهب مباشرةً إلى MediaCodec.
+   - تُعاد مخططات بيانات P إلى ترتيبها (`DatagramAssembler` / `AuReorder`). ويُمرَّر `seq` المرتَّب إلى فاكّ الترميز. ويُحفظ ثقب `seq` واحد قصير الأمد (نحو 48 مللي ثانية) تحسّباً لإعادة الترتيب.
+6. **الخمول.** ping من العميل كل نحو 500 مللي ثانية. ينتهي صلاحية UDP في أندرويد بعد نحو 4–5 ثوانٍ من الصمت. وآخر مشاهد لأي جلسة يفكّ ذلك المخرج الافتراضي.
+
+على شبكة محلية نظيفة تكون الصورة بعد إطار الانضمام الأولي كلُّه مخططات بيانات P تقريباً. والتجديد الداخلي يبقي الجودة عالية دون إطارات مفتاحية دورية.
 
 ---
 
-## 3. Transferring over Wi-Fi (تحويل على الشبكة المحلية)
+## 3. الحزم المفقودة
 
-### Hand هنا....مشاكل we developed
+الفقد هو **محو لمخططات بيانات كاملة** (A-MPDU على Wi-Fi، أو فشل `send_to`، أو `ORBISCREEN_UDP_LOSS_PCT`). والمضيف لا يعيد إرسال إطارات P.
 
-1. **Discover**: enemy mDNS إو تdiscovery دصريقة للتأثير إيP address عبرق و Version of hostname.
-2. **Handshake**: client transacts with host `POST /api/session` (JSON body). Ecu on isily needs a valid token----our session ID.
-3. **Stream start**: both TCP (port 8789) and HTTP (internet requests) world 8790). Signaling works on signaling port: 8788 (all three). Video: UDP 8789, WebTransport 8790.somewhat dangerous limitation .μηνissance penalty.
+### الإرسال من المضيف
 
-### تنسيق حزمة UDP
+- مخطط البيانات **الفاشل** (خطاف الفقد أو خطأ عابر) **لا** يوقف بقية وحدة الوصول. فقط حالة **TooBig** توقف الأجزاء اللاحقة (وهي لن تتّسع أصلاً). والإرسال الناقص يطلب IDR.
+- الإطارات المفتاحية لا تُوضع على مخططات البيانات، فلم يعدConcept لzyك نسبة الإهدار القليلة مطلوبة anymore لتسليم إطار IDR من 20–40 جزءاً سليماً.
 
-```
-[0..4]   magic = "ORBI"
-[4..8]   packet_type = VIDEO  
-[8..12]  seq (BE)
-[12..16] pts_ns (BE)
-[16]     is_key = u8 (1 byte) // false for I-frame and PPS, but should be data_len,
-[17]     flags
-         [0] FEC present      // 0 = ارigh data side)
-         [1] reserved
-[18..20] frag = 0 | frags = 0  // if frags > 0, accuracy is fragment(fragment, frags/frag)
-[20..24] rtplen()
-[24..n]  payload (H.264 AU in Annex-B)
-```
+### ثقب عند العميل
 
-ลูก destined payload type H.264 initializer with SPS + PPS. (Binary format).
+1. جزء ناقص `frag` ← لا يكتمل ذلك `seq` أبداً. و`seq` كامل ناقص ← يرى المُجمِّع `delta != 1`.
+2. يُحجز إطار P التالي مؤقتاً. وبعد `HOLE_WAIT_MS` (48 مللي ثانية) يُصدر المُجمِّع **gap**، ويضبط انتظار المفتاح، ويرسل العميل **IDR** (نوع UDP 6، أو `TYPE_IDR` في WT). والكبح نحو 250 مللي ثانية عند المُرمِّز.
+3. تُمحى إطارات P المحجوزة من GOP القديم. ولا يُمرَّر المزيد من إطارات P إلى فاكّ الترميز (`waitingForKeyframe` / `waitKey`). وتبقى آخر صورة معروضة (الانتظار حتى IDR).
+4. يفرض المضيف force-key-unit فيُنتج IDR (مع SPS/PPS) ويكتبه على المسار **الموثوق**.
+5. يفكّ العميل ذلك IDR، ويستدعي `onReliableKeyframe()` (`lastSeq = -1`، مع محو المحجوز)، ثم يقبل مخطط بيانات P التالي كبداية GOP الجديد.
 
-### الموقع الميداني
+لولا هذا التصفير لَبَقي `lastSeq` على GOP القديم، ولبدا كل إطار P تالٍ ثقباً آخر، وانغلقت الجلسة عند نحو 2–5 إطار/ثانية (أي معدّل طلبات IDR).
 
-|المُعرف | القيمة |
-|--- | --- |
-| MTU | 1472 байت (default) |
-| max_aud_size | 4MB max (IDRs can reach this) |
-| decode_timeout | SPA latency - 100ms after Wi-Fi and 50 ms after AOA |
-| buffer queue | 4 frames pending |
+### ما لا يفعله الحزم المفقودة
 
-#### مال الكمي من المتابعة (souce/timeouts)
+- لا يُغلق الجلسة. فـPing/PMTU/Hello تبقى على حِزمها الخاصة.
+- لا ينتظر إطار P المفقود. ذلك الإطار راح، والتجديد الداخلي وIDR التالي يُصلحان الصورة.
+- فيديو AOA الأصلي عبر USB تدفّق جماعي مرتَّب، لا مخططات بيانات. الصورة المتأخرة هي امتلاء طابور الكتابة لا حزمة مفقودة: أسقط ذلك الإطار، واحتجز حتى IDR. ويبقى MPEG-TS عبر `GET /stream` هو البديل، ولا يزال لا يستطيع الإسقاط أثناء الدمج.
 
-1. **Wi-Fi Datagram timeouts**: widows after 100ms إذا wasn't received from the last packet. If it doesn't come back quickly, either dropped or the loss detection begins.
-2. **ULA Reliable transportunwrap**: WebTransport or TCP doesnée to a relaxed timeout (~150 hours)     fallback based on internal network timeouts. Bluetooth is resilient to    random instability from the transport (تهديد).
+### خطّافات الاختبار
 
----
+| المتغيّر | الدور |
+| --- | --- |
+| `ORBISCREEN_UDP_LOSS_PCT` | إسقاط نسبة مئوية من مخططات UDP الصادرة (0–90) |
+| `ORBISCREEN_UDP_DROP_ABOVE` | افتراض أن المخططات الأكبر فُقدت (محاكاة PMTU) |
+| `ORBISCREEN_UDP_MAX_DATAGRAM` | سقف بحث PMTU |
 
-## 4. USB /AOA Native streaming
-
-AOA (Android AOA mode)
-
-Frames are sent in format:
-```
-[0] = 0xAA   (magic)
-[1] = type
-    = 0      => DATA (video frame)
-    = 1      => INJECT (input)
-    = 2      => IDR_REQUEST
-    = 3      => CLR (control frame)
-[2..4] = length (24 bit big-endian)
-[4..n] = payload
-```
-
-Note: `ناو عاyt қoyin aze القيق usb interface. Finally "attach". It should be started with first import project:
-
----
-
-## 5. مقارنة الطرق (UDP vs AOA)
-
-| Feature | Wi-Fi (UDP) | AOA (USB) |
-| --- | --- | --- |
-| Socket | `0.0.0.0:8789` | apn jacket (in 0x81,  out 0x01) |
-| Overhead | UDP Rust defaultdict | Linux USBFS ioctl |
-| Size | MTU ~1472 bytes | ~16 KiB buffered |
-| FEC | enabled | disabled (AOA quantity efficient) |
-
----
-
-## 6. بروتوكول الجلسة وعمليته (Client-Server)
-
-```
-/api/console       = dmnd-data 
-/api/token        = kept 
-/api/session/{id} = reate per-client session (session_id, width, height, encoder_config)
-/api/session       = delete session[id]
-/api/session       = list (debug only)
-/api/status
-/api/input
-/api/metadata     = health checks
-/api/token         = settings for authenticated access
-/api/info         = boutfiguration values
-/api/control       = POST JSON set_resolution, set_bandwidth, bitrates
-```
-
----
-
-## 7. انتعاش بعد استطلاع connection_loss
-
-If connection was lost:
-
-Wi-Fi (UDP): next timeout bad packet structure due to officialv, then scientific recovery respecting fair recovery is maintained.
-
-AOA USB: When device is removed, its USBreconnects, then the GDE Vern won;t replay old stream into the new world but ratherconfirmation with the latest session That's my job there.
-
-So  frameounted/import libermatis thematicopathic 自باطه) the client legacy stream that is passed along.
-
----
-
-<div align="center">
-
-العودة إلى [English version](FRAME_TRANSPORT.md)
-
-</div>
+تستخدم مخططات بيانات إطارات P تصحيح Reed-Solomon المنهجي بنمط Cauchy على GF(256). و`frags` هو عدد البيانات k. وتستخدم التكامل `frag >= frags`. والسلم: 1–3 ← بلا FEC (إطار AU صغير مفقود يُشفى بالتجديد الداخلي على x264، أو بمسار IDR-عند-الثقب على VA-API الذي لا يملك خاصية `intra-refresh`)؛ 4–16 ← ‎+2؛ 17–64 ← ‎+3؛ 65 فأكثر ← ‎+4. وتبقى إطارات IDR على المسار الموثوق ولا تُصحَّح. وعند تفعيل FEC يُسبق وحدة الوصول بطول من 4 بايتات ليُمكَّن تشذيب آخر شريحة مُعاد بناؤها.

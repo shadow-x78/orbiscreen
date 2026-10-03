@@ -1,6 +1,3 @@
-// Orbiscreen - damage_pump.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -255,9 +252,6 @@ fn run(
     surface.commit();
 
     let mut flip = false;
-    // Pace against an absolute deadline instead of a fixed sleep so the
-    // dispatch/commit work does not push the effective period past the
-    // target (a plain 16ms sleep yielded ~50fps in practice).
     let mut next_commit = std::time::Instant::now();
     loop {
         if stop.load(Ordering::Relaxed) {
@@ -268,7 +262,6 @@ fn run(
         if next_commit > now {
             std::thread::sleep(next_commit - now);
         } else {
-            // Behind schedule: give up the backlog and resync.
             next_commit = std::time::Instant::now();
         }
         if stop.load(Ordering::Relaxed) {

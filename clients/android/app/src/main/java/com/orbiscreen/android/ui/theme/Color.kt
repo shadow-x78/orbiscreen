@@ -1,12 +1,9 @@
-// Orbiscreen - Color.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
 val OrbiLogoBlue = Color(0xFF89B4FA)
-val OrbiLogoDark = Color(0xFF11111B)
 
 val DarkPrimary = Color(0xFF89B4FA)
 val DarkOnPrimary = Color(0xFF11111B)
@@ -69,6 +66,4 @@ val LightOutlineVariant = Color(0xFFCCD0DA)
 val UsbAmber = Color(0xFFFAB387)
 val ActiveGreen = Color(0xFFA6E3A1)
 val GlassDark = Color(0xF011111B)
-val GlassLight = Color(0xF0EFF1F5)
 val GlassBorderDark = Color(0x4089B4FA)
-val GlassBorderLight = Color(0x401E66F5)

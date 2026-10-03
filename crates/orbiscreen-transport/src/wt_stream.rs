@@ -1,6 +1,3 @@
-// Orbiscreen - wt_stream.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use std::io::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -83,8 +80,22 @@ fn cert_usable(der: &[u8], slack: Duration) -> bool {
     let Ok(now) = SystemTime::now().duration_since(UNIX_EPOCH) else {
         return false;
     };
-    let slack_secs = i64::try_from(slack.as_secs()).unwrap_or(i64::MAX);
-    cert.validity().not_after.timestamp() > now.as_secs() as i64 + slack_secs
+    within_validity(
+        cert.validity().not_before.timestamp(),
+        cert.validity().not_after.timestamp(),
+        i64::try_from(slack.as_secs()).unwrap_or(i64::MAX),
+        now.as_secs() as i64,
+    )
+}
+
+/// A certificate is usable when it is already valid and stays valid past the renew slack.
+/// not_before used to be ignored, so a certificate that only becomes valid later was kept
+/// on disk and served even though no client could validate it yet.
+fn within_validity(not_before: i64, not_after: i64, slack_secs: i64, now: i64) -> bool {
+    if not_before > now {
+        return false;
+    }
+    not_after > now + slack_secs
 }
 
 fn load_identity(cert_path: &Path, key_path: &Path) -> Result<Identity, String> {
@@ -107,18 +118,19 @@ fn write_secret_file(path: &Path, contents: &[u8]) -> io::Result<()> {
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt as _;
-            let _ = std::fs::set_permissions(parent, std::fs::Permissions::from_mode(0o700));
+            std::fs::set_permissions(parent, std::fs::Permissions::from_mode(0o700))?;
         }
     }
     #[cfg(unix)]
     {
-        use std::os::unix::fs::OpenOptionsExt as _;
+        use std::os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _};
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .truncate(true)
             .mode(0o600)
             .open(path)?;
+        file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
         file.write_all(contents)?;
     }
     #[cfg(not(unix))]
@@ -240,6 +252,13 @@ impl StreamAuth {
         has_displays: bool,
     ) -> Option<Self> {
         if !shared_token.is_empty() && token_eq(credential, shared_token) {
+            // The shared token opens sessions itself and therefore carries no paired owner,
+            // but it must not attach to a session that a paired client owns.
+            if let Some(registry) = registry {
+                if !session.is_empty() && registry.session_owner(session).is_some() {
+                    return None;
+                }
+            }
             return Some(Self::Shared);
         }
         let registry = registry?;
@@ -349,13 +368,20 @@ pub async fn run_wt_hub(
         width,
         height,
     });
+    let in_flight = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     loop {
         tokio::select! {
             _ = shutdown.changed() => break,
             incoming = server.accept() => {
+                if in_flight.load(std::sync::atomic::Ordering::Relaxed) >= MAX_INFLIGHT_SESSIONS {
+                    warn!("webtransport connection refused: {} sessions already in flight", MAX_INFLIGHT_SESSIONS);
+                    continue;
+                }
+                in_flight.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 let ctx = ctx.clone();
+                let in_flight = in_flight.clone();
                 tokio::spawn(async move {
-                    if let Err(e) = accept_session(incoming, ctx).await {
+                    if let Err(e) = accept_session(incoming, ctx, in_flight).await {
                         debug!("webtransport session ended: {e}");
                     }
                 });
@@ -364,15 +390,41 @@ pub async fn run_wt_hub(
     }
 }
 
-async fn accept_session(incoming: IncomingSession, ctx: Arc<WtCtx>) -> Result<(), String> {
-    let request = incoming.await.map_err(|e| e.to_string())?;
+const MAX_INFLIGHT_SESSIONS: usize = 16;
+
+const HELLO_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
+async fn accept_session(
+    incoming: IncomingSession,
+    ctx: Arc<WtCtx>,
+    in_flight: Arc<std::sync::atomic::AtomicUsize>,
+) -> Result<(), String> {
+    let guard = InFlightGuard(in_flight);
+    let request = tokio::time::timeout(HELLO_TIMEOUT, incoming)
+        .await
+        .map_err(|_| "session handshake timed out".to_string())?
+        .map_err(|e| e.to_string())?;
     if request.path() != "/orbiscreen" {
         request.not_found().await;
         return Err("wrong path".into());
     }
-    let connection = request.accept().await.map_err(|e| e.to_string())?;
-    let (send, recv) = connection.accept_bi().await.map_err(|e| e.to_string())?;
-    handle_session(connection, send, recv, ctx).await
+    let connection = tokio::time::timeout(HELLO_TIMEOUT, request.accept())
+        .await
+        .map_err(|_| "session accept timed out".to_string())?
+        .map_err(|e| e.to_string())?;
+    let (send, recv) = tokio::time::timeout(HELLO_TIMEOUT, connection.accept_bi())
+        .await
+        .map_err(|_| "stream accept timed out".to_string())?
+        .map_err(|e| e.to_string())?;
+    handle_session(connection, send, recv, ctx, Some(guard)).await
+}
+
+struct InFlightGuard(Arc<std::sync::atomic::AtomicUsize>);
+
+impl Drop for InFlightGuard {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+    }
 }
 
 async fn handle_session(
@@ -380,19 +432,25 @@ async fn handle_session(
     mut send: SendStream,
     mut recv: RecvStream,
     ctx: Arc<WtCtx>,
+    admission: Option<InFlightGuard>,
 ) -> Result<(), String> {
-    let hello = match read_message(&mut recv).await? {
+    let hello = match tokio::time::timeout(HELLO_TIMEOUT, read_message(&mut recv))
+        .await
+        .map_err(|_| "hello read timed out".to_string())??
+    {
         Some(Message::Hello(h)) => h,
         Some(_) => return Err("expected hello".into()),
         None => return Err("closed before hello".into()),
     };
-    let Some(auth) = StreamAuth::authenticate(
+    let authenticated = StreamAuth::authenticate(
         &hello.token,
         &ctx.token,
         ctx.registry.as_deref(),
         &hello.session,
         ctx.displays.is_some(),
-    ) else {
+    );
+    drop(admission);
+    let Some(auth) = authenticated else {
         ctx.stats.note_auth_failure();
         connection.close(1u32.into(), b"unauthorized");
         return Err("unauthorized".into());
@@ -719,6 +777,44 @@ mod tests {
     }
 
     #[test]
+    fn shared_token_cannot_attach_to_a_paired_clients_session() {
+        let (registry, _, _) = paired_registry();
+        // The shared token owns no session of its own, so it may not attach to one that a
+        // paired client owns.
+        assert!(
+            StreamAuth::authenticate("shared", "shared", Some(&registry), "owned-session", true)
+                .is_none(),
+            "shared token reached a session owned by a paired client"
+        );
+        // Unowned sessions still work, so legacy clients are unaffected.
+        assert!(matches!(
+            StreamAuth::authenticate("shared", "shared", Some(&registry), "", true),
+            Some(StreamAuth::Shared)
+        ));
+        assert!(matches!(
+            StreamAuth::authenticate("shared", "shared", Some(&registry), "unowned", true),
+            Some(StreamAuth::Shared)
+        ));
+    }
+
+    #[test]
+    fn validity_window_rejects_not_yet_valid_and_expired_certificates() {
+        const DAY: i64 = 86_400;
+        let now = 1_700_000_000;
+        let slack = 30 * DAY;
+        // Not yet valid: must not be served.
+        assert!(!within_validity(now + DAY, now + 400 * DAY, slack, now));
+        // Valid but inside the renew slack: replaced.
+        assert!(!within_validity(now - 400 * DAY, now + DAY, slack, now));
+        // Already expired.
+        assert!(!within_validity(now - 400 * DAY, now - DAY, slack, now));
+        // Comfortably valid.
+        assert!(within_validity(now - DAY, now + 400 * DAY, slack, now));
+        // Exactly at not_before is valid.
+        assert!(within_validity(now, now + 400 * DAY, slack, now));
+    }
+
+    #[test]
     fn shared_auth_preserves_legacy_default_stream() {
         let auth = StreamAuth::authenticate("shared", "shared", None, "", false).unwrap();
         assert!(matches!(auth, StreamAuth::Shared));
@@ -755,7 +851,8 @@ mod tests {
         });
         let accept = tokio::spawn(async move {
             let incoming = server.accept().await;
-            let result = accept_session(incoming, ctx).await;
+            let counter = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let result = accept_session(incoming, ctx, counter).await;
             server.wait_idle().await;
             result
         });
@@ -937,7 +1034,11 @@ mod tests {
         use wtransport::ClientConfig;
         use wtransport::Endpoint;
 
-        let port = 18790;
+        let port = std::net::TcpListener::bind("127.0.0.1:0")
+            .expect("ephemeral port")
+            .local_addr()
+            .expect("local addr")
+            .port();
         let (cert, key) = temp_identity_paths();
         let hub = WtHub::load_or_create(port, &cert, &key).expect("identity");
         let mut digest = [0u8; 32];

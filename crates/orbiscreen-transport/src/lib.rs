@@ -1,6 +1,3 @@
-// Orbiscreen - lib.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 pub mod annexb;
 pub mod aoa;
 pub mod aoa_video;
@@ -216,6 +213,7 @@ pub struct Transport {
     cfg: ServerConfig,
     input_tx: mpsc::Sender<IncomingInput>,
     token: String,
+    loopback_token: String,
     aoa_active: Arc<AtomicUsize>,
 }
 
@@ -229,10 +227,12 @@ impl Transport {
         input_tx: mpsc::Sender<IncomingInput>,
         token: Option<String>,
     ) -> Self {
+        let token = token.unwrap_or_else(generate_token);
         Self {
             cfg,
             input_tx,
-            token: token.unwrap_or_else(generate_token),
+            loopback_token: generate_token(),
+            token,
             aoa_active: Arc::new(AtomicUsize::new(0)),
         }
     }
@@ -275,6 +275,7 @@ impl Transport {
             video_tx: video_tx.clone(),
             stats,
             token: self.token.clone(),
+            loopback_token: self.loopback_token.clone(),
             pairing: Arc::new(
                 pairing::PairingRegistry::load()
                     .map_err(|e| TransportError::Http(format!("pairing registry: {e}")))?,
@@ -452,6 +453,7 @@ struct AppState {
     video_tx: tokio::sync::broadcast::Sender<H264Packet>,
     stats: Arc<Stats>,
     token: String,
+    loopback_token: String,
     pairing: Arc<pairing::PairingRegistry>,
     display_width: u32,
     display_height: u32,
@@ -485,6 +487,12 @@ async fn alt_svc_h3(
             axum::http::HeaderValue::from_static("no-store"),
         );
     }
+    // Only meaningful on this (TLS) listener, so a browser keeps using it instead of
+    // silently falling back to the cleartext port on the next visit.
+    response.headers_mut().insert(
+        "strict-transport-security",
+        axum::http::HeaderValue::from_static("max-age=31536000"),
+    );
     response
 }
 
@@ -619,9 +627,8 @@ fn query_token(uri_query: Option<&str>) -> Option<&str> {
         .filter(|t| !t.is_empty())
 }
 
-fn request_credential(request: &axum::extract::Request) -> Option<String> {
-    let header = request
-        .headers()
+fn bearer_from_headers(headers: &HeaderMap) -> Option<String> {
+    headers
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| {
@@ -632,12 +639,43 @@ fn request_credential(request: &axum::extract::Request) -> Option<String> {
             } else {
                 None
             }
-        });
-    header.or_else(|| {
+        })
+}
+
+fn request_credential(request: &axum::extract::Request) -> Option<String> {
+    bearer_from_headers(request.headers()).or_else(|| {
         query_token(request.uri().query())
             .filter(|t| !t.is_empty())
             .map(str::to_string)
     })
+}
+
+/// Same credential resolution as [`request_credential`], for handlers that only hold
+/// the header map and raw query (the WebSocket handshake).
+fn header_credential(headers: &HeaderMap, query: Option<&str>) -> String {
+    bearer_from_headers(headers)
+        .or_else(|| query_token(query).map(str::to_string))
+        .unwrap_or_default()
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum TokenScope {
+    None,
+    Master,
+    Restricted,
+}
+
+fn classify_token(state: &AppState, request: &axum::extract::Request) -> TokenScope {
+    let Some(supplied) = request_credential(request) else {
+        return TokenScope::None;
+    };
+    if token_eq(&supplied, &state.token) {
+        TokenScope::Master
+    } else if token_eq(&supplied, &state.loopback_token) {
+        TokenScope::Restricted
+    } else {
+        TokenScope::None
+    }
 }
 
 fn request_has_token(request: &axum::extract::Request, token: &str) -> bool {
@@ -650,7 +688,10 @@ async fn auth_check(
     request: axum::extract::Request,
     next: middleware::Next,
 ) -> axum::response::Response {
-    if request_has_token(&request, &state.token) {
+    if matches!(
+        classify_token(&state, &request),
+        TokenScope::Master | TokenScope::Restricted
+    ) {
         return next.run(request).await;
     }
     if let Some(credential) = request_credential(&request) {
@@ -817,6 +858,35 @@ async fn api_session_open(
     }
 }
 
+fn session_action_allowed(state: &AppState, credential: &str, session_id: &str) -> bool {
+    if credential.is_empty() {
+        return false;
+    }
+    match state.pairing.session_owner(session_id) {
+        Some(owner) => state
+            .pairing
+            .verify(credential)
+            .is_some_and(|client| client.client_id == owner),
+        // An unowned session can only have been opened with a host-side credential, so
+        // only those may drive it. Failing open here would let any paired credential
+        // close, resize, or force an IDR on a session it does not own.
+        None => {
+            (!state.token.is_empty() && token_eq(credential, &state.token))
+                || token_eq(credential, &state.loopback_token)
+        }
+    }
+}
+
+/// A client-supplied `x-orbiscreen-session` may only address a session the calling
+/// credential is allowed to drive. An absent or empty id stays unrouted so the hub
+/// still resolves the single unambiguous session on its own.
+fn input_session_allowed(state: &AppState, credential: &str, session: Option<&str>) -> bool {
+    match session.map(str::trim) {
+        None | Some("") => true,
+        Some(id) => session_action_allowed(state, credential, id),
+    }
+}
+
 async fn api_session_close(
     State(state): State<AppState>,
     request: axum::extract::Request,
@@ -831,13 +901,16 @@ async fn api_session_close(
     if id.is_empty() {
         return StatusCode::BAD_REQUEST;
     }
+    let credential = request_credential(&request).unwrap_or_default();
+    if !session_action_allowed(&state, &credential, &id) {
+        state.stats.note_auth_failure();
+        return StatusCode::FORBIDDEN;
+    }
     if let Some(credential) = request_credential(&request) {
         if let Some(client) = state.pairing.verify(&credential) {
-            if !state.pairing.owns_session(&client.client_id, &id) {
-                state.stats.note_auth_failure();
-                return StatusCode::FORBIDDEN;
+            if state.pairing.owns_session(&client.client_id, &id) {
+                state.pairing.forget_session(&id);
             }
-            state.pairing.forget_session(&id);
         }
     }
     state.udp_keys.revoke_session(&id);
@@ -878,6 +951,14 @@ async fn api_udp_key(
     } else {
         udp_crypto::MintKind::Anonymous
     };
+    if !session.is_empty() && !session_action_allowed(&state, &credential, session) {
+        state.stats.note_auth_failure();
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({"ok": false, "error": "udp key denied"})),
+        )
+            .into_response();
+    }
     if !udp_crypto::may_mint_udp_key(kind, session) {
         state.stats.note_auth_failure();
         return (
@@ -924,13 +1005,18 @@ async fn client_config(
         )
             .into_response();
     }
+    let token = if authenticated {
+        supplied.as_deref()
+    } else {
+        Some(state.loopback_token.as_str())
+    };
     (
         [
             ("content-type", "application/json"),
             ("cache-control", "no-cache, no-store, must-revalidate"),
         ],
         Json(serde_json::json!({
-            "token": if paired { supplied.as_deref() } else { Some(state.token.as_str()) },
+            "token": token,
             "display_width": state.display_width,
             "display_height": state.display_height,
             "wt_port": state.wt_offer.as_ref().map(|o| o.port),
@@ -1199,7 +1285,25 @@ async fn api_control(
     headers: HeaderMap,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    match payload.get("action").and_then(|v| v.as_str()) {
+    let credential = bearer_from_headers(&headers).unwrap_or_default();
+    let action = payload.get("action").and_then(|v| v.as_str());
+    if matches!(
+        action,
+        Some("lock") | Some("blank") | Some("unblank") | Some("ctrl_alt_del")
+    ) {
+        let master = !credential.is_empty() && token_eq(&credential, &state.token);
+        if !master {
+            state.stats.note_auth_failure();
+            return (
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "ok": false,
+                    "error": "host actions require the session token from the host banner"
+                })),
+            );
+        }
+    }
+    match action {
         Some("lock") => {
             let ok = run_command("loginctl", &["lock-session"]).await
                 || run_command("xdg-screensaver", &["lock"]).await;
@@ -1253,6 +1357,15 @@ async fn api_control(
                         .and_then(|v| v.to_str().ok())
                         .map(str::to_string)
                 });
+            if let Some(id) = session.as_deref().filter(|s| !s.is_empty()) {
+                if !session_action_allowed(&state, &credential, id) {
+                    state.stats.note_auth_failure();
+                    return (
+                        StatusCode::FORBIDDEN,
+                        Json(serde_json::json!({"ok": false, "error": "not your session"})),
+                    );
+                }
+            }
             request_idr(&state, session.as_deref());
             info!(session = ?session, "host control: IDR requested");
             (StatusCode::OK, Json(serde_json::json!({"ok": true})))
@@ -1286,6 +1399,13 @@ async fn api_control(
                         .await
                         .map(|info| info.id)
                         .unwrap_or_default();
+                }
+                if !session.is_empty() && !session_action_allowed(&state, &credential, &session) {
+                    state.stats.note_auth_failure();
+                    return (
+                        StatusCode::FORBIDDEN,
+                        Json(serde_json::json!({"ok": false, "error": "not your session"})),
+                    );
                 }
                 match ctl.resize(&session, width, height, Some(fps)).await {
                     Ok(info) => {
@@ -1365,13 +1485,26 @@ async fn root_handler() -> Html<&'static str> {
 async fn input_ws(
     State(state): State<AppState>,
     headers: HeaderMap,
+    axum::extract::RawQuery(query): axum::extract::RawQuery,
     ws: axum::extract::ws::WebSocketUpgrade,
 ) -> axum::response::Response {
     let session = headers
         .get("x-orbiscreen-session")
         .and_then(|v| v.to_str().ok())
         .map(str::to_string);
-    ws.on_upgrade(move |socket| handle_input_ws(socket, state.displays, state.input_tx, session))
+    let credential = header_credential(&headers, query.as_deref());
+    if !input_session_allowed(&state, &credential, session.as_deref()) {
+        state.stats.note_auth_failure();
+        warn!(
+            "input ws rejected (session={:?}, credential_present={})",
+            session,
+            !credential.is_empty()
+        );
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    ws.max_message_size(MAX_INPUT_MESSAGE_BYTES)
+        .max_frame_size(MAX_INPUT_MESSAGE_BYTES)
+        .on_upgrade(move |socket| handle_input_ws(socket, state.displays, state.input_tx, session))
 }
 
 async fn handle_input_ws(
@@ -1398,13 +1531,23 @@ async fn input_post(
     headers: HeaderMap,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
+    let session = headers
+        .get("x-orbiscreen-session")
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string);
+    let credential = header_credential(&headers, None);
+    if !input_session_allowed(&state, &credential, session.as_deref()) {
+        state.stats.note_auth_failure();
+        warn!(
+            "input rejected (session={:?}, credential_present={})",
+            session,
+            !credential.is_empty()
+        );
+        return StatusCode::FORBIDDEN;
+    }
     match serde_json::from_value::<IncomingInput>(payload) {
         Ok(ev) => {
             if let Some(ctl) = &state.displays {
-                let session = headers
-                    .get("x-orbiscreen-session")
-                    .and_then(|v| v.to_str().ok())
-                    .map(str::to_string);
                 ctl.input(session, ev).await;
             } else if state.input_tx.try_send(ev).is_err() {
                 debug!("input queue full; dropping event");
@@ -1453,6 +1596,8 @@ fn push_h264_packet(
 }
 
 const MAX_STREAM_CLIENTS: usize = 8;
+/// Input events are a few hundred bytes; anything larger is a malformed or hostile frame.
+const MAX_INPUT_MESSAGE_BYTES: usize = 64 * 1024;
 
 async fn au_handler(
     State(state): State<AppState>,
@@ -1900,7 +2045,75 @@ async fn stream_handler(
 mod tests {
     use super::*;
 
+    async fn control_with_token(token: &str, action: &str) -> StatusCode {
+        let state = config_test_state();
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(
+            axum::http::header::AUTHORIZATION,
+            axum::http::HeaderValue::from_str(&format!("Bearer {token}")).unwrap(),
+        );
+        let payload: serde_json::Value = serde_json::json!({ "action": action });
+        api_control(State(state), headers, axum::Json(payload))
+            .await
+            .into_response()
+            .status()
+    }
+
+    #[tokio::test]
+    async fn host_level_actions_require_the_master_token() {
+        for action in ["lock", "blank", "unblank", "ctrl_alt_del"] {
+            assert_eq!(
+                control_with_token("test-loopback", action).await,
+                StatusCode::FORBIDDEN,
+                "restricted token was allowed to run {action}"
+            );
+            assert_eq!(
+                control_with_token("test-credential", action).await,
+                StatusCode::OK,
+                "master token was refused {action}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn a_restricted_token_still_drives_its_own_stream() {
+        let state = config_test_state();
+        assert!(matches!(
+            classify_token(
+                &state,
+                &axum::http::Request::builder()
+                    .header("authorization", "Bearer test-loopback")
+                    .body(axum::body::Body::empty())
+                    .unwrap()
+            ),
+            TokenScope::Restricted
+        ));
+        assert!(matches!(
+            classify_token(
+                &state,
+                &axum::http::Request::builder()
+                    .header("authorization", "Bearer test-credential")
+                    .body(axum::body::Body::empty())
+                    .unwrap()
+            ),
+            TokenScope::Master
+        ));
+        assert_eq!(
+            classify_token(
+                &state,
+                &axum::http::Request::builder()
+                    .body(axum::body::Body::empty())
+                    .unwrap()
+            ),
+            TokenScope::None
+        );
+    }
+
     fn config_test_state() -> AppState {
+        config_test_state_with_pairing(Arc::new(pairing::PairingRegistry::load_from(None).unwrap()))
+    }
+
+    fn config_test_state_with_pairing(registry: Arc<pairing::PairingRegistry>) -> AppState {
         let (input_tx, _) = mpsc::channel(1);
         let (video_tx, _) = tokio::sync::broadcast::channel(1);
         let (client_shutdown_tx, _) = tokio::sync::broadcast::channel(1);
@@ -1915,7 +2128,8 @@ mod tests {
             video_tx,
             stats: Arc::new(Stats::default()),
             token: "test-credential".into(),
-            pairing: Arc::new(pairing::PairingRegistry::load_from(None).unwrap()),
+            loopback_token: "test-loopback".into(),
+            pairing: registry,
             display_width: 1920,
             display_height: 1080,
             refresh_hz: 60,
@@ -1928,6 +2142,138 @@ mod tests {
             wt_offer: None,
             udp_keys: udp_crypto::UdpKeyRing::new(),
         }
+    }
+
+    /// Approves two paired clients and returns the state plus their credentials and ids.
+    fn two_client_state() -> (AppState, String, String, String, String) {
+        let registry = pairing::PairingRegistry::load_from(None).unwrap();
+        let request_a = registry.request("TabletA", "192.0.2.9").unwrap();
+        let client_a = registry.approve(&request_a).unwrap().unwrap();
+        let credential_a = registry.claim(&request_a, "192.0.2.9").unwrap();
+        let request_b = registry.request("TabletB", "192.0.2.10").unwrap();
+        let client_b = registry.approve(&request_b).unwrap().unwrap();
+        let credential_b = registry.claim(&request_b, "192.0.2.10").unwrap();
+        (
+            config_test_state_with_pairing(Arc::new(registry)),
+            credential_a,
+            client_a.client_id,
+            credential_b,
+            client_b.client_id,
+        )
+    }
+
+    fn bearer(credential: &str) -> axum::http::HeaderMap {
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(
+            axum::http::header::AUTHORIZATION,
+            axum::http::HeaderValue::from_str(&format!("Bearer {credential}")).unwrap(),
+        );
+        headers
+    }
+
+    async fn post_input(credential: &str, session: Option<&str>) -> StatusCode {
+        let state = config_test_state();
+        let mut headers = bearer(credential);
+        if let Some(session) = session {
+            headers.insert(
+                "x-orbiscreen-session",
+                axum::http::HeaderValue::from_str(session).unwrap(),
+            );
+        }
+        let payload: serde_json::Value = serde_json::json!({ "x": 4.0, "y": 8.0 });
+        input_post(State(state), headers, axum::Json(payload))
+            .await
+            .into_response()
+            .status()
+    }
+
+    #[test]
+    fn an_unowned_session_is_only_drivable_by_host_credentials() {
+        let state = config_test_state();
+        assert!(session_action_allowed(
+            &state,
+            "test-credential",
+            "host-session"
+        ));
+        assert!(session_action_allowed(
+            &state,
+            "test-loopback",
+            "host-session"
+        ));
+        for credential in ["", "someone-elses-credential"] {
+            assert!(
+                !session_action_allowed(&state, credential, "host-session"),
+                "{credential} was allowed to drive an unowned session"
+            );
+        }
+    }
+
+    #[test]
+    fn a_paired_session_is_out_of_reach_for_every_other_credential() {
+        let (state, credential_a, _, credential_b, _) = two_client_state();
+        assert!(state.pairing.bind_session(
+            &state.pairing.verify(&credential_a).unwrap().client_id,
+            "session-a"
+        ));
+        assert!(session_action_allowed(&state, &credential_a, "session-a"));
+        for credential in ["test-credential", "test-loopback", &credential_b, ""] {
+            assert!(
+                !session_action_allowed(&state, credential, "session-a"),
+                "{credential} reached a session owned by another client"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn input_cannot_address_a_session_owned_by_another_client() {
+        let (state, credential_a, owner_id, credential_b, _) = two_client_state();
+        assert!(state.pairing.bind_session(&owner_id, "session-a"));
+        let payload: serde_json::Value = serde_json::json!({ "x": 4.0, "y": 8.0 });
+
+        for credential in ["test-loopback", credential_b.as_str()] {
+            let mut headers = bearer(credential);
+            headers.insert(
+                "x-orbiscreen-session",
+                axum::http::HeaderValue::from_static("session-a"),
+            );
+            let response = input_post(State(state.clone()), headers, axum::Json(payload.clone()))
+                .await
+                .into_response();
+            assert_eq!(
+                response.status(),
+                StatusCode::FORBIDDEN,
+                "{credential} injected input into a session owned by another client"
+            );
+        }
+        assert_eq!(state.stats.auth_failures(), 2);
+
+        let owner_credential = credential_a;
+        let mut headers = bearer(&owner_credential);
+        headers.insert(
+            "x-orbiscreen-session",
+            axum::http::HeaderValue::from_static("session-a"),
+        );
+        assert_ne!(
+            input_post(State(state.clone()), headers, axum::Json(payload.clone()))
+                .await
+                .into_response()
+                .status(),
+            StatusCode::FORBIDDEN,
+            "the owning client was denied its own session"
+        );
+    }
+
+    #[tokio::test]
+    async fn input_without_a_session_stays_unrouted() {
+        assert_eq!(
+            post_input("test-loopback", None).await,
+            StatusCode::ACCEPTED,
+            "an unrouted input event must not be rejected by session ownership"
+        );
+        assert_eq!(
+            post_input("test-credential", Some("")).await,
+            StatusCode::ACCEPTED
+        );
     }
 
     #[tokio::test]
@@ -1971,7 +2317,17 @@ mod tests {
                 .unwrap();
             if expected == StatusCode::OK {
                 let config: serde_json::Value = serde_json::from_slice(&body).unwrap();
-                assert_eq!(config["token"], "test-credential");
+                let is_loopback =
+                    peer.is_some_and(|p| p.starts_with("127.") || p.starts_with("[::1]"));
+                let is_authenticated = credential == Some("test-credential");
+                if is_loopback && !is_authenticated {
+                    assert_eq!(config["token"], "test-loopback");
+                    assert_ne!(config["token"], "test-credential");
+                } else {
+                    assert_eq!(config["token"], "test-credential");
+                }
+                assert!(config["display_width"].is_number());
+                assert!(config["wt_port"].is_null());
             } else {
                 assert_eq!(stats.auth_failures(), 1);
                 assert!(!String::from_utf8_lossy(&body).contains("test-credential"));

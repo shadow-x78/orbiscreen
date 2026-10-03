@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.32.1
+Version:        0.32.2
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -18,7 +18,7 @@ Source0:        %{url}/archive/v%{version}/orbiscreen-%{version}.tar.gz
 Source1:        orbiscreen-vendor-%{version}.tar.zst
 
 BuildRequires:  cargo
-BuildRequires:  rust >= 1.75
+BuildRequires:  rust >= 1.92
 BuildRequires:  pkgconfig(gstreamer-1.0)
 BuildRequires:  pkgconfig(gstreamer-app-1.0)
 BuildRequires:  pkgconfig(gstreamer-video-1.0)
@@ -57,9 +57,7 @@ cargo build --release --workspace --locked
 
 %install
 install -Dm0755 target/release/orbiscreen %{buildroot}%{_bindir}/orbiscreen
-if [ -f target/release/orbiscreen-gui ]; then
-    install -Dm0755 target/release/orbiscreen-gui %{buildroot}%{_bindir}/orbiscreen-gui
-fi
+install -Dm0755 target/release/orbiscreen-gui %{buildroot}%{_bindir}/orbiscreen-gui
 install -Dm0644 data/orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen.svg
 ln -sf orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen-gui.svg
 for size in 16 24 32 48 64 128 256 512; do
@@ -75,7 +73,6 @@ install -Dm0644 data/99-orbiscreen-usb.rules %{buildroot}%{_udevrulesdir}/99-orb
 for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     install -Dm0644 "clients/web/$f" "%{buildroot}%{_datadir}/orbiscreen/client/$f"
 done
-install -Dm0644 clients/web/vendor/mpegts.js %{buildroot}%{_datadir}/orbiscreen/client/vendor/mpegts.js
 
 install -Dm0644 /dev/null %{buildroot}%{_userunitdir}/orbiscreen.service
 cat > %{buildroot}%{_userunitdir}/orbiscreen.service << 'EOF'
@@ -99,29 +96,29 @@ EOF
 cargo test --workspace --locked --offline || true
 
 %post
-/bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
+/bin/touch --no-create %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
 if [ -x %{_bindir}/gtk-update-icon-cache ]; then
-    %{_bindir}/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
+    %{_bindir}/gtk-update-icon-cache %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
 fi
 if [ -x %{_bindir}/update-desktop-database ]; then
-    %{_bindir}/update-desktop-database %{_datadir}/applications &>/dev/null || :
+    %{_bindir}/update-desktop-database %{_datadir}/applications >/dev/null 2>&1 || :
 fi
 
 %preun
 if [ $1 -eq 0 ]; then
-    for u in $(users); do
-        su -s /bin/sh -c "systemctl --user stop orbiscreen || true" "$u" || true
+    for u in $(users | tr ' ' '\n' | tail -n +2 | sort -u); do
+        su -s /bin/sh -c "systemctl --user disable --now orbiscreen || true" "$u" || true
     done
 fi
 
 %postun
 if [ $1 -eq 0 ]; then
-    /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
+    /bin/touch --no-create %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
     if [ -x %{_bindir}/gtk-update-icon-cache ]; then
-        %{_bindir}/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
+        %{_bindir}/gtk-update-icon-cache %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
     fi
     if [ -x %{_bindir}/update-desktop-database ]; then
-        %{_bindir}/update-desktop-database %{_datadir}/applications &>/dev/null || :
+        %{_bindir}/update-desktop-database %{_datadir}/applications >/dev/null 2>&1 || :
     fi
 fi
 
@@ -139,16 +136,18 @@ fi
 %{_datadir}/orbiscreen/client/favicon.svg
 %{_datadir}/orbiscreen/client/favicon.png
 %{_datadir}/orbiscreen/client/apple-touch-icon.png
-%{_datadir}/orbiscreen/client/vendor/mpegts.js
 %{_datadir}/orbiscreen/install-evdi-module.sh
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
-* Thu Oct 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.1-1
-- Release 0.32.1: fix duplicate BTN_TOUCH writes and redundant AbsEvent::X/Y writes in touch injection; re-indent hub idle reap branch.
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.2-1
+- Release 0.32.2: cross-session input injection, dead Tauri UI, packaging gaps.
 
-* Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.0-1
-- Release 0.32.0: fix resize switchover latency, fps-aware resize, AOA session alias.
+* Thu Oct 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.2-1
+- Release 0.32.2: fix duplicate BTN_TOUCH writes and redundant AbsEvent::X/Y writes in touch injection; re-indent hub idle reap branch.
+
+* Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.2-1
+- Release 0.32.2: fix resize switchover latency, fps-aware resize, AOA session alias.
 
 * Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.9-1
 - Release 0.31.9: fix resize switchover latency and `no display session` error; encoder now honors requested fps on resize.

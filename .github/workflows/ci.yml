@@ -1,5 +1,6 @@
 # ─────────────────────────────────────────────
-# Orbiscreen - CI Workflow 
+# Orbiscreen - CI Workflow
+# https://github.com/shadow-x78/orbiscreen
 # ─────────────────────────────────────────────
 
 name: CI
@@ -10,9 +11,16 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel superseded runs of the same ref.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: -D warnings
 
 jobs:
   workspace:
@@ -21,6 +29,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # ── Toolchain ──
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
       - name: Cache cargo registry & target
@@ -34,12 +43,29 @@ jobs:
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
             libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+      # ── Frontend Syntax ──
+      # Rust tooling never parses these files, so a broken template literal in a UI
+      # script would otherwise ship undetected (see crates/orbiscreen-gui/ui/app.js).
+      - name: Check web client syntax
+        run: |
+          status=0
+          for f in clients/web/*.js crates/orbiscreen-gui/ui/*.js; do
+            if ! node --check "$f"; then
+              echo "::error file=${f}::syntax check failed"
+              status=1
+            fi
+          done
+          exit "$status"
+
+      # ── Lint & Format ──
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Clippy (deny warnings)
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      # ── Build ──
       - name: Build
         run: cargo build --workspace --locked --verbose
+      # ── Test ──
       - name: Test
         run: cargo test --workspace --locked --verbose
 
@@ -49,6 +75,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # ── Toolchain ──
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
       - name: Cache cargo registry & target
@@ -71,6 +98,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # ── Toolchain ──
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
       - uses: Swatinem/rust-cache@8cbdedb5103daa674dcf46d3590fe06a76645684 # v2.8.0

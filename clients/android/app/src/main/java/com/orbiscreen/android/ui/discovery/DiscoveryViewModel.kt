@@ -1,5 +1,3 @@
-// Orbiscreen - DiscoveryViewModel.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.ui.discovery
 
@@ -87,16 +85,6 @@ class DiscoveryViewModel(
         _state.value = _state.value.copy(recent = null)
     }
 
-    private fun startSubnetSweep() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val gateway = gatewayProvider() ?: return@launch
-            subnetScanner.sweep(gateway).collect { host ->
-                if (hostApi.info(host, 8788) == null) return@collect
-                val found = DiscoveredHost(name = host, host = host, port = 8788)
-                scannedHosts.value = scannedHosts.value + (host to found)
-            }
-        }
-    }
 
     override fun onCleared() {
         discovery.stop()

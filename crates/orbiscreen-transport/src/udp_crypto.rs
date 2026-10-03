@@ -1,6 +1,3 @@
-// Orbiscreen - udp_crypto.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
@@ -284,6 +281,7 @@ impl UdpKeyRing {
     }
 
     pub fn issue(&self, session: Option<String>, ttl: Duration) -> UdpSealKey {
+        self.prune_expired();
         let mut id = [0u8; KEY_ID_LEN];
         let mut secret = [0u8; 32];
         rand::RngCore::fill_bytes(&mut rand::rng(), &mut id);
@@ -318,9 +316,26 @@ impl UdpKeyRing {
     ) -> Option<&'a mut IssuedKey> {
         let expires = map.get(id)?.expires;
         if Instant::now() >= expires {
+            map.remove(id);
             return None;
         }
         map.get_mut(id)
+    }
+
+    pub fn len(&self) -> usize {
+        self.lock().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.lock().is_empty()
+    }
+
+    pub fn prune_expired(&self) -> usize {
+        let now = Instant::now();
+        let mut map = self.lock();
+        let before = map.len();
+        map.retain(|_, issued| issued.expires > now);
+        before - map.len()
     }
 
     pub fn lookup(&self, id: &[u8; 16]) -> Option<UdpSealKey> {
@@ -376,10 +391,9 @@ impl UdpKeyRing {
         let mut map = self.lock();
         let issued = Self::live(&mut map, id)?;
         Self::touch(issued);
+        // saturating_add can never yield 0, so this counter never repeats a host nonce
+        // inside the replay window.
         issued.host_counter = issued.host_counter.saturating_add(1);
-        if issued.host_counter == 0 {
-            return None;
-        }
         let nonce_bytes = nonce(DIR_HOST, issued.host_counter);
         Some((
             UdpSealKey {
@@ -536,6 +550,59 @@ mod tests {
         assert!(ring.lookup(&expired.id).is_none());
         assert!(!ring.accept_client_nonce(&expired.id, &nonce(DIR_CLIENT, 1)));
         assert!(ring.lookup(&expired.id).is_none());
+    }
+
+    #[test]
+    fn expired_keys_are_reclaimed_rather_than_just_refused() {
+        let ring = UdpKeyRing::new();
+        let live = ring.issue(Some("live".into()), Duration::from_secs(60));
+        for i in 0u8..8 {
+            ring.insert(
+                UdpSealKey {
+                    id: [i; 16],
+                    secret: [i; 32],
+                },
+                Some("dead".into()),
+                Instant::now() - Duration::from_secs(1),
+            );
+        }
+        assert_eq!(ring.len(), 9);
+        assert_eq!(ring.prune_expired(), 8);
+        assert_eq!(ring.len(), 1);
+        assert!(ring.lookup(&live.id).is_some());
+        assert!(!ring.is_empty());
+    }
+
+    #[test]
+    fn touching_an_expired_key_drops_it_instead_of_leaving_it() {
+        let ring = UdpKeyRing::new();
+        let key = UdpSealKey {
+            id: [0x77; 16],
+            secret: [0x88; 32],
+        };
+        ring.insert(
+            key.clone(),
+            Some("old".into()),
+            Instant::now() - Duration::from_secs(1),
+        );
+        assert!(ring.lookup(&key.id).is_none());
+        assert_eq!(ring.len(), 0);
+    }
+
+    #[test]
+    fn issuing_sweeps_previously_expired_keys() {
+        let ring = UdpKeyRing::new();
+        ring.insert(
+            UdpSealKey {
+                id: [0x01; 16],
+                secret: [0x02; 32],
+            },
+            Some("old".into()),
+            Instant::now() - Duration::from_secs(1),
+        );
+        assert_eq!(ring.len(), 1);
+        let _ = ring.issue(Some("new".into()), Duration::from_secs(60));
+        assert_eq!(ring.len(), 1, "stale key survived an issue");
     }
 
     #[test]

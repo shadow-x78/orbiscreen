@@ -1,5 +1,3 @@
-// Orbiscreen - MainActivity.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android
 
@@ -14,6 +12,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import com.orbiscreen.android.net.HostSpec
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
@@ -118,10 +117,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private var isExplicitFinish = false
-
     override fun finish() {
-        if (!isExplicitFinish && intent?.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
+        // Swallow the first back press that follows a USB accessory attach, so the attach
+        // flow is not cancelled mid-handshake. Clearing the action makes every later press
+        // close the activity normally.
+        if (intent?.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
             intent?.action = null
             return
         }
@@ -198,9 +198,18 @@ private fun App(prefs: PrefsStore) {
             },
         ) {
             val activity = context as? android.app.Activity
-            val startHost = activity?.intent?.getStringExtra("host")
-            val startPort = activity?.intent?.getIntExtra("port", 8788) ?: 8788
-            OrbiNav(prefs, startHost = startHost, startPort = startPort)
+            // MainActivity is exported, so these extras can come from any app on the device.
+            // HostSpec accepts only a plain IPv4 address or hostname and a 1-65535 port,
+            // which also keeps "/" and other route separators out of the nav argument.
+            val requested = activity?.intent?.let { intent ->
+                val host = intent.getStringExtra("host") ?: return@let null
+                HostSpec.parse("$host:${intent.getIntExtra("port", 8788)}")
+            }
+            OrbiNav(
+                prefs,
+                startHost = requested?.first,
+                startPort = requested?.second ?: 8788,
+            )
             startupUpdate?.let { release ->
                 UpdateDialog(
                     release = release,

@@ -12,6 +12,17 @@ use tracing::{info, warn};
 
 const IDLE_AFTER_LAST_VIEWER: Duration = Duration::from_secs(120);
 const WAITING_FOR_FIRST_VIEWER: Duration = Duration::from_secs(30);
+const OPEN_SESSION_TIMEOUT: Duration = Duration::from_secs(20);
+
+const MAX_LIVE_SESSIONS: usize = 8;
+
+pub(crate) fn is_session_unclaimed(
+    viewers: usize,
+    video_receivers: usize,
+    ever_attached: bool,
+) -> bool {
+    viewers == 0 && video_receivers == 0 && !ever_attached
+}
 
 pub(crate) fn should_reap_idle_session(
     viewers: usize,
@@ -128,7 +139,7 @@ async fn run_hub(mut cfg: HubConfig, mut rx: mpsc::Receiver<DisplayCommand>) {
                             close_session(&mut sessions, &mut aliases, &id);
                         }
                     } else {
-                        idle_at.remove(&id);
+                        idle_at.insert(id.clone(), tokio::time::Instant::now());
                     }
                 }
             }
@@ -145,13 +156,17 @@ pub(crate) fn target_resolution(
     client_width: u32,
     client_height: u32,
 ) -> (u32, u32) {
-    if cfg.default_width > 0 && cfg.default_height > 0 {
-        (cfg.default_width, cfg.default_height)
-    } else if client_width > 0 && client_height > 0 {
-        (client_width, client_height)
-    } else {
-        (1920, 1080)
+    let client_asked = client_width > 0 && client_height > 0;
+    if cfg.has_explicit_override && cfg.default_width > 0 && cfg.default_height > 0 {
+        return (cfg.default_width, cfg.default_height);
     }
+    if client_asked {
+        return (client_width, client_height);
+    }
+    if cfg.default_width > 0 && cfg.default_height > 0 {
+        return (cfg.default_width, cfg.default_height);
+    }
+    (1920, 1080)
 }
 
 async fn handle_cmd(
@@ -202,6 +217,32 @@ async fn handle_cmd(
                     if let Some(old) = sessions.remove(&id_to_remove) {
                         close_session_inner(old);
                     }
+                }
+            }
+            if sessions.len() >= MAX_LIVE_SESSIONS {
+                let evictable: Vec<String> = sessions
+                    .iter()
+                    .filter(|(_, s)| {
+                        is_session_unclaimed(
+                            s.viewers,
+                            s.video_tx.receiver_count(),
+                            s.ever_attached,
+                        )
+                    })
+                    .map(|(id, _)| id.clone())
+                    .collect();
+                if evictable.is_empty() {
+                    warn!(
+                        sessions = sessions.len(),
+                        "refusing a new display session: live session limit reached"
+                    );
+                    let _ = reply.send(Err(format!(
+                        "too many active display sessions (limit {MAX_LIVE_SESSIONS})"
+                    )));
+                    return;
+                }
+                for id in evictable {
+                    close_session(sessions, aliases, &id);
                 }
             }
             let result = open_session(
@@ -542,10 +583,23 @@ async fn open_session(
         names,
         description,
     };
-    let capture = tokio::task::spawn_blocking(move || KwinVirtualCapture::open(spec))
-        .await
-        .map_err(|e| format!("kwin open task: {e}"))?
-        .map_err(|e| e.to_string())?;
+    let mut open_task = tokio::task::spawn_blocking(move || KwinVirtualCapture::open(spec));
+    let capture = match tokio::time::timeout(OPEN_SESSION_TIMEOUT, &mut open_task).await {
+        Ok(Ok(Ok(capture))) => capture,
+        Ok(Ok(Err(e))) => return Err(e.to_string()),
+        Ok(Err(e)) => return Err(format!("kwin open task: {e}")),
+        Err(_) => {
+            tokio::spawn(async move {
+                if let Ok(Ok(capture)) = open_task.await {
+                    drop(capture);
+                }
+            });
+            return Err(format!(
+                "timed out after {}s waiting for KWin to create the virtual output",
+                OPEN_SESSION_TIMEOUT.as_secs()
+            ));
+        }
+    };
     let capture = Arc::new(capture);
     let connector = capture.connector_name().to_string();
     let (actual_w, actual_h) = capture.dimensions();
@@ -591,6 +645,7 @@ async fn open_session(
         width: actual_w,
         height: actual_h,
         framerate: refresh_hz,
+        vbv_frames: 1,
     })
     .map_err(|e| e.to_string())?;
     let encoder_name = encoder_label(encoder.kind());
@@ -825,9 +880,6 @@ fn close_session_inner(session: Session) {
         h.abort();
     }
     let _ = shutdown.send(true);
-    // Dropping the broadcast sender here (not inside the blocking teardown) is
-    // what lets viewers observe `Closed` immediately and re-attach to the
-    // replacement session without waiting for the encoder/GStreamer drain.
     let encoder_stop = encoder;
     let capture_drop = capture;
     if encoder_stop.is_none() && capture_drop.is_none() {
@@ -965,11 +1017,27 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        adopt_resize_state, event_paths_from_introspect, should_reap_idle_session, ResizeCarry,
+        adopt_resize_state, event_paths_from_introspect, is_session_unclaimed,
+        should_reap_idle_session, ResizeCarry, MAX_LIVE_SESSIONS,
     };
     use crate::client_display::Session;
     use orbiscreen_transport::IncomingInput;
     use std::collections::HashMap;
+
+    #[test]
+    fn only_unwatched_never_viewed_sessions_may_be_evicted_for_the_session_limit() {
+        assert!(is_session_unclaimed(0, 0, false));
+        assert!(!is_session_unclaimed(1, 0, false), "has a viewer");
+        assert!(!is_session_unclaimed(0, 1, false), "a stream is subscribed");
+        assert!(!is_session_unclaimed(0, 0, true), "previously attached");
+    }
+
+    #[test]
+    fn the_session_limit_is_usable_and_bounded() {
+        let budget = (0..MAX_LIVE_SESSIONS).count();
+        assert!(budget >= 4, "limit too low for normal use");
+        assert!(budget <= 32, "limit leaves the encoder pool unbounded");
+    }
 
     fn carry(name: &str, viewers: usize, ever_attached: bool) -> ResizeCarry {
         ResizeCarry {
@@ -1168,30 +1236,35 @@ mod tests {
         );
     }
 
-    #[test]
-    fn target_resolution_prioritizes_configured_resolution() {
-        let cfg = super::HubConfig {
+    fn hub(explicit: bool, w: u32, h: u32) -> super::HubConfig {
+        super::HubConfig {
             encode_kind: orbiscreen_encode::EncoderKind::Auto,
             bitrate_kbps: 8000,
-            refresh_hz: 90,
-            default_width: 1920,
-            default_height: 1152,
-            has_explicit_override: false,
-        };
+            refresh_hz: 60,
+            default_width: w,
+            default_height: h,
+            has_explicit_override: explicit,
+        }
+    }
+
+    #[test]
+    fn an_explicit_host_override_beats_the_client() {
+        let cfg = hub(true, 1920, 1152);
         assert_eq!(super::target_resolution(&cfg, 2560, 1536), (1920, 1152));
     }
 
     #[test]
-    fn target_resolution_adopts_client_native_when_auto() {
-        let cfg = super::HubConfig {
-            encode_kind: orbiscreen_encode::EncoderKind::Auto,
-            bitrate_kbps: 8000,
-            refresh_hz: 60,
-            default_width: 0,
-            default_height: 0,
-            has_explicit_override: false,
-        };
+    fn without_an_override_the_client_decides() {
+        let cfg = hub(false, 1920, 1152);
+        assert_eq!(super::target_resolution(&cfg, 1280, 800), (1280, 800));
         assert_eq!(super::target_resolution(&cfg, 2560, 1536), (2560, 1536));
-        assert_eq!(super::target_resolution(&cfg, 0, 0), (1920, 1080));
+    }
+
+    #[test]
+    fn the_config_is_used_when_the_client_asks_for_nothing() {
+        let cfg = hub(false, 1920, 1152);
+        assert_eq!(super::target_resolution(&cfg, 0, 0), (1920, 1152));
+        let empty = hub(false, 0, 0);
+        assert_eq!(super::target_resolution(&empty, 0, 0), (1920, 1080));
     }
 }

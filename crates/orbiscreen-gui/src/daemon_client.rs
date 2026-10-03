@@ -1,6 +1,3 @@
-// Orbiscreen - daemon_client.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tokio::process::Command;

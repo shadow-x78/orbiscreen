@@ -1,6 +1,3 @@
-// Orbiscreen - lib.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 pub mod frame_pool;
 pub mod portal_state;
 
@@ -65,6 +62,8 @@ pub struct DisplayConfig {
     pub width: u32,
     pub height: u32,
     pub refresh_rate_hz: u32,
+    #[serde(default)]
+    pub pinned: bool,
 }
 
 impl Default for DisplayConfig {
@@ -73,6 +72,7 @@ impl Default for DisplayConfig {
             width: 1920,
             height: 1080,
             refresh_rate_hz: 60,
+            pinned: false,
         }
     }
 }
@@ -264,6 +264,26 @@ height = 999999
         assert_eq!(display.width, 1920);
         assert_eq!(display.height, 1080);
         assert_eq!(display.refresh_rate_hz, 60);
+    }
+
+    #[test]
+    fn a_pinned_display_size_survives_a_config_round_trip() {
+        let mut cfg = Config::default();
+        cfg.display.width = 1280;
+        cfg.display.height = 800;
+        cfg.display.pinned = true;
+        let dumped = dump_config(&cfg).expect("dump");
+        let reloaded = load_config(&dumped).expect("reload");
+        assert!(reloaded.display.pinned);
+        assert_eq!(reloaded.display.width, 1280);
+        assert_eq!(reloaded.display.height, 800);
+    }
+
+    #[test]
+    fn an_older_config_without_the_pin_key_parses_as_unpinned() {
+        let cfg = load_config("[display]\nwidth = 1600\nheight = 900\n").expect("legacy config");
+        assert!(!cfg.display.pinned);
+        assert_eq!(cfg.display.width, 1600);
     }
 
     #[test]

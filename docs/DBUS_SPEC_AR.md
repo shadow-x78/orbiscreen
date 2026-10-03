@@ -2,7 +2,7 @@
 
 # مواصفات واجهة D-Bus - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.31.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.32.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -81,7 +81,22 @@
 | `encoder` | string | المُرمّز الفعلي قيد الاستخدام ‏(`x264`، `vaapi`، `nvenc`)‏ |
 | `capture_backend` | string | `evdi` للشاشة الافتراضية؛ `x11-portal-fallback` / `wayland-portal-fallback` عند غياب وحدة evdi |
 
-### 2. `Stop() -> String` (التوقيع `s`)
+### 2. `SetResolution(u32 width, u32 height, u32 fps) -> String` (التوقيع `suus`)
+
+يغيّر أبعاد الشاشة الافتراضية. يمرّر المعالج أمر `DisplayCommand::Resize` إلى موزّع الشاشات، الذي يفكّ مخرج الجلسة الحالية ويعيد بناءه بالأبعاد الجديدة. ويُتوقّع من العميل أن يعيد الارتباط بالجلسة البديلة.
+
+- **القيمة المُرجعة:** رسالة تأكيد نصّية، مثل `"Virtual display set to 1920x1080 @ 60 Hz"`
+- **عند الفشل:** رسالة خطأ نصّية؛ الاستدعاء نفسه ينتهي بنجاح
+
+مُستدعَيان: أمر `orbiscreen display set <W>x<H>@<fps>` (الذي يحفظ القيمة في ملف الإعدادات أيضاً)، وواجهة سطح المكتب الرسومية.
+
+```bash
+gdbus call --session --dest com.orbiscreen.Daemon \
+  --object-path /com/orbiscreen/Daemon \
+  --method com.orbiscreen.Daemon.SetResolution 1920 1080 60
+```
+
+### 3. `Stop() -> String` (التوقيع `s`)
 
 طلب إيقاف منظم للخدمة الخلفية. يقلب المعالج راية التشغيل ويرسل إشارة إلى الحلقة الرئيسية عبر قناة watch داخلية، لإنهاء مراحل الالتقاط والترميز والنقل ثم الخروج بنجاح.
 
@@ -92,7 +107,7 @@
 
 لا يمكن تشغيل الخدمة عبر D-Bus؛ تُدار الخدمة عبر systemd (`systemctl --user start orbiscreen`).
 
-### 3. `ListClients() -> Array of String` (التوقيع `as`)
+### 4. `ListClients() -> Array of String` (التوقيع `as`)
 
 إحصائيات الاتصال الحية للعملاء المتصلين بمسار البث:
 
@@ -100,7 +115,7 @@
 ["HTTP MPEG-TS /stream: 2 active client(s), 5 total connection(s)"]
 ```
 
-### 4. `GetConfig() -> String` (التوقيع `s`)
+### 5. `GetConfig() -> String` (التوقيع `s`)
 
 تُرجع الإعدادات المعقّمة التي بُدئ بها الـ daemon، مسلسلة بصيغة **TOML** (وليس JSON) عبر `orbiscreen-core::dump_config`:
 

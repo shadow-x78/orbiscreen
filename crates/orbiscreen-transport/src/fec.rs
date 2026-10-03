@@ -1,6 +1,3 @@
-// Orbiscreen - fec.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use std::sync::OnceLock;
 
 pub const MAX_FEC_DATA_SHARDS: usize = 252;

@@ -1,5 +1,3 @@
-// Orbiscreen - UdpPlayer.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.player
 
@@ -191,6 +189,14 @@ class UdpPlayer(
         try { socket?.close() } catch (_: Exception) {}
         socket = null
         sessionId = null
+        resetStreamState()
+        if (wasRunning || event !is StreamEvent.Idle) {
+            _event.value = event
+        }
+    }
+
+    @Synchronized
+    private fun resetStreamState() {
         releaseCodec()
         pending.clear()
         sps = null
@@ -199,9 +205,6 @@ class UdpPlayer(
         waitKey = true
         reorder.reset()
         sentQueue.clear()
-        if (wasRunning || event !is StreamEvent.Idle) {
-            _event.value = event
-        }
     }
 
     private suspend fun watchdogLoop() {
@@ -215,6 +218,7 @@ class UdpPlayer(
         }
     }
 
+    @Synchronized
     private fun releaseCodec() {
         try { codec?.stop() } catch (_: Exception) {}
         try { codec?.release() } catch (_: Exception) {}
@@ -295,6 +299,7 @@ class UdpPlayer(
         }
     }
 
+    @Synchronized
     private fun handleVideo(data: ByteArray) {
         if (data.size < 28) return
         val flags = data[5].toInt() and 0xff

@@ -10,8 +10,20 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO_ROOT="$(pwd)"
 
+# The release workflow passes the tag version; fall back to the workspace version.
+VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
+
 if ! command -v cargo >/dev/null 2>&1; then
-    . "$HOME/.cargo/env"
+    if [ -f "$HOME/.cargo/env" ]; then
+        . "$HOME/.cargo/env"
+    else
+        echo "error: cargo not found and \$HOME/.cargo/env is missing" >&2
+        exit 1
+    fi
+fi
+if ! command -v cargo >/dev/null 2>&1; then
+    echo "error: cargo not found on PATH" >&2
+    exit 1
 fi
 
 DIST="$REPO_ROOT/dist"
@@ -30,19 +42,16 @@ fi
 # ── Prepare AppDir Staging ──
 APP="$DIST/orbiscreen.AppDir"
 rm -rf "$APP"
-mkdir -p "$APP/usr/bin" "$APP/usr/share/orbiscreen/client/vendor" "$APP/usr/share/icons/hicolor/256x256/apps"
+mkdir -p "$APP/usr/bin" "$APP/usr/share/orbiscreen/client" "$APP/usr/share/icons/hicolor/256x256/apps"
 
 install -m755 target/release/orbiscreen "$APP/usr/bin/orbiscreen"
 if [ -f target/release/orbiscreen-gui ]; then
     install -m755 target/release/orbiscreen-gui "$APP/usr/bin/orbiscreen-gui"
 fi
-install -m644 clients/web/index.html "$APP/usr/share/orbiscreen/client/index.html"
-install -m644 clients/web/style.css  "$APP/usr/share/orbiscreen/client/style.css"
-install -m644 clients/web/app.js     "$APP/usr/share/orbiscreen/client/app.js"
-install -m644 clients/web/favicon.svg "$APP/usr/share/orbiscreen/client/favicon.svg"
-install -m644 clients/web/favicon.png "$APP/usr/share/orbiscreen/client/favicon.png"
-install -m644 clients/web/apple-touch-icon.png "$APP/usr/share/orbiscreen/client/apple-touch-icon.png"
-install -m644 clients/web/vendor/mpegts.js "$APP/usr/share/orbiscreen/client/vendor/mpegts.js"
+# clients/web/index.html loads every script below; a missing one 404s and breaks the client.
+for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
+    install -m644 "clients/web/$f" "$APP/usr/share/orbiscreen/client/$f"
+done
 
 # ── Bundle GStreamer Runtime ──
 GST_PREFIX="$(pkg-config --variable=prefix gstreamer-1.0 2>/dev/null || true)"
@@ -133,21 +142,27 @@ if ! command -v appimagetool >/dev/null 2>&1; then
     mkdir -p "$DIST/tools"
     echo "Downloading appimagetool ${APPIMAGETOOL_VERSION}..."
     curl -fsSL "$APPIMAGETOOL_URL" -o "$DIST/tools/appimagetool.AppImage"
-    if [ "$ARCH" = "x86_64" ]; then
-        APPIMAGETOOL_SHA256="ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0"
-        echo "${APPIMAGETOOL_SHA256}  $DIST/tools/appimagetool.AppImage" | sha256sum -c -
-    else
-        echo "warning: no pinned SHA256 available for ${ARCH}; skipping checksum verification" >&2
-    fi
+    case "$ARCH" in
+        x86_64)
+            APPIMAGETOOL_SHA256="ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0"
+            ;;
+        *)
+            echo "error: no pinned SHA256 for appimagetool on ${ARCH}; refusing to execute an" >&2
+            echo "       unverified download. Install appimagetool manually and re-run." >&2
+            exit 1
+            ;;
+    esac
+    echo "${APPIMAGETOOL_SHA256}  $DIST/tools/appimagetool.AppImage" | sha256sum -c -
     chmod +x "$DIST/tools/appimagetool.AppImage"
     PATH="$DIST/tools:$PATH"
     ln -sf "$DIST/tools/appimagetool.AppImage" "$DIST/tools/appimagetool"
     export APPIMAGE_EXTRACT_AND_RUN=1
 fi
 
-if ! appimagetool -u "gh-releases-zsync|shadow-x78|orbiscreen|latest|orbiscreen-*${ARCH}.AppImage.zsync" "$APP" "$DIST/orbiscreen-${ARCH}.AppImage"; then
+APPIMAGE_PATH="$DIST/orbiscreen-${VERSION}-${ARCH}.AppImage"
+if ! appimagetool -u "gh-releases-zsync|shadow-x78|orbiscreen|latest|orbiscreen-*${ARCH}.AppImage.zsync" "$APP" "$APPIMAGE_PATH"; then
     echo "error: appimagetool failed" >&2
     exit 1
 fi
 
-echo "Built $DIST/orbiscreen-${ARCH}.AppImage"
+echo "Built $APPIMAGE_PATH"

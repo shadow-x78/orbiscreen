@@ -1,5 +1,3 @@
-// Orbiscreen - PendingFecStore.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.player
 
@@ -52,8 +50,9 @@ class PendingFecStore {
         blockIndex: Int = 0,
         blockCount: Int = 1,
     ): Complete? {
+        if (frags <= 0 || frags > Fec.MAX_DATA_SHARDS) return null
         val m = Fec.parityCount(frags)
-        if (frags <= 0 || frag < 0 || frag >= frags + m) return null
+        if (frag < 0 || frag >= frags + m) return null
         val isParity = frag >= frags
         val slotKey = SlotKey(seq, blockIndex)
         var slots = pending[slotKey]

@@ -380,6 +380,20 @@ impl PairingRegistry {
         })
     }
 
+    pub fn session_owner(&self, session_id: &str) -> Option<String> {
+        self.data
+            .read()
+            .ok()
+            .filter(|data| !data.failed)
+            .and_then(|data| {
+                let owner = data.sessions.get(session_id)?.clone();
+                let still_valid = data.clients.iter().any(|c| {
+                    c.client.client_id == owner && c.client.status == ClientStatus::Approved
+                });
+                still_valid.then_some(owner)
+            })
+    }
+
     pub fn forget_session(&self, session_id: &str) {
         if let Ok(mut data) = self.data.write() {
             data.sessions.remove(session_id);

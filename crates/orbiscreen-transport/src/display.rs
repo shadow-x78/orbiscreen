@@ -1,6 +1,3 @@
-// Orbiscreen - display.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use tokio::sync::{mpsc, oneshot};
 
 use super::{H264Packet, IncomingInput};
@@ -79,10 +76,6 @@ pub struct DisplayCtl {
 impl DisplayCtl {
     pub fn new(tx: mpsc::Sender<DisplayCommand>) -> Self {
         Self { tx }
-    }
-
-    pub fn sender(&self) -> mpsc::Sender<DisplayCommand> {
-        self.tx.clone()
     }
 
     pub async fn set_defaults(&self, width: u32, height: u32, refresh_hz: u32) {

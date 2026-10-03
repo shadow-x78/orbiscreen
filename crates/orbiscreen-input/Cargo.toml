@@ -13,11 +13,11 @@ repository.workspace = true
 homepage.workspace = true
 description = "Input injection: uinput/XTest for X11, wlroots virtual-pointer/virtual-keyboard or RemoteDesktop portal for Wayland"
 
-[package.metadata.cargo-machete]
-ignored = ["wayland-backend"]
-
 [lints]
 workspace = true
+
+[package.metadata.cargo-machete]
+ignored = ["wayland-backend"]
 
 [dependencies]
 orbiscreen-core = { path = "../orbiscreen-core" }
@@ -28,8 +28,8 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
-wayland-client = { workspace = true }
 wayland-backend = { workspace = true }
+wayland-client = { workspace = true }
 wayland-protocols-wlr = { workspace = true }
 wayland-scanner = { workspace = true }
 xkbcommon = { workspace = true }

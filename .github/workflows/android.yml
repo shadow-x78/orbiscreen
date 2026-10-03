@@ -1,5 +1,6 @@
 # ─────────────────────────────────────────────
-# Orbiscreen - Android Workflow 
+# Orbiscreen - Android Workflow
+# https://github.com/shadow-x78/orbiscreen
 # ─────────────────────────────────────────────
 
 name: Android build
@@ -11,6 +12,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   android:

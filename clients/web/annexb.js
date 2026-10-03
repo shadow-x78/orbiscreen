@@ -1,5 +1,3 @@
-// Orbiscreen - annexb.js (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 (function (root, factory) {
     if (typeof module === "object" && module.exports) {
@@ -361,7 +359,10 @@
         }
         if (kind === TYPE_IDR) return { type: "idr" };
         if (kind === TYPE_BYE) return { type: "bye" };
-        if (kind === TYPE_PING) return { type: "ping", t0Ns: readU64le(rest, 0) };
+        if (kind === TYPE_PING) {
+            if (rest.length < 8) throw new Error("truncated");
+            return { type: "ping", t0Ns: readU64le(rest, 0) };
+        }
         if (kind === TYPE_HELLO) return { type: "hello" };
         throw new Error(`unknown type ${kind}`);
     }
@@ -496,6 +497,9 @@
 
     const HOLE_WAIT_MS = 48;
     const MAX_HELD = 4;
+    // Multi-block access units that never finish assembling would otherwise stay in
+    // DatagramAssembler.partial forever, since expire() only prunes `held`.
+    const MAX_PARTIAL = 8;
 
     function parityCount(k) {
         if (k <= 3) return 0;
@@ -798,6 +802,12 @@
         }
         expire(now) {
             const t = now == null ? Date.now() : now;
+            if (this.partial.size > MAX_PARTIAL) {
+                const seqs = Array.from(this.partial.keys()).sort(
+                    (a, b) => seqDelta(b, this.lastSeq) - seqDelta(a, this.lastSeq),
+                );
+                for (const seq of seqs.slice(MAX_PARTIAL)) this.partial.delete(seq);
+            }
             if (this.held.size === 0) return [];
             if (t - this.holeSince < HOLE_WAIT_MS) return [];
             const dropped = Math.max(1, this.held.size);
@@ -805,8 +815,7 @@
             this.holeSince = 0;
             return [{ type: "gap", dropped }];
         }
-        
-        
+
         onReliableKeyframe() {
             this.pending.clear();
             this.held.clear();
@@ -820,6 +829,12 @@
             this.buf = new Uint8Array(0);
         }
         push(chunk) {
+            // A peer that stalls mid-frame used to grow this without bound, and each push
+            // copied the whole buffer. A single frame can never reach MAX_FRAME, so
+            // anything beyond that is a stream we are no longer able to resynchronise on.
+            if (this.buf.length + chunk.length > MAX_FRAME) {
+                this.buf = new Uint8Array(0);
+            }
             const next = new Uint8Array(this.buf.length + chunk.length);
             next.set(this.buf, 0);
             next.set(chunk, this.buf.length);

@@ -1,11 +1,20 @@
 {
+  // ─────────────────────────────────────────────
+  // Orbiscreen - Tauri Application Configuration
+  // https://github.com/shadow-x78/orbiscreen
+  // ─────────────────────────────────────────────
+
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Orbiscreen",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "identifier": "orbiscreen-gui",
+
+  // ── Frontend ──
   "build": {
     "frontendDist": "./ui"
   },
+
+  // ── Bundle Icons ──
   "bundle": {
     "icon": [
       "icons/16x16.png",
@@ -21,19 +30,30 @@
       "icons/icon.png"
     ]
   },
+
   "app": {
+    // The control center is a static page served from ui/ with no build step, so the Tauri
+    // global API is exposed directly instead of being bundled.
     "withGlobalTauri": true,
+
+    // ── Main Window ──
+    // The default width fits the two-column connect layout without truncating the spec values.
+    // The connect grid stacks below 700px, so the minimum stays usable when the user shrinks it.
     "windows": [
       {
         "title": "Orbiscreen",
-        "width": 540,
-        "height": 680,
-        "minWidth": 480,
-        "minHeight": 580,
+        "width": 760,
+        "height": 720,
+        "minWidth": 460,
+        "minHeight": 560,
         "resizable": true,
         "fullscreen": false
       }
     ],
+
+    // ── Security ──
+    // The UI is local-only and loads no remote origin, so no CSP is applied. The daemon it talks
+    // to over D-Bus enforces its own access control.
     "security": {
       "csp": null
     }

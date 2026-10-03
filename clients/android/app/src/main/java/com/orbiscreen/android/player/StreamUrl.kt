@@ -1,5 +1,3 @@
-// Orbiscreen - StreamUrl.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.player
 
@@ -45,4 +43,14 @@ object StreamUrl {
 
         return Uri.parse(httpUrlBuilder.build().toString())
     }
+
+    fun redact(uri: Uri): String {
+        val query = uri.query ?: return uri.toString()
+        return uri.buildUpon().encodedQuery(redactQuery(query)).build().toString()
+    }
+}
+
+internal fun redactQuery(query: String): String = query.split("&").joinToString("&") { pair ->
+    val name = pair.substringBefore('=', pair)
+    if (name.equals("token", ignoreCase = true)) "$name=REDACTED" else pair
 }

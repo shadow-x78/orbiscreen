@@ -1,6 +1,3 @@
-// Orbiscreen - udp_stream.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -28,6 +25,9 @@ pub const PROBE_HEADER_LEN: usize = 7;
 pub const MIN_DATAGRAM: usize = 576;
 pub const BASE_DATAGRAM: usize = 1200;
 pub const DEFAULT_MAX_DATAGRAM: usize = 1472;
+/// Same ceiling the HTTP/WebTransport stream paths enforce, so one known UDP key cannot
+/// create more encoders than an equivalent HTTP client could.
+pub const DEFAULT_MAX_CLIENTS: usize = 8;
 pub const MAX_PAYLOAD: usize = BASE_DATAGRAM - VIDEO_HEADER_LEN;
 const CLIENT_TTL: Duration = Duration::from_secs(5);
 const PROBE_TIMEOUT: Duration = Duration::from_millis(250);
@@ -43,6 +43,8 @@ pub struct UdpLimits {
     pub max_datagram: usize,
     pub drop_above: Option<usize>,
     pub loss_pct: u8,
+    /// Upper bound on simultaneously tracked UDP clients. Matches the HTTP stream cap.
+    pub max_clients: usize,
 }
 
 impl Default for UdpLimits {
@@ -51,6 +53,7 @@ impl Default for UdpLimits {
             max_datagram: DEFAULT_MAX_DATAGRAM,
             drop_above: None,
             loss_pct: 0,
+            max_clients: DEFAULT_MAX_CLIENTS,
         }
     }
 }
@@ -65,10 +68,14 @@ impl UdpLimits {
         let loss_pct = parse_env_usize("ORBISCREEN_UDP_LOSS_PCT")
             .unwrap_or(0)
             .min(90) as u8;
+        let max_clients = parse_env_usize("ORBISCREEN_UDP_MAX_CLIENTS")
+            .unwrap_or(DEFAULT_MAX_CLIENTS)
+            .clamp(1, 64);
         Self {
             max_datagram,
             drop_above,
             loss_pct,
+            max_clients,
         }
     }
 }
@@ -1051,6 +1058,7 @@ async fn handle_incoming(buf: &[u8], addr: SocketAddr, ctx: &IncomingCtx<'_>) {
     let Some(key_id) = super::udp_crypto::datagram_key_id(buf) else {
         return;
     };
+    ctx.keys.prune_expired();
     let Some(nonce) = super::udp_crypto::datagram_nonce(buf) else {
         return;
     };
@@ -1085,6 +1093,15 @@ async fn handle_incoming(buf: &[u8], addr: SocketAddr, ctx: &IncomingCtx<'_>) {
                 return;
             };
             let mut map = ctx.clients.lock().await;
+            if !map.contains_key(&addr) && map.len() >= ctx.limits.max_clients {
+                warn!(
+                    %addr,
+                    clients = map.len(),
+                    max_clients = ctx.limits.max_clients,
+                    "UDP client limit reached; refusing a new client"
+                );
+                return;
+            }
             let joining = !map.contains_key(&addr);
             let client = map.entry(addr).or_insert_with(|| new_client(ctx.limits));
             client.last_seen = Instant::now();

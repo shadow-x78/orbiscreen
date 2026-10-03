@@ -2613,6 +2613,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "json5"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96b0db21af676c1ce64250b5f40f3ce2cf27e4e47cb91ed91eb6fe9350b430c1"
+dependencies = [
+ "pest",
+ "pest_derive",
+ "serde",
+]
+
+[[package]]
 name = "jsonptr"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3251,7 +3262,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-capture"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "ashpd",
  "enumflags2",
@@ -3271,7 +3282,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-core"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "libc",
  "serde",
@@ -3283,7 +3294,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-daemon"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "clap",
  "hostname",
@@ -3302,7 +3313,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-display"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "drm-fourcc",
  "evdi",
@@ -3313,7 +3324,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-encode"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "gstreamer",
  "gstreamer-app",
@@ -3325,7 +3336,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-gui"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "orbiscreen-core",
  "serde",
@@ -3339,7 +3350,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-input"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "ashpd",
  "enumflags2",
@@ -3361,7 +3372,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-transport"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "axum",
  "axum-server",
@@ -3475,6 +3486,48 @@ name = "percent-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
+
+[[package]]
+name = "pest"
+version = "2.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45d3aca230fad2e6f6317ca0a72724338c4960cb97168a85cdee66df4a9a21a8"
+dependencies = [
+ "memchr",
+ "ucd-trie",
+]
+
+[[package]]
+name = "pest_derive"
+version = "2.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "284b60557f2c4a2e72ad3f2d34d42685a2fa4a6a61d0d2a10c0ae2a5e916c2cf"
+dependencies = [
+ "pest",
+ "pest_generator",
+]
+
+[[package]]
+name = "pest_generator"
+version = "2.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d9d1f08a115309ee99268cf85e5228e0e56aa9caf8841ec12866b6be07c3109"
+dependencies = [
+ "pest",
+ "pest_meta",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "pest_meta"
+version = "2.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed93ba1a9ffcca32130a5188701c81c0c49cf00d4b7c5007d5148951d743adcb"
+dependencies = [
+ "pest",
+]
 
 [[package]]
 name = "phf"
@@ -4984,6 +5037,7 @@ dependencies = [
  "http",
  "infer",
  "json-patch",
+ "json5",
  "log",
  "memchr",
  "phf",
@@ -5512,6 +5566,12 @@ name = "typenum"
 version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
+
+[[package]]
+name = "ucd-trie"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2896d95c02a80c6d6a5d6e953d479f5ddf2dfdb6a244441010e373ac0fb88971"
 
 [[package]]
 name = "uds_windows"

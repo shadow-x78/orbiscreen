@@ -2,7 +2,7 @@
 
 # Security Policy - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.31.3-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.32.2-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -17,6 +17,7 @@
 - [Reporting a Vulnerability](#reporting)
 - [Disclosure Policy](#disclosure)
 - [Security Considerations](#considerations)
+- [Trust Boundaries](#trust-boundaries)
 - [Security Audit](#audit)
 - [Hall of Fame](#hall-of-fame)
 
@@ -27,10 +28,10 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.30.x | ✅ Active development |
-| 0.29.x | ⚠️ Maintenance |
-| 0.28.x | ⚠️ Maintenance |
-| < 0.28  | ❌ Not supported |
+| 0.32.x | ✅ Active development |
+| 0.31.x | ⚠️ Maintenance |
+| 0.30.x | ⚠️ Maintenance |
+| < 0.30  | ❌ Not supported |
 
 Only the latest minor release receives security updates. Ensure you build from `main` before reporting.
 
@@ -87,7 +88,7 @@ We follow a **coordinated disclosure** model:
 <a id="considerations"></a>
 ## Security Considerations
 
-### Scope (v0.32.1)
+### Scope (v0.32.2)
 
 Orbiscreen is a Linux host daemon plus a Material 3 Android client and a browser web client that:
 - Creates compositor-native virtual displays without root: KWin's `zkde_screencast_unstable_v1` on Plasma, headless outputs via sway/Hyprland IPC on wlroots, falling back to the `evdi` kernel module or primary-desktop capture (Wayland portal or X11) when unavailable
@@ -117,6 +118,48 @@ Clients obtain the token in two ways:
 
 Run `orbiscreen start --no-mdns` to stop advertising the host (and the token TXT record) if discovery is not needed.
 
+### Trust Boundaries
+
+The daemon draws two boundaries, and it is worth being explicit about which side of each one a
+given peer falls on.
+
+**Loopback is trusted, but only partly.** `GET /client/config.json` hands out a token to any peer
+that reaches the signaling port over `127.0.0.1` or `::1` with no credential. This exists because
+the USB/AOA transport depends on it: the AOA bridge dials the signaling port from loopback on
+behalf of whatever accessory is attached, and the Android client bootstraps its token through that
+bridge. The bridge is a transparent byte proxy, so the host cannot tell a legitimate tablet from
+any other AOA device that is plugged in.
+
+What an unauthenticated loopback peer receives is **not** the master session token. It is a
+separate, per-daemon-start **restricted** token, generated fresh on every start, never written to
+disk, never printed in the banner, and never advertised over mDNS. The restricted token is refused
+by `/api/control` for `lock`, `blank`, `unblank` and `ctrl_alt_del`, so it cannot lock the session,
+blank the screen or force Ctrl+Alt+Del on the host. It can stream video, inject input into its own
+session, request keyframes and change its own resolution, which is what the USB client needs.
+
+The practical consequence that remains: **a malicious USB device that enumerates as an AOA
+accessory can still stream the desktop and inject keyboard, pointer, touch and pen input into it.**
+That is inherent to presenting a second screen over a cable to a device you do not control.
+Requiring pairing approval before any USB access would remove it, but pairing is deliberately
+LAN-only (`pairingUrl` rejects a loopback host), so supporting it over the accessory proxy is a
+protocol change on both sides and is not implemented.
+
+Do not attach accessories you do not trust, and do not leave a hosted machine's USB port reachable
+by untrusted hardware.
+
+**Session ownership is enforced.** A session created by a paired client is bound to that client.
+`DELETE /api/session`, `POST /api/udp-key`, and the `idr` and `set_resolution` actions in
+`/api/control` all check that the credential on the request belongs to the session being acted on.
+A holder of the shared token that is *not* a paired client is refused when the target session has
+a paired owner. A session whose owner has been revoked or denied is treated as unowned, so it can
+still be released rather than being stranded until the idle reaper collects it.
+
+**Resource ceilings.** At most `MAX_LIVE_SESSIONS` (8) per-client displays exist at once, since
+each one pins a KWin virtual output, a hardware encoder and a set of uinput devices. The idle
+reaper reclaims unwatched sessions, and the admission path evicts never-viewed ones before
+refusing a new session. WebTransport accepts at most 16 sessions that have connected but not yet
+authenticated, and each has a 10 s handshake deadline.
+
 ### Known Risk Areas
 
 | Area | Risk | Mitigation |
@@ -128,7 +171,7 @@ Run `orbiscreen start --no-mdns` to stop advertising the host (and the token TXT
 | evdi kernel module | DKMS + Secure Boot signing is distro-specific | Module loading is the host administrator's responsibility |
 | mDNS advertising (`_orbiscreen._tcp.`) | Host name, port and session token are broadcast on the local network | Start with `--no-mdns` to disable advertising |
 | Android / web input model | `InputDispatcher` / web client post absolute pointer / wheel / stylus / keyboard events to `/input` | `/input` requires the session token (v0.11.0); wheel steps are clamped per event on the host |
-| Token readable at `/client/config.json` | Any peer reaching the port can learn the token | LAN convenience, documented above - abuse protection only; restrict the port or use TLS when available |
+| Token readable at `/client/config.json` | Any loopback peer receives a working credential, and the AOA bridge makes an attached USB device a loopback peer | Loopback peers get a **restricted** token that cannot reach host actions; see [Trust Boundaries](#trust-boundaries). Remote peers must present the master token. |
 | Compositor IPC (sway/Hyprland) | The daemon trusts `$SWAYSOCK` / the Hyprland instance socket from the session environment to create/destroy headless outputs | Sockets are local and owned by the session user; output names returned by the compositor are charset-validated before use in IPC commands; a compromised compositor already owns the session |
 | Portal restore tokens | `$XDG_STATE_HOME/orbiscreen/portal.json` holds ScreenCast/RemoteDesktop grants; theft allows silent screen sharing as long as the grant lives | Written atomically with `0600` file and `0700` state directory (v0.13.0); delete the file to revoke; GNOME revokes grants marked `ExplicitlyRevoked` when the token is removed |
 | `orbiscreen doctor --fix` | Runs the detected package manager (`dnf`/`apt`/`pacman`/`zypper`) and `sudo modprobe evdi` | Install commands are hardcoded per-distro (never built from file contents), the plan is printed and requires explicit confirmation unless `--yes` is given, and it only runs when the user invokes it |
@@ -165,7 +208,7 @@ The Android release signing key (`orbiscreen-release.keystore`) was removed from
 <a id="audit"></a>
 ## Security Audit
 
-Orbiscreen (v0.32.1) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose), a small browser web client (WebTransport + WebCodecs `VideoDecoder`), and a Linux desktop GUI control center (Tauri v2 + WebKitGTK). A running daemon performs:
+Orbiscreen (v0.32.2) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose), a small browser web client (WebTransport + WebCodecs `VideoDecoder`), and a Linux desktop GUI control center (Tauri v2 + WebKitGTK). A running daemon performs:
  
 - `open()` on `/dev/dri/card*` evdi nodes for capture
 - Compositor IPC over session-local Unix sockets: sway i3-ipc (`$SWAYSOCK`) and Hyprland (`HYPRLAND_INSTANCE_SIGNATURE`) to create/destroy headless outputs
@@ -173,7 +216,7 @@ Orbiscreen (v0.32.1) is written in Rust (edition 2021) plus a Kotlin Android cli
 - Input injection via `zwp_virtual_keyboard_v1` + `zwlr_virtual_pointer_v1` (wlroots), XTEST (X11), RemoteDesktop portal, or `UinputDevice` via `evdevil`
 - GStreamer pipeline construction for H.264 encoding
 - `axum` HTTP listener serving `/stream`, `/input`, `/api/control` behind a per-session token, plus public `/health`, `/api/info`, `/client/config.json`, and `/client/*`
-- A D-Bus session service (`org.shadow-x78.Orbiscreen` / `com.orbiscreen.Daemon`) exposing `GetStatus` / `Stop` / `Start` / `ListClients` / `GetConfig`
+- A D-Bus session service (`org.shadow-x78.Orbiscreen` / `com.orbiscreen.Daemon`) exposing `GetStatus` / `SetResolution` / `Stop` / `ListClients` / `GetConfig` (there is no `Start` method; see `docs/DBUS_SPEC.md`)
 - Direct USB cable streaming via Android Open Accessory (AOA) protocol over usbfs ioctl
 - On explicit user request (`doctor --fix`): the distro package manager for EVDI installation and `sudo modprobe evdi`
 - `NsdManager.discoverServices` on the Android client (no outbound traffic outside the LAN)

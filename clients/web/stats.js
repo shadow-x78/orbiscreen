@@ -1,5 +1,3 @@
-// Orbiscreen - stats.js (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 (function (root, factory) {
     if (typeof module === "object" && module.exports) {

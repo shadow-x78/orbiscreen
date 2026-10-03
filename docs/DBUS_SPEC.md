@@ -2,7 +2,7 @@
 
 # D-Bus API Specification - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.31.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.32.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -81,7 +81,22 @@ Returns the live daemon status as a **JSON object string**:
 | `encoder` | string | Encoder actually in use (`x264`, `vaapi`, `nvenc`) |
 | `capture_backend` | string | `evdi` for the virtual display; `x11-portal-fallback` / `wayland-portal-fallback` when the evdi module is missing |
 
-### 2. `Stop() -> String` (signature `s`)
+### 2. `SetResolution(u32 width, u32 height, u32 fps) -> String` (signature `suus`)
+
+Resizes the virtual display. The handler forwards a `DisplayCommand::Resize` to the display hub, which tears down the current session's output and recreates it at the new geometry. The client is expected to re-attach to the replacement session.
+
+- **Return:** a human readable confirmation, e.g. `"Virtual display set to 1920x1080 @ 60 Hz"`
+- **On failure:** a human readable error string; the call itself still resolves
+
+Two callers: `orbiscreen display set <W>x<H>@<fps>` (which also persists the value to the config file) and the desktop GUI.
+
+```bash
+gdbus call --session --dest com.orbiscreen.Daemon \
+  --object-path /com/orbiscreen/Daemon \
+  --method com.orbiscreen.Daemon.SetResolution 1920 1080 60
+```
+
+### 3. `Stop() -> String` (signature `s`)
 
 Requests a graceful daemon shutdown. The handler flips the running flag and signals the main loop through an internal watch channel; the daemon then tears down capture/encode/transport and exits.
 
@@ -92,7 +107,7 @@ Requests a graceful daemon shutdown. The handler flips the running flag and sign
 
 The daemon cannot be started over D-Bus: there is no interface activation, and no `Start()` method - manage the service unit instead (`systemctl --user start orbiscreen`).
 
-### 3. `ListClients() -> Array of String` (signature `as`)
+### 4. `ListClients() -> Array of String` (signature `as`)
 
 Live client connection counts for the stream transport:
 
@@ -100,7 +115,7 @@ Live client connection counts for the stream transport:
 ["HTTP MPEG-TS /stream: 2 active client(s), 5 total connection(s)"]
 ```
 
-### 4. `GetConfig() -> String` (signature `s`)
+### 5. `GetConfig() -> String` (signature `s`)
 
 Returns the sanitized configuration the daemon was started with, serialized as **TOML** (not JSON) by `orbiscreen-core::dump_config`:
 

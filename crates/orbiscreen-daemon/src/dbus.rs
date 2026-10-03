@@ -1,6 +1,3 @@
-// Orbiscreen - dbus.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -72,6 +69,7 @@ impl OrbiscreenDbusServer {
             cfg.display.width = width;
             cfg.display.height = height;
             cfg.display.refresh_rate_hz = fps;
+            cfg.display.pinned = true;
             let config_path = orbiscreen_core::default_config_path();
             if let Some(parent) = config_path.parent() {
                 let _ = std::fs::create_dir_all(parent);
@@ -256,11 +254,6 @@ pub async fn call_set_resolution(
             }
         }
     }
-}
-
-pub async fn request_set_resolution(width: u32, height: u32, fps: u32) -> zbus::Result<String> {
-    let conn = zbus::connection::Builder::session()?.build().await?;
-    call_set_resolution(&conn, width, height, fps).await
 }
 
 pub async fn run_dbus_server(handles: Arc<DaemonHandles>) -> zbus::Result<()> {

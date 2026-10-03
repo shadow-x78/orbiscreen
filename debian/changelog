@@ -1,4 +1,12 @@
-orbiscreen (0.32.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.32.2~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.32.2 for Ubuntu noble.
+  * cross-session input injection, dead Tauri UI, packaging gaps.
+  * Bump version to 0.32.2 across all packages; Android versionCode 127.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
+orbiscreen (0.32.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.32.1 for Ubuntu noble.
   * Fix touch injection: remove redundant AbsEvent::X/Y writes emitted after finish_slot() and duplicate BTN_TOUCH PRESSED/RELEASED events that caused phantom touches.
@@ -7,7 +15,7 @@ orbiscreen (0.32.1-1~ubuntunoble1) noble; urgency=medium
 
 -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 02 Oct 2026 00:00:00 +0300
 
-orbiscreen (0.32.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.32.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.32.0 for Ubuntu noble.
   * Fix resize switchover: remove ~400 ms hub stall and `no display session` error on resolution change.
@@ -17,7 +25,7 @@ orbiscreen (0.32.0-1~ubuntunoble1) noble; urgency=medium
 
   -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 01 Oct 2026 00:00:00 +0300
 
-orbiscreen (0.31.9-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.31.9~ubuntunoble1) noble; urgency=medium
 
   * Release 0.31.9 for Ubuntu noble.
   * Fix resize switchover: remove ~400 ms hub stall and `no display session` error on resolution change.
@@ -27,7 +35,7 @@ orbiscreen (0.31.9-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 01 Oct 2026 00:00:00 +0300
 
-orbiscreen (0.31.8-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.31.8~ubuntunoble1) noble; urgency=medium
 
   * Release 0.31.8 for Ubuntu noble.
   * Android: restore stable ExoPlayer buffers and original toolbar layout.
@@ -36,7 +44,7 @@ orbiscreen (0.31.8-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 01 Oct 2026 00:00:00 +0300
 
-orbiscreen (0.31.7-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.31.7~ubuntunoble1) noble; urgency=medium
 
   * Release 0.31.7 for Ubuntu noble.
   * Restore resize stream stall fix and damage pump deadline pacing.
@@ -45,14 +53,14 @@ orbiscreen (0.31.7-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 30 Sep 2026 06:30:00 +0300
 
-orbiscreen (0.31.3-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.31.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.31.3 for Ubuntu noble.
   * Bump version to 0.31.3 across all packages; Android versionCode 118.
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 27 Sep 2026 03:00:00 +0300
 
-orbiscreen (0.31.2-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.31.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.31.2 for Ubuntu noble.
   * Bump version to 0.31.2 across all packages; Android versionCode 117.
@@ -61,7 +69,7 @@ orbiscreen (0.31.2-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 21 Sep 2026 15:00:00 +0300
 
-orbiscreen (0.31.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.31.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.31.0 for Ubuntu noble.
   * Add dedicated WebSocket input channel on /input/ws eliminating mouse lag, stutter, and queue backpressure.
@@ -72,7 +80,7 @@ orbiscreen (0.31.1-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 20 Sep 2026 12:00:00 +0300
 
-orbiscreen (0.30.9-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.30.9~ubuntunoble1) noble; urgency=medium
 
   * Release 0.30.9 for Ubuntu noble.
   * Prevent GStreamer segmentation fault and CRITICAL disposal warnings on USB disconnect.
@@ -83,7 +91,7 @@ orbiscreen (0.30.9-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 19 Sep 2026 22:50:00 +0300
 
-orbiscreen (0.30.8-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.30.8~ubuntunoble1) noble; urgency=medium
 
   * Release 0.30.8 for Ubuntu noble.
   * Overhaul direct touch and mouse dragging with BTN_LEFT synchronization on uinput touchscreen device.
@@ -94,7 +102,7 @@ orbiscreen (0.30.8-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 19 Sep 2026 20:10:00 +0300
 
-orbiscreen (0.30.7-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.30.7~ubuntunoble1) noble; urgency=medium
 
   * Release 0.30.7 for Ubuntu noble.
   * Eliminate display freezing and deadlocks upon mouse cursor entry by reverting multi-threaded nearest-neighbor videoscale.
@@ -104,7 +112,7 @@ orbiscreen (0.30.7-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 19 Sep 2026 14:00:00 +0300
 
-orbiscreen (0.30.6-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.30.6~ubuntunoble1) noble; urgency=medium
 
   * Release 0.30.6 for Ubuntu noble.
   * Eliminate 125% scaling latency and frame backlog with 4-thread nearest-neighbor videoscale.
@@ -115,7 +123,7 @@ orbiscreen (0.30.6-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 19 Sep 2026 12:25:00 +0300
 
-orbiscreen (0.30.5-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.30.5~ubuntunoble1) noble; urgency=medium
 
   * Release 0.30.5 for Ubuntu noble.
   * Eliminate permanent display freeze by never discarding buffers to keyframe in ExoPlayer.
@@ -127,7 +135,7 @@ orbiscreen (0.30.5-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 18 Sep 2026 18:35:00 +0300
 
-orbiscreen (0.30.4-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.30.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.30.4 for Ubuntu noble.
   * Fix frozen display and stuck mouse caused by appsink back-pressure regression in v0.30.3.
@@ -136,7 +144,7 @@ orbiscreen (0.30.4-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 18 Sep 2026 16:27:00 +0300
 
-orbiscreen (0.30.3-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.30.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.30.3 for Ubuntu noble.
   * Eliminate micro frame drops by disabling aggressive 30ms ExoPlayer frame drop.
@@ -146,7 +154,7 @@ orbiscreen (0.30.3-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 18 Sep 2026 13:30:00 +0300
 
-orbiscreen (0.30.2-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.30.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.30.2 for Ubuntu noble.
   * Fix GUI unresponsiveness and JavaScript parse error (Issue #81).
@@ -156,7 +164,7 @@ orbiscreen (0.30.2-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 18 Sep 2026 02:35:00 +0300
 
-orbiscreen (0.30.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.30.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.30.1 for Ubuntu noble.
   * Fix NVENC VBV buffer cap and dynamic bitrate scaling to eliminate pixelation and macroblocking.
@@ -167,7 +175,7 @@ orbiscreen (0.30.1-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 18 Sep 2026 00:25:00 +0300
 
-orbiscreen (0.30.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.30.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.30.0 for Ubuntu noble.
   * Comprehensive full project audit and LAN security hardening.
@@ -178,7 +186,7 @@ orbiscreen (0.30.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 17 Sep 2026 20:20:00 +0300
 
-orbiscreen (0.29.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.29.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.29.1 for Ubuntu noble.
   * Fix dual screen AOA USB supervisor port routing to target daemon port.
@@ -189,7 +197,7 @@ orbiscreen (0.29.1-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 17 Sep 2026 05:05:00 +0300
 
-orbiscreen (0.29.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.29.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.29.0 for Ubuntu noble.
   * WebTransport Annex-B web client with WebCodecs hardware decoding.
@@ -200,7 +208,7 @@ orbiscreen (0.29.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 23:25:00 +0300
 
-orbiscreen (0.28.9-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.28.9~ubuntunoble1) noble; urgency=medium
 
   * Release 0.28.9 for Ubuntu noble.
   * Support per-client KWin virtual outputs and isolated touch scoping for simultaneous multi-tablet streaming.
@@ -210,7 +218,7 @@ orbiscreen (0.28.9-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 16:36:00 +0300
 
-orbiscreen (0.28.8-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.28.8~ubuntunoble1) noble; urgency=medium
 
   * Release 0.28.8 for Ubuntu noble.
   * Terminate lingering daemon processes when D-Bus stop request times out or session bus name has no owner.
@@ -220,7 +228,7 @@ orbiscreen (0.28.8-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 14:18:00 +0300
 
-orbiscreen (0.28.7-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.28.7~ubuntunoble1) noble; urgency=medium
 
   * Release 0.28.7 for Ubuntu noble.
   * Eliminate frozen video stream on low-end and legacy Android tablets.
@@ -230,7 +238,7 @@ orbiscreen (0.28.7-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 09:30:00 +0300
 
-orbiscreen (0.28.6-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.28.6~ubuntunoble1) noble; urgency=medium
 
   * Release 0.28.6 for Ubuntu noble.
   * Enable live virtual display resolution and framerate switching from desktop GUI Display settings.
@@ -240,7 +248,7 @@ orbiscreen (0.28.6-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 08:05:00 +0300
 
-orbiscreen (0.28.5-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.28.5~ubuntunoble1) noble; urgency=medium
 
   * Release 0.28.5 for Ubuntu noble.
   * Send FRAME_FLAG_RESET on host shutdown to trigger immediate AOA accessory teardown in Android client.
@@ -253,7 +261,7 @@ orbiscreen (0.28.5-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 07:30:00 +0300
 
-orbiscreen (0.28.4-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.28.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.28.4 for Ubuntu noble.
   * Fix Android tablet black screen over USB (AOA) by expanding MPEG-TS buffer capacity to 2048 chunks.
@@ -264,7 +272,7 @@ orbiscreen (0.28.4-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 03:00:00 +0300
 
-orbiscreen (0.28.3-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.28.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.28.3 for Ubuntu noble.
   * Fix tablet black screen by dynamically scanning and binding asynchronous Wayland outputs in damage pump.
@@ -275,7 +283,7 @@ orbiscreen (0.28.3-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 01:15:00 +0300
 
-orbiscreen (0.28.2-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.28.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.28.2 for Ubuntu noble.
   * Fix broken pipe error on host session lock via client shutdown notification.
@@ -288,7 +296,7 @@ orbiscreen (0.28.2-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 15 Sep 2026 21:45:00 +0300
 
-orbiscreen (0.28.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.28.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.28.1 for Ubuntu noble.
   * Drop stale frames and eliminate stream latency accumulation (PR #78 by @Yashb404).
@@ -300,7 +308,7 @@ orbiscreen (0.28.1-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 14 Sep 2026 19:40:00 +0300
 
-orbiscreen (0.28.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.28.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.28.0 for Ubuntu noble.
   * Eliminate USB video frame drops on Screen 1: expand socket buffer to 256KB and tune ExoPlayer pacing.
@@ -310,7 +318,7 @@ orbiscreen (0.28.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 12 Sep 2026 18:15:00 +0300
 
-orbiscreen (0.27.9-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.27.9~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.9 for Ubuntu noble.
   * Eliminate USB video frame drops on Screen 1: expand socket buffer to 256KB and tune ExoPlayer pacing (Closes: #77).
@@ -320,7 +328,7 @@ orbiscreen (0.27.9-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 12 Sep 2026 06:40:00 +0300
 
-orbiscreen (0.27.8-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.27.8~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.8 for Ubuntu noble.
   * Fix secondary display damage pump matching: prevent Virtual-ORBISCREEN-2 from attaching to primary display (Closes: #77).
@@ -330,7 +338,7 @@ orbiscreen (0.27.8-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 12 Sep 2026 00:35:00 +0300
 
-orbiscreen (0.27.7-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.27.7~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.7 for Ubuntu noble.
   * Fix secondary display black screen: pace independent 60fps damage ticks to Virtual-ORBISCREEN-2 and push initial keepalive IDR frame (Closes: #77).
@@ -339,7 +347,7 @@ orbiscreen (0.27.7-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 21:15:00 +0300
 
-orbiscreen (0.27.6-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.27.6~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.6 for Ubuntu noble.
   * Support concurrent secondary tablet virtual display on KDE Plasma with dynamic port allocation and uinput input isolation (Closes: #77).
@@ -349,7 +357,7 @@ orbiscreen (0.27.6-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 19:48:00 +0300
 
-orbiscreen (0.27.5-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.27.5~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.5 for Ubuntu noble.
   * Fix USB AOA concurrent multi-device handling: update supervisor to maintain concurrent active bridges and probe Android candidate devices in parallel without blocking (Closes: #77).
@@ -360,7 +368,7 @@ orbiscreen (0.27.5-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 16:20:00 +0300
 
-orbiscreen (0.27.4-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.27.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.4 for Ubuntu noble.
   * Fix Android USB AOA accessory detection and auto-connect: register receiver with RECEIVER_EXPORTED, add onResume initialization, and enable replay cache for autoConnectEvent (Closes: #77).
@@ -370,7 +378,7 @@ orbiscreen (0.27.4-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 13:20:00 +0300
 
-orbiscreen (0.27.3-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.27.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.3 for Ubuntu noble.
   * Fix Android client audio playback: configure AudioAttributes with USAGE_MEDIA, enable audio focus handling, and ensure audio tracks are explicitly enabled (Closes: #77).
@@ -380,7 +388,7 @@ orbiscreen (0.27.3-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 10:25:00 +0300
 
-orbiscreen (0.27.2-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.27.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.2 for Ubuntu noble.
   * Fix video stream periodic freezing: remove false-positive seekToDefaultPosition loop that reset player every 4 s (Closes: #77).
@@ -389,7 +397,7 @@ orbiscreen (0.27.2-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 11 Sep 2026 09:11:00 +0300
 
-orbiscreen (0.27.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.27.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.27.1 for Ubuntu noble.
   * Fix Trackpad mode: cursor no longer jumps to primary screen on finger lift; RelativeMove now uses true relative mouse events on host (Closes: #77).
@@ -400,7 +408,7 @@ orbiscreen (0.27.1-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 11 Sep 2026 06:41:00 +0300
 
-orbiscreen (0.26.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.26.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.26.0 for Ubuntu noble.
   * Fix video stream latency accumulation on Wi-Fi and USB/AOA: stale frame drop at 75 ms (Closes: #77).
@@ -413,7 +421,7 @@ orbiscreen (0.26.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 11 Sep 2026 01:25:00 +0300
 
-orbiscreen (0.25.9-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.25.9~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.9 for Ubuntu noble.
   * Fix USB AOA black screen and ADB endpoint collision (Closes: #76).
@@ -428,7 +436,7 @@ orbiscreen (0.25.9-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 10 Sep 2026 18:15:00 +0300
 
-orbiscreen (0.25.8-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.25.8~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.8 for Ubuntu noble.
   * USB audio streaming to device speaker or headphones.
@@ -441,7 +449,7 @@ orbiscreen (0.25.8-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 09 Sep 2026 15:45:00 +0300
 
-orbiscreen (0.25.7-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.25.7~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.7 for Ubuntu noble.
   * Dual USB pipeline restoration with automatic ADB reverse supervisor.
@@ -451,7 +459,7 @@ orbiscreen (0.25.7-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 09 Sep 2026 03:00:00 +0300
 
-orbiscreen (0.25.6-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.25.6~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.6 for Ubuntu noble.
   * Revert ExoPlayer threshold regression from v0.25.5 that caused worse rubberbanding (#75).
@@ -459,7 +467,7 @@ orbiscreen (0.25.6-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 09 Sep 2026 00:00:00 +0300
 
-orbiscreen (0.25.5-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.25.5~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.5 for Ubuntu noble.
   * Fix 30-minute latency drift and rubberbanding on USB AOA on Android devices (#75).
@@ -470,7 +478,7 @@ orbiscreen (0.25.5-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 21:00:00 +0300
 
-orbiscreen (0.25.4-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.25.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.4 for Ubuntu noble.
   * Desktop GUI native Control Center redesign (560x620) with live virtual monitor card.
@@ -480,7 +488,7 @@ orbiscreen (0.25.4-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 20:00:00 +0300
 
-orbiscreen (0.25.3-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.25.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.3 for Ubuntu noble.
   * Eliminate USB AOA buffer bloat with bounded sync channel and TCP buffer limits (#75).
@@ -491,7 +499,7 @@ orbiscreen (0.25.3-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 19:10:00 +0300
 
-orbiscreen (0.25.2-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.25.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.2 for Ubuntu noble.
   * Complete desktop GUI redesign with CSD header bar and virtual display mockup.
@@ -501,7 +509,7 @@ orbiscreen (0.25.2-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 18:20:00 +0300
 
-orbiscreen (0.25.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.25.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.1 for Ubuntu noble.
   * Measure UDP PMTU without truncated ACKs or fragments (PR #74 by @sentinelt).
@@ -510,7 +518,7 @@ orbiscreen (0.25.1-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 15:20:00 +0300
 
-orbiscreen (0.25.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.25.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.25.0 for Ubuntu noble.
   * Linux Desktop GUI Control Center (orbiscreen-gui) with System Tray.
@@ -519,7 +527,7 @@ orbiscreen (0.25.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 12:30:00 +0300
 
-orbiscreen (0.24.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.24.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.24.1 for Ubuntu noble.
   * UDP Annex-B video transport with per-client DPLPMTUD.
@@ -528,7 +536,7 @@ orbiscreen (0.24.1-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 22:50:00 +0300
 
-orbiscreen (0.24.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.24.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.24.0 for Ubuntu noble.
   * Harmonize UI/UX and Catppuccin Mocha colors between Web and Android clients.
@@ -540,7 +548,7 @@ orbiscreen (0.24.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 15:10:00 +0300
 
-orbiscreen (0.23.9-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.23.9~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.9 for Ubuntu noble.
   * Purge GitHub Deployments and gh-pages deployment branch.
@@ -548,7 +556,7 @@ orbiscreen (0.23.9-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 12:30:00 +0300
 
-orbiscreen (0.23.8-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.23.8~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.8 for Ubuntu noble.
   * Multi-target GitHub Deployments tracking (Launchpad-PPA, Fedora-RPM, GitHub-Releases, github-pages).
@@ -558,7 +566,7 @@ orbiscreen (0.23.8-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 07:16:00 +0300
 
-orbiscreen (0.23.7-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.23.7~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.7 for Ubuntu noble.
   * Enable infinite GOP length using encoder maximum (key-int-max / gop-size).
@@ -567,7 +575,7 @@ orbiscreen (0.23.7-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 02:30:00 +0300
 
-orbiscreen (0.23.6-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.23.6~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.6 for Ubuntu noble.
   * Probe GStreamer vah264enc hardware encoder and fallback through NVENC candidates.
@@ -576,7 +584,7 @@ orbiscreen (0.23.6-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 02:00:00 +0300
 
-orbiscreen (0.23.5-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.23.5~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.5 for Ubuntu noble.
   * Shrink HTTP MPEG-TS transport queues to 4 appsink buffers and 16-slot channel.
@@ -586,7 +594,7 @@ orbiscreen (0.23.5-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 14:50:00 +0300
 
-orbiscreen (0.23.4-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.23.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.4 for Ubuntu noble.
   * Confine trackpad pointer motion and clicks to the virtual display via virtual tablet routing.
@@ -595,7 +603,7 @@ orbiscreen (0.23.4-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 14:30:00 +0300
 
-orbiscreen (0.23.3-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.23.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.3 for Ubuntu noble.
   * Enable Gradle dependency caching (cache: gradle) in CI workflows to eliminate Cloudflare 403 Forbidden errors.
@@ -604,7 +612,7 @@ orbiscreen (0.23.3-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 08:35:00 +0300
 
-orbiscreen (0.23.2-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.23.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.2 for Ubuntu noble.
   * Fix black screen, video freezing, and visual glitches over USB AOA transport.
@@ -614,7 +622,7 @@ orbiscreen (0.23.2-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 07:45:00 +0300
 
-orbiscreen (0.23.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.23.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.1 for Ubuntu noble.
   * Restore direct touch as a virtual multitouch device on Orbiscreen Virtual Touchscreen.
@@ -624,7 +632,7 @@ orbiscreen (0.23.1-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 06:58:00 +0300
 
-orbiscreen (0.23.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.23.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.23.0 for Ubuntu noble.
   * Optimize USB and stream pipeline: configure 1-buffer drop=true appsink in mpegtsmux.
@@ -636,7 +644,7 @@ orbiscreen (0.23.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 06:50:00 +0300
 
-orbiscreen (0.22.9-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.22.9~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.9 for Ubuntu noble.
   * Fix AOA USB packet truncation in UsbAccessoryManager causing session token loss and auth=missing rejections.
@@ -646,7 +654,7 @@ orbiscreen (0.22.9-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 06 Sep 2026 01:20:00 +0300
 
-orbiscreen (0.22.8-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.22.8~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.8 for Ubuntu noble.
   * Embed full multi-vendor Android udev rules in orbiscreen doctor --fix.
@@ -656,7 +664,7 @@ orbiscreen (0.22.8-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 21:40:00 +0300
 
-orbiscreen (0.22.7-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.22.7~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.7 for Ubuntu noble.
   * Purge all legacy ADB dependencies and polling across daemon and transport.
@@ -666,7 +674,7 @@ orbiscreen (0.22.7-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 20:10:00 +0300
 
-orbiscreen (0.22.6-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.22.6~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.6 for Ubuntu noble.
   * Implement native USB Direct streaming via Android Open Accessory (AOA) protocol.
@@ -676,7 +684,7 @@ orbiscreen (0.22.6-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 19:15:00 +0300
 
-orbiscreen (0.22.5-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.22.5~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.5 for Ubuntu noble.
   * Implement native in-app Android updater with live progress, SHA-256 verification, and PackageInstaller.
@@ -685,7 +693,7 @@ orbiscreen (0.22.5-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 17:05:00 +0300
 
-orbiscreen (0.22.4-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.22.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.4 for Ubuntu noble.
   * Restrict mouse key bitmask to pure keyboard and mouse buttons so libinput and KWin correctly classify it as pointer instead of tablet-pad.
@@ -695,7 +703,7 @@ orbiscreen (0.22.4-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 16:50:00 +0300
 
-orbiscreen (0.22.3-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.22.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.3 for Ubuntu noble.
   * Eliminate video stuttering and packet bursts by increasing GOP interval to 60 frames (1 keyframe per second).
@@ -706,7 +714,7 @@ orbiscreen (0.22.3-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 13:30:00 +0300
 
-orbiscreen (0.22.2-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.22.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.2 for Ubuntu noble.
   * Fix video stuttering and packet drops by expanding buffers and preventing EOS on overrun.
@@ -716,7 +724,7 @@ orbiscreen (0.22.2-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 12:35:00 +0300
 
-orbiscreen (0.22.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.22.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.1 for Ubuntu noble.
   * Ultra-low latency streaming optimizations with is-live=false pipeline.
@@ -727,7 +735,7 @@ orbiscreen (0.22.1-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 02:15:00 +0300
 
-orbiscreen (0.22.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.22.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.22.0 for Ubuntu noble.
   * Absolute pointer mapping for virtual uinput mouse to prevent snapback.
@@ -737,7 +745,7 @@ orbiscreen (0.22.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 00:30:00 +0300
 
-orbiscreen (0.21.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.21.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.21.0 for Ubuntu noble.
   * Rich developer version card and ASCII banner on orbiscreen -V.
@@ -747,7 +755,7 @@ orbiscreen (0.21.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 04 Sep 2026 22:30:00 +0300
 
-orbiscreen (0.20.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.20.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.20.0 for Ubuntu noble.
   * XDG Desktop Portal ScreenCast API for rootless virtual display outputs.
@@ -758,7 +766,7 @@ orbiscreen (0.20.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 04 Sep 2026 18:00:00 +0300
 
-orbiscreen (0.19.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.19.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.19.0 for Ubuntu noble.
   * Full COSMIC desktop support (cosmic-comp / Smithay) with evdi -> portal fallback.
@@ -768,7 +776,7 @@ orbiscreen (0.19.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 04 Sep 2026 16:20:00 +0300
 
-orbiscreen (0.18.3-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.18.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.18.3 for Ubuntu noble.
   * Android 1:1 web client parity: direct keyboard typing via hidden IME, Material 3 hotkey overlay.
@@ -777,7 +785,7 @@ orbiscreen (0.18.3-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 04 Sep 2026 03:50:00 +0300
 
-orbiscreen (0.18.2-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.18.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.18.2 for Ubuntu noble.
   * Modernized CLI interface with brand theme, ASCII logo, and status command.
@@ -785,7 +793,7 @@ orbiscreen (0.18.2-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 03 Sep 2026 21:30:00 +0300
 
-orbiscreen (0.18.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.18.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.18.1 for Ubuntu noble.
   * Pure CLI daemon refactoring: removed desktop application launcher.
@@ -793,7 +801,7 @@ orbiscreen (0.18.1-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 03 Sep 2026 18:00:00 +0300
 
-orbiscreen (0.18.0-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.18.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.18.0 for Ubuntu noble.
   * Native Graphic Digitizer with stylus pressure/tilt (4095 levels, Krita/GIMP support).
@@ -804,35 +812,35 @@ orbiscreen (0.18.0-1~ubuntunoble1) noble; urgency=medium
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 03 Sep 2026 16:00:00 +0300
 
-orbiscreen (0.17.4-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.17.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.4 for Ubuntu noble.
   * Ultra-low latency KWin virtual capture (framerate-matched damage pump, drop=true max-buffers=1), zero-backlog keyframe delivery, hardware NVENC prioritization, double-tap gesture fix, redesigned Arabic exit modal and settings bottom sheet.
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 17:15:00 +0300
 
-orbiscreen (0.17.3-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.17.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.3 for Ubuntu noble.
   * Streaming pitch-black fix, sleek keyboard accessory bar, settings FAB & sheet redesign, exit confirmation modal.
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 16:35:00 +0300
 
-orbiscreen (0.17.2-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.17.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.2 for Ubuntu noble.
   * Comprehensive UI/UX overhaul, sub-100ms latency, mouse input fix, background auto-resume.
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 15:55:00 +0300
 
-orbiscreen (0.17.1-1~ubuntunoble1) noble; urgency=medium
+orbiscreen (0.17.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.1 for Ubuntu noble.
   * In-app developer credits, GitHub links, update check, zero-buffering playback.
 
  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 15:10:00 +0300
 
-orbiscreen (0.16.2-1~ubuntu24.04.3) noble; urgency=medium
+orbiscreen (0.16.2~ubuntu24.04.3) noble; urgency=medium
 
   * Release 0.16.2 for Ubuntu noble.
   * Fast offline Launchpad PPA packaging with explicit dependencies.

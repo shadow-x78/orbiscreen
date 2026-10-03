@@ -3,22 +3,38 @@
 # https://github.com/shadow-x78/orbiscreen
 # ─────────────────────────────────────────────
 
-# ── Android Device Udev Rules ──
-# Access is restricted to the console user (uaccess) with group-writable
-# device nodes (0660) instead of world-readable/writable (0666).
-SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", ATTR{idProduct}=="2d0[0145]", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="17ef", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="2717", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="04e8", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="12d1", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="22b8", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="22d9", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="2d95", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="1004", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="0fce", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="0b05", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="2a70", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="2833", MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="1949", MODE="0660", TAG+="uaccess"
+# ── Access Model ──
+# TAG+="uaccess" grants the console user read/write through a systemd ACL and leaves the
+# device node's own mode untouched, so no other local account gains access. MODE="0660"
+# is reserved for the Android Open Accessory interface, which the host talks to over
+# libusb; the vendor-wide rules below deliberately do not change the mode, because a
+# blanket 0660 would hand every device from those vendors to the device's group
+# (typically plugdev) and not just to the console user.
+#
+# Verify with: udevadm test /sys/bus/usb/devices/<bus>-<port>
 
+# ── AOA Interface (Android Open Accessory) ──
+# Exact Google/Android Open Accessory product ids. These are the nodes the daemon
+# claims with usbfs ioctls, so they keep the explicit group-writable mode.
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", ATTR{idProduct}=="2d00", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", ATTR{idProduct}=="2d01", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", ATTR{idProduct}=="2d04", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", ATTR{idProduct}=="2d05", MODE="0660", TAG+="uaccess"
+
+# ── Android Device Vendor IDs ──
+# uaccess only: enough for adb and MTP access by the console user, with no change to the
+# permissions of the vendor's other (non-Android) hardware.
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="17ef", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="2717", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="04e8", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="12d1", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="22b8", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="22d9", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="2d95", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="1004", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0fce", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0b05", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="2a70", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="2833", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="1949", TAG+="uaccess"

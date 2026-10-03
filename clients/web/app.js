@@ -1,5 +1,3 @@
-// Orbiscreen - app.js (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 const I18N = {
     en: {
@@ -67,7 +65,6 @@ const I18N = {
         btnHideControls: "إخفاء شريط الأدوات",
         btnFullscreen: "ملء الشاشة",
         btnDisconnect: "قطع الاتصال",
-        btnRestoreToolbar: "إظهار شريط الأدوات",
         btnCloseKeyboard: "إغلاق",
         settingsTitle: "الإعدادات",
         themeTitle: "المظهر (الثيم)",
@@ -188,14 +185,12 @@ const statusSubtitle = document.getElementById("statusSubtitle");
 const overlayEl = document.getElementById("overlay");
 const brandLogo = document.getElementById("brandLogo");
 const statusSpinner = document.getElementById("statusSpinner");
-const statusIcon = document.getElementById("statusIcon");
 const btnReconnect = document.getElementById("btnReconnect");
 const stageEl = document.getElementById("stage");
 const videoEl = document.getElementById("remoteVideo");
 const touchIndicator = document.getElementById("touchIndicator");
 const controlToolbar = document.getElementById("controlToolbar");
 const btnShowControls = document.getElementById("btnShowControls");
-const hostNameEl = document.getElementById("hostName");
 const hostInfoEl = document.getElementById("hostInfo");
 
 function setOverlayState(state, title, subtitle) {
@@ -238,7 +233,6 @@ const iconThemeDark = document.getElementById("iconThemeDark");
 const iconThemeLight = document.getElementById("iconThemeLight");
 const btnWebLang = document.getElementById("btnWebLang");
 const lblWebLang = document.getElementById("lblWebLang");
-const btnRestoreToolbar = document.getElementById("btnRestoreToolbar");
 
 const keyboardDrawer = document.getElementById("keyboardDrawer");
 const btnCloseKeyboard = document.getElementById("btnCloseKeyboard");
@@ -528,6 +522,9 @@ let reconnectTimer = null;
 let reconnectDelay = 1000;
 let userDisconnected = false;
 let auReader = null;
+// Bumped by destroyPlayer(); every long-lived read loop captures it and stops as soon as
+// the value changes, so a loop from a previous session can never feed a new decoder.
+let streamGeneration = 0;
 const MAX_RECONNECT_DELAY = 10000;
 let clockOffsetNs = 0n;
 let lastFrameAt = 0;
@@ -723,6 +720,7 @@ function sendTouchAt(pointerId, x, y, pressed) {
         for (const t of activeTouches.values()) used.add(t.slot);
         let slot = 0;
         while (used.has(slot) && slot < 9) slot += 1;
+        if (used.has(slot)) return;
         rec = { slot, id: pointerId & 0x7fffffff };
         activeTouches.set(pointerId, rec);
     }
@@ -1478,6 +1476,7 @@ function closeDecoder() {
 }
 
 function destroyPlayer() {
+    streamGeneration++;
     if (reconnectTimer) {
         clearTimeout(reconnectTimer);
         reconnectTimer = null;
@@ -1505,8 +1504,21 @@ function destroyPlayer() {
         statsWidget.setAttribute("aria-hidden", "true");
     }
     clearInterval(latencyWatchdog);
+    latencyWatchdog = null;
     clearInterval(holeWatchdog);
     holeWatchdog = null;
+    // A queued animation frame survives disconnect and would still POST to /input,
+    // because sendInput only needs the token and the display session id.
+    if (statsRaf) {
+        cancelAnimationFrame(statsRaf);
+        statsRaf = 0;
+    }
+    if (moveRaf) {
+        cancelAnimationFrame(moveRaf);
+        moveRaf = 0;
+    }
+    pendingMove = null;
+    pendingPresent.length = 0;
     releaseControl();
 }
 
@@ -1697,12 +1709,14 @@ async function startAuStream() {
     }
     const reader = res.body.getReader();
     auReader = reader;
+    const generation = streamGeneration;
     const frames = new OrbiAnnexB.FrameReader();
     (async () => {
         try {
-            while (true) {
+            while (generation === streamGeneration) {
                 const { value, done } = await reader.read();
                 if (done) break;
+                if (generation !== streamGeneration) break;
                 if (value && streamStats) streamStats.noteBytes(value.byteLength);
                 frames.push(value);
                 let msg;
@@ -1710,11 +1724,11 @@ async function startAuStream() {
                     if (msg.type === "video") feedAccessUnit(msg);
                 }
             }
+            if (generation !== streamGeneration) return;
             scheduleReconnect("au ended");
-            if (!userDisconnected) scheduleReconnect("au ended");
         } catch (err) {
+            if (generation !== streamGeneration) return;
             scheduleReconnect(err.message || "au");
-            if (!userDisconnected) scheduleReconnect(err.message || "au");
         }
     })();
     waitingForKeyframe = true;
@@ -1737,14 +1751,13 @@ async function startStream(opts = {}) {
         return;
     }
     if (window.location.protocol !== "https:") {
-        const host = (wtConfig && OrbiAnnexB.pickWtHost(wtConfig, window.location.hostname))
+        const shownHost = (wtConfig && OrbiAnnexB.pickWtHost(wtConfig, window.location.hostname))
             || window.location.hostname
             || "host";
-        const port = (wtConfig && wtConfig.wt_port) || 8790;
         setOverlayState(
             "error",
             "Open the HTTPS client",
-            `WebTransport needs a secure page. Open https://${window.location.host}/client/`
+            `WebTransport needs a secure page. Open https://${shownHost}/client/`
         );
         return;
     }
@@ -1780,8 +1793,8 @@ async function startStream(opts = {}) {
         return;
     }
 
-    const host = OrbiAnnexB.pickWtHost(cfg, window.location.hostname);
-    const url = `https://` + window.location.hostname + `:8790/orbiscreen`;
+    const host = OrbiAnnexB.pickWtHost(cfg, window.location.hostname) || window.location.hostname;
+    const url = `https://${host}:${port}${path}`;
 
     try {
         const hash = OrbiAnnexB.hashFromBase64(hashB64);

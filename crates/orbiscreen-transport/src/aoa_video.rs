@@ -1,6 +1,3 @@
-// Orbiscreen - aoa_video.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use super::annexb::{self, SpsPps};
 use super::wt_protocol;
 use super::H264Packet;

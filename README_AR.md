@@ -8,7 +8,7 @@
 
 شاشة ثانية لنظام Linux باستخدام جهاز لوحي أو هاتف Android.
 
-[![الإصدار](https://img.shields.io/badge/version-0.32.1-2563eb?style=for-the-badge)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.32.2-2563eb?style=for-the-badge)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=for-the-badge)
 ![المنصة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge)
@@ -184,10 +184,21 @@ systemctl --user enable --now orbiscreen
 ```bash
 orbiscreen start                              # تشغيل باكتشاف البيئة تلقائيا ً
 orbiscreen start --width 1920 --height 1080 --fps 60
-orbiscreen start --encoder nvenc              # nvenc أو vaapi أو x264
+orbiscreen display set 1920x1080@60            # تثبيت دقة العرض
 orbiscreen doctor                             # التشخيص
 orbiscreen doctor --fix                       # تثبيت الاعتماديات الناقصة
 orbiscreen stop                               # إيقاف الخدمة الجارية
+```
+
+</div>
+
+<div dir="ltr" align="left">
+
+يُختار المرمِّز من ملف الإعدادات لا من سطر الأوامر:
+
+```toml
+[encode]
+preferred_encoder = "auto"   # auto أو nvenc أو vaapi أو x264
 ```
 
 </div>
@@ -270,7 +281,7 @@ orbiscreen/
 <details>
 <summary><b>هل هي شاشة ممتدة حقيقية أم تكرار للشاشة؟</b></summary>
 <br>
-شاشة افتراضية مستقلة توضع بجوار شاشاتك الفعلية؛ يمكن سحب النوافذ إليها وضبط دقتها حتى 4K.
+شاشة افتراضية مستقلة توضع بجوار شاشاتك الفعلية؛ يمكن سحب النوافذ إليها وضبط دقتها حتى 7680×4320 (‏8K).
 </details>
 
 <details>

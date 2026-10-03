@@ -1,10 +1,9 @@
-// Orbiscreen - ControlToolbar.kt (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 package com.orbiscreen.android.ui.stream
 
 import android.content.res.Configuration
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,6 +63,8 @@ fun ControlToolbar(
     onLock: () -> Unit,
     onHideControls: () -> Unit,
     onDisconnect: () -> Unit,
+    notice: String? = null,
+    onDismissNotice: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val configuration = LocalConfiguration.current
@@ -77,6 +78,16 @@ fun ControlToolbar(
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .border(1.dp, GlassBorderDark, RoundedCornerShape(24.dp)),
     ) {
+        if (notice != null) {
+            Text(
+                text = notice,
+                color = Color.White.copy(alpha = 0.85f),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .padding(start = 16.dp, end = 8.dp, top = 10.dp)
+                    .clickable(onClick = onDismissNotice),
+            )
+        }
         Row(
             modifier = Modifier
                 .padding(horizontal = 12.dp, vertical = 8.dp),

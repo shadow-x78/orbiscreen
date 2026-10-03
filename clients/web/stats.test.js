@@ -1,5 +1,3 @@
-// Orbiscreen - stats.test.js (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
 
 const test = require("node:test");
 const assert = require("node:assert/strict");

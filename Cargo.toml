@@ -1,5 +1,6 @@
 # ─────────────────────────────────────────────
-# Orbiscreen - Cargo Workspace 
+# Orbiscreen - Cargo Workspace
+# https://github.com/shadow-x78/orbiscreen
 # ─────────────────────────────────────────────
 
 # ── Workspace Members ──
@@ -27,7 +28,7 @@ default-members = [
 
 # ── Package Metadata ──
 [workspace.package]
-version = "0.32.1"
+version = "0.32.2"
 edition = "2021"
 rust-version = "1.92"
 license = "GPL-3.0-or-later"
@@ -64,7 +65,6 @@ libc = "0.2"
 
 gstreamer = "0.25"
 gstreamer-app = "0.25"
-gstreamer-video = "0.25"
 
 mdns-sd = "0.20"
 axum = { version = "0.8", features = ["ws"] }

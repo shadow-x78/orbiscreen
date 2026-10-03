@@ -1,6 +1,3 @@
-// Orbiscreen - wt_protocol.rs (GPL-3.0-or-later)
-// https://github.com/shadow-x78/orbiscreen
-
 use super::H264Packet;
 
 pub const TYPE_VIDEO: u8 = 1;
