@@ -10,7 +10,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO_ROOT="$(pwd)"
 
-# The release workflow passes the tag version; fall back to the workspace version.
 VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
 
 if ! command -v cargo >/dev/null 2>&1; then
@@ -48,7 +47,6 @@ install -m755 target/release/orbiscreen "$APP/usr/bin/orbiscreen"
 if [ -f target/release/orbiscreen-gui ]; then
     install -m755 target/release/orbiscreen-gui "$APP/usr/bin/orbiscreen-gui"
 fi
-# clients/web/index.html loads every script below; a missing one 404s and breaks the client.
 for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     install -m644 "clients/web/$f" "$APP/usr/share/orbiscreen/client/$f"
 done

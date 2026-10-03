@@ -9,8 +9,6 @@ Name=Orbiscreen
 Comment=Turn Android devices into high-performance secondary monitors for Linux
 
 # ── Launcher ──
-# DMABUF rendering is disabled because the WebKitGTK sandbox cannot hand DMA-BUF buffers to the
-# X11 presentation path; compositing falls back to a shared-memory copy on this renderer.
 Exec=env __NV_DISABLE_EXPLICIT_SYNC=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 orbiscreen-gui
 Icon=orbiscreen
 Terminal=false

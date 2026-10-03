@@ -4,6 +4,12 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.33.2] - 2026-10-03
+
+### Changed
+- fix: restore the RPM_GPG_KEY fallback for the Launchpad upload.
+- Version bumped to 0.33.2 across the Cargo workspace, Android (`versionCode` 138), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.33.1] - 2026-10-03
 
 ### Changed

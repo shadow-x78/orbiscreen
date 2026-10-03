@@ -9,8 +9,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
-# dpkg is authoritative; the uname fallback keeps the name valid when this script is
-# inspected on a non-Debian host.
 ARCH="$(dpkg --print-architecture 2>/dev/null || true)"
 if [ -z "${ARCH}" ]; then
     case "$(uname -m)" in
@@ -110,8 +108,6 @@ if [ -x /usr/bin/udevadm ]; then
     /usr/bin/udevadm control --reload >/dev/null 2>&1 || true
     /usr/bin/udevadm trigger >/dev/null 2>&1 || true
 fi
-# The unit is WantedBy=graphical-session.target, so enable it for every session that
-# currently has one; without this the installed daemon never starts on its own.
 for u in $(users | tr ' ' '\n' | tail -n +2 | sort -u); do
     su -s /bin/sh -c "systemctl --user daemon-reload && systemctl --user enable orbiscreen.service" "$u" >/dev/null 2>&1 || true
 done

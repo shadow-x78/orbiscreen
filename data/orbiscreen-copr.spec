@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.33.1
+%global version 0.33.2
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -143,6 +143,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.2-1
+- Release 0.33.2: fix: restore the RPM_GPG_KEY fallback for the Launchpad upload.
+
 * Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.1-1
 - Release 0.33.1: fix: ship the web client and system files in the release tarball.
 

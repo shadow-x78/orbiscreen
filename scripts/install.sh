@@ -26,9 +26,6 @@ install -m755 target/release/orbiscreen "${INSTALL_DIR}/orbiscreen.new"
 mv -f "${INSTALL_DIR}/orbiscreen.new" "${INSTALL_DIR}/orbiscreen"
 
 # ── Build & Install Desktop GUI (optional) ──
-# The Tauri control center needs libwebkit2gtk-4.1 and libjavascriptcoregtk-4.1. When
-# they are absent the daemon still installs and only the desktop launcher is skipped,
-# because data/orbiscreen.desktop launches orbiscreen-gui.
 GUI_INSTALLED=0
 if cargo build --release -p orbiscreen-gui; then
     install -m755 target/release/orbiscreen-gui "${INSTALL_DIR}/orbiscreen-gui"

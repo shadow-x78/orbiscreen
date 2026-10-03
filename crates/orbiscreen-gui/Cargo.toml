@@ -18,9 +18,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 zbus = { workspace = true }
-# config-json5 lets tauri.conf.json carry the same structured comment blocks as the other config
-# files in this repo. Without it the file is parsed with strict serde_json, which rejects any
-# `//` comment and fails the build at macro expansion.
 tauri = { version = "2", features = ["tray-icon", "config-json5"] }
 tracing-subscriber = { workspace = true }
 

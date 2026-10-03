@@ -31,7 +31,6 @@ rm -f "$HOME/.config/systemd/user/orbiscreen.service"
 rm -f "$HOME/.local/share/applications/orbiscreen.desktop"
 rm -f "$HOME/.local/share/icons/hicolor/"*/apps/orbiscreen*.*
 
-# Guarded: this only ever removes this project's own data directory.
 case "$HOME/.local/share/orbiscreen" in
     "$HOME"/.local/share/orbiscreen) rm -rf "$HOME/.local/share/orbiscreen" ;;
 esac

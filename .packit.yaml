@@ -8,8 +8,6 @@ specfile_path: data/orbiscreen-copr.spec
 files_to_sync:
   - data/orbiscreen-copr.spec
   - .packit.yaml
-  # data/orbiscreen-copr.spec declares this as Source1 and packit-archive.sh writes it
-  # into the repository root; without it here the COPR build has no source to unpack.
   - orbiscreen-vendor-*.tar.zst
 
 upstream_package_name: orbiscreen

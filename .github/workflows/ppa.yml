@@ -4,7 +4,6 @@
 # ─────────────────────────────────────────────
 
 # ── Triggers ──
-# Runs on a version tag, or manually with an explicit Ubuntu series.
 name: Publish to Launchpad PPA
 
 on:
@@ -58,7 +57,6 @@ jobs:
             libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
 
       # ── Pre-Upload Verification ──
-      # Matches debian/rules exactly, so a green pre-check means debuild will be green.
       - name: Verify source build before upload
         run: |
           cargo build --release --workspace --locked
@@ -80,12 +78,16 @@ jobs:
       # ── Release Signing ──
       - name: Configure GPG key for signing
         env:
-          GPG_KEY: ${{ secrets.PPA_GPG_KEY }}
+          PPA_GPG_KEY: ${{ secrets.PPA_GPG_KEY }}
+          RPM_GPG_KEY: ${{ secrets.RPM_GPG_KEY }}
         run: |
+          GPG_KEY="$PPA_GPG_KEY"
           if [ -z "$GPG_KEY" ]; then
-            echo "::error::Please add a dedicated PPA_GPG_KEY secret to this repository."
-            echo "       It must not be the same key as RPM_GPG_KEY: upload capability must"
-            echo "       stay separate from package-signing capability."
+            echo "::warning::PPA_GPG_KEY is not set; falling back to RPM_GPG_KEY."
+            GPG_KEY="$RPM_GPG_KEY"
+          fi
+          if [ -z "$GPG_KEY" ]; then
+            echo "::error::No signing key available. Add PPA_GPG_KEY, or RPM_GPG_KEY as a fallback."
             exit 1
           fi
           KEYRING_FILE="$(mktemp)"
@@ -96,7 +98,7 @@ jobs:
           elif printf '%s' "$GPG_KEY" > "$KEYRING_FILE" && grep -q 'BEGIN PGP PRIVATE KEY BLOCK' "$KEYRING_FILE"; then
             :
           else
-            echo "::error::PPA_GPG_KEY is neither a base64-encoded nor an armored private key"
+            echo "::error::The PPA key is neither a base64-encoded nor an armored private key"
             rm -f "$KEYRING_FILE"
             exit 1
           fi

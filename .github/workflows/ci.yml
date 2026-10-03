@@ -11,7 +11,6 @@ on:
   pull_request:
     branches: [main]
 
-# Cancel superseded runs of the same ref.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -44,8 +43,6 @@ jobs:
             gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
             libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
       # ── Frontend Syntax ──
-      # Rust tooling never parses these files, so a broken template literal in a UI
-      # script would otherwise ship undetected (see crates/orbiscreen-gui/ui/app.js).
       - name: Check web client syntax
         run: |
           status=0
@@ -58,8 +55,6 @@ jobs:
           exit "$status"
 
       # ── Release Consistency ──
-      # The version is duplicated across ~25 files because each ecosystem needs its own
-      # format, and a release has shipped an Android versionName that lagged the rest.
       - name: Check version consistency
         run: ./scripts/check-versions.sh
 
