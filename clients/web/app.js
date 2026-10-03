@@ -1495,10 +1495,7 @@ function destroyPlayer() {
     }
     closeDecoder();
     streamActive = false;
-    if (infoTick) {
-        clearInterval(infoTick);
-        infoTick = null;
-    }
+    stopInfoTick();
     if (statsWidget) {
         statsWidget.classList.add("hidden");
         statsWidget.setAttribute("aria-hidden", "true");
@@ -1569,6 +1566,17 @@ function scheduleReconnect(reason) {
     reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
 }
 
+function stopInfoTick() {
+    if (!infoTick) return;
+    clearInterval(infoTick);
+    infoTick = null;
+}
+
+function startInfoTick() {
+    if (infoTick) return;
+    infoTick = setInterval(updateInfoDisplay, 100);
+}
+
 function markPlaying() {
     if (!streamActive) {
         streamActive = true;
@@ -1577,9 +1585,7 @@ function markPlaying() {
         if (overlayEl) overlayEl.classList.add("hidden");
         setControlsVisible(false);
         if (statsVisible) setStatsVisible(true);
-        if (!infoTick) {
-            infoTick = setInterval(updateInfoDisplay, 100);
-        }
+        startInfoTick();
     }
     noteKeyframe();
     lastFrameAt = Date.now();
@@ -1680,7 +1686,6 @@ function feedAccessUnit(msg) {
         if (glass >= 0 && glass <= 5000) {
             lastDelayMs = glass;
             if (streamStats) streamStats.noteDelay(glass);
-            updateInfoDisplay();
         }
     }
 }
@@ -1858,6 +1863,11 @@ async function startStream(opts = {}) {
                             const rtt = now - msg.t0Ns;
                             clockOffsetNs = msg.hostNs + rtt / 2n - now;
                             if (streamStats) streamStats.noteClockOffset(clockOffsetNs);
+                        } else if (msg.type === "bye") {
+                            if (wtTransport === transport && !userDisconnected) {
+                                console.info("host closed the stream");
+                                scheduleReconnect("host said goodbye");
+                            }
                         }
                     }
                 }

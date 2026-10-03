@@ -32,7 +32,6 @@ private const val TAG = "Orbi.Udp"
 private const val HOST_TIMEOUT_MS = 4_000L
 private const val HELLO_WINDOW_MS = 1_500L
 private const val TYPE_VIDEO: Byte = 1
-private const val TYPE_HELLO: Byte = 2
 private const val TYPE_HELLO_ACK: Byte = 3
 private const val TYPE_PING: Byte = 4
 private const val TYPE_PONG: Byte = 5
@@ -605,15 +604,6 @@ class UdpPlayer(
 
         private const val TYPE_BYE: Byte = 10
 
-        fun encodeHello(token: String, session: String? = null): ByteArray {
-            val t = token.toByteArray(Charsets.UTF_8)
-            val extra = if (session.isNullOrBlank()) {
-                ByteArray(0)
-            } else {
-                byteArrayOf(0) + session.toByteArray(Charsets.UTF_8)
-            }
-            return byteArrayOf('O'.code.toByte(), 'R'.code.toByte(), 'B'.code.toByte(), '1'.code.toByte(), TYPE_HELLO) + t + extra
-        }
         fun encodeBye(session: String?): ByteArray {
             val extra = if (session.isNullOrBlank()) ByteArray(0) else session.toByteArray(Charsets.UTF_8)
             return byteArrayOf('O'.code.toByte(), 'R'.code.toByte(), 'B'.code.toByte(), '1'.code.toByte(), TYPE_BYE) + extra
@@ -661,17 +651,5 @@ class UdpPlayer(
         fun withStartCode(nal: ByteArray): ByteArray =
             byteArrayOf(0, 0, 0, 1) + nal
         fun seqDelta(cur: Int, prev: Int): Int = (cur - prev) and 0xFFFF
-        fun assemble(slots: Array<ByteArray?>): ByteArray {
-            var total = 0
-            for (p in slots) total += p?.size ?: 0
-            val out = ByteArray(total)
-            var o = 0
-            for (p in slots) {
-                if (p == null) continue
-                System.arraycopy(p, 0, out, o, p.size)
-                o += p.size
-            }
-            return out
-        }
     }
 }

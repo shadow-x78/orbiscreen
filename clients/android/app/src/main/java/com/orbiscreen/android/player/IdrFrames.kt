@@ -42,9 +42,6 @@ object IdrFrames {
 
         private var scan = 0
 
-        var resyncSkips = 0
-            private set
-
         var overflowResets = 0
             private set
 
@@ -80,7 +77,6 @@ object IdrFrames {
                 if (n == null) {
                     if (scan + FRAME_HEADER_LEN > used) return null
                     scan++
-                    resyncSkips++
                     continue
                 }
                 val bodyStart = scan + FRAME_HEADER_LEN

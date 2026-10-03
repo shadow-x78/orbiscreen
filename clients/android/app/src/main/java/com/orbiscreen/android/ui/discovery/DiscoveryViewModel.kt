@@ -7,15 +7,11 @@ import com.orbiscreen.android.data.PrefsStore
 import com.orbiscreen.android.data.RecentHost
 import com.orbiscreen.android.net.DiscoveredHost
 import com.orbiscreen.android.net.DiscoveryService
-import com.orbiscreen.android.net.HostApi
-import com.orbiscreen.android.net.SubnetScanner
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-
 import kotlinx.coroutines.delay
 
 data class DiscoveryState(
@@ -30,19 +26,12 @@ data class DiscoveryState(
 class DiscoveryViewModel(
     private val discovery: DiscoveryService,
     private val prefs: PrefsStore,
-    private val subnetScanner: SubnetScanner = SubnetScanner(),
-    private val gatewayProvider: () -> String? = { null },
 ) : ViewModel() {
-
-    private val hostApi = HostApi()
 
     private val _state = MutableStateFlow(
         DiscoveryState(recent = prefs.recentHost, usbPort = prefs.usbPort)
     )
     val state: StateFlow<DiscoveryState> = _state.asStateFlow()
-
-    private val _scanTick = MutableStateFlow(0)
-    private val scannedHosts = MutableStateFlow<Map<String, DiscoveredHost>>(emptyMap())
 
     init {
         if (prefs.recentHost?.host == "127.0.0.1" || prefs.recentHost?.host == "localhost") {
@@ -50,14 +39,16 @@ class DiscoveryViewModel(
         }
         discovery.start()
         viewModelScope.launch {
-            combine(discovery.hosts, scannedHosts, _scanTick) { live, scanned, _ ->
-                val recent = prefs.recentHost
-                (live + scanned).values
-                    .filter { !it.host.contains(":") }
-                    .distinctBy { it.host }
-                    .sortedBy { it.name.lowercase() }
-                    .map { if (it.host == recent?.host) it.copy(isRecent = true) else it }
-            }.collect { discovered ->
+            discovery.hosts
+                .map { live ->
+                    val recent = prefs.recentHost
+                    live.values
+                        .filter { !it.host.contains(":") }
+                        .distinctBy { it.host }
+                        .sortedBy { it.name.lowercase() }
+                        .map { if (it.host == recent?.host) it.copy(isRecent = true) else it }
+                }
+                .collect { discovered ->
                 _state.value = _state.value.copy(
                     discoveredHosts = discovered,
                     recent = prefs.recentHost,
@@ -74,7 +65,6 @@ class DiscoveryViewModel(
         viewModelScope.launch {
             _state.value = _state.value.copy(isScanning = true)
             discovery.restart()
-            _scanTick.value++
             delay(3000)
             _state.value = _state.value.copy(isScanning = false)
         }
@@ -84,7 +74,6 @@ class DiscoveryViewModel(
         prefs.clearRecent()
         _state.value = _state.value.copy(recent = null)
     }
-
 
     override fun onCleared() {
         discovery.stop()

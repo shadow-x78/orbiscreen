@@ -1,3 +1,11 @@
+orbiscreen (0.32.5~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.32.5 for Ubuntu noble.
+  * AOA stream cap, BYE handling, dead discovery chain.
+  * Bump version to 0.32.5 across all packages; Android versionCode 130.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.32.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.32.4 for Ubuntu noble.

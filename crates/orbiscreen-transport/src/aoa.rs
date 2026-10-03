@@ -59,6 +59,8 @@ const AOA_GET_PROTOCOL: u8 = 51;
 const AOA_SEND_STRING: u8 = 52;
 const AOA_START_ACCESSORY: u8 = 53;
 const PRIO_QUEUE_CAP: usize = 8;
+/// Upper bound on simultaneously open AOA data streams.
+const MAX_AOA_STREAMS: usize = 16;
 
 const CONTROL_SEND_TIMEOUT: Duration = Duration::from_millis(500);
 
@@ -231,7 +233,7 @@ fn ctrl_transfer(
         request: req,
         value,
         index,
-        length: buf.len() as u16,
+        length: u16::try_from(buf.len()).unwrap_or(u16::MAX),
         timeout: timeout_ms,
         data: buf.as_mut_ptr(),
     };
@@ -789,6 +791,20 @@ pub fn run_accessory_bridge(
                             let is_video = Arc::new(AtomicBool::new(false));
                             if let Ok(stream_for_map) = tcp_stream.try_clone() {
                                 let mut map = tcp_streams.lock().unwrap_or_else(|p| p.into_inner());
+                                if map.len() >= MAX_AOA_STREAMS && !map.contains_key(&stream_id) {
+                                    // A device can open unbounded stream ids; each one costs a
+                                    // loopback connection plus reader threads. Refuse the new
+                                    // stream and close its socket instead of growing.
+                                    warn!(
+                                        stream_id,
+                                        open_streams = map.len(),
+                                        max_streams = MAX_AOA_STREAMS,
+                                        "AOA stream limit reached; refusing a new stream"
+                                    );
+                                    drop(map);
+                                    let _ = send_control(&prio_tx, encode_video_close());
+                                    continue;
+                                }
                                 map.insert(stream_id, (tcp_tx, stream_for_map, is_video.clone()));
                             }
 

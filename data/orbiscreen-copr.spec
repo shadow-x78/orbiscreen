@@ -8,7 +8,7 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.32.4
+Version:        0.32.5
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -140,20 +140,23 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.4-1
-- Release 0.32.4: drop unused assets and scripts, add missing unit tests.
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.5-1
+- Release 0.32.5: AOA stream cap, BYE handling, dead discovery chain.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.4-1
-- Release 0.32.4: standardize banner comments on non-code files.
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.5-1
+- Release 0.32.5: drop unused assets and scripts, add missing unit tests.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.4-1
-- Release 0.32.4: cross-session input injection, dead Tauri UI, packaging gaps.
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.5-1
+- Release 0.32.5: standardize banner comments on non-code files.
 
-* Thu Oct 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.4-1
-- Release 0.32.4: fix duplicate BTN_TOUCH writes and redundant AbsEvent::X/Y writes in touch injection; re-indent hub idle reap branch.
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.5-1
+- Release 0.32.5: cross-session input injection, dead Tauri UI, packaging gaps.
 
-* Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.4-1
-- Release 0.32.4: fix resize switchover latency, fps-aware resize, AOA session alias.
+* Thu Oct 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.5-1
+- Release 0.32.5: fix duplicate BTN_TOUCH writes and redundant AbsEvent::X/Y writes in touch injection; re-indent hub idle reap branch.
+
+* Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.5-1
+- Release 0.32.5: fix resize switchover latency, fps-aware resize, AOA session alias.
 
 * Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.9-1
 - Release 0.31.9: fix resize switchover latency and `no display session` error; encoder now honors requested fps on resize.

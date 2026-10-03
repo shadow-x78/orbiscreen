@@ -536,7 +536,6 @@ fun SettingsScreen(
 private fun PreferenceSection(
     title: String,
     icon: ImageVector,
-    betaBadge: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -557,22 +556,6 @@ private fun PreferenceSection(
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
             )
-            if (betaBadge) {
-                Spacer(Modifier.width(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                ) {
-                    Text(
-                        text = "BETA",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 9.sp,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
-                }
-            }
         }
         ElevatedCard(
             modifier = Modifier
@@ -597,7 +580,6 @@ private fun ClickPreferenceRow(
     subtitle: String,
     icon: ImageVector,
     onClick: () -> Unit,
-    trailing: @Composable (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -640,16 +622,12 @@ private fun ClickPreferenceRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (trailing != null) {
-            trailing()
-        } else {
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
-            )
-        }
+        Icon(
+            imageVector = Icons.Rounded.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 

@@ -27,7 +27,6 @@ import androidx.navigation.navArgument
 import com.orbiscreen.android.R
 import com.orbiscreen.android.data.PrefsStore
 import com.orbiscreen.android.net.DiscoveryService
-import com.orbiscreen.android.net.WifiGatewayProvider
 import com.orbiscreen.android.ui.discovery.DiscoveryScreen
 import com.orbiscreen.android.ui.discovery.DiscoveryViewModel
 import com.orbiscreen.android.ui.settings.SettingsScreen
@@ -118,7 +117,6 @@ fun OrbiNav(prefs: PrefsStore, startHost: String? = null, startPort: Int = 8788)
                         DiscoveryViewModel(
                             discovery = DiscoveryService(appContext),
                             prefs = prefs,
-                            gatewayProvider = { WifiGatewayProvider.gateway(appContext) },
                         )
                     }
                 },
