@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.33.0
+%global version 0.33.1
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -143,6 +143,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.1-1
+- Release 0.33.1: fix: ship the web client and system files in the release tarball.
+
 * Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.0-1
 - Release 0.33.0: chore: promote 0.32.10 to the 0.33.0 minor release.
 

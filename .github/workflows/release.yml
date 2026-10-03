@@ -106,15 +106,45 @@ jobs:
 
       - name: Package Linux tarball
         run: |
+          # A PATH-only install still needs the web client, or the daemon cannot serve
+          # the browser UI at all, so the bundle ships the same share/ tree the deb,
+          # rpm and AppImage use rather than binaries alone.
           mkdir -p release-bundle/bin
+          mkdir -p release-bundle/share/orbiscreen/client
+          mkdir -p release-bundle/lib/systemd/user
+          mkdir -p release-bundle/lib/udev/rules.d
+          mkdir -p release-bundle/share/applications
           cp target/release/orbiscreen release-bundle/bin/
           if [ -f target/release/orbiscreen-gui ]; then
             cp target/release/orbiscreen-gui release-bundle/bin/
           fi
+          for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
+            install -m 644 "clients/web/$f" "release-bundle/share/orbiscreen/client/$f"
+          done
+          install -m 644 data/orbiscreen.service release-bundle/lib/systemd/user/orbiscreen.service
+          install -m 644 data/99-orbiscreen-usb.rules release-bundle/lib/udev/rules.d/99-orbiscreen-usb.rules
+          install -m 644 data/orbiscreen.desktop release-bundle/share/applications/orbiscreen.desktop
           cat > release-bundle/README.md <<'README'
           # Orbiscreen
 
-          Place the files in `bin/` on your `PATH` (for example `~/.local/bin`).
+          `bin/` holds the executables, `share/orbiscreen/client/` the web client the
+          daemon serves at `/client`, and `lib/` the systemd user unit and the udev
+          rules for USB/AOA access.
+
+          The easiest route is still `scripts/install.sh` from the repository. To install
+          by hand:
+
+            install -Dm755 bin/orbiscreen ~/.local/bin/orbiscreen
+            install -Dm755 bin/orbiscreen-gui ~/.local/bin/orbiscreen-gui
+            install -Dm644 -t ~/.local/share/orbiscreen/client \
+              share/orbiscreen/client/*
+            install -Dm644 share/applications/orbiscreen.desktop \
+              ~/.local/share/applications/orbiscreen.desktop
+            install -Dm644 lib/systemd/user/orbiscreen.service \
+              ~/.config/systemd/user/orbiscreen.service
+            sudo install -Dm644 lib/udev/rules.d/99-orbiscreen-usb.rules \
+              /usr/lib/udev/rules.d/99-orbiscreen-usb.rules
+            systemctl --user daemon-reload && systemctl --user enable orbiscreen.service
 
           Full installation instructions, usage, and troubleshooting are at
           https://github.com/shadow-x78/orbiscreen
