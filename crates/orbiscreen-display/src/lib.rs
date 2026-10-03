@@ -124,6 +124,15 @@ impl VirtualDisplay {
         let (node, device_index) = pick_node()?;
         info!(node = ?node, card = device_index, "Opening evdi device node");
         #[allow(unsafe_code)]
+        // SAFETY: `node` is the `DeviceNode` that `pick_node` built from a `/dev/dri/card*` entry
+        // whose `status()` was `Available`, and `probe()` above already rejected a missing or
+        // outdated evdi module, so `evdi_open` is being handed a live, evdi-backed card id -- the
+        // precondition the `unsafe fn` documents. No raw pointer, slice, or length crosses the
+        // boundary here: the returned `evdi_handle` moves straight into the `UnconnectedHandle`
+        // this line binds, is consumed by `connect()` on the next line, and is closed exactly once
+        // by that type's `Drop`, so nothing leaks or is double-closed. This single call is all the
+        // `#[allow(unsafe_code)]` on `open()` covers: evdi re-exports libevdi as an `unsafe fn`,
+        // and this crate is the audited boundary for it.
         let unconnected =
             unsafe { node.open() }.map_err(|e| DisplayError::OpenDevice(format!("{e:?}")))?;
 

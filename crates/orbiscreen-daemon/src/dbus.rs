@@ -1,12 +1,16 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
+use tracing::warn;
+
 use orbiscreen_core::Config;
 use orbiscreen_transport::Stats;
 use zbus::interface;
 
 #[derive(Debug)]
 pub struct DaemonHandles {
+    /// uid the daemon itself runs as; the only uid allowed to drive this interface.
+    pub owner_uid: u32,
     pub is_running: Arc<AtomicBool>,
     pub stats: Arc<Stats>,
     pub config: std::sync::RwLock<Config>,
@@ -24,6 +28,80 @@ pub struct OrbiscreenDbusServer {
 impl OrbiscreenDbusServer {
     pub fn new(handles: Arc<DaemonHandles>) -> Self {
         Self { handles }
+    }
+
+    /// Resolves the calling process's uid from the D-Bus message sender.
+    ///
+    /// The bus itself already restricts who may reach a session-bus name, so this is not a
+    /// privilege boundary against other users. It is a guard against a *different* process
+    /// in the same session: without it, any application the user runs can stop the daemon,
+    /// rewrite `orbiscreen.toml`, and have `set_resolution` spawn `kscreen-doctor`.
+    async fn caller_uid(
+        &self,
+        connection: &zbus::Connection,
+        header: &zbus::message::Header<'_>,
+    ) -> Result<u32, String> {
+        let sender = header
+            .sender()
+            .map(|s| s.to_owned())
+            .ok_or_else(|| "cannot determine caller".to_string())?;
+        let proxy = zbus::fdo::DBusProxy::builder(connection)
+            .destination("org.freedesktop.DBus")
+            .map_err(|e| e.to_string())?
+            .path("/org/freedesktop/DBus")
+            .map_err(|e| e.to_string())?
+            .interface("org.freedesktop.DBus")
+            .map_err(|e| e.to_string())?
+            .build()
+            .await
+            .map_err(|e| e.to_string())?;
+        proxy
+            .get_connection_unix_user(sender.into())
+            .await
+            .map_err(|e| format!("cannot resolve caller credentials: {e}"))
+    }
+
+    /// Rejects a caller that is not the user the daemon runs as.
+    async fn authorize(
+        &self,
+        connection: &zbus::Connection,
+        header: &zbus::message::Header<'_>,
+        method: &str,
+    ) -> Result<(), String> {
+        let caller = self.caller_uid(connection, header).await?;
+        if self.allows(caller) {
+            Ok(())
+        } else {
+            let denied = format!(
+                "permission denied: {method} may only be called by uid {} (caller is {caller})",
+                self.handles.owner_uid
+            );
+            warn!("{denied}");
+            Err(denied)
+        }
+    }
+}
+
+/// uid of the running process, read once when the handles are built so the check cannot
+/// be influenced by anything a caller controls.
+///
+/// `MetadataExt::uid` is stable std and needs no `unsafe`, which matters because the
+/// daemon crate denies `unsafe_code`. `/proc/self` is authoritative on the only platform
+/// this daemon targets.
+pub fn current_uid() -> u32 {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        std::fs::metadata("/proc/self")
+            .map(|m| m.uid())
+            .unwrap_or_else(|e| {
+                warn!("cannot read /proc/self to determine the daemon uid ({e}); assuming 0");
+                0
+            })
+    }
+    #[cfg(not(unix))]
+    {
+        0
     }
 }
 
@@ -60,7 +138,58 @@ impl OrbiscreenDbusServer {
         .to_string()
     }
 
-    async fn set_resolution(&self, width: u32, height: u32, fps: u32) -> String {
+    async fn list_clients(&self) -> Vec<String> {
+        let active = self.handles.stats.active_clients();
+        let total = self.handles.stats.total_clients();
+        vec![format!(
+            "HTTP MPEG-TS /stream: {active} active client(s), {total} total connection(s)"
+        )]
+    }
+
+    async fn set_resolution(
+        &self,
+        #[zbus(connection)] connection: &zbus::Connection,
+        #[zbus(header)] header: zbus::message::Header<'_>,
+        width: u32,
+        height: u32,
+        fps: u32,
+    ) -> String {
+        if let Err(denied) = self.authorize(connection, &header, "SetResolution").await {
+            return denied;
+        }
+        self.apply_resolution(width, height, fps).await
+    }
+
+    async fn stop(
+        &self,
+        #[zbus(connection)] connection: &zbus::Connection,
+        #[zbus(header)] header: zbus::message::Header<'_>,
+    ) -> String {
+        if let Err(denied) = self.authorize(connection, &header, "Stop").await {
+            return denied;
+        }
+        self.stop_daemon()
+    }
+
+    async fn get_config(
+        &self,
+        #[zbus(connection)] connection: &zbus::Connection,
+        #[zbus(header)] header: zbus::message::Header<'_>,
+    ) -> String {
+        if let Err(denied) = self.authorize(connection, &header, "GetConfig").await {
+            return denied;
+        }
+        self.read_config()
+    }
+}
+
+impl OrbiscreenDbusServer {
+    /// True only for the uid the daemon itself runs as.
+    fn allows(&self, caller_uid: u32) -> bool {
+        caller_uid == self.handles.owner_uid
+    }
+
+    async fn apply_resolution(&self, width: u32, height: u32, fps: u32) -> String {
         let width = width.clamp(320, 7680);
         let height = height.clamp(240, 4320);
         let fps = fps.clamp(30, 240);
@@ -104,7 +233,7 @@ impl OrbiscreenDbusServer {
         }
     }
 
-    async fn stop(&self) -> String {
+    fn stop_daemon(&self) -> String {
         if self.handles.is_running.swap(false, Ordering::SeqCst) {
             let _ = self.handles.shutdown_tx.send(true);
             "Orbiscreen daemon shutting down".to_string()
@@ -113,15 +242,7 @@ impl OrbiscreenDbusServer {
         }
     }
 
-    async fn list_clients(&self) -> Vec<String> {
-        let active = self.handles.stats.active_clients();
-        let total = self.handles.stats.total_clients();
-        vec![format!(
-            "HTTP MPEG-TS /stream: {active} active client(s), {total} total connection(s)"
-        )]
-    }
-
-    async fn get_config(&self) -> String {
+    fn read_config(&self) -> String {
         if let Ok(cfg) = self.handles.config.read() {
             match orbiscreen_core::dump_config(&cfg) {
                 Ok(toml) => toml,
@@ -276,6 +397,7 @@ mod tests {
     fn test_handles() -> Arc<DaemonHandles> {
         let (shutdown_tx, _shutdown_rx) = tokio::sync::watch::channel(false);
         Arc::new(DaemonHandles {
+            owner_uid: current_uid(),
             is_running: Arc::new(AtomicBool::new(true)),
             stats: Arc::new(Stats::default()),
             config: std::sync::RwLock::new(Config::default()),
@@ -303,11 +425,22 @@ mod tests {
         let handles = test_handles();
         let mut shutdown_rx = handles.shutdown_tx.subscribe();
         let server = OrbiscreenDbusServer::new(handles.clone());
-        let reply = server.stop().await;
+        let reply = server.stop_daemon();
         assert!(reply.contains("shutting down"));
         assert!(!handles.is_running.load(Ordering::SeqCst));
         assert!(*shutdown_rx.borrow_and_update());
-        assert!(server.stop().await.contains("not running"));
+        assert!(server.stop_daemon().contains("not running"));
+    }
+
+    #[test]
+    fn only_the_daemons_own_uid_is_authorized() {
+        let handles = test_handles();
+        let owner = handles.owner_uid;
+        let server = OrbiscreenDbusServer::new(handles);
+        assert!(server.allows(owner));
+        assert!(!server.allows(owner + 1));
+        assert!(!server.allows(0));
+        assert_eq!(current_uid(), owner, "test handles must use the real uid");
     }
 
     #[tokio::test]
@@ -323,7 +456,7 @@ mod tests {
     #[tokio::test]
     async fn get_config_returns_current_toml() {
         let server = OrbiscreenDbusServer::new(test_handles());
-        let cfg = server.get_config().await;
+        let cfg = server.read_config();
         assert!(cfg.contains("[display]"));
         assert!(cfg.contains("width = 1920"));
     }
@@ -331,7 +464,7 @@ mod tests {
     #[tokio::test]
     async fn set_resolution_updates_config() {
         let server = OrbiscreenDbusServer::new(test_handles());
-        let reply = server.set_resolution(2560, 1600, 90).await;
+        let reply = server.apply_resolution(2560, 1600, 90).await;
         assert!(reply.contains("2560x1600@90Hz"));
         let status = server.get_status().await;
         assert!(status.contains("\"display_width\":2560"));

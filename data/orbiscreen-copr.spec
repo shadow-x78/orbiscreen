@@ -8,7 +8,10 @@
 
 # ── Metadata ──
 Name:           orbiscreen
-Version:        0.32.7
+# Single source of truth inside this spec; every other field refers to %{version}.
+%global version 0.32.8
+
+Version:        %{version}
 Release:        1%{?dist}
 Summary:        Turn Android devices into high-performance secondary monitors for Linux
 
@@ -140,29 +143,17 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.7-1
-- Release 0.32.7: cross-session input injection, Tauri UI, packaging gaps.
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+- Release 0.32.8: unsafe documentation, TLS-only credential paths, D-Bus authorization.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.7-1
-- Release 0.32.7: Android resource leaks, data races and request storms.
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+- Release 0.32.8: enforce display-session ownership on the input channels and on WebTransport; cap the UDP and AOA client tables; repair the dead Tauri control center UI; complete the web client asset set; restore the vendored MIT notice in qrcode.js.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.7-1
-- Release 0.32.7: AOA stream cap, BYE handling, dead discovery chain.
+* Thu Oct 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+- Release 0.32.8: fix duplicate BTN_TOUCH writes and redundant AbsEvent::X/Y writes in touch injection; re-indent hub idle reap branch.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.7-1
-- Release 0.32.7: drop unused assets and scripts, add missing unit tests.
-
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.7-1
-- Release 0.32.7: standardize banner comments on non-code files.
-
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.7-1
-- Release 0.32.7: cross-session input injection, dead Tauri UI, packaging gaps.
-
-* Thu Oct 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.7-1
-- Release 0.32.7: fix duplicate BTN_TOUCH writes and redundant AbsEvent::X/Y writes in touch injection; re-indent hub idle reap branch.
-
-* Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.7-1
-- Release 0.32.7: fix resize switchover latency, fps-aware resize, AOA session alias.
+* Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+- Release 0.32.8: fix resize switchover latency, fps-aware resize, AOA session alias.
 
 * Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.9-1
 - Release 0.31.9: fix resize switchover latency and `no display session` error; encoder now honors requested fps on resize.

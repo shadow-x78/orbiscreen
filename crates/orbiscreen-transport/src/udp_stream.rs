@@ -764,6 +764,14 @@ fn set_dont_fragment(sock: &std::net::UdpSocket) {
     let fd = sock.as_raw_fd();
     let val: libc::c_int = libc::IP_PMTUDISC_PROBE;
     #[allow(unsafe_code)]
+    // SAFETY: `fd` is `sock.as_raw_fd()` of the `std::net::UdpSocket` whose owner outlives this
+    // call (`bind_udp_socket` hands the same socket to `UdpSocket::from_std`), so the descriptor
+    // is valid and still a socket. `val` is a live, initialized `libc::c_int` and `addr_of!(val)`
+    // forms no intermediate reference, so the pointer spans `size_of_val(&val)` = 4 initialized
+    // bytes -- exactly the `int` the kernel reads for `IP_MTU_DISCOVER`. That option only reads
+    // the value, so the `*const c_void` cast is never written through, and `IP_PMTUDISC_PROBE`
+    // is a plain enum value with no further pointer or length contract attached to it. The
+    // non-zero return is inspected on the next line and only logged.
     let rc = unsafe {
         libc::setsockopt(
             fd,

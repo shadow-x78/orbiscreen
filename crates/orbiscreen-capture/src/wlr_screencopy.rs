@@ -88,6 +88,17 @@ struct Mapping {
 impl Mapping {
     #[allow(unsafe_code)]
     fn new(fd: std::os::fd::RawFd, len: usize) -> Result<Self, String> {
+        // SAFETY: `fd` is the raw descriptor of a live `std::fs::File` (`file` in the
+        // `Dispatch<ZwlrScreencopyFrameV1, ()>` `Buffer` arm), which stays alive across this
+        // call, so the `MAP_SHARED` mapping cannot be installed over a descriptor that is
+        // closed underneath it. `len` was validated above: `checked_mul(stride, height)`
+        // filtered to `<= i32::MAX` and then `usize::try_from`, so the requested length is
+        // exactly the buffer the compositor is about to fill and cannot overflow the length
+        // argument. A null address hint lets the kernel pick the address, so the mapping
+        // cannot alias the Rust frame it is created in, and `PROT_READ | PROT_WRITE` together
+        // with `MAP_SHARED` is what `zwlr_screencopy_frame_v1.buffer` requires of the shm
+        // pool. `MAP_FAILED` is rejected on the next line, so an invalid address is never
+        // stored.
         let ptr = unsafe {
             libc::mmap(
                 std::ptr::null_mut(),
@@ -109,6 +120,16 @@ impl Mapping {
 
     #[allow(unsafe_code)]
     fn as_slice(&self) -> &[u8] {
+        // SAFETY: `ptr` and `len` are exactly the pair captured from the successful `mmap` in
+        // `Mapping::new` (a `MAP_FAILED` result is rejected there and the fields are never
+        // mutated afterwards), so `[ptr, ptr + len)` is mapped memory of at least `len` bytes;
+        // `mmap` rounds the length up to whole pages and returns zero-filled pages for a
+        // freshly truncated memfd, so every one of those `len` bytes is initialized, which is
+        // what the `u8` element type of the slice requires. The null sentinel built by
+        // `PendingFrame::failed` (`ptr: null_mut`, `len: 0`) can never reach this call:
+        // `run_capture_loop` returns early on `pending.mapping.len == 0` and `copy_frame` is
+        // the only caller of `as_slice`. The returned slice borrows `&self`, so it cannot
+        // outlive the `Mapping` and `Drop::drop` cannot `munmap` underneath it.
         unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
     }
 }
@@ -119,11 +140,24 @@ impl Drop for Mapping {
         if self.ptr.is_null() {
             return;
         }
+        // SAFETY: the null check above skips the `PendingFrame::failed` sentinel, so `ptr` and
+        // `len` are the unchanged address/length pair that the successful `mmap` in
+        // `Mapping::new` was given, which is precisely the pair `munmap` must be given for the
+        // same mapping. `&mut self` proves exclusive access, so no `&[u8]` handed out by
+        // `as_slice` is still live while the pages are torn down. The return value is ignored
+        // because unmapping a mapping that `mmap` just created cannot fail.
         unsafe { libc::munmap(self.ptr.cast(), self.len) };
     }
 }
 
 #[allow(unsafe_code)]
+// SAFETY: `Mapping` owns its mapping outright: the `ptr`/`len` fields are private, the type
+// is neither `Copy` nor `Clone`, and no API ever hands out a `&mut` view of the mapped bytes,
+// so moving the value to another thread cannot produce two views of the same pages. The value
+// is only ever moved into `state.pending` and consumed on the single `orbiscreen-wlr-copy`
+// event thread spawned in `WlrScreencopyCapture::open`, where `copy_frame` borrows it and the
+// frame is released before the loop advances. `Mapping` deliberately stays `!Sync`, so no
+// shared reference to it crosses a thread boundary either.
 unsafe impl Send for Mapping {}
 
 #[derive(Default)]
@@ -374,20 +408,41 @@ impl PendingFrame {
 fn anonymous_shm_file(label: &str) -> Result<std::fs::File, String> {
     use std::os::fd::FromRawFd as _;
     let name = std::ffi::CString::new(label).map_err(|e| format!("shm name: {e}"))?;
+    // SAFETY: `name` is a `CString` that outlives this call and contains no interior NUL, so
+    // `name.as_ptr()` is a valid NUL-terminated string; `memfd_create` only reads it (the
+    // kernel copies it into the `/proc/self/fd` link) and derives no length from Rust, so
+    // there is no uninitialized or out-of-bounds read. `MFD_CLOEXEC` keeps the shm descriptor
+    // from leaking across `exec`.
     let fd = unsafe { libc::memfd_create(name.as_ptr(), libc::MFD_CLOEXEC) };
     if fd < 0 {
         return Err(format!("memfd_create: {}", std::io::Error::last_os_error()));
     }
+    // SAFETY: `fd` is the value `memfd_create` returned on the previous line, the `fd < 0`
+    // guard above already turned the error case into `Err`, and no other binding owns or
+    // closes it yet, so it is a fresh, valid, open descriptor. Ownership is transferred to
+    // the returned `File` exactly once, and `File` closes it on drop.
     Ok(unsafe { std::fs::File::from_raw_fd(fd) })
 }
 
 #[allow(unsafe_code)]
 fn unsafe_ftruncate(fd: std::os::fd::RawFd, len: usize) -> i32 {
+    // SAFETY: the only caller passes `file.as_raw_fd()` of a `std::fs::File` that is still
+    // alive for the duration of the call, so the descriptor is valid and open. `len` was
+    // computed as `checked_mul(stride, height)`, filtered to `<= i32::MAX`, and converted with
+    // `usize::try_from`, so `len as libc::off_t` is lossless and non-negative rather than a
+    // truncated or wrapped value. The caller checks the non-zero return and turns it into a
+    // failed frame.
     unsafe { libc::ftruncate(fd, len as libc::off_t) }
 }
 
 #[allow(unsafe_code)]
 fn borrowed_fd(fd: std::os::fd::RawFd) -> std::os::fd::BorrowedFd<'static> {
+    // SAFETY: the fabricated `'static` lifetime can never be observed, because the returned
+    // `BorrowedFd` is a private local of the caller's `Buffer` arm and is destroyed at the end
+    // of that scope; it is declared after `file`, so it drops first, i.e. strictly before the
+    // owning `std::fs::File` closes the descriptor. While it exists it is only used through
+    // `as_fd()` on the next line to pass the descriptor to `wl_shm.create_pool`, which reads
+    // it and closes nothing, and `BorrowedFd` itself has no `Drop` that closes the fd.
     unsafe { std::os::fd::BorrowedFd::borrow_raw(fd) }
 }
 
@@ -640,6 +695,14 @@ fn run_capture_loop(
 
 #[allow(unsafe_code)]
 fn poll_fd_readable(fds: &mut [libc::pollfd; 1]) -> libc::c_int {
+    // SAFETY: `fds` is `&mut [libc::pollfd; 1]`, so `as_mut_ptr()` is a writable, correctly
+    // aligned array of exactly one element that is uniquely borrowed for the whole call, and
+    // the `nfds` argument is the matching literal `1`, so `poll` can neither read nor write
+    // past that element; the only field it writes is `revents`, which the caller inspects via
+    // `fds[0].revents` after the call returns. The `fd` in element 0 comes from
+    // `guard.connection_fd()` in the caller and that read guard is still alive here, so the
+    // Wayland socket stays open across the call. `EVENT_POLL_TIMEOUT_MS` is a bounded, valid
+    // timeout and `poll` allocates nothing, so no aliasing can be introduced meanwhile.
     unsafe { libc::poll(fds.as_mut_ptr(), 1, EVENT_POLL_TIMEOUT_MS) }
 }
 

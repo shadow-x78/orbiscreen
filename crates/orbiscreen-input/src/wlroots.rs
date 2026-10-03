@@ -200,10 +200,25 @@ fn anonymous_keymap_file(bytes: &[u8]) -> Result<std::fs::File, String> {
     use std::io::Write as _;
     use std::os::fd::FromRawFd as _;
     let name = std::ffi::CString::new("orbiscreen-keymap").map_err(|e| e.to_string())?;
+    // SAFETY: `name` is the `CString` built by `CString::new("orbiscreen-keymap")` on the line
+    // above and propagated with `?`, so it is NUL-terminated, has no interior NUL (the literal
+    // has none, so this cannot actually fail), and outlives the call -- `memfd_create` only
+    // reads the name. `MFD_CLOEXEC` keeps the keymap descriptor out of any `exec`ed child. The
+    // `-1` return is checked on the next line so it never reaches `File::from_raw_fd`, and the
+    // descriptor is not yet owned by any Rust type, so nothing can close or recycle it before
+    // that hand-off on line 207.
     let fd = unsafe { libc::memfd_create(name.as_ptr(), libc::MFD_CLOEXEC) };
     if fd < 0 {
         return Err(format!("memfd_create: {}", std::io::Error::last_os_error()));
     }
+    // SAFETY: `from_raw_fd` requires a valid descriptor, and `fd < 0` was rejected above, so
+    // `fd >= 0` is a live memfd. Ownership transfer is unique and total: the raw `fd` was never
+    // wrapped in a `File` or `OwnedFd`, was never duplicated, and is not touched again after this
+    // line, so there is no double-close and no leak. From here the `File`'s `Drop` closes it
+    // exactly once. The file is deliberately kept alive in `state.keymap_file` for as long as
+    // the compositor may need the keymap bytes, and `keyboard.keymap(1, file.as_fd(), size)`
+    // takes a `BorrowedFd`, so the keymap stays valid for that request even though `WlState` is
+    // moved to the worker thread.
     let mut file = unsafe { std::fs::File::from_raw_fd(fd) };
     file.write_all(bytes)
         .map_err(|e| format!("write keymap: {e}"))?;
@@ -404,6 +419,23 @@ fn worker_loop(
                 events: libc::POLLIN,
                 revents: 0,
             }];
+            // SAFETY: `fds` is a fully initialized `[libc::pollfd; 1]` -- `fd`, `events` and
+            // `revents` are all assigned above -- so there is no uninitialized byte for `poll` to
+            // write `revents` into. `fds.as_mut_ptr()` points at exactly one element of that
+            // array and `nfds` is passed as 1, so `poll` can neither read nor write past the
+            // array. The `guard: ReadEventsGuard` from `conn.prepare_read()` is alive across the
+            // call, so the socket it holds an `Arc<ConnectionState>` to is open, and the
+            // `prepared_reads` count it incremented is what makes the later `guard.read()` the
+            // single reader of that socket -- wayland-backend documents that the guard must be
+            // created before polling, and dropping it without reading is explicitly allowed and
+            // merely cancels the prepared read, so the `ready == 0` path is safe too. `fd` came
+            // from `guard.connection_fd()`, a `BorrowedFd<'_>` tied to `&guard`, so the
+            // descriptor is valid and non-recycled for the whole poll. `timeout = 0` keeps the
+            // poll non-blocking so it cannot stall the worker's command drain, and only the
+            // single `orbiscreen-wlr-input` thread ever touches this connection (`conn`, `queue`
+            // and `state` are moved into `worker_loop`; `WlrootsInjector` keeps only the
+            // `SyncSender` and the `JoinHandle`), so no other thread can consume the readiness
+            // this poll is signalling.
             #[allow(unsafe_code)]
             let ready = unsafe { libc::poll(fds.as_mut_ptr(), 1, 0) };
             if ready > 0 && fds[0].revents & libc::POLLIN != 0 && guard.read().is_err() {

@@ -84,6 +84,11 @@ fn start_sway() -> Option<SwaySession> {
     let mut child = command.spawn().ok()?;
     let pid = child.id();
     #[allow(unsafe_code)]
+    // SAFETY: `libc::getuid` is the `getuid(2)` syscall wrapper: it takes no pointer, reads no
+    // memory, writes nothing, and returns the real UID of the calling process as a plain `uid_t`
+    // value, so there is no aliasing, initialization, or length obligation to uphold here. The
+    // result is only formatted into the sway IPC socket path, where sway requires the socket to
+    // be named with the same real UID that the server process is running under.
     let uid = unsafe { libc::getuid() };
     let ipc_name = format!("sway-ipc.{uid}.{pid}.sock");
     let fail = |mut c: Child, reason: &str| -> Option<SwaySession> {

@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 const MAX_PENDING_REQUESTS: usize = 8;
+/// Per-source ceiling on unauthenticated pairing requests.
+const MAX_PENDING_PER_PEER: usize = 2;
 const MAX_CLIENTS: usize = 16;
 const REQUEST_TTL_SECS: u64 = 600;
 
@@ -177,6 +179,16 @@ impl PairingRegistry {
         }
         data.expire();
         if data.requests.len() >= MAX_PENDING_REQUESTS {
+            return None;
+        }
+        // The endpoint is reachable without a credential, so a single address must not be
+        // able to spend the whole waitlist and lock the real device out.
+        let from_this_peer = data
+            .requests
+            .iter()
+            .filter(|p| p.request.peer == peer)
+            .count();
+        if from_this_peer >= MAX_PENDING_PER_PEER {
             return None;
         }
         let request = PairingRequest {
@@ -623,15 +635,24 @@ mod tests {
     #[test]
     fn pending_capacity_rejects_without_eviction() {
         let reg = registry();
+        // One address per slot: request_pairing also caps a single source at
+        // MAX_PENDING_PER_PEER, so a shared address could not exercise the global ceiling.
+        let peer = |i: usize| format!("192.0.2.{i}");
         let requests: Vec<_> = (0..MAX_PENDING_REQUESTS)
-            .map(|_| reg.request("Tablet", PEER).unwrap())
+            .map(|i| reg.request("Tablet", &peer(i + 1)).unwrap())
             .collect();
-        assert!(reg.request("Tablet", PEER).is_none());
+        assert!(reg
+            .request("Tablet", &peer(MAX_PENDING_REQUESTS + 1))
+            .is_none());
         assert_eq!(reg.pending_requests()[0].request_id, requests[0]);
         assert!(reg.deny(&requests[0]).unwrap());
-        assert!(reg.request("Tablet", PEER).is_some());
+        assert!(reg
+            .request("Tablet", &peer(MAX_PENDING_REQUESTS + 1))
+            .is_some());
         expire(&reg);
-        assert!(reg.request("Tablet", PEER).is_some());
+        assert!(reg
+            .request("Tablet", &peer(MAX_PENDING_REQUESTS + 2))
+            .is_some());
         assert_eq!(reg.pending_requests().len(), 1);
     }
 
@@ -928,7 +949,7 @@ mod tests {
         let path = dir.path();
         let reg = PairingRegistry::load_from(Some(path.clone())).unwrap();
         let requests: Vec<_> = (0..MAX_PENDING_REQUESTS)
-            .map(|_| reg.request("Tablet", PEER).unwrap())
+            .map(|i| reg.request("Tablet", &format!("192.0.2.{i}")).unwrap())
             .collect();
         std::thread::scope(|scope| {
             let handles: Vec<_> = requests
@@ -945,8 +966,8 @@ mod tests {
             std::fs::read_dir(path.parent().unwrap()).unwrap().count(),
             1
         );
-        for request in requests {
-            let credential = reg.claim(&request, PEER).unwrap();
+        for (i, request) in requests.iter().enumerate() {
+            let credential = reg.claim(request, &format!("192.0.2.{i}")).unwrap();
             assert!(reloaded.verify(&credential).is_some());
         }
     }

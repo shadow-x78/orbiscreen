@@ -1337,6 +1337,7 @@ async fn run_start_per_client(
     let (shutdown_tx, mut shutdown_rx) = tokio::sync::watch::channel(false);
     let shutdown_keepalive = shutdown_tx.clone();
     let dbus_handles = std::sync::Arc::new(dbus::DaemonHandles {
+        owner_uid: dbus::current_uid(),
         is_running: is_running.clone(),
         stats: stats.clone(),
         config: std::sync::RwLock::new(cfg.clone()),
@@ -2922,6 +2923,7 @@ async fn run_start(
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let backend_name = source.backend_name();
     let dbus_handles = std::sync::Arc::new(dbus::DaemonHandles {
+        owner_uid: dbus::current_uid(),
         is_running: is_running.clone(),
         stats: stats.clone(),
         config: std::sync::RwLock::new(cfg.clone()),

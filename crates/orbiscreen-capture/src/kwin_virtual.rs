@@ -975,6 +975,13 @@ fn pump_events(
             events: libc::POLLIN,
             revents: 0,
         }];
+        // SAFETY: `fds` is a local `[libc::pollfd; 1]` reached through `&mut`, so
+        // `as_mut_ptr()` is a writable, properly aligned one-element array uniquely borrowed
+        // for the whole call, and the `nfds` argument is the matching literal `1`; `poll` can
+        // only write `revents` of that element, which the caller reads afterwards through
+        // `fds[0].revents`, and it can neither read nor write past the single element. The
+        // watched `fd` is `guard.connection_fd()` and `guard` is still alive here, so the
+        // zkde_screencast socket stays open across the call.
         let ready = unsafe { libc::poll(fds.as_mut_ptr(), 1, EVENT_POLL_TIMEOUT_MS) };
         if ready > 0 && fds[0].revents & libc::POLLIN != 0 {
             if let Err(e) = guard.read() {

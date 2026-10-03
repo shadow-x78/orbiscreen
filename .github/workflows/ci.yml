@@ -57,6 +57,12 @@ jobs:
           done
           exit "$status"
 
+      # ── Release Consistency ──
+      # The version is duplicated across ~25 files because each ecosystem needs its own
+      # format, and a release has shipped an Android versionName that lagged the rest.
+      - name: Check version consistency
+        run: ./scripts/check-versions.sh
+
       # ── Lint & Format ──
       - name: Check formatting
         run: cargo fmt --all -- --check

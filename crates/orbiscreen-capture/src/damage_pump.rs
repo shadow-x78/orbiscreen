@@ -287,10 +287,20 @@ fn anonymous_shm_file() -> Result<std::fs::File, String> {
     use std::os::fd::FromRawFd as _;
     let name =
         std::ffi::CString::new("orbiscreen-damage-shm").map_err(|e| format!("shm name: {e}"))?;
+    // SAFETY: `name` is a `CString` that outlives this call and contains no interior NUL, so
+    // `name.as_ptr()` is a valid NUL-terminated string; `memfd_create` only reads it (the
+    // kernel copies it into the `/proc/self/fd` link) and derives no length from Rust, so
+    // there is no uninitialized or out-of-bounds read. `MFD_CLOEXEC` keeps the damage-pump shm
+    // descriptor from leaking across `exec`.
     let fd = unsafe { libc::memfd_create(name.as_ptr(), libc::MFD_CLOEXEC) };
     if fd < 0 {
         return Err(format!("memfd_create: {}", std::io::Error::last_os_error()));
     }
+    // SAFETY: `fd` is the descriptor `memfd_create` just returned, the `fd < 0` guard above
+    // already turned the error case into `Err`, and nothing else owns or closes it yet, so it
+    // is a fresh, valid, open descriptor. Ownership passes to the returned `File` exactly
+    // once, and `File` closes it on drop; the caller uses it only via `as_fd()` to create the
+    // `wl_shm_pool`, which borrows it.
     Ok(unsafe { std::fs::File::from_raw_fd(fd) })
 }
 

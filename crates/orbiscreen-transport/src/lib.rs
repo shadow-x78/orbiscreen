@@ -533,6 +533,33 @@ pub(crate) fn should_redirect_browser_to_https(path: &str) -> bool {
     matches!(path, "/" | "/client" | "/client/" | "/client/index.html")
 }
 
+/// Paths that carry a bearer token, user input, or a pairing decision. Served over the
+/// cleartext listener they would put the session credential, keystrokes and approval
+/// choices on the wire in the clear, so they are redirected to the TLS listener instead.
+///
+/// `/health` and `/api/info` are deliberately excluded: a device has to be able to read
+/// the host's version, display geometry and TLS port before it has a certificate to pin,
+/// and neither response contains a credential. `/client/*` static assets are public and
+/// carry nothing; the browser entry points are already upgraded by
+/// [`should_redirect_browser_to_https`].
+fn should_redirect_to_https(path: &str) -> bool {
+    const TLS_ONLY: &[&str] = &[
+        "/api/session",
+        "/api/control",
+        "/api/udp-key",
+        "/api/pair",
+        "/api/pair/request",
+        "/api/pair/status",
+        "/client/config.json",
+        "/idr",
+        "/input",
+        "/input/ws",
+        "/stream",
+        "/au",
+    ];
+    TLS_ONLY.contains(&path)
+}
+
 pub(crate) fn hostname_from_host_header(host: &str) -> &str {
     if let Some(rest) = host.strip_prefix('[') {
         if let Some(end) = rest.find(']') {
@@ -562,10 +589,11 @@ async fn http_to_https(
     let Some(port) = state.wt_offer.as_ref().map(|o| o.port) else {
         return next.run(request).await;
     };
-    if request.method() != axum::http::Method::GET && request.method() != axum::http::Method::HEAD {
-        return next.run(request).await;
-    }
-    if !should_redirect_browser_to_https(request.uri().path()) {
+    let path = request.uri().path();
+    let browser_navigation = (request.method() == axum::http::Method::GET
+        || request.method() == axum::http::Method::HEAD)
+        && should_redirect_browser_to_https(path);
+    if !browser_navigation && !should_redirect_to_https(path) {
         return next.run(request).await;
     }
     let host = request
@@ -577,8 +605,10 @@ async fn http_to_https(
         .uri()
         .path_and_query()
         .map(|p| p.as_str())
-        .unwrap_or(request.uri().path());
-    axum::response::Redirect::permanent(&https_redirect_location(host, pq, port)).into_response()
+        .unwrap_or(path);
+    // 308 keeps the method and body, so a POST /input follows the redirect intact and a
+    // native client re-sends its Authorization header.
+    axum::response::Redirect::temporary(&https_redirect_location(host, pq, port)).into_response()
 }
 
 async fn serve_https(
@@ -620,11 +650,39 @@ async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
     }))
 }
 
+/// Reads `?token=` from a query string.
+///
+/// Disabled by default: a credential in the query lands in proxy and server access logs,
+/// in browser history and in the `Referer` header of every subresource request. The
+/// shipped clients all present `Authorization: Bearer` instead, so re-enable this only
+/// for a third-party integration that cannot set headers.
 fn query_token(uri_query: Option<&str>) -> Option<&str> {
+    if !query_token_allowed() {
+        return None;
+    }
     uri_query?
         .split('&')
         .find_map(|pair| pair.strip_prefix("token="))
         .filter(|t| !t.is_empty())
+}
+
+/// Latched on first use so the daemon cannot be flipped mid-flight by an environment
+/// change that a later request would observe differently.
+fn query_token_allowed() -> bool {
+    use std::sync::OnceLock;
+    static ALLOWED: OnceLock<bool> = OnceLock::new();
+    *ALLOWED.get_or_init(|| {
+        let allowed = std::env::var("ORBISCREEN_ALLOW_QUERY_TOKEN")
+            .map(|v| matches!(v.trim(), "1" | "true" | "yes"))
+            .unwrap_or(false);
+        if allowed {
+            warn!(
+                "ORBISCREEN_ALLOW_QUERY_TOKEN is set: accepting ?token= in the query string, \
+                 which leaks the session credential into logs, history and Referer headers"
+            );
+        }
+        allowed
+    })
 }
 
 fn bearer_from_headers(headers: &HeaderMap) -> Option<String> {
@@ -2342,7 +2400,10 @@ mod tests {
             (Some("Bearer wrong"), "", false),
             (Some("Basic test-credential"), "", false),
             (Some("Bearer "), "", false),
-            (None, "?token=test-credential", true),
+            // A credential in the query string is refused unless
+            // ORBISCREEN_ALLOW_QUERY_TOKEN is set, because it leaks into logs, history
+            // and Referer headers.
+            (None, "?token=test-credential", false),
             (None, "?token=wrong", false),
             (None, "", false),
         ] {
@@ -2352,6 +2413,49 @@ mod tests {
             }
             let request = builder.body(axum::body::Body::empty()).unwrap();
             assert_eq!(request_has_token(&request, "test-credential"), accepted);
+        }
+    }
+
+    #[test]
+    fn a_query_string_token_is_refused_by_default() {
+        assert_eq!(query_token(Some("token=test-credential")), None);
+        assert_eq!(query_token(Some("a=1&token=test-credential")), None);
+        assert_eq!(query_token(Some("token=")), None);
+    }
+
+    #[test]
+    fn credential_paths_redirect_to_https() {
+        for path in [
+            "/api/session",
+            "/api/control",
+            "/api/udp-key",
+            "/api/pair",
+            "/api/pair/request",
+            "/api/pair/status",
+            "/idr",
+            "/input",
+            "/input/ws",
+            "/stream",
+            "/au",
+            "/client/config.json",
+        ] {
+            assert!(
+                should_redirect_to_https(path),
+                "{path} carries credentials but was still served over cleartext"
+            );
+        }
+        // Discovery and public assets stay reachable without a certificate, so a device
+        // can learn the host's version and TLS port before it has anything to pin.
+        for path in [
+            "/health",
+            "/api/info",
+            "/client/index.html",
+            "/client/app.js",
+        ] {
+            assert!(
+                !should_redirect_to_https(path),
+                "{path} was needlessly gated"
+            );
         }
     }
 
