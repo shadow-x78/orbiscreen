@@ -57,7 +57,26 @@ const AOA_GET_PROTOCOL: u8 = 51;
 const AOA_SEND_STRING: u8 = 52;
 const AOA_START_ACCESSORY: u8 = 53;
 const PRIO_QUEUE_CAP: usize = 8;
+type StreamEntry = (
+    std::sync::mpsc::SyncSender<Vec<u8>>,
+    TcpStream,
+    Arc<AtomicBool>,
+);
+type StreamMap = Arc<Mutex<HashMap<u16, StreamEntry>>>;
+
 const MAX_AOA_STREAMS: usize = 16;
+
+fn enforce_stream_limit(
+    map: &mut HashMap<u16, StreamEntry>,
+    incoming: u16,
+    max: usize,
+) -> Option<(u16, TcpStream)> {
+    if map.len() < max || map.contains_key(&incoming) {
+        return None;
+    }
+    let oldest = map.keys().copied().filter(|id| *id != incoming).min()?;
+    map.remove(&oldest).map(|(_, sock, _)| (oldest, sock))
+}
 
 const CONTROL_SEND_TIMEOUT: Duration = Duration::from_millis(500);
 
@@ -657,13 +676,6 @@ pub fn run_accessory_bridge(
         }
     });
 
-    type StreamEntry = (
-        std::sync::mpsc::SyncSender<Vec<u8>>,
-        TcpStream,
-        Arc<AtomicBool>,
-    );
-    type StreamMap = Arc<Mutex<HashMap<u16, StreamEntry>>>;
-
     let tcp_streams: StreamMap = Arc::new(Mutex::new(HashMap::new()));
     let mut rx_buf = vec![0u8; MAX_PAYLOAD_LEN + FRAME_HEADER_LEN];
     let mut acc_buf = Vec::new();
@@ -791,16 +803,17 @@ pub fn run_accessory_bridge(
                             let is_video = Arc::new(AtomicBool::new(false));
                             if let Ok(stream_for_map) = tcp_stream.try_clone() {
                                 let mut map = tcp_streams.lock().unwrap_or_else(|p| p.into_inner());
-                                if map.len() >= MAX_AOA_STREAMS && !map.contains_key(&stream_id) {
+                                if let Some((evicted_stream_id, evicted)) =
+                                    enforce_stream_limit(&mut map, stream_id, MAX_AOA_STREAMS)
+                                {
+                                    let _ = evicted.shutdown(std::net::Shutdown::Both);
                                     warn!(
+                                        evicted_stream_id,
                                         stream_id,
                                         open_streams = map.len(),
                                         max_streams = MAX_AOA_STREAMS,
-                                        "AOA stream limit reached; refusing a new stream"
+                                        "AOA stream limit reached; evicted the oldest stream"
                                     );
-                                    drop(map);
-                                    let _ = send_control(&prio_tx, encode_video_close());
-                                    continue;
                                 }
                                 map.insert(stream_id, (tcp_tx, stream_for_map, is_video.clone()));
                             }
@@ -1046,6 +1059,80 @@ pub async fn supervisor(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A loopback pair standing in for a device stream, so the limit logic can be exercised
+    /// without USB hardware.
+    fn fake_streams(ids: &[u16]) -> HashMap<u16, StreamEntry> {
+        let mut map = HashMap::new();
+        for &id in ids {
+            let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
+            let addr = listener.local_addr().expect("addr");
+            std::thread::spawn(move || {
+                let _ = listener.accept();
+            });
+            let sock = std::net::TcpStream::connect(addr).expect("connect");
+            let (tx, _rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(1);
+            map.insert(id, (tx, sock, Arc::new(AtomicBool::new(false))));
+        }
+        map
+    }
+
+    #[test]
+    fn the_stream_bound_evicts_the_oldest_instead_of_refusing() {
+        let mut map = fake_streams(&[1, 2, 3]);
+        assert!(enforce_stream_limit(&mut map, 4, 4).is_none());
+        assert_eq!(map.len(), 3);
+
+        let evicted = enforce_stream_limit(&mut map, 4, 3).expect("evict");
+        assert_eq!(evicted.0, 1, "the lowest id is the oldest stream");
+        assert!(!map.contains_key(&1));
+        assert!(map.contains_key(&3), "stream 3 is retained");
+        assert_eq!(
+            map.len(),
+            2,
+            "one entry left after the caller inserts its own"
+        );
+    }
+
+    #[test]
+    fn re_opening_an_existing_stream_id_is_never_an_eviction() {
+        let mut map = fake_streams(&[1, 2, 3]);
+        assert!(enforce_stream_limit(&mut map, 2, 3).is_none());
+        assert_eq!(
+            map.len(),
+            3,
+            "a re-open of a live id must not drop anything"
+        );
+    }
+
+    #[test]
+    fn repeated_reconnects_never_exhaust_the_bound() {
+        // connect after enough attempts.
+        let mut map = fake_streams(&[0]);
+        for id in 1..200u16 {
+            if let Some((evicted, sock)) = enforce_stream_limit(&mut map, id, MAX_AOA_STREAMS) {
+                let _ = sock.shutdown(std::net::Shutdown::Both);
+                assert!(evicted < id, "the oldest id is always the one dropped");
+            }
+            map.insert(id, fake_entry());
+            assert!(
+                map.len() <= MAX_AOA_STREAMS,
+                "the bound grew to {} entries",
+                map.len()
+            );
+        }
+    }
+
+    fn fake_entry() -> StreamEntry {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
+        let addr = listener.local_addr().expect("addr");
+        std::thread::spawn(move || {
+            let _ = listener.accept();
+        });
+        let sock = std::net::TcpStream::connect(addr).expect("connect");
+        let (tx, _rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(1);
+        (tx, sock, Arc::new(AtomicBool::new(false)))
+    }
 
     #[test]
     fn the_priority_lane_is_bounded() {

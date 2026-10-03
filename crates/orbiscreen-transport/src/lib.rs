@@ -572,12 +572,20 @@ pub(crate) fn https_redirect_location(host: &str, path_and_query: &str, https_po
 
 async fn http_to_https(
     State(state): State<AppState>,
+    axum::extract::ConnectInfo(peer): axum::extract::ConnectInfo<SocketAddr>,
     request: axum::extract::Request,
     next: middleware::Next,
 ) -> axum::response::Response {
     let Some(port) = state.wt_offer.as_ref().map(|o| o.port) else {
         return next.run(request).await;
     };
+    // Loopback is host-local authority: the D-Bus, GUI, and the AOA bridge dial the
+    // cleartext listener from here. Redirecting these requests would hand the AOA
+    // proxy a 307 to an HTTPS port it cannot reach from the USB tunnel, which is why
+    // the accessory silently dropped every stream.
+    if peer.ip().is_loopback() {
+        return next.run(request).await;
+    }
     let path = request.uri().path();
     let browser_navigation = (request.method() == axum::http::Method::GET
         || request.method() == axum::http::Method::HEAD)
@@ -2387,6 +2395,71 @@ mod tests {
         assert_eq!(query_token(Some("token=test-credential")), None);
         assert_eq!(query_token(Some("a=1&token=test-credential")), None);
         assert_eq!(query_token(Some("token=")), None);
+    }
+
+    // The AOA bridge dials the cleartext listener over a raw TCP socket, exactly like a
+    // device behind the accessory tunnel would. A redirect on /client/config.json
+    // leaves the proxy with a Location: header it cannot reach.
+    #[tokio::test]
+    async fn loopback_clients_are_not_redirected_to_tls() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let state = config_test_state();
+        let app = build_http_router(state);
+        let listener = tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0)))
+            .await
+            .expect("bind");
+        let port = listener.local_addr().expect("local_addr").port();
+        tokio::spawn(async move {
+            axum::serve(
+                listener,
+                app.into_make_service_with_connect_info::<SocketAddr>(),
+            )
+            .await
+            .unwrap();
+        });
+        for path in [
+            "/client/config.json",
+            "/api/session",
+            "/api/control",
+            "/api/udp-key",
+            "/idr",
+            "/api/pair",
+            "/api/pair/request",
+            "/api/pair/status",
+            "/health",
+            "/api/info",
+        ] {
+            let mut stream = tokio::net::TcpStream::connect(("127.0.0.1", port))
+                .await
+                .expect("connect");
+            stream
+                .write_all(
+                    format!("GET {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+                        .into_bytes()
+                        .as_slice(),
+                )
+                .await
+                .expect("write");
+            let mut status_line = vec![0_u8; 4096];
+            let mut n = 0;
+            while n < status_line.len() {
+                let m = stream.read(&mut status_line[n..]).await.expect("read");
+                if m == 0 {
+                    break;
+                }
+                n += m;
+                if status_line[..n].windows(2).any(|w| w == b"\r\n") {
+                    break;
+                }
+            }
+            let head = String::from_utf8_lossy(&status_line[..n]);
+            let status = head.split_whitespace().nth(1).unwrap_or("");
+            assert!(
+                status != "307" && status != "308",
+                "{path} was redirected from loopback: {head:?}"
+            );
+        }
     }
 
     #[test]
