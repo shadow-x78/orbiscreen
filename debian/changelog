@@ -1,3 +1,11 @@
+orbiscreen (0.32.7~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.32.7 for Ubuntu noble.
+  * cross-session input injection, Tauri UI, packaging gaps.
+  * Bump version to 0.32.7 across all packages; Android versionCode 132.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.32.6~ubuntunoble1) noble; urgency=medium
 
   * Release 0.32.6 for Ubuntu noble.

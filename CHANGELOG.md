@@ -4,6 +4,55 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.32.7] - 2026-10-03
+
+### Security
+- Cross-session input injection: `input_post` and `input_ws` passed the client-supplied `x-orbiscreen-session` straight through to `DisplayCommand::Input`, where `resolve_id` performs no ownership check. Any holder of a valid credential - including the low-privilege loopback token, which a USB-attached device can obtain - could inject touch, pointer and key events into a session owned by a different paired client. Session ids are sequential and therefore enumerable. Both entry points now authorize the session before dispatch, with regression tests.
+- Session authorization failed open: `session_action_allowed` returned `true` whenever a session had no recorded owner, so any authenticated credential could `DELETE /api/session`, force an IDR, or change the resolution of a session it did not own. It now denies unless the caller presents the master or loopback token.
+- WebTransport: the shared host token bypassed display-session ownership entirely and could attach to a stream owned by a paired client.
+- WebTransport: `cert_usable` checked only `not_after`, so a persisted certificate that was not yet valid was served indefinitely and never replaced.
+- UDP: the client table was unbounded. Every accepted `Hello` inserted a `UdpClient` and attached a display session, so one known UDP key plus spoofed source addresses could spawn encoders without limit. Capped at 8, matching the HTTP and WebTransport paths (`ORBISCREEN_UDP_MAX_CLIENTS` raises it).
+- Android: `PinnedHostProxy` accumulated the WebSocket upgrade response head without a ceiling, so a hostile upstream could stream into the heap until the process died. Capped at 64 KiB.
+- Input WebSocket frames had no size cap and inherited tungstenite's 64 MiB default; capped at 64 KiB.
+- Tauri: `open_browser` passed any string to `xdg-open` unchecked and swallowed spawn errors. It now requires an `http`/`https` URL and reports failures.
+- Added `Strict-Transport-Security` on the TLS listener.
+- CI: the release workflow granted `contents: write` to the `verify` gate, which runs on untrusted refs. The PPA workflow reused `RPM_GPG_KEY` for upload capability while also allowing unsigned uploads.
+- Supply chain: the Gradle wrapper shipped no `distributionSha256Sum`; the two remaining GitHub Actions in the PPA workflow are now pinned by SHA.
+
+### Fixed
+- Desktop control center (Tauri): two template literals had been truncated to `` `http: `` by an earlier comment-stripping pass, so the entire UI failed to parse. Broken since v0.25.2. `ci.yml` now runs `node --check` over every front-end script so this class of damage cannot ship again.
+- `install.sh` copied the web client into `~/.local/share/orbiscreen/client` without creating it, so a fresh install aborted on the first `cp` under `set -euo pipefail`. It also installed a desktop entry that launches `orbiscreen-gui` without ever building it.
+- `package-appimage.sh` and `scripts/orbiscreen-local.spec` shipped neither `annexb.js` nor `stats.js`, both loaded by `index.html`, so the client 404'd on those two paths.
+- `debian/control` lacked the WebKitGTK build dependencies `debian/rules` needs for `cargo build --workspace` and omitted `${shlibs:Depends}`, leaving the package uninstallable. Neither the Debian nor the manual `.deb` path installed `99-orbiscreen-usb.rules`, so USB/AOA never worked on Debian or Ubuntu.
+- `debian/changelog` carried a Debian revision under `3.0 (native)` in all 84 entries.
+- The installed systemd user unit was never enabled by any packager.
+- `99-orbiscreen-usb.rules` applied `MODE="0660"` to every device of 15 vendors, handing them to the device group rather than just the console user; the explicit mode is now limited to the AOA product ids.
+- COPR spec declared `rust >= 1.75` against `rust-version 1.92`, and listed `orbiscreen-gui` unconditionally while its install step made it conditional. `package-deb.sh` hardcoded `ARCH="amd64"`.
+- `package-appimage.sh` ignored the version argument the release workflow passed it, so no AppImage was ever versioned.
+- Android: `PlayerHolder.checkHostAlive` built a new `OkHttpClient` per call, and each client owns a connection pool plus a dispatcher thread pool, so every reconnect attempt leaked one of each. The stream client was also a `by lazy` val that `release()` shut down, leaving `postIdr()` and later retries on a dead client.
+- Android: `StreamStats` published five fields from the playback thread that were read under a lock guarding only the ring buffers, so the 100 ms UI poll could read stale values.
+- Android: `closeSession` interpolated the host-supplied session id into the query string, so a value containing `&` or `#` changed the request instead of naming the session.
+- Android: the USB stream id counter could wrap onto an id a live socket still held, overwriting the map entry.
+- Android: the handshake IDR retry polled every 250 ms, turning a handshake that never produced a keyframe into four `/api/control` requests per second.
+- Web client: the WebTransport URL was hardcoded to `:8790/orbiscreen`, ignoring `wt_port`, `wt_path` and `pickWtHost`.
+- Web client: the Annex-B read loop had no session guard, so a loop from a previous stream could keep feeding a new decoder, and `scheduleReconnect` fired twice per failure.
+- Web client: the datagram assembler's multi-block map and the frame reader grew without bound, and a short `PING` frame threw out of `decodeMessage` and killed the session.
+- Web client: `destroyPlayer` left queued animation frames and the stats interval running, so a disconnected tab kept POSTing to `/input`.
+
+### Changed
+- Restore the upstream MIT notice in the vendored `qrcode.js`, which an earlier comment-stripping pass had truncated. A vendored MIT file inside a GPL-3.0 repository has to keep its notice.
+- Remove `SubnetScanner.kt` and `WifiGatewayProvider.kt`: the subnet sweep was never wired up. Also removed `DiscoveryViewModel.hostApi`/`scannedHosts`/`_scanTick`, `UdpPlayer.encodeHello`/`assemble`, `IdrFrames.resyncSkips`, and the unused `betaBadge`/`trailing` parameters in `SettingsScreen`.
+- Add the standard project banner to the six config and resource files that lacked it.
+- `.env.example`: `ORBISCREEN_HOST` and `ORBISCREEN_PORT` were documented but read nowhere, and the documented port was not the default; both removed, and the nine variables the code actually reads are now documented.
+- `ci.yml`: `RUSTFLAGS: -D warnings` applied to registry dependencies too; removed in favour of `clippy -- -D warnings` on workspace crates only.
+- Version bumped to 0.32.7 across the Cargo workspace, Android (`versionCode` 132), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
+## [v0.32.7] - 2026-10-03
+
+### Changed
+- cross-session input injection, Tauri UI, packaging gaps.
+- Version bumped to 0.32.7 across the Cargo workspace, Android (`versionCode` 132), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.32.6] - 2026-10-03
 
 ### Changed
