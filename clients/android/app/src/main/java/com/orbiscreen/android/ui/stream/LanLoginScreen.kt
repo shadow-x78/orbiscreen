@@ -47,7 +47,6 @@ fun LanLoginScreen(viewModel: StreamViewModel, login: LoginState, onBack: () -> 
                     }
                     Button(onClick = viewModel::confirmFingerprint, modifier = Modifier.fillMaxWidth()) {
                         Text("Fingerprint matches — request approval")
-                        Text("Fingerprint matches - request approval")
                     }
                 }
                 LoginStage.Failed -> {

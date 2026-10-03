@@ -34,11 +34,13 @@ class StreamStats(
     private val presented = IntArray(n)
     private var head = 0
     private var cursorBucket = Long.MIN_VALUE
-    private var delayMs: Int? = null
-    private var presentedSentNs: Long = 0L
-    private var presentedAtMs: Long = 0L
-    private var livePtsOriginUs: Long = Long.MIN_VALUE
-    private var liveWallOriginMs: Long = 0L
+    // Written from the playback thread and read from the UI polling thread under `lock`;
+    // the lock only guards the ring buffers, so these need their own visibility.
+    @Volatile private var delayMs: Int? = null
+    @Volatile private var presentedSentNs: Long = 0L
+    @Volatile private var presentedAtMs: Long = 0L
+    @Volatile private var livePtsOriginUs: Long = Long.MIN_VALUE
+    @Volatile private var liveWallOriginMs: Long = 0L
     @Volatile var clockOffsetNs: Long = 0L
 
     fun reset() {

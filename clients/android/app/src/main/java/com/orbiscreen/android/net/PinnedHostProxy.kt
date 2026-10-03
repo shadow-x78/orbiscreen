@@ -20,6 +20,9 @@ import kotlin.concurrent.thread
 
 internal fun pinnedProxyAllows(path: String): Boolean = path in PINNED_PROXY_PATHS
 
+/** A WebSocket upgrade response head is a few hundred bytes; anything larger is an attack. */
+private const val MAX_UPGRADE_HEAD_BYTES = 64 * 1024
+
 private val PINNED_PROXY_PATHS = setOf(
     "/stream",
     "/input",
@@ -197,6 +200,9 @@ class PinnedHostProxy internal constructor(
         val head = ByteArrayOutputStream()
         var sawBlank = false
         while (!sawBlank) {
+            if (head.size() > MAX_UPGRADE_HEAD_BYTES) {
+                throw IOException("upstream upgrade response head exceeded ${MAX_UPGRADE_HEAD_BYTES} bytes")
+            }
             val b = upstreamIn.read()
             if (b < 0) throw IOException("upstream closed during upgrade")
             head.write(b)

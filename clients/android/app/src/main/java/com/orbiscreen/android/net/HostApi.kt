@@ -275,8 +275,16 @@ class HostApi {
     suspend fun closeSession(host: String, port: Int, token: String, id: String) {
         withContext(Dispatchers.IO) {
             try {
+                val url = HttpUrl.Builder()
+                    .scheme("http")
+                    .host(host)
+                    .port(port)
+                    .addPathSegment("api")
+                    .addPathSegment("session")
+                    .addQueryParameter("id", id)
+                    .build()
                 val req = Request.Builder()
-                    .url("http://$host:$port/api/session?id=$id")
+                    .url(url)
                     .header("Authorization", "Bearer $token")
                     .delete()
                     .build()

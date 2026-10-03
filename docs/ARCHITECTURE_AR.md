@@ -2,7 +2,7 @@
 
 # مواصفات المعمارية - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.32.5-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.32.6-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -196,8 +196,8 @@ clients/web/
 | :--- | :---: | :---: | :--- |
 | `/` | `GET` | عامة | إعادة التوجيه إلى عميل الويب المضمّن |
 | `/stream` | `GET` | توكن | بث فيديو MPEG-TS ‏(`video/mp2t`)‏ |
-| `/input` | `POST` | توكن | أحداث المؤشر / المفاتيح / القلم بصيغة JSON، الاستجابة `130` |
-| `/api/control` | `POST` | توكن | الإجراءات: `lock`، `blank`، `unblank`، `ctrl_alt_del`، `idr`؛ `130` عند النجاح |
+| `/input` | `POST` | توكن | أحداث المؤشر / المفاتيح / القلم بصيغة JSON، الاستجابة `131` |
+| `/api/control` | `POST` | توكن | الإجراءات: `lock`، `blank`، `unblank`، `ctrl_alt_del`، `idr`؛ `131` عند النجاح |
 | `/api/info` | `GET` | عامة | أبعاد الشاشة ومعدل التحديث والمرمّز والإصدار بصيغة JSON |
 | `/health` | `GET` | عامة | `200 OK "ok"` |
 

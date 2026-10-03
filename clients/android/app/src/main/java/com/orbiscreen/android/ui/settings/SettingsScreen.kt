@@ -702,11 +702,12 @@ private fun DeveloperCard(onOpenProfile: () -> Unit) {
                     .url("https://github.com/shadow-x78.png")
                     .header("User-Agent", "Orbiscreen-Android")
                     .build()
-                val res = client.newCall(req).execute()
-                if (res.isSuccessful) {
-                    res.body?.byteStream()?.use { stream ->
-                        val bmp = BitmapFactory.decodeStream(stream)
-                        bmp?.let { avatarBitmap = it.asImageBitmap() }
+                client.newCall(req).execute().use { res ->
+                    if (res.isSuccessful) {
+                        res.body?.byteStream()?.use { stream ->
+                            val bmp = BitmapFactory.decodeStream(stream)
+                            bmp?.let { avatarBitmap = it.asImageBitmap() }
+                        }
                     }
                 }
             } catch (_: Exception) {}

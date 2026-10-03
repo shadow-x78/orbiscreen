@@ -28,7 +28,7 @@ default-members = [
 
 # ── Package Metadata ──
 [workspace.package]
-version = "0.32.5"
+version = "0.32.6"
 edition = "2021"
 rust-version = "1.92"
 license = "GPL-3.0-or-later"

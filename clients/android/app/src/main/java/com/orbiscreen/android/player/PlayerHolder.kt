@@ -123,15 +123,36 @@ class PlayerHolder(
                 if (sid.isNotBlank()) {
                     reqBuilder.header("X-Orbiscreen-Session", sid)
                 }
-                okHttp.newCall(reqBuilder.build()).execute().close()
+                httpClient().newCall(reqBuilder.build()).execute().close()
             } catch (_: Exception) {}
         }
     }
 
-    private val okHttp: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+    private var okHttp: OkHttpClient? = null
+
+    /** Recreated after release(), so a retry never runs against a shut-down client. */
+    private fun httpClient(): OkHttpClient =
+        okHttp ?: OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.MILLISECONDS)
+            .build()
+            .also { okHttp = it }
+
+    private fun shutdownHttpClient() {
+        okHttp?.dispatcher?.executorService?.shutdown()
+        okHttp?.connectionPool?.evictAll()
+        okHttp = null
+    }
+
+    /**
+     * Liveness probe. It used to build a fresh OkHttpClient per call, and OkHttpClient owns
+     * a connection pool plus a dispatcher thread pool, so every reconnect attempt and every
+     * poll leaked one of each.
+     */
+    private val probeHttp: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(500, TimeUnit.MILLISECONDS)
+            .readTimeout(500, TimeUnit.MILLISECONDS)
             .build()
     }
 
@@ -280,7 +301,7 @@ class PlayerHolder(
             if (!identityKey.isNullOrBlank()) {
                 headers["X-Orbiscreen-Client-Key"] = identityKey
             }
-            val httpFactory = OkHttpDataSource.Factory(okHttp)
+            val httpFactory = OkHttpDataSource.Factory(httpClient())
                 .setUserAgent("Orbiscreen-Android/${com.orbiscreen.android.BuildConfig.VERSION_NAME}")
                 .setDefaultRequestProperties(headers)
             val dataSourceFactory = DefaultDataSource.Factory(context, httpFactory)
@@ -453,15 +474,11 @@ class PlayerHolder(
     private suspend fun checkHostAlive(host: String, port: Int): Boolean =
         kotlinx.coroutines.withContext(Dispatchers.IO) {
             try {
-                val client = OkHttpClient.Builder()
-                    .connectTimeout(500, TimeUnit.MILLISECONDS)
-                    .readTimeout(500, TimeUnit.MILLISECONDS)
-                    .build()
                 val req = okhttp3.Request.Builder()
                     .url("http://$host:$port/health")
                     .get()
                     .build()
-                client.newCall(req).execute().use { resp ->
+                probeHttp.newCall(req).execute().use { resp ->
                     resp.isSuccessful
                 }
             } catch (_: Exception) {
@@ -546,8 +563,7 @@ class PlayerHolder(
         lastTarget = null
         releaseInternal()
         scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
-        okHttp.dispatcher.executorService.shutdown()
-        okHttp.connectionPool.evictAll()
+        shutdownHttpClient()
     }
 
     private fun releaseInternal() {
