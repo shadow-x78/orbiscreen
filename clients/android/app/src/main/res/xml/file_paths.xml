@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- ─────────────────────────────────────────────
+     Orbiscreen - File Provider Paths
+     https://github.com/shadow-x78/orbiscreen
+     ───────────────────────────────────────────── -->
+
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <cache-path name="apk_updates" path="updates/" />
 </paths>

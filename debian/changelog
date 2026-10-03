@@ -1,3 +1,11 @@
+orbiscreen (0.32.3~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.32.3 for Ubuntu noble.
+  * standardize banner comments on non-code files.
+  * Bump version to 0.32.3 across all packages; Android versionCode 128.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.32.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.32.2 for Ubuntu noble.

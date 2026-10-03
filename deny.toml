@@ -30,14 +30,16 @@ all-features = false
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 ignore = [
+  # ── Unmaintained: `derivative` / `proc-macro-error` come from `syn` 1.x via `zvariant_derive` ──
   "RUSTSEC-2024-0388",
+  # ── Unmaintained: rustls-pemfile 2.x, no maintained upgrade on axum-server 0.7 ──
   "RUSTSEC-2024-0370",
+  # ── Unmaintained: `unic-*` 0.9 crates, pulled in by an old `deunicode` dependency ──
   "RUSTSEC-2025-0075",
   "RUSTSEC-2025-0080",
   "RUSTSEC-2025-0081",
   "RUSTSEC-2025-0098",
   "RUSTSEC-2025-0100",
-  # ── Rustls Pemfile Exception (No Maintained Upgrade on axum-server 0.7) ──
   "RUSTSEC-2025-0134",
 ]
 

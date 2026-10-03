@@ -1,8 +1,12 @@
+<!-- ─────────────────────────────────────────────
+     Orbiscreen - Android Strings (English)
+     https://github.com/shadow-x78/orbiscreen
+     ───────────────────────────────────────────── -->
+
 <resources>
     <string name="app_name">Orbiscreen</string>
     <string name="discovery_title">Orbiscreen</string>
     <string name="discovery_subtitle">Select host or connect manually</string>
-    <string name="add_manually">Manual</string>
     <string name="host_label">Host Address</string>
     <string name="connect">Connect</string>
     <string name="usb_connect">USB</string>
@@ -10,16 +14,12 @@
     <string name="usb_status_ready">USB connected</string>
     <string name="usb_status_aoa_ready">USB Direct (AOA)</string>
     <string name="usb_desc_aoa_connected">Direct high-speed USB streaming</string>
-    <string name="usb_status_tunnel_down">Connect USB cable to host PC</string>
-    <string name="usb_badge">USB</string>
     <string name="refresh">Refresh</string>
-    <string name="no_hosts_found">No hosts found</string>
     <string name="scanning_network">Scanning…</string>
     <string name="no_nearby_hosts">No nearby hosts found</string>
     <string name="hosts_found_one">1 host found</string>
     <string name="hosts_found_multiple">%1$d hosts found</string>
     <string name="invalid_host">Invalid host address</string>
-    <string name="recent">Recent</string>
     <string name="recent_connection">Last Session</string>
     <string name="nearby_hosts">Nearby</string>
     <string name="manual_connect_title">Manual Connection</string>
@@ -33,39 +33,18 @@
     <string name="open_keyboard">Keyboard</string>
     <string name="close_keyboard">Hide</string>
     <string name="lock_screen">Lock Session</string>
-    <string name="send_ctrl_alt_del">Ctrl+Alt+Del</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="settings_appearance">Appearance</string>
-    <string name="settings_streaming">Streaming</string>
-    <string name="force_sw_decoder">Software Decoding</string>
-    <string name="force_sw_decoder_summary">CPU decoding fallback</string>
-    <string name="enable_subnet_scanner">Network Scan</string>
-    <string name="subnet_scanner_summary">Auto-discover hosts on local subnet</string>
-    <string name="settings_recent_host">Last Host</string>
-    <string name="no_recent_host">None</string>
     <string name="clear_recent">Clear</string>
     <string name="about">About</string>
     <string name="connecting">Connecting…</string>
     <string name="buffering">Buffering…</string>
-    <string name="fullscreen_toggle">Fullscreen</string>
-    <string name="type_on_host">Type on Host</string>
-    <string name="system_ime">System Keyboard</string>
-    <string name="copied_to_clipboard">Copied</string>
-    <string name="developer">Developer</string>
     <string name="developer_name">shadow-x78</string>
-    <string name="github_repository">GitHub</string>
-    <string name="github_repo_subtitle">Repository &amp; releases</string>
-    <string name="license">License</string>
-    <string name="license_name">GNU GPL v3.0</string>
     <string name="check_for_updates">Check for Updates</string>
-    <string name="check_for_updates_summary">Check GitHub for new releases</string>
     <string name="checking_updates">Checking…</string>
     <string name="latest_version_installed">Up to date</string>
-    <string name="update_available">Update available: %s</string>
-    <string name="update_check_failed">Check failed · Open releases</string>
-    <string name="download_update">Download</string>
     <string name="update_dialog_title">Update Available</string>
     <string name="update_whats_new">Changes in %s</string>
     <string name="update_now">Update</string>
@@ -78,31 +57,19 @@
     <string name="update_cancel">Cancel</string>
     <string name="update_later">Later</string>
     <string name="update_open_in_browser">Open in Browser</string>
-    <string name="update_checksum_failed">Integrity check failed</string>
-    <string name="update_download_failed">Download failed</string>
     <string name="developer_tagline">Creator &amp; Lead Developer</string>
     <string name="view_github_profile">GitHub Profile</string>
     <string name="view_repository">Source Code</string>
     <string name="license_chip">GPL-3.0</string>
-    <string name="disconnect_title">Disconnect?</string>
     <string name="disconnect_confirm_message">Disconnect from host?</string>
     <string name="disconnect_confirm_action">Disconnect</string>
-    <string name="controls_hidden_hint">Controls hidden · Double-tap to show</string>
     <string name="display_settings_title">Display</string>
-    <string name="display_settings_sub">Resolution &amp; scaling</string>
 
     <string name="resolution_title">Resolution</string>
     <string name="resolution_native">Native</string>
-    <string name="res_section_standard">Standard</string>
-    <string name="res_section_phone">Device</string>
-    <string name="res_native_label">Native</string>
-    <string name="res_match">Match</string>
-    <string name="res_section_custom">Custom</string>
     <string name="res_apply">Apply</string>
-    <string name="scale_section">Scaling</string>
     <string name="scale_fit">Fit</string>
     <string name="scale_fill">Fill</string>
-    <string name="scale_zoom">100%</string>
 
     <string name="mode_touch">Touch</string>
     <string name="mode_trackpad">Touchpad</string>
@@ -116,8 +83,6 @@
     <string name="stats_window">last 1 min</string>
     <string name="stats_fps">%1$d fps</string>
     <string name="cancel">Cancel</string>
-    <string name="usb_status_label">USB Connected</string>
-    <string name="wifi_status_label">Wi\u2011Fi Connected</string>
     <string name="pointer_speed_title">Pointer Speed (Trackpad)</string>
     <string name="pointer_speed_slow">Slow</string>
     <string name="pointer_speed_normal">Normal</string>
@@ -136,19 +101,14 @@
     <string name="keep_screen_awake">Keep Screen Awake</string>
     <string name="keep_screen_awake_desc">Prevent screen from sleeping while streaming</string>
     <string name="default_input_mode">Default Input Mode</string>
-    <string name="default_input_mode_desc">Initial input method when session starts</string>
     <string name="auto_connect_usb_title">Auto-connect on USB</string>
     <string name="auto_connect_usb_desc">Instantly start session when USB cable is attached</string>
     <string name="clear_history">Clear Recent Hosts</string>
     <string name="clear_history_desc">Remove saved connections and history</string>
-    <string name="restore_controls_hint">Controls minimized · Tap handle to restore</string>
-    <string name="show_controls">Show Toolbar</string>
     <string name="disconnect_confirm_title">End Session?</string>
     <string name="scale_mode_title">Fit Mode</string>
     <string name="scale_100">100%</string>
     <string name="battery_optimization_title">Battery Optimization</string>
     <string name="battery_optimization_unrestricted">Unrestricted · App won\'t be stopped in background</string>
     <string name="battery_optimization_restricted">Optimized · Tap to disable battery restrictions</string>
-    <string name="battery_status_unrestricted">Unrestricted</string>
-    <string name="battery_status_restricted">Optimized</string>
 </resources>

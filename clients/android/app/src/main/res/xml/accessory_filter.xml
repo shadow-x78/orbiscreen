@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- ─────────────────────────────────────────────
+     Orbiscreen - USB Accessory Filter
+     https://github.com/shadow-x78/orbiscreen
+     ───────────────────────────────────────────── -->
+
 <resources>
     <usb-accessory
         manufacturer="shadow-x78"
