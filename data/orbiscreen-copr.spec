@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.32.9
+%global version 0.32.10
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -143,6 +143,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.10-1
+- Release 0.32.10: chore: add the version synchronization script used by the release train.
+
 * Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.9-1
 - Release 0.32.9: chore: remove the inline comments added during this series.
 
