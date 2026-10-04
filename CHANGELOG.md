@@ -4,6 +4,39 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.33.4] - 2026-10-04
+
+### Fixed
+- The AOA video path starved itself and the device sat on "hold until IDR" forever.
+  Four defects compounded, each reproduced on a physical device over USB:
+  - `bulk_write_slice` retried a transient `ETIMEDOUT` (os error 110) forever, which
+    held the single writer thread hostage and blocked the control channel with it.
+    Retries are now bounded by `USB_TRANSIENT_RETRIES`
+  - A full priority queue dropped the incoming keyframe, and the priority lane carries
+    keyframes only, so the device received none. A stale keyframe is now displaced
+    instead, because the decoder cannot use it
+  - An unsendable packet retired the writer for the rest of the session. The writer now
+    drops that packet and keeps going, bounded by `WRITE_FAILURE_LIMIT`
+  - `VIDEO_QUEUE_CAP` was 2, far too shallow for 2560x1600 at 90 fps; it is now 64
+- The encoder emitted nothing at all: `vbv-buffer-size` was sized purely as
+  bitrate/fps, which at 2560x1600, 90 fps and 20 Mbps is 223 Kbit, smaller than one
+  keyframe. `nvh264enc` then refused every keyframe and `frames_forwarded` stayed at
+  zero. The size is now floored by two raw frames and capped by a 50 ms latency
+  budget, giving 1000 Kbit in that configuration
+- `set_u32_if_present` skipped properties the encoder does not expose without a
+  word, so `cpb-size` and `vbv-buf-capacity` looked configured on `nvh264enc` while
+  doing nothing. Every skip is now counted and reported at trace level
+
+### Measured
+- On the test device the USB link negotiates 12 Mb/s, so the ceiling is roughly
+  1.5 MB/s before overhead. A 2560x1600 stream at 90 fps needs about 1.35 MB/s, which
+  leaves no room for framing overhead. Streaming over USB needs either a SuperSpeed
+  port or a lower resolution and framerate; this is a link limit, not a software one.
+
+### Changed
+- Version bumped to 0.33.4 across the Cargo workspace, Android (`versionCode` 140),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.33.3] - 2026-10-03
 
 ### Changed

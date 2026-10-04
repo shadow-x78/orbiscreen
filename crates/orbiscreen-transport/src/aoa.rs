@@ -57,6 +57,9 @@ const AOA_GET_PROTOCOL: u8 = 51;
 const AOA_SEND_STRING: u8 = 52;
 const AOA_START_ACCESSORY: u8 = 53;
 const PRIO_QUEUE_CAP: usize = 8;
+const USB_TRANSIENT_RETRIES: u32 = 12;
+
+const WRITE_FAILURE_LIMIT: u32 = 20;
 type StreamEntry = (
     std::sync::mpsc::SyncSender<Vec<u8>>,
     TcpStream,
@@ -366,6 +369,7 @@ fn detect_endpoints(sysfs_path: &Path) -> (u32, u32) {
 #[allow(unsafe_code)]
 fn bulk_write_slice(fd: i32, ep: u32, data: &[u8], running: &AtomicBool) -> bool {
     let mut offset = 0;
+    let mut transient_retries = 0_u32;
     while offset < data.len() && running.load(Ordering::Relaxed) {
         let to_write = std::cmp::min(data.len() - offset, MAX_PAYLOAD_LEN);
         let mut bulk = UsbDevFsBulkTransfer {
@@ -383,12 +387,21 @@ fn bulk_write_slice(fd: i32, ep: u32, data: &[u8], running: &AtomicBool) -> bool
                 err.raw_os_error(),
                 Some(110) | Some(libc::EINTR) | Some(libc::EAGAIN)
             ) {
+                transient_retries = transient_retries.saturating_add(1);
+                if transient_retries > USB_TRANSIENT_RETRIES {
+                    debug!(
+                        retries = transient_retries,
+                        "USB bulk write gave up; the device is not draining the endpoint"
+                    );
+                    return false;
+                }
                 std::thread::sleep(Duration::from_millis(5));
                 continue;
             }
             return false;
         }
         offset += written as usize;
+        transient_retries = 0;
     }
     true
 }
@@ -415,10 +428,16 @@ fn idr_due(last: Instant, now: Instant) -> bool {
     now.saturating_duration_since(last) >= IDR_DEBOUNCE
 }
 
+fn prio_slot_free(prio_rx: &Mutex<std::sync::mpsc::Receiver<Vec<u8>>>) -> bool {
+    let rx = prio_rx.lock().unwrap_or_else(|p| p.into_inner());
+    rx.try_recv().is_ok()
+}
+
 async fn run_native_video(
     displays: DisplayCtl,
     session: Option<String>,
     prio_tx: std::sync::mpsc::SyncSender<Vec<u8>>,
+    prio_rx: Arc<Mutex<std::sync::mpsc::Receiver<Vec<u8>>>>,
     au_tx: std::sync::mpsc::SyncSender<Vec<u8>>,
     running: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
@@ -545,20 +564,23 @@ async fn run_native_video(
         match lane_for(pkt.is_keyframe) {
             Lane::Priority => match prio_tx.try_send(packed) {
                 Ok(()) => {}
-                Err(std::sync::mpsc::TrySendError::Full(_)) => {
-                    dropped_keyframes = dropped_keyframes.saturating_add(1);
-                    if dropped_keyframes % 16 == 1 {
-                        debug!(
-                            session = %sid,
-                            dropped_keyframes,
-                            "AOA keyframe queue full; dropping the frame"
-                        );
-                    }
-                    wait_key = true;
-                    let now = Instant::now();
-                    if idr_due(last_idr, now) {
-                        last_idr = now;
-                        displays.idr(&sid).await;
+                Err(std::sync::mpsc::TrySendError::Full(fresh)) => {
+                    let resent = prio_slot_free(&prio_rx) && prio_tx.try_send(fresh).is_ok();
+                    if !resent {
+                        dropped_keyframes = dropped_keyframes.saturating_add(1);
+                        if dropped_keyframes % 16 == 1 {
+                            debug!(
+                                session = %sid,
+                                dropped_keyframes,
+                                "AOA keyframe queue full; dropping the frame"
+                            );
+                        }
+                        wait_key = true;
+                        let now = Instant::now();
+                        if idr_due(last_idr, now) {
+                            last_idr = now;
+                            displays.idr(&sid).await;
+                        }
                     }
                 }
                 Err(std::sync::mpsc::TrySendError::Disconnected(_)) => {
@@ -642,12 +664,16 @@ pub fn run_accessory_bridge(
     );
 
     let (prio_tx, prio_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(PRIO_QUEUE_CAP);
+    let prio_rx = Arc::new(Mutex::new(prio_rx));
     let (video_tx, video_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(64);
     let (au_tx, au_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(VIDEO_QUEUE_CAP);
+    let prio_rx_writer = prio_rx.clone();
+    let mut consecutive_write_failures: u32 = 0;
     let running_writer = running.clone();
     let fd_writer = fd;
     let writer_handle = std::thread::spawn(move || {
         while running_writer.load(Ordering::Relaxed) {
+            let prio_rx = prio_rx_writer.lock().unwrap_or_else(|p| p.into_inner());
             let chunk = match prio_rx.try_recv() {
                 Ok(c) => c,
                 Err(std::sync::mpsc::TryRecvError::Empty) => match au_rx
@@ -669,10 +695,22 @@ pub fn run_accessory_bridge(
                 },
                 Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
             };
+            drop(prio_rx);
 
             if !write_aoa_chunk(fd_writer, out_ep, &chunk, &running_writer) {
-                break;
+                warn!("AOA writer could not send a packet; dropping it and continuing");
+                consecutive_write_failures = consecutive_write_failures.saturating_add(1);
+                if consecutive_write_failures >= WRITE_FAILURE_LIMIT {
+                    warn!(
+                        failures = consecutive_write_failures,
+                        "AOA writer giving up; the device stopped draining the endpoint"
+                    );
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(20));
+                continue;
             }
+            consecutive_write_failures = 0;
         }
     });
 
@@ -746,11 +784,12 @@ pub fn run_accessory_bridge(
                                 let stop = native_stop.clone();
                                 let running_v = running.clone();
                                 let prio_v = prio_tx.clone();
+                                let prio_rx_v = prio_rx.clone();
                                 let au_v = au_tx.clone();
                                 native_handle =
                                     Some(tokio::runtime::Handle::current().spawn(async move {
                                         run_native_video(
-                                            ctl, session, prio_v, au_v, running_v, stop,
+                                            ctl, session, prio_v, prio_rx_v, au_v, running_v, stop,
                                         )
                                         .await;
                                     }));
@@ -1060,8 +1099,39 @@ pub async fn supervisor(
 mod tests {
     use super::*;
 
-    /// A loopback pair standing in for a device stream, so the limit logic can be exercised
-    /// without USB hardware.
+    #[test]
+    fn a_full_priority_queue_still_admits_the_new_keyframe() {
+        let (tx, rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(PRIO_QUEUE_CAP);
+        let rx = Mutex::new(rx);
+        for i in 0..PRIO_QUEUE_CAP {
+            assert!(tx.try_send(vec![i as u8]).is_ok());
+        }
+        let Err(std::sync::mpsc::TrySendError::Full(fresh)) = tx.try_send(vec![0xfe]) else {
+            panic!("expected a full queue");
+        };
+        let resent = prio_slot_free(&rx) && tx.try_send(fresh).is_ok();
+        assert!(resent, "the new keyframe could not be admitted");
+
+        let keys: Vec<u8> = rx
+            .lock()
+            .unwrap()
+            .try_iter()
+            .map(|f: Vec<u8>| f[0])
+            .collect();
+        assert_eq!(keys.len(), PRIO_QUEUE_CAP, "the bound must still hold");
+        assert!(keys.contains(&0xfe), "the new keyframe was dropped");
+        assert!(
+            !keys.contains(&0x00),
+            "a stale keyframe still occupies the slot"
+        );
+    }
+
+    #[test]
+    fn an_empty_priority_queue_frees_nothing() {
+        let (_tx, rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(PRIO_QUEUE_CAP);
+        assert!(!prio_slot_free(&Mutex::new(rx)));
+    }
+
     fn fake_streams(ids: &[u16]) -> HashMap<u16, StreamEntry> {
         let mut map = HashMap::new();
         for &id in ids {
@@ -1107,7 +1177,6 @@ mod tests {
 
     #[test]
     fn repeated_reconnects_never_exhaust_the_bound() {
-        // connect after enough attempts.
         let mut map = fake_streams(&[0]);
         for id in 1..200u16 {
             if let Some((evicted, sock)) = enforce_stream_limit(&mut map, id, MAX_AOA_STREAMS) {

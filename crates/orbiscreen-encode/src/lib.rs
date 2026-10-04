@@ -138,8 +138,23 @@ fn set_str_if_present(el: &gstreamer::Element, name: &str, value: &str) {
     }
 }
 
+fn note_skipped_property(el: &gstreamer::Element, name: &str) {
+    use std::sync::atomic::{AtomicU32, Ordering};
+    static SKIPPED: AtomicU32 = AtomicU32::new(0);
+    let n = SKIPPED.fetch_add(1, Ordering::Relaxed);
+    if n.is_multiple_of(16) {
+        tracing::trace!(
+            encoder = %el.name(),
+            property = name,
+            skipped = n,
+            "encoder does not expose this property; the value was not applied"
+        );
+    }
+}
+
 fn set_u32_if_present(el: &gstreamer::Element, name: &str, value: u32) {
     let Some(spec) = el.find_property(name) else {
+        note_skipped_property(el, name);
         return;
     };
     if spec.downcast_ref::<glib::ParamSpecUInt>().is_some() {
@@ -162,10 +177,22 @@ pub fn one_frame_vbv_ms(framerate: u32) -> u32 {
     1000u32.div_ceil(fps)
 }
 
-pub fn one_frame_vbv_kb(bitrate_kbps: u32, framerate: u32) -> u32 {
-    let fps = framerate.max(1);
-    bitrate_kbps.max(1).div_ceil(fps).max(1)
+pub fn one_frame_vbv_kb(bitrate_kbps: u32, framerate: u32, width: u32, height: u32) -> u32 {
+    let from_bitrate = bitrate_kbps.max(1).div_ceil(framerate.max(1)).max(1);
+    let raw_kbit_per_frame =
+        (u64::from(width.max(1)) * u64::from(height.max(1)) * 12 / 1000).max(1) as u32;
+    let latency_floor = raw_kbit_per_frame.saturating_mul(VBV_RAW_FRAME_MULTIPLE);
+    let latency_ceiling =
+        (u64::from(bitrate_kbps.max(1)) * u64::from(MAX_VBV_LATENCY_MS) / 1000).max(1) as u32;
+    from_bitrate
+        .max(latency_floor)
+        .min(latency_ceiling)
+        .max(200)
 }
+
+const VBV_RAW_FRAME_MULTIPLE: u32 = 2;
+
+const MAX_VBV_LATENCY_MS: u32 = 50;
 
 pub fn scaled_vbv_ms(frames: u32, framerate: u32) -> u32 {
     let fps = framerate.max(1);
@@ -176,14 +203,19 @@ pub fn scaled_vbv_ms(frames: u32, framerate: u32) -> u32 {
     (1000u32 / fps * frames).clamp(50, 200)
 }
 
-pub fn scaled_vbv_kb(frames: u32, bitrate_kbps: u32, framerate: u32) -> u32 {
-    let fps = framerate.max(1);
+pub fn scaled_vbv_kb(
+    frames: u32,
+    bitrate_kbps: u32,
+    framerate: u32,
+    width: u32,
+    height: u32,
+) -> u32 {
     let frames = frames.clamp(1, 8);
     if frames == 1 {
-        return one_frame_vbv_kb(bitrate_kbps, framerate);
+        return one_frame_vbv_kb(bitrate_kbps, framerate, width, height);
     }
-    let one_frame = bitrate_kbps.max(1).div_ceil(fps).max(1);
-    (one_frame * frames).max(200)
+    let one_frame = one_frame_vbv_kb(bitrate_kbps, framerate, width, height);
+    one_frame.saturating_mul(frames).max(200)
 }
 
 fn configure_one_frame_vbv(
@@ -191,10 +223,12 @@ fn configure_one_frame_vbv(
     bitrate_kbps: u32,
     framerate: u32,
     frames: u32,
+    width: u32,
+    height: u32,
 ) {
     let frames = frames.clamp(1, 8);
     let vbv_ms = scaled_vbv_ms(frames, framerate);
-    let vbv_kb = scaled_vbv_kb(frames, bitrate_kbps, framerate);
+    let vbv_kb = scaled_vbv_kb(frames, bitrate_kbps, framerate, width, height);
     set_u32_if_present(encoder, "vbv-buf-capacity", vbv_ms);
     set_u32_if_present(encoder, "cpb-size", vbv_kb);
     set_u32_if_present(encoder, "vbv-buffer-size", vbv_kb);
@@ -416,6 +450,8 @@ impl Encoder {
             params.bitrate_kbps,
             params.framerate,
             params.vbv_frames,
+            params.width,
+            params.height,
         );
         configure_infinite_gop(&encoder);
 
@@ -780,7 +816,7 @@ mod tests {
 
     fn assert_live_one_frame_vbv(enc: &Encoder) {
         let want_ms = one_frame_vbv_ms(60);
-        let want_kb = one_frame_vbv_kb(8000, 60);
+        let want_kb = one_frame_vbv_kb(8000, 60, 64, 64);
         if enc.encoder.find_property("vbv-buf-capacity").is_some() {
             let got = enc.encoder.property::<u32>("vbv-buf-capacity");
             assert_ne!(
@@ -824,10 +860,27 @@ mod tests {
         assert_eq!(one_frame_vbv_ms(30), 34);
         assert_eq!(one_frame_vbv_ms(1), 1000);
         assert_eq!(one_frame_vbv_ms(0), 1000);
-        assert_eq!(one_frame_vbv_kb(8000, 60), 134);
-        assert_eq!(one_frame_vbv_kb(8000, 30), 267);
-        assert_eq!(one_frame_vbv_kb(1000, 60), 17);
-        assert_eq!(one_frame_vbv_kb(0, 60), 1);
+        assert_eq!(one_frame_vbv_kb(8000, 60, 320, 240), 400);
+        assert_eq!(one_frame_vbv_kb(8000, 30, 320, 240), 400);
+        assert_eq!(one_frame_vbv_kb(1000, 60, 64, 64), 200);
+    }
+
+    #[test]
+    fn one_frame_vbv_covers_a_keyframe_at_high_resolution() {
+        let vbv_kb = one_frame_vbv_kb(20_000, 90, 2560, 1600);
+        assert_eq!(vbv_kb, 1_000);
+        assert!(vbv_kb > 20_000 / 90, "must exceed the bitrate/fps value");
+        for (bitrate, fps, w, h) in [
+            (20_000_u32, 90_u32, 2560_u32, 1600_u32),
+            (50_000, 90, 3840, 2160),
+        ] {
+            let kb = one_frame_vbv_kb(bitrate, fps, w, h);
+            let buffered_ms = u64::from(kb) * 1000 / u64::from(bitrate);
+            assert!(
+                buffered_ms <= u64::from(MAX_VBV_LATENCY_MS) + 1,
+                "{w}x{h} at {bitrate} kbps buffered {buffered_ms} ms"
+            );
+        }
     }
 
     #[test]
@@ -836,11 +889,14 @@ mod tests {
         let Ok(enc) = make_element("vah264enc") else {
             return;
         };
-        configure_one_frame_vbv(&enc, 8000, 60, 1);
-        assert_eq!(enc.property::<u32>("cpb-size"), one_frame_vbv_kb(8000, 60));
+        configure_one_frame_vbv(&enc, 8000, 60, 1, 1920, 1080);
+        assert_eq!(
+            enc.property::<u32>("cpb-size"),
+            one_frame_vbv_kb(8000, 60, 1920, 1080)
+        );
         assert_ne!(
             enc.property::<u32>("cpb-size"),
-            scaled_vbv_kb(4, 8000, 60),
+            scaled_vbv_kb(4, 8000, 60, 1920, 1080),
             "production is still on the four-frame window"
         );
     }

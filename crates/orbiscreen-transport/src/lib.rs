@@ -579,10 +579,6 @@ async fn http_to_https(
     let Some(port) = state.wt_offer.as_ref().map(|o| o.port) else {
         return next.run(request).await;
     };
-    // Loopback is host-local authority: the D-Bus, GUI, and the AOA bridge dial the
-    // cleartext listener from here. Redirecting these requests would hand the AOA
-    // proxy a 307 to an HTTPS port it cannot reach from the USB tunnel, which is why
-    // the accessory silently dropped every stream.
     if peer.ip().is_loopback() {
         return next.run(request).await;
     }
@@ -2397,9 +2393,6 @@ mod tests {
         assert_eq!(query_token(Some("token=")), None);
     }
 
-    // The AOA bridge dials the cleartext listener over a raw TCP socket, exactly like a
-    // device behind the accessory tunnel would. A redirect on /client/config.json
-    // leaves the proxy with a Location: header it cannot reach.
     #[tokio::test]
     async fn loopback_clients_are_not_redirected_to_tls() {
         use tokio::io::{AsyncReadExt, AsyncWriteExt};

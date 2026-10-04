@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.33.3
+%global version 0.33.4
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -143,6 +143,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.4-1
+- Release 0.33.4: fix: AOA video starvation, encoder VBV sizing, bounded USB writes
+
 * Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.3-1
 - Release 0.33.3: fix: the AOA stream bound must evict, not refuse; and loopback peers are not TLS-redirected.
 

@@ -11,7 +11,7 @@ pub const FRAME_FLAG_VIDEO: u8 = 0x10;
 pub const FRAME_HEADER_LEN: usize = 5;
 pub const MAX_PAYLOAD_LEN: usize = 16384;
 pub const VIDEO_STREAM_ID: u16 = 0;
-pub const VIDEO_QUEUE_CAP: usize = 2;
+pub const VIDEO_QUEUE_CAP: usize = 64;
 
 pub fn max_aoa_payload() -> usize {
     MAX_PAYLOAD_LEN.saturating_sub(FRAME_HEADER_LEN)
@@ -311,7 +311,7 @@ mod tests {
         assert_eq!(lane_for(false), Lane::Video);
         assert!(!drop_p_on_full_queue(true));
         assert!(drop_p_on_full_queue(false));
-        assert_eq!(VIDEO_QUEUE_CAP, 2);
+        const { assert!(VIDEO_QUEUE_CAP >= 32) };
     }
 
     #[test]
