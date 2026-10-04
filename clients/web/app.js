@@ -1149,16 +1149,27 @@ if (btnConnect && tokenInput) {
     });
 }
 
-function sendInput(payload) {
-    if (!authToken || !displaySessionId || window.location.protocol !== "https:") return;
+function postInput(payload, session) {
     const headers = { "content-type": "application/json" };
     if (authToken) headers.authorization = `Bearer ${authToken}`;
-    if (displaySessionId) headers["x-orbiscreen-session"] = displaySessionId;
-    fetch("/input", {
+    if (session) headers["x-orbiscreen-session"] = session;
+    return fetch("/input", {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
-    }).catch((err) => console.warn("sendInput failed:", err));
+    });
+}
+
+function sendInput(payload) {
+    if (!authToken || !displaySessionId || window.location.protocol !== "https:") return;
+    postInput(payload, displaySessionId)
+        .then((response) => {
+            if (response.status !== 403) return;
+            console.info("input rejected for this session; retrying without it");
+            displaySessionId = null;
+            return postInput(payload, null);
+        })
+        .catch((err) => console.warn("sendInput failed:", err));
 }
 
 function sendPointerMove(x, y) {

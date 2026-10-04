@@ -1,3 +1,11 @@
+orbiscreen (0.33.5~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.33.5 for Ubuntu noble.
+  * fix: accept the query-string token again; web input retries without a session
+  * Bump version to 0.33.5 across all packages; Android versionCode 141.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.33.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.33.4 for Ubuntu noble.

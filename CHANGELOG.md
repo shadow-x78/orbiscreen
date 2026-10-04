@@ -4,6 +4,28 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.33.5] - 2026-10-04
+
+### Fixed
+- `?token=` in a query string is accepted again. It had been made opt-in, which broke
+  every browser client: a media request cannot carry an Authorization header, so the
+  query string is the only credential a browser can present. The switch is now opt-out
+  via `ORBISCREEN_ALLOW_QUERY_TOKEN=0`, and a warning is logged on startup naming the
+  trade-off
+- The web client now retries `POST /input` without `x-orbiscreen-session` when the host
+  answers 403. A browser credential cannot address a session owned by a paired device
+  reached over USB, so the client used to retry the same rejected request once per
+  input event, producing roughly 900 rejections a minute and never recovering. It clears
+  the session id and lets the hub resolve the available display instead
+- `.env.example` dropped `ORBISCREEN_PORT`, which nothing in the tree reads, and now
+  documents every `ORBISCREEN_` variable the daemon, Gradle, the packagers and the
+  workflows actually consume, including `ORBISCREEN_FORK_PR`, which was undocumented
+
+### Changed
+- Remove the inline comments added in this series
+- Version bumped to 0.33.5 across the Cargo workspace, Android (`versionCode` 141),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.33.4] - 2026-10-04
 
 ### Fixed

@@ -655,16 +655,17 @@ fn query_token_allowed() -> bool {
     use std::sync::OnceLock;
     static ALLOWED: OnceLock<bool> = OnceLock::new();
     *ALLOWED.get_or_init(|| {
-        let allowed = std::env::var("ORBISCREEN_ALLOW_QUERY_TOKEN")
-            .map(|v| matches!(v.trim(), "1" | "true" | "yes"))
+        let opt_out = std::env::var("ORBISCREEN_ALLOW_QUERY_TOKEN")
+            .map(|v| matches!(v.trim(), "0" | "false" | "no"))
             .unwrap_or(false);
-        if allowed {
+        if !opt_out {
             warn!(
-                "ORBISCREEN_ALLOW_QUERY_TOKEN is set: accepting ?token= in the query string, \
-                 which leaks the session credential into logs, history and Referer headers"
+                "accepting ?token= in the query string: a credential in the URL can reach \
+                 server logs, browser history and Referer headers. Set \
+                 ORBISCREEN_ALLOW_QUERY_TOKEN=0 to refuse it."
             );
         }
-        allowed
+        !opt_out
     })
 }
 
@@ -2256,6 +2257,25 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn input_without_a_session_is_served_so_the_browser_can_retry() {
+        let state = config_test_state();
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(
+            axum::http::header::AUTHORIZATION,
+            axum::http::HeaderValue::from_static("Bearer test-credential"),
+        );
+        let payload: serde_json::Value = serde_json::json!({ "x": 1.0, "y": 2.0 });
+        let response = input_post(State(state), headers, axum::Json(payload))
+            .await
+            .into_response();
+        assert_eq!(
+            response.status(),
+            StatusCode::ACCEPTED,
+            "the session-less retry must be served"
+        );
+    }
+
+    #[tokio::test]
     async fn input_cannot_address_a_session_owned_by_another_client() {
         let (state, credential_a, owner_id, credential_b, _) = two_client_state();
         assert!(state.pairing.bind_session(&owner_id, "session-a"));
@@ -2373,7 +2393,7 @@ mod tests {
             (Some("Bearer wrong"), "", false),
             (Some("Basic test-credential"), "", false),
             (Some("Bearer "), "", false),
-            (None, "?token=test-credential", false),
+            (None, "?token=test-credential", true),
             (None, "?token=wrong", false),
             (None, "", false),
         ] {
@@ -2387,10 +2407,33 @@ mod tests {
     }
 
     #[test]
-    fn a_query_string_token_is_refused_by_default() {
-        assert_eq!(query_token(Some("token=test-credential")), None);
-        assert_eq!(query_token(Some("a=1&token=test-credential")), None);
+    fn a_query_string_token_is_accepted_for_browser_clients() {
+        assert_eq!(
+            query_token(Some("token=test-credential")),
+            Some("test-credential")
+        );
+        assert_eq!(
+            query_token(Some("a=1&token=test-credential")),
+            Some("test-credential")
+        );
         assert_eq!(query_token(Some("token=")), None);
+        assert_eq!(query_token(Some("other=1")), None);
+        assert_eq!(query_token(None), None);
+    }
+
+    #[test]
+    fn a_bearer_header_is_still_preferred_over_the_query_string() {
+        assert_eq!(
+            bearer_from_headers(&{
+                let mut h = axum::http::HeaderMap::new();
+                h.insert(
+                    axum::http::header::AUTHORIZATION,
+                    axum::http::HeaderValue::from_static("Bearer from-header"),
+                );
+                h
+            }),
+            Some("from-header".to_string())
+        );
     }
 
     #[tokio::test]

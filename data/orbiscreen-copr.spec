@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.33.4
+%global version 0.33.5
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -143,6 +143,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.5-1
+- Release 0.33.5: fix: accept the query-string token again; web input retries without a session
+
 * Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.4-1
 - Release 0.33.4: fix: AOA video starvation, encoder VBV sizing, bounded USB writes
 
