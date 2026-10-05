@@ -2,7 +2,7 @@
 
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.33.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.33.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -19,56 +19,619 @@
 
 ## المحتويات
 
-### إجراءات سير عمل CI (`‎.github/workflows/ci.yml`)
-
-- [الإجراء: `Check formatting` ‏(`cargo fmt --all -- --check`)](#إجراء-ci-format-cargo-fmt)
-- [الإجراء: `Clippy (deny warnings)` ‏(`cargo clippy --workspace --all-targets --locked -- -D warnings`)](#إجراء-ci-clippy-deny-warnings)
-- [الإجراء: `Build` ‏(`cargo build --workspace --locked`)](#إجراء-ci-build-cargo-build---workspace---locked)
-- [الإجراء: `Test` ‏(`cargo test --workspace --locked`)](#إجراء-ci-test-cargo-test---workspace---locked)
-- [الإجراء: `Run cargo-deny` ‏(`cargo deny check`)](#إجراء-ci-run-cargo-deny)
-- [الإجراء: `Android assembleDebug` + `lintDebug`](#إجراء-ci-android-assembledebug-lintdebug)
-
-### وقت التشغيل
-
-- [وقت التشغيل: فشل `orbiscreen start` - `kernel module is not installed`](#وقت-التشغيل-kde-plasma-شاشة-افتراضية-بدون-evdi-وبدون-root)
+- [فشل بناء حزمة Debian على PPA](#فشل-بناء-حزمة-debian-على-ppa)
+- [فشل بناء حزمة RPM على COPR](#فشل-بناء-حزمة-rpm-على-copr)
+- [فشل مسار الإصدار قبل النشر](#فشل-مسار-الإصدار-قبل-النشر)
+- [لم يُعثر على Android SDK](#لم-يُعثر-على-android-sdk)
+- [رفض صلاحية uinput](#رفض-صلاحية-uinput)
+- [وحدة نواة evdi مفقودة في إعدادات X11 الأقدم](#وحدة-نواة-evdi-مفقودة-في-إعدادات-x11-الأقدم)
+- [إضافة GStreamer مفقودة](#إضافة-gstreamer-مفقودة)
+- [لا يعثر الاكتشاف على المضيف](#لا-يعثر-الاكتشاف-على-المضيف)
+- [رفض الاتصال أو انتهاء المهلة](#رفض-الاتصال-أو-انتهاء-المهلة)
+- [إشباك النطاق الترددي على وصلة لاسلكية](#إشباك-النطاق-الترددي-على-وصلة-لاسلكية)
+- [فيديو UDP يتقطّع بينما فيديو HTTP سليم](#فيديو-udp-يتقطّع-بينما-فيديو-http-سليم)
+- [GNOME / Wayland (Mutter) لا يعرض أي صورة](#gnome-wayland-mutter-لا-يعرض-أي-صورة)
+- [sway / Hyprland يُبلّغ عن محرك التقاط لا يبدأ أبداً](#sway-hyprland-يُبلّغ-عن-محرك-التقاط-لا-يبدأ-أبداً)
+- [COSMIC (cosmic-comp) لا يوفّر محرك التقاط](#cosmic-cosmic-comp-لا-يوفّر-محرك-التقاط)
+- [X11: يهرب المؤشر من الشاشة الافتراضية](#x11-يهرب-المؤشر-من-الشاشة-الافتراضية)
+- [لا تظهر أي شاشة على الحزمة](#لا-تظهر-أي-شاشة-على-الحزمة)
+- [الفأرة أو اللمس لا يفعلان شيئاً](#الفأرة-أو-اللمس-لا-يفعلان-شيئاً)
+- [خدمة المضيف تنتهي فوراً](#خدمة-المضيف-تنتهي-فوراً)
+- [المُفكِّك يتراجع إلى البرمجي، أو لا تظهر الصورة أبداً](#المُفكِّك-يتراجع-إلى-البرمجي،-أو-لا-تظهر-الصورة-أبداً)
+- [التطبيق يتعطل فور تشغيله](#التطبيق-يتعطل-فور-تشغيله)
+- [اتصال USB يعرض "Looking for host…" إلى الأبد](#اتصال-usb-يعرض-looking-for-host-إلى-الأبد)
+- [فشل اتصال ADB على ASUS Chromebook CM3001](#فشل-اتصال-adb-على-asus-chromebook-cm3001)
+- [سحب النوافذ أو تحديد النصوص في وضع لوحة اللمس](#سحب-النوافذ-أو-تحديد-النصوص-في-وضع-لوحة-اللمس)
+- [اللمس مُدوَّر أو غير محاذٍ](#اللمس-مُدوَّر-أو-غير-محاذٍ)
+- [إجراءات شريط التحكم تُرجع 404](#إجراءات-شريط-التحكم-تُرجع-404)
+- [قائمة الاكتشاف فارغة رغم وجود مضيفين على نفس Wi-Fi](#قائمة-الاكتشاف-فارغة-رغم-وجود-مضيفين-على-نفس-wi-fi)
+  - [ما زلت عالقاً؟](#ما-زلت-عالقاً؟)
+- [إجراء CI: `Format (cargo fmt)`](#إجراء-ci-format-cargo-fmt)
+- [إجراء CI: `Clippy (deny warnings)`](#إجراء-ci-clippy-deny-warnings)
+- [إجراء CI: `Build` (`cargo build --workspace --locked`)](#إجراء-ci-build-cargo-build---workspace---locked)
+- [إجراء CI: `Test` ‏(`cargo test --workspace --locked`)](#إجراء-ci-test-cargo-test---workspace---locked)
+- [إجراء CI: `Run cargo-deny`](#إجراء-ci-run-cargo-deny)
+- [إجراء CI: `Android assembleDebug` + `lintDebug`](#إجراء-ci-android-assembledebug-lintdebug)
+- [وقت التشغيل: فشل `orbiscreen start` - `kernel module is not installed`](#وقت-التشغيل-فشل-orbiscreen-start---kernel-module-is-not-installed)
 - [وقت التشغيل: KDE Plasma (شاشة افتراضية بدون evdi وبدون root)](#وقت-التشغيل-kde-plasma-شاشة-افتراضية-بدون-evdi-وبدون-root)
 - [وقت التشغيل: واجهة الالتقاط غير متاحة على Wayland](#وقت-التشغيل-واجهة-الالتقاط-غير-متاحة-على-wayland)
-- [وقت التشغيل: تحذيرات lint `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`](#وقت-التشغيل-unsafe_op_in_unsafe_fn-missing_debug_implementations)
-
-### Android
-
-- [Android / ChromeOS: فشل اتصال ADB أو بقاء الرسالة "Looking for host" على ASUS Chromebook CM3001](#android-chromeos-فشل-اتصال-adb-أو-بقاء-الرسالة-looking-for-host-على-asus-chromebook-cm3001)
-- [Android: القلم لا يرسم، أو حساسية ضغط غير صحيحة، أو توقف التطبيق على Lenovo Tab](#android-القلم-لا-يرسم،-أو-حساسية-ضغط-غير-صحيحة،-أو-توقف-التطبيق-على-lenovo-tab)
-- [Android: سحب النوافذ وتحديد النصوص في وضع لوحة اللمس (Touchpad Drag-and-Drop)](#android-سحب-النوافذ-وتحديد-النصوص-في-وضع-لوحة-اللمس-touchpad-drag-and-drop)
-- [Android: التطبيق يتعطل أو تموت العملية عند النقر على Connect](#android-التطبيق-يتعطل-أو-تموت-العملية-عند-النقر-على-connect)
-- [Android: شاشة سوداء بعد Connect](#android-شاشة-سوداء-بعد-connect)
-- [Android: قائمة الاكتشاف فارغة رغم وجود مضيفين على نفس شبكة Wi-Fi](#android-قائمة-الاكتشاف-فارغة-رغم-وجود-مضيفين-على-نفس-شبكة-wi-fi)
-- [Android: اللمس مُدوَّر / غير محاذٍ](#android-اللمس-مُدوَّر-غير-محاذٍ)
-- [Android: إجراءات شريط التحكم تُرجع 404](#android-إجراءات-شريط-التحكم-تُرجع-404)
-- [Android: التطبيق يتعطل فوراً عند التشغيل](#android-التطبيق-يتعطل-أو-تموت-العملية-عند-النقر-على-connect)
-- [Android: اتصال USB يعرض "Looking for host…"](#android-اتصال-usb-يعرض-looking-for-host)
-
-### البث والعملاء
-
+- [وقت التشغيل: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`](#وقت-التشغيل-unsafe_op_in_unsafe_fn-missing_debug_implementations)
+- [أجهزة وعميل Android](#أجهزة-وعميل-android)
+  - [Android / ChromeOS: فشل اتصال ADB أو بقاء الرسالة "Looking for host" على ASUS Chromebook CM3001](#android-chromeos-فشل-اتصال-adb-أو-بقاء-الرسالة-looking-for-host-على-asus-chromebook-cm3001)
+  - [Android: القلم لا يرسم، أو حساسية ضغط غير صحيحة، أو توقف التطبيق على Lenovo Tab](#android-القلم-لا-يرسم،-أو-حساسية-ضغط-غير-صحيحة،-أو-توقف-التطبيق-على-lenovo-tab)
+  - [Android: سحب النوافذ وتحديد النصوص في وضع لوحة اللمس (Touchpad Drag-and-Drop)](#android-سحب-النوافذ-وتحديد-النصوص-في-وضع-لوحة-اللمس-touchpad-drag-and-drop)
+  - [Android: التطبيق يتعطل أو تموت العملية عند النقر على Connect](#android-التطبيق-يتعطل-أو-تموت-العملية-عند-النقر-على-connect)
+  - [Android: شاشة سوداء بعد Connect](#android-شاشة-سوداء-بعد-connect)
+  - [Android: قائمة الاكتشاف فارغة رغم وجود مضيفين على نفس شبكة Wi-Fi](#android-قائمة-الاكتشاف-فارغة-رغم-وجود-مضيفين-على-نفس-شبكة-wi-fi)
+  - [Android: اللمس مُدوَّر / غير محاذٍ](#android-اللمس-مُدوَّر-غير-محاذٍ)
+  - [Android: إجراءات شريط التحكم تُرجع 404](#android-إجراءات-شريط-التحكم-تُرجع-404)
+  - [Android: التطبيق يتعطل فوراً عند التشغيل](#android-التطبيق-يتعطل-فوراً-عند-التشغيل)
+  - [Android: اتصال USB يعرض "Looking for host…"](#android-اتصال-usb-يعرض-looking-for-host)
 - [البث: بطء شديد أو تقطيع في حركة الفأرة عبر شبكة 5GHz Wi-Fi](#البث-بطء-شديد-أو-تقطيع-في-حركة-الفأرة-عبر-شبكة-5ghz-wi-fi)
 - [البث: وميض وإعادة اتصال لانهائية عند حدوث خطأ في البث بدل التعرف على انقطاع الاتصال](#البث-وميض-وإعادة-اتصال-لانهائية-عند-حدوث-خطأ-في-البث-بدل-التعرف-على-انقطاع-الاتصال)
 - [تعدد الشاشات / X11: هروب مؤشر الفأرة من الشاشة الافتراضية إلى الشاشات المادية الأخرى](#تعدد-الشاشات-x11-هروب-مؤشر-الفأرة-من-الشاشة-الافتراضية-إلى-الشاشات-المادية-الأخرى)
 - [العميل يعرض الشاشة الخطأ (سطح المكتب الرئيسي بدل الشاشة الافتراضية)](#العميل-يعرض-الشاشة-الخطأ-سطح-المكتب-الرئيسي-بدل-الشاشة-الافتراضية)
 - [عميل الويب يُحمَّل لكن بلا صورة](#عميل-الويب-يُحمَّل-لكن-بلا-صورة)
 - [لا يوجد مُرمَّز - البث يبدأ لكنه يفشل (غياب x264)](#لا-يوجد-مُرمَّز---البث-يبدأ-لكنه-يفشل-غياب-x264)
+- [لا يوجد مُرمِّز - البث يبدأ لكنه يفشل (غياب x264)](#لا-يوجد-مُرمِّز---البث-يبدأ-لكنه-يفشل-غياب-x264)
 - [رفض 401 من `/stream` أو `/input` أو `/api/control` (التوكن)](#رفض-401-من-stream-أو-input-أو-apicontrol-التوكن)
-- [الـ daemon غير موجود على D-Bus](#الـ-daemon)
+- [الـ daemon غير موجود على D-Bus](#الـ-daemon-غير-موجود-على-d-bus)
+- [الـ Daemon: استهلاك 100% للمعالج أو تجمّد](#الـ-daemon-استهلاك-100-للمعالج-أو-تجمّد)
 
-### الـ Daemon
+# إخفاقات بناء الحزم في CI
 
-- [الـ Daemon: استهلاك 100% للمعالج أو تجمّد](#الـ-daemon)
+بناء الحزم يجري في مسارات عمل مخصّصة لا في `ci.yml`، لذا نجاح فحص `CI` لا يعني أن الحزم تُبنى. وتعيد بوابة الإصدار تشغيل `cargo deny check` و`cargo audit` قبل نشر أي شيء.
+
+---
+
+<a id="ci-deb"></a>
+## فشل بناء حزمة Debian على PPA
+
+**الأعراض:**
+```
+dpkg-buildpackage: error: unmet build-dependency: libwebkit2gtk-4.1-dev
+```
+أو من مهمة Ubuntu:
+```
+error: Package 'libjavascriptcoregtk-4.1-dev' has no installation candidate
+```
+
+**السبب:**
+يبني `debian/rules` مساحة العمل كاملة، ومنها لوحة تحكم Tauri. وهي تحتاج حزم WebKitGTK للتطوير، وعلى `debian/control` أن يذكر كل واحدة منها وإلا لم يبدأ البناء أصلاً.
+
+**الحل:**
+يجب أن يحتوي `Build-Depends` على `libwebkit2gtk-4.1-dev` و`libjavascriptcoregtk-4.1-dev` و`libsoup-3.0-dev` و`libgtk-3-dev` و`librsvg2-dev` و`libayatana-appindicator3-dev` إلى جانب حزم GStreamer. يثبّتها المسار أيضاً قبل `debuild`؛ فإن كانت صورة PPA تفتقدها فشل البناء داخل المسار لا داخل `debian/rules`.
+
+---
+
+<a id="ci-rpm"></a>
+## فشل بناء حزمة RPM على COPR
+
+**الأعراض:**
+```
+error: Failed build dependencies:
+/bin/sh: line 31: gstreamer1-devel: command not found
+```
+
+**السبب:**
+يصرّف `data/orbiscreen-copr.spec` مساحة العمل نفسها، فيحتاج نظائر Fedora للحزم التي يحتاجها بناء Debian.
+
+**الحل:**
+تأكد أن `BuildRequires` في الملف يذكر `gstreamer1-devel` و`gstreamer1-plugins-base-devel` و`libdrm-devel` و`libxkbcommon-devel` و`webkit2gtk4.1-devel` و`gtk3-devel` و`libappindicator-gtk3-devel` و`librsvg2-devel`، وأن إصدار Rust المطلوب على الأقل بقدر `rust-version` في `Cargo.toml`. ويلتقط `scripts/check-versions.sh` وسم `Version:` قديماً، لكنه لا يلتقط متطلّب بناء ناقصاً.
+
+---
+
+<a id="ci-release"></a>
+## فشل مسار الإصدار قبل النشر
+
+**الأعراض:**
+يفشل `Release Matrix` في الخطوة `Verify code integrity (release gate)`، ولا تُرفع أي ملفات.
+
+**السبب:**
+تمنع البوابة الإصدار عند فشل فحوص السلامة: التنسيق، أو clippy مع رفض التحذيرات، أو مجموعة الاختبارات، أو `cargo machete`، أو `cargo deny check`، أو `cargo audit`. وهي تعمل أيضاً على المراجع غير الموثوقة، فلا يستطيع وسم على commit لا يجتازها النشر.
+
+**الحل:**
+اقرأ أي خطوة فشلت في ملخّص التشغيل وأصلحها محلياً:
+```bash
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+cargo machete && cargo deny check && cargo audit
+```
+تعمل البوابة على مساحة العمل بما فيها حزمة الواجهة الرسومية، لذا يحتاج `cargo clippy --workspace` إلى حزم WebKitGTK للتطوير التي يثبّتها `ci.yml`.
+
+---
+
+# مشاكل البناء المحلي
+
+---
+
+<a id="local-sdk"></a>
+## لم يُعثر على Android SDK
+
+**الأعراض:**
+```
+SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable
+```
+
+**السبب:**
+يحتاج `clients/android` إلى SDK يحتوي المنصّة التي يُبنى التطبيق لها. ويجب أن يكون المجلد هو جذر الـSDK الذي يحوي `platforms/`، لا مجلد `cmdline-tools` الأعلى.
+
+**الحل:**
+وجّه `ANDROID_HOME` إلى جذر الـSDK واقبل التراخيص مرة واحدة:
+```bash
+export ANDROID_HOME="$HOME/Android/Sdk"
+yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
+"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install \
+  "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+```
+ثم ابنِ باستخدام `./gradlew assembleDebug` من `clients/android`.
+
+---
+
+<a id="local-uinput"></a>
+## رفض صلاحية uinput
+
+**الأعراض:**
+```
+no usable input injector found (uinput and portal both failed)
+```
+أو عند بدء الخدمة:
+```
+orbiscreen_input: permission denied on /dev/uinput
+```
+
+**السبب:**
+يحقن الإدخال عبر أجهزة `uinput` في النواة، و`/dev/uinput` ينتمي عادةً إلى `root:input` بصلاحية `0660`. ولا يستطيع مستخدم خارج مجموعة `input` فتحه.
+
+**الحل:**
+أضف المستخدم إلى المجموعة وابدأ جلسة دخول جديدة:
+```bash
+sudo usermod -aG input "$USER"
+# سجّل الخروج ثم الدخول، ثم تحقق
+id -nG | tr ' ' '\n' | grep -x input
+ls -l /dev/uinput
+```
+يعتمد `scripts/install.sh` والوحدةopiّة على المجموعة نفسها، وتمنح قواعد udev صلاحية الوصول لعُقد USB للمستخدم الجالس. لا تشغّل الخدمة كـ root للالتفاف على هذا: يضع الإدخال المحقون خارج قوائم التحكم الخاصة بالجلسة.
+
+---
+
+<a id="local-evdi"></a>
+## وحدة نواة evdi مفقودة في إعدادات X11 الأقدم
+
+**الأعراض:**
+```
+Error: evdi kernel module is not installed
+```
+
+**السبب:**
+يحتاج مستخدمو DisplayLink وحدة نواة مطابقة. انظر [وقت التشغيل: فشل `orbiscreen start`](#local-evdi) للتثبيت وإعداد تفضيل الالتقاط الذي يتجنّب الحاجة إليها أصلاً.
+
+**الحل:**
+ثبّت نسخة DKMS للنواة الجارية، ثم تأكد:
+```bash
+lsmod | grep evdi
+```
+
+---
+
+<a id="local-gst"></a>
+## إضافة GStreamer مفقودة
+
+**الأعراض:**
+```
+ERROR ... no element found: nvh264enc
+```
+أو يتوقف البناء عند `vaapih264enc`.
+
+**السبب:**
+H.264 موجود في مجموعات الإضافات `good` و`bad` و`ugly`، والمُرمِّزات العتادية تحتاج `bad`. بدونها لا يمكن تركيب خط الأنابيب.
+
+**الحل:**
+```bash
+# Fedora / Nobara
+sudo dnf install gstreamer1-plugins-good gstreamer1-plugins-bad-free gstreamer1-plugins-ugly
+# Ubuntu / Debian
+sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
+gst-inspect-1.0 nvh264enc || gst-inspect-1.0 x264enc
+```
+انظر [لا يوجد مُرمِّز](#no-encoder) لقائمة الأعراض الكاملة.
+
+---
+---
+
+# مشاكل الشبكة والاتصال
+
+---
+
+<a id="net-mdns"></a>
+## لا يعثر الاكتشاف على المضيف
+
+**الأعراض:**
+تعرض حزمة Android قائمة مضيفين فارغة رغم أن الجهاز والمضيف على نفس الشبكة. وتسجّل الخدمة:
+```
+orbiscreen_transport::mdns: Advertised Orbiscreen service via mDNS instance=... port=8788
+```
+ولا يظهر شيء على الجهاز.
+
+**السبب:**
+يعتمد الاكتشاف على البث المتعدد، وهو لا يمرّ عبر شبكة موجَّهة، وكثير من نقاط الوصول اللاسلكية والشبكات الافتراضية والجسور البرمجية تمنعه أو ترشّحه. وجهازان على شبكتين مختلفتين لن يتعارفا بهذه الطريقة أبداً.
+
+**الحل:**
+تأكد أن الخدمة Thalعت نفسَها، ثم افحص المسار:
+```bash
+avahi-browse -rt _orbiscreen._tcp
+ping -c 3 <host-lan-ip>
+```
+إذا كان البث المتعدد مرشَّحاً، فاتصل بالعنوان مباشرة: تقبل الحزمة مضيفاً مكتوباً يدوياً، أو عنوان IP على الشبكة المحلية مُمرَّراً من سطر الأوامر. لا يلزم غير ذلك. ويغطي `docs/DE_SUPPORT.md` محرك الالتقاط، وهو أمر منفصل عن الاكتشاف.
+
+---
+
+<a id="net-timeout"></a>
+## رفض الاتصال أو انتهاء المهلة
+
+**الأعراض:**
+```
+curl: (7) Failed to connect to 192.168.1.10 port 8788: Connection refused
+```
+أو تبقى الحزمة على `Looking for host…` دون رسالة خطأ.
+
+**السبب:**
+إما لا شيء يستمع، أو جدار ناري في المنتصف. تربط الخدمة كل الواجهات، لذا فإن الرفض يعني أن العملية لا تعمل.
+
+**الحل:**
+تحقق ممّا تسجّله الخدمة، من المضيف نفسه:
+```bash
+curl -s http://127.0.0.1:8788/health
+ss -tlnp | grep -E ':(8788|8790)'
+```
+إذا أجاب فحص الـloopback بينما لا يفعل عميل، فالمسار محجوب:
+```bash
+sudo firewall-cmd --list-ports    # Fedora
+sudo ufw status                   # Debian, Ubuntu
+```
+يجب أن تكون المنافذ `8788` (الإشارة والتحكم) و`8789` (فيديو UDP) و`8790` (عميل HTTPS وWebTransport) قابلة للوصول، وأنفذ `5353` عبر UDP متاح للاكتشاف.
+
+---
+
+<a id="net-bandwidth"></a>
+## إشباك النطاق الترددي على وصلة لاسلكية
+
+**الأعراض:**
+البث يعمل على وصلة سلكية ويتقطّع فوق Wi-Fi. يتزايد التأخير بينما الصورة ما زالت تتحرك، وخفض الدقة يساعد.
+
+**السبب:**
+يحتاج بث بدقة 2560x1600 عند 90 إطاراً في الثانية أكثر من غيغابت في الثانية، وهو ما لا تقدر عليه وصلة 5GHz في طيف مشغول. يمتلئ عندها مخزن المُرمِّز الخاص، فيرى المشاهد تفريغ الطابور لا الشاشة الحيّة.
+
+**الحل:**
+اخفض الدقة أو معدل الإطارات من الحزمة. تفترض أرقام التأخير في `docs/UDP_TRANSPORT.md` وصلة تواكب؛ وعلى وصلة مشبعة قِس والصورة متوقفة لتفصل تأخير النقل عن تراكم الطابور.
+
+---
+
+<a id="net-udp"></a>
+## فيديو UDP يتقطّع بينما فيديو HTTP سليم
+
+**الأعراض:**
+تبديل حزمة من HTTP Annex-B إلى فيديو UDP يزيل التقطّع، أو العكس.
+
+**السبب:**
+يشغّل مسار UDP بحثه عن MTU_PATH ومعالجة الازدحام الخاصة به، وخطافات الضبط في `docs/UDP_TRANSPORT.md` تنطبق عليه وحده. والمسار الذي لا يحمل حجم الداتغرام يُنزَع إلى الأسفل قسراً، فيظهر ذلك jako اهتزاز لا كفشل.
+
+**الحل:**
+اضبط الخطافات من ذلك المستند وأعد القياس:
+```bash
+export ORBISCREEN_UDP_MAX_DATAGRAM=1200
+export ORBISCREEN_UDP_MAX_CLIENTS=8
+```
+
+---
+
+# مشاكل المُركِّبات
+
+دعم الالتقاط لكل مُركِّب، وكيف يختار محرك `auto` موثّق في `docs/DE_SUPPORT.md`. تتناول هذه المداخلات ما يراه المستخدم فقط حين لا ينجح شيء.
+
+---
+
+<a id="comp-mutter"></a>
+## GNOME / Wayland (Mutter) لا يعرض أي صورة
+
+**الأعراض:**
+تتصل الحزمة وتُنشأ الشاشة الافتراضية، لكن الحزمة لا تستلم أي إطار، وتسجّل الخدمة سطراً عن محرك الالتcapture الخاص بـGNOME دون إطار أول يطابقه.
+
+**السبب:**
+يحتاج GNOME إلى بوابة بث الشاشة، ونافذة الموافقة خاصة بكل جلسة. نافذةٌ أجيب عنها مرة واحدة تسري للجلسة، لكن خدمة انطلقت قبل الإجابة تحتفظ بمقبض غير ممنوح.
+
+**الحل:**
+ابدأ الخدمة بعد الموافقة على النافذة، وتأكد أن للجلسة عرض wayland خاص بها:
+```bash
+echo "$WAYLAND_DISPLAY" "$XDG_SESSION_TYPE"
+```
+انظر قسم GNOME في `docs/DE_SUPPORT.md` لمسار البوابة.
+
+---
+
+<a id="comp-wlroots"></a>
+## sway / Hyprland يُبلّغ عن محرك التقاط لا يبدأ أبداً
+
+**الأعراض:**
+يبدأ `sway`، ويُنشأ المخرج، ثم لا يُرمَّز شيء.
+
+**السبب:**
+تحتاج مُركِّبات wlroots أن يعلن الجلسة عن بروتوكول نسخ الشاشة. وجلسة متداخلة أو بلا واجهة (`sway --headless` تحت مُركِّب آخر) لا توفّره عادةً.
+
+**الحل:**
+تأكد من وجود البروتوكول قبل لوم المُرمِّز:
+```bash
+swaymsg -t get_outputs | head -40
+```
+يصف قسم sway وHyprland في `docs/DE_SUPPORT.md` ما تُبلّغ عنه جلسة سليمة.
+
+---
+
+<a id="comp-cosmic"></a>
+## COSMIC (cosmic-comp) لا يوفّر محرك التقاط
+
+**الأعراض:**
+تبدأ الخدمة، وتبلّغ `capture_backend` بقيمة `auto`، ولا تفتح التقاطاً أبداً.
+
+**السبب:**
+يعتمد دعم COSMIC على أن يعرض المُركِّب واجهة البث التي يبحث عنها `orbiscreen`. وحين لا يعرضها، لا يجد `auto` ما يختاره.
+
+**الحل:**
+تحقق مما يعلنه المُركِّب، ثم اقرأ قسم COSMIC في `docs/DE_SUPPORT.md` لمعرفة حالة الدعم الحالية قبل افتراض أنه خلل.
+
+---
+
+<a id="comp-x11"></a>
+## X11: يهرب المؤشر من الشاشة الافتراضية
+
+**الأعراض:**
+تحريك الفأرة فوق الشاشة الافتراضية ينقلها إلى شاشة فعلية، والنقرات تصل إلى الشاشة الخطأ.
+
+**السبب:**
+تمرّ مسار إدخال X11 المؤشر المحقون عبر الخادم، والمؤشر الذي يتجاوز حدود الشاشة الافتراضية يلتقطه أي مخرج فعلي يقع تحت موضع المؤشر الفعلي.
+
+**الحل:**
+أعد موضع المخرج الافتراضي بحيث لا يتداخل مع مخرج فعلي، وتحقق من التحجيم الذي طبّقه الديمون:
+```bash
+xrandr --listmonitors
+```
+انظر [تعدد الشاشات / X11](#cursor-clamping) لسلوك المؤشر نفسه.
+
+---
+
+# سلوك وقت التشغيل
+
+---
+
+<a id="runtime-no-screen"></a>
+## لا تظهر أي شاشة على الحزمة
+
+**الأعراض:**
+تتصل الحزمة، وتبلّغ عن جلسة، ولا تعرض شيئاً على الإطلاق.
+
+**السبب:**
+عادةً أحد ثلاثة أمور: محرك الالتقاط لم ينتج إطارات، أو لا يوجد عنصر للمُرمِّز، أو الحزمة تعرض المخرج الخطأ.
+
+**الحل:**
+مرّ عليها بالترتيب:
+1. تأكد أن الإطارات موجودة: `busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon GetStatus`
+   وابحث عن `frames_forwarded`
+2. تأكد أن المُرمِّز قد حُسم: يبلّغ الخرج نفسه عن `encoder`
+3. تأكد أن الحزمة تستهدف الشاشة الافتراضية: انظر
+   [العميل يعرض الشاشة الخطأ](#wrong-screen)
+
+---
+
+<a id="runtime-input"></a>
+## الفأرة أو اللمس لا يفعلان شيئاً
+
+**الأعراض:**
+الفيديو يعمل، لكن الإدخال لا يؤثر في المضيف.
+
+**السبب:**
+يحتاج الإدخال إلى `/dev/uinput`، ويُفتح الحقن مرة واحدة عند بدء الجلسة. والخدمة التي تبدأ بلا صلاحية لا تفتح حقناً أصلاً.
+
+**الحل:**
+ابحث عن سطر الحقن عند البدء:
+```bash
+journalctl --user -u orbiscreen | grep -i 'input injector'
+```
+إن كان غائباً، انظر [رفض صلاحية uinput](#local-uinput). وإن كان موجوداً والإدخال لا يزال لا يفعل شيئاً، فقد لاAddressing ترويسة الجلسة للشاشة التي تنقر عليها؛ انظر [رفض 401](#token-401).
+
+---
+
+<a id="runtime-exits"></a>
+## خدمة المضيف تنتهي فوراً
+
+**الأعراض:**
+يطبع `orbiscreen start` الشعار ثم تختفي العملية قبل أن تتصل أي حزمة.
+
+**السبب:**
+وحدة `systemd` الفاشلة تُبلَّغ في السجل لا في الطرفية، ومحرك التقاط مفقود قاتل عند البدء.
+
+**الحل:**
+اسأل الخدمة عمّا سجّلته، واقرأ سجل الوحدة للسبب:
+```bash
+journalctl --user -u orbiscreen -n 40
+busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon GetStatus
+```
+موصوف واجهة D-Bus في `docs/DBUS_SPEC.md`.
+
+---
+---
+
+# ثغرات حزمة Android
+
+---
+
+<a id="android-decoder"></a>
+## المُفكِّك يتراجع إلى البرمجي، أو لا تظهر الصورة أبداً
+
+**الأعراض:**
+تسجّل الحزمة:
+```
+AOA Annex-B video up 2560x1600
+MediaCodec configured 2560x1600
+codec input full; hold until IDR
+```
+ثم تبقى على رسالة الانتظار بدل عرض صورة.
+
+**السبب:**
+المُفكِّك مُهيّأ ومُغذّى، لكن لم تصل أي إطار مفتاحي بعد. ولا يستطيع أن يبدأ بدون واحد، فهذه عَرَض للنقل لا للمُفكِّك.
+
+**الحل:**
+تأكد أن المضيف أرسل واحداً فعلاً:
+```bash
+journalctl --user -u orbiscreen | grep -i 'IDR requested from encoder'
+```
+إن وصل طلبات IDR وبقي الجهاز ينتظر، فالإطارات لا تصله. وعلى USB يعني ذلك أن الوصلة لا تواكب:
+```bash
+for d in /sys/bus/usb/devices/*; do cat "$d/speed" 2>/dev/null && echo " <- $d"; done
+```
+الوصلة السريعة تبلّغ `12`. اخفض الدقة أو معدل الإطارات حتى تناسب؛ السقف هو الوصلة لا المُرمِّز.
+
+---
+
+<a id="android-app-crash-launch"></a>
+## التطبيق يتعطل فور تشغيله
+
+**الأعراض:**
+الضغط على الأيقونة يعرض نافذة للحظة ثم لا شيء.
+
+**السبب:**
+غالباً تثبيت قديم مكتباته الأصلية لا تطابق الـAPK، أو بناء موقَّع بمفتاح مختلف عن النسخة المثبَّتة، وهو ما يرفض أندرويد استبداله.
+
+**الحل:**
+اقرأ التعطّل، ثم ثبّت نظيفاً:
+```bash
+adb logcat -c && adb shell am start -n com.orbiscreen.android/.MainActivity
+adb logcat -d | grep -i orbiscreen
+adb uninstall com.orbiscreen.android
+adb install orbiscreen-android-release.apk
+```
+
+---
+
+<a id="android-usb-host"></a>
+## اتصال USB يعرض "Looking for host…" إلى الأبد
+
+**الأعراض:**
+يحتجز المضيف الجهاز ويسجّل:
+```
+AOA accessory claimed on "...", in_ep=0x81, out_ep=0x01
+```
+لكن الحزمة لا تغادر `Looking for host…`.
+
+**السبب:**
+يحوز المضيف دور المساعد، لكن لم تُمنح الحزمة صلاحية فتحه. يعرض أندرويد نافذته الخاصة بذلك، وإلى أن تُجاب لا تستطيع الحزمة سوى الانتظار.
+
+**الحل:**
+اقبل نافذة صلاحية USB على الجهاز، وتأكد أن المساعد مرفق فعلاً لا محتجَز فقط:
+```bash
+adb shell dumpsys usb | grep -i current_functions
+```
+قيمة `ACCESSORY` تعني أن الدور نشط. وإن لم تظهر النافذة أبداً، فالنسخة المثبَّتة ليست التي يطابق مرشِّح المساعد فيها ما يعلنه المضيف؛ قارن `usb-manufacturer` و`usb-model` و`usb-version` بما تسجّله الخدمة.
+
+---
+
+<a id="android-evdi-host"></a>
+## فشل اتصال ADB على ASUS Chromebook CM3001
+
+**الأعراض:**
+لا يسرد `adb devices` شيئاً على CM3001 أو جهاز ChromeOS آخر، رغم أن الجهاز والمضيف على نفس الشبكة.
+
+**السبب:**
+يشغّل ChromeOS اتصال adb من جهة المضيف عبر نقل شبكي، ولكل نقل شبكة إجراء منفصل عن USB.
+
+**الحل:**
+استخدم صيغة الشبكة، بعد وصول الجهاز:
+```bash
+adb connect <device-lan-ip>:5555
+adb devices
+```
+يوصف مسار Chromebook في `docs/DE_SUPPORT.md`.
+
+---
+
+<a id="android-touchpad-drag"></a>
+## سحب النوافذ أو تحديد النصوص في وضع لوحة اللمس
+
+**الأعراض:**
+السحب والنقر يحدد نصاً أو يحرّك نافذة بدل أن يرسم.
+
+**السبب:**
+تسليمة قلم أو إصبع تُبلَّغ كلمس، ويحقنها المضيف كلمس. ووضع لوحة اللمس على طبقة الجهاز يُبلّغ أحداث أزرار يتصرّف بها المُركِّب أصلاً، فلتُلتقط الإيماءة قبل أن تصل الشاشة الافتراضية.
+
+**الحل:**
+استخدم أداة اللوح أو القلم المخصّصة في شريط الأدوات بدل ملامسة مباشرة بالإصبع، وتحقق من الجهاز الذي ربطه المضيف:
+```bash
+journalctl --user -u orbiscreen | grep 'bound KWin input device'
+```
+يربط الديمون أجهزة الفأرة واللمس والقلم علىNkseparation، فيخبرك السجل بأيها جاءت عبره الإيماءة.
+
+---
+
+<a id="android-touch-offset"></a>
+## اللمس مُدوَّر أو غير محاذٍ
+
+**الأعراض:**
+الرسم يقع مُزاحاً عن الإصبع، أو في الجهة الخطأ، بينما الفيديو صحيح.
+
+**السبب:**
+يُقرَّر دوران الالتقاط ودوران اللمس المحقون على حدة. وحين يُحجَّم المخرج، تحتاج إحداثيات اللمس نفس التحويل الذي تحتاجه الصورة.
+
+**الحل:**
+تأكد من التحجيم الذي طبّقه الديمون، ثم غيّر شيئاً واحداً في كل مرة:
+```bash
+journalctl --user -u orbiscreen | grep 'Enabled and scaled KWin output'
+```
+إعادة تشغيل الحزمة بعد تغيير الدقة تعيد ربط التدفق وتعيد ربط أجهزة الإدخال، وهو ما يمسح عادةً تحويلاً قديماً.
+
+---
+
+<a id="android-control-404"></a>
+## إجراءات شريط التحكم تُرجع 404
+
+**الأعراض:**
+الضغط على عنصر تحكم في الحزمة يُنتج 404 في سجل الديمون.
+
+**السبب:**
+يخبر شريط التحكم المسار `/api/control`، وهو يتطلب توكن الجلسة. والحزمة التي لم تجلب التوكن لا ترسل أي اعتماد، فيرفضه المسار.
+
+**الحل:**
+تأكد أن الحزمة حصلت على التوكن:
+```bash
+adb logcat -d | grep -i 'token fetch'
+```
+سطر ناجح يُبلّغ `available=true`. وإن فشل، فالجلسة لا تستطيع المصادقة أصلاً؛ انظر [رفض 401](#token-401).
+
+---
+
+<a id="android-discovery-empty"></a>
+## قائمة الاكتشاف فارغة رغم وجود مضيفين على نفس Wi-Fi
+
+**الأعراض:**
+لا تظهر مضيفين في قائمة الحزمة، بينما يعمل مضيف مكتوب يدوياً.
+
+**السبب:**
+الاكتشاف يعتمد على البث المتعدد، وهو مرشَّح غالباً على Wi-Fi. والعنوان المكتوب يدوياً يسلك مساراً مختلفاً، ولهذا قد ينفع.
+
+**الحل:**
+تأكد من المضيف أن الخدمة معلنة:
+```bash
+avahi-browse -rt _orbiscreen._tcp
+```
+ثم انظر [لا يعثر الاكتشاف على المضيف](#net-mdns).
+
+---
 
 ### ما زلت عالقاً؟
 
 - [ما زال البناء يفشل؟ راجع سجلات الإجراء](#ما-زلت-عالقاً؟)
-- [إعادة تشغيل مهمة CI واحدة](#إجراءات-سير-عمل-ci-githubworkflowsciyml)
+- [إعادة تشغيل مهمة CI واحدة](#إجراء-ci-build-cargo-build---workspace---locked)
 - [التحقق من بث حي من طرف إلى طرف ‏(`scripts/verify-stream.sh`)](#رفض-401-من-stream-أو-input-أو-apicontrol-التوكن)
-- [تجهيز بيئة تطوير ‏(`scripts/setup-dev-env.sh`)](#إجراءات-سير-عمل-ci-githubworkflowsciyml)
+- [تجهيز بيئة تطوير ‏(`scripts/setup-dev-env.sh`)](#إجراء-ci-build-cargo-build---workspace---locked)
 
 ---
 

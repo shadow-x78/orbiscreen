@@ -1,3 +1,11 @@
+orbiscreen (0.33.8~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.33.8 for Ubuntu noble.
+  * docs: write the 30 troubleshooting sections that were listed but missing
+  * Bump version to 0.33.8 across all packages; Android versionCode 144.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.33.7~ubuntunoble1) noble; urgency=medium
 
   * Release 0.33.7 for Ubuntu noble.

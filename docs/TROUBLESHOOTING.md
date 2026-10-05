@@ -2,7 +2,7 @@
 
 # Troubleshooting - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.33.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.33.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -19,29 +19,54 @@
 
 ## Table of Contents
 
-- [Action: `Check formatting` (`cargo fmt --all -- --check`)](#ci-action-format-lint-cargo-fmt---check)
-- [Action: `Clippy (deny warnings)` (`cargo clippy --workspace --all-targets --locked -- -D warnings`)](#ci-action-clippy-deny-warnings)
-- [Action: `Build` (`cargo build --workspace --locked`)](#ci-action-build-cargo-build---workspace---locked)
-- [Action: `Test` (`cargo test --workspace --locked`)](#ci-action-test-cargo-test---workspace---locked)
-- [Action: `Run cargo-deny` (`cargo deny check`)](#ci-action-run-cargo-deny)
-- [Action: `Android assembleDebug` + `lintDebug`](#ci-action-android-assembledebug-lintdebug)
-
-- [Runtime: `orbiscreen start` fails - `kernel module is not installed`](#runtime-kde-plasma-virtual-display-without-evdi-or-root)
+- [Debian package build fails on the PPA](#debian-package-build-fails-on-the-ppa)
+- [RPM build fails on COPR](#rpm-build-fails-on-copr)
+- [Release workflow fails before publishing](#release-workflow-fails-before-publishing)
+- [Android SDK not found](#android-sdk-not-found)
+- [uinput permission denied](#uinput-permission-denied)
+- [Missing evdi kernel module when building for older X11 setups](#missing-evdi-kernel-module-when-building-for-older-x11-setups)
+- [GStreamer plugins missing](#gstreamer-plugins-missing)
+- [mDNS discovery finds no host](#mdns-discovery-finds-no-host)
+- [Connection refused or timed out](#connection-refused-or-timed-out)
+- [Bandwidth saturation on a wireless link](#bandwidth-saturation-on-a-wireless-link)
+- [UDP video stutters while HTTP video is fine](#udp-video-stutters-while-http-video-is-fine)
+- [GNOME / Wayland (Mutter) shows no picture](#gnome-wayland-mutter-shows-no-picture)
+- [sway / Hyprland reports a capture backend that never starts](#sway-hyprland-reports-a-capture-backend-that-never-starts)
+- [COSMIC (cosmic-comp) does not offer a capture backend](#cosmic-cosmic-comp-does-not-offer-a-capture-backend)
+- [X11: the cursor escapes the virtual display](#x11-the-cursor-escapes-the-virtual-display)
+- [No screen displayed on the client](#no-screen-displayed-on-the-client)
+- [Mouse or touch does nothing](#mouse-or-touch-does-nothing)
+- [Host daemon exits immediately](#host-daemon-exits-immediately)
+- [Decoder falls back to software, or the picture never appears](#decoder-falls-back-to-software-or-the-picture-never-appears)
+- [App crashes immediately on launch](#app-crashes-immediately-on-launch)
+- [USB connection shows "Looking for host…" forever](#usb-connection-shows-looking-for-host-forever)
+- [ADB connection fails on ASUS Chromebook CM3001](#adb-connection-fails-on-asus-chromebook-cm3001)
+- [Dragging windows or selecting text in Touchpad mode](#dragging-windows-or-selecting-text-in-touchpad-mode)
+- [Touch is rotated or misaligned](#touch-is-rotated-or-misaligned)
+- [Control toolbar actions return 404](#control-toolbar-actions-return-404)
+- [Discovery list is empty though hosts are on the same Wi-Fi](#discovery-list-is-empty-though-hosts-are-on-the-same-wi-fi)
+  - [Still Stuck?](#still-stuck)
+- [CI Action: `Format & Lint` (`cargo fmt --check`)](#ci-action-format-lint-cargo-fmt---check)
+- [CI Action: `Clippy (deny warnings)`](#ci-action-clippy-deny-warnings)
+- [CI Action: `Build` (`cargo build --workspace --locked`)](#ci-action-build-cargo-build---workspace---locked)
+- [CI Action: `Test` (`cargo test --workspace --locked`)](#ci-action-test-cargo-test---workspace---locked)
+- [CI Action: `Run cargo-deny`](#ci-action-run-cargo-deny)
+- [CI Action: `Android assembleDebug` + `lintDebug`](#ci-action-android-assembledebug-lintdebug)
+- [Runtime: `orbiscreen start` fails - `kernel module is not installed`](#runtime-orbiscreen-start-fails---kernel-module-is-not-installed)
 - [Runtime: KDE Plasma (virtual display without evdi or root)](#runtime-kde-plasma-virtual-display-without-evdi-or-root)
 - [Runtime: capture backend unavailable on Wayland](#runtime-capture-backend-unavailable-on-wayland)
-- [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations` lint warnings](#runtime-unsafe_op_in_unsafe_fn-missing_debug_implementations)
-
-- [Android / ChromeOS: ADB connection fails on ASUS Chromebook CM3001](#android-chromeos-adb-connection-fails-on-asus-chromebook-cm3001)
-- [Android: Stylus / Pen not drawing, incorrect pressure, or app crash on Lenovo Tab](#android-stylus-pen-not-drawing-incorrect-pressure-or-app-crash-on-lenovo-tab)
-- [Android: Dragging windows or selecting files in Touchpad mode](#android-dragging-windows-or-selecting-files-in-touchpad-mode)
-- [Android: app crashes or process dies when tapping Connect](#android-app-crashes-or-process-dies-when-tapping-connect)
-- [Android: black screen after Connect](#android-black-screen-after-connect)
-- [Android: discovery list is empty even though hosts are on the same Wi-Fi](#android-discovery-list-is-empty-even-though-hosts-are-on-the-same-wi-fi)
-- [Android: touch is rotated / misaligned](#android-touch-is-rotated-misaligned)
-- [Android: control toolbar actions return 404](#android-control-toolbar-actions-return-404)
-- [Android: app crashes immediately on launch](#android-app-crashes-or-process-dies-when-tapping-connect)
-- [Android: USB connection shows "Looking for host…"](#android-usb-connection-shows-looking-for-host)
-
+- [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`](#runtime-unsafe_op_in_unsafe_fn-missing_debug_implementations)
+- [Android Client & Devices](#android-client-devices)
+  - [Android / ChromeOS: ADB connection fails on ASUS Chromebook CM3001](#android-chromeos-adb-connection-fails-on-asus-chromebook-cm3001)
+  - [Android: Stylus / Pen not drawing, incorrect pressure, or app crash on Lenovo Tab](#android-stylus-pen-not-drawing-incorrect-pressure-or-app-crash-on-lenovo-tab)
+  - [Android: Dragging windows or selecting files in Touchpad mode](#android-dragging-windows-or-selecting-files-in-touchpad-mode)
+  - [Android: app crashes or process dies when tapping Connect](#android-app-crashes-or-process-dies-when-tapping-connect)
+  - [Android: black screen after Connect](#android-black-screen-after-connect)
+  - [Android: discovery list is empty even though hosts are on the same Wi-Fi](#android-discovery-list-is-empty-even-though-hosts-are-on-the-same-wi-fi)
+  - [Android: touch is rotated / misaligned](#android-touch-is-rotated-misaligned)
+  - [Android: control toolbar actions return 404](#android-control-toolbar-actions-return-404)
+  - [Android: app crashes immediately on launch](#android-app-crashes-immediately-on-launch)
+  - [Android: USB connection shows "Looking for host…"](#android-usb-connection-shows-looking-for-host)
 - [Streaming: High latency, stutter, or slow mouse movement on 5GHz Wi-Fi](#streaming-high-latency-stutter-or-slow-mouse-movement-on-5ghz-wi-fi)
 - [Streaming: Stream error causes infinite reconnect flicker instead of detecting disconnect](#streaming-stream-error-causes-infinite-reconnect-flicker-instead-of-detecting-disconnect)
 - [Multi-Monitor / X11: Mouse cursor escapes virtual display to other physical screens](#multi-monitor-x11-mouse-cursor-escapes-virtual-display-to-other-physical-screens)
@@ -50,8 +75,654 @@
 - [No encoder available - stream starts but errors out (x264 missing)](#no-encoder-available---stream-starts-but-errors-out-x264-missing)
 - [401 Unauthorized from `/stream`, `/input` or `/api/control` (token)](#401-unauthorized-from-stream-input-or-apicontrol-token)
 - [Daemon not found on D-Bus](#daemon-not-found-on-d-bus)
-
 - [Daemon: 100% CPU usage or freeze](#daemon-100-cpu-usage-or-freeze)
+
+# CI Packaging Failures
+
+Packaging runs in dedicated workflows rather than in `ci.yml`, so a green
+`CI` check does not mean the packages build. The release gate re-runs
+`cargo deny check` and `cargo audit` before anything is published.
+
+---
+
+<a id="ci-deb"></a>
+## Debian package build fails on the PPA
+
+**Symptom:**
+```
+dpkg-buildpackage: error: unmet build-dependency: libwebkit2gtk-4.1-dev
+```
+or, from the Ubuntu job:
+```
+error: Package 'libjavascriptcoregtk-4.1-dev' has no installation candidate
+```
+
+**Cause:**
+`debian/rules` builds the whole workspace, which includes the Tauri control
+centre. That needs the WebKitGTK development packages, and `debian/control`
+has to list every one of them or the build cannot start.
+
+**Fix:**
+`Build-Depends` must carry `libwebkit2gtk-4.1-dev`,
+`libjavascriptcoregtk-4.1-dev`, `libsoup-3.0-dev`, `libgtk-3-dev`,
+`librsvg2-dev` and `libayatana-appindicator3-dev` next to the GStreamer
+packages. The workflow also installs them before `debuild`; if the PPA image
+lacks them, the build fails in the workflow rather than in `debian/rules`.
+
+---
+
+<a id="ci-rpm"></a>
+## RPM build fails on COPR
+
+**Symptom:**
+```
+error: Failed build dependencies:
+/bin/sh: line 31: gstreamer1-devel: command not found
+```
+
+**Cause:**
+`data/orbiscreen-copr.spec` compiles the same workspace, so it needs the
+Fedora equivalents of the packages the Debian build needs.
+
+**Fix:**
+Confirm `BuildRequires` in the spec lists `gstreamer1-devel`,
+`gstreamer1-plugins-base-devel`, `libdrm-devel`, `libxkbcommon-devel`,
+`webkit2gtk4.1-devel`, `gtk3-devel`, `libappindicator-gtk3-devel` and
+`librsvg2-devel`, and that the requested Rust is at least as new as
+`rust-version` in `Cargo.toml`. `scripts/check-versions.sh` catches a stale
+`Version:` tag but not a missing build requirement.
+
+---
+
+<a id="ci-release"></a>
+## Release workflow fails before publishing
+
+**Symptom:**
+`Release Matrix` fails in `Verify code integrity (release gate)`, and no
+assets are uploaded.
+
+**Cause:**
+The gate blocks the release when the integrity checks fail: formatting,
+clippy with warnings denied, the test suite, `cargo machete`, `cargo deny
+check`, or `cargo audit`. It runs on untrusted refs too, so a tag on a commit
+that does not pass cannot publish.
+
+**Fix:**
+Read which step failed in the run summary and fix that locally:
+```bash
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+cargo machete && cargo deny check && cargo audit
+```
+The gate runs on the workspace including the GUI crate, so
+`cargo clippy --workspace` needs the WebKitGTK development packages that
+`ci.yml` installs.
+
+---
+
+# Local Build Issues
+
+---
+
+<a id="local-sdk"></a>
+## Android SDK not found
+
+**Symptom:**
+```
+SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable
+```
+
+**Cause:**
+`clients/android` needs an SDK with the platform the app compiles against.
+The directory has to be the one holding `platforms/`, not the
+`cmdline-tools` parent.
+
+**Fix:**
+Point `ANDROID_HOME` at the SDK root and accept the licences once:
+```bash
+export ANDROID_HOME="$HOME/Android/Sdk"
+yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
+"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install \
+  "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+```
+Then build with `./gradlew assembleDebug` from `clients/android`.
+
+---
+
+<a id="local-uinput"></a>
+## uinput permission denied
+
+**Symptom:**
+```
+no usable input injector found (uinput and portal both failed)
+```
+or, when the daemon starts:
+```
+orbiscreen_input: permission denied on /dev/uinput
+```
+
+**Cause:**
+Input injection goes through kernel `uinput` devices, and `/dev/uinput`
+normally belongs to `root:input` with mode `0660`. A user outside the
+`input` group cannot open it.
+
+**Fix:**
+Add the user to the group and start a new login session:
+```bash
+sudo usermod -aG input "$USER"
+# log out and back in, then verify
+id -nG | tr ' ' '\n' | grep -x input
+ls -l /dev/uinput
+```
+`scripts/install.sh` and the systemd unit rely on the same group, and the
+udev rules grant console-user access to the USB nodes. Do not run the daemon
+as root to work around this: it would put the injected input outside the
+session's ACLs.
+
+---
+
+<a id="local-evdi"></a>
+## Missing evdi kernel module when building for older X11 setups
+
+**Symptom:**
+```
+Error: evdi kernel module is not installed
+```
+
+**Cause:**
+DisplayLink userspace needs a matching kernel module. See
+[Runtime: `orbiscreen start` fails](#runtime-evdi) for the install and the
+capture-backend preference that avoids needing it at all.
+
+**Fix:**
+Install the DKMS build for the running kernel, then confirm:
+```bash
+lsmod | grep evdi
+```
+
+---
+
+<a id="local-gst"></a>
+## GStreamer plugins missing
+
+**Symptom:**
+```
+ERROR ... no element found: nvh264enc
+```
+or the build stops at `vaapih264enc`.
+
+**Cause:**
+H.264 lives in the `good`, `bad` and `ugly` plugin sets, and the hardware
+encoders need `bad`. Without them the pipeline cannot be assembled.
+
+**Fix:**
+```bash
+# Fedora / Nobara
+sudo dnf install gstreamer1-plugins-good gstreamer1-plugins-bad-free gstreamer1-plugins-ugly
+# Ubuntu / Debian
+sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
+gst-inspect-1.0 nvh264enc || gst-inspect-1.0 x264enc
+```
+See [No encoder available](#no-encoder) for the full symptom list.
+
+---
+---
+
+# Network & Connection Issues
+
+---
+
+<a id="net-mdns"></a>
+## mDNS discovery finds no host
+
+**Symptom:**
+The Android client shows an empty host list even though host and device are
+on the same subnet. The daemon logs:
+```
+orbiscreen_transport::mdns: Advertised Orbiscreen service via mDNS instance=... port=8788
+```
+yet nothing appears on the device.
+
+**Cause:**
+Discovery relies on multicast, which does not cross a routed network, and
+which many Wi-Fi access points, VPNs and container bridges drop or filter.
+A client and host on different subnets will never see each other this way.
+
+**Fix:**
+Confirm the daemon advertised itself, then check the path:
+```bash
+avahi-browse -rt _orbiscreen._tcp
+ping -c 3 <host-lan-ip>
+```
+If multicast is filtered, connect by address instead: the client accepts a
+host typed in, or a LAN IP passed on the command line. Nothing else needs
+changing. `docs/DE_SUPPORT.md` covers the capture backend; discovery is a
+separate concern and does not depend on it.
+
+---
+
+<a id="net-timeout"></a>
+## Connection refused or timed out
+
+**Symptom:**
+```
+curl: (7) Failed to connect to 192.168.1.10 port 8788: Connection refused
+```
+or the client sits on `Looking for host…` without an error.
+
+**Cause:**
+Either nothing is listening, or a firewall is in between. The daemon binds
+all interfaces, so a refusal means the process is not running.
+
+**Fix:**
+Check what the host reports, from the host itself:
+```bash
+curl -s http://127.0.0.1:8788/health
+ss -tlnp | grep -E ':(8788|8790)'
+```
+If the loopback probe answers but a client does not, the path is blocked:
+```bash
+sudo firewall-cmd --list-ports    # Fedora
+sudo ufw status                   # Debian, Ubuntu
+```
+Ports `8788` (signalling and control), `8789` (UDP video) and `8790`
+(HTTPS client and WebTransport) must be reachable, and UDP `5353` for
+discovery.
+
+---
+
+<a id="net-bandwidth"></a>
+## Bandwidth saturation on a wireless link
+
+**Symptom:**
+The stream works on a wired link and stutters over Wi-Fi. Latency climbs
+while the picture is still moving, and dropping the resolution helps.
+
+**Cause:**
+A 2560x1600 stream at 90 fps needs well over a gigabit per second, which a
+5 GHz link in a busy radio cannot deliver. The encoder then fills its own
+buffers, and what the viewer sees is the queue draining rather than the live
+screen.
+
+**Fix:**
+Lower the resolution or the framerate on the client. The delay figures in
+`docs/UDP_TRANSPORT.md` assume a link that keeps up; on a saturated link
+measure with the picture paused to separate transport delay from queueing.
+
+---
+
+<a id="net-udp"></a>
+## UDP video stutters while HTTP video is fine
+
+**Symptom:**
+Switching a client from HTTP Annex-B to UDP video removes the stutter, or
+the reverse.
+
+**Cause:**
+The UDP path runs its own path-MTU search and congestion handling, and the
+tuning hooks in `docs/UDP_TRANSPORT.md` apply to it only. A path that
+cannot hold the datagram size is forced back down, which shows up as jitter
+rather than as a failure.
+
+**Fix:**
+Set the hooks from that document and re-measure:
+```bash
+export ORBISCREEN_UDP_MAX_DATAGRAM=1200
+export ORBISCREEN_UDP_MAX_CLIENTS=8
+```
+
+---
+
+# Compositor-Specific Issues
+
+Capture support per compositor, and how the `auto` backend chooses, are
+documented in `docs/DE_SUPPORT.md`. These entries cover only what a user sees
+when something does not work.
+
+---
+
+<a id="comp-mutter"></a>
+## GNOME / Wayland (Mutter) shows no picture
+
+**Symptom:**
+The stream connects and the virtual display is created, but the client
+receives no frames, and the daemon logs a capture backend line for GNOME
+without a matching first frame.
+
+**Cause:**
+GNOME needs the screen-cast portal, and the portal prompt is per session.
+A prompt answered once for the login session still applies, but a daemon
+started before the prompt was answered keeps the un-granted handle.
+
+**Fix:**
+Start the daemon after granting the prompt, and confirm the session has a
+wayland display of its own:
+```bash
+echo "$WAYLAND_DISPLAY" "$XDG_SESSION_TYPE"
+```
+See the GNOME section of `docs/DE_SUPPORT.md` for the portal flow.
+
+---
+
+<a id="comp-wlroots"></a>
+## sway / Hyprland reports a capture backend that never starts
+
+**Symptom:**
+`sway` starts, the output is created, and then nothing is encoded.
+
+**Cause:**
+wlroots compositors need the screencopy protocol advertised by the session.
+A nested or headless session (`sway --headless` under another compositor)
+usually does not provide it.
+
+**Fix:**
+Confirm the protocol is present before blaming the encoder:
+```bash
+swaymsg -t get_outputs | head -40
+```
+The sway and Hyprland sections of `docs/DE_SUPPORT.md` describe what a
+working session reports.
+
+---
+
+<a id="comp-cosmic"></a>
+## COSMIC (cosmic-comp) does not offer a capture backend
+
+**Symptom:**
+The daemon starts, reports `capture_backend` as `auto`, and never opens a
+capture.
+
+**Cause:**
+COSMIC support depends on the compositor exposing the screencast interface
+`orbiscreen` looks for. When it does not, `auto` has nothing to pick.
+
+**Fix:**
+Check what the compositor advertises, then read the COSMIC section of
+`docs/DE_SUPPORT.md` for the current support status before assuming a bug.
+
+---
+
+<a id="comp-x11"></a>
+## X11: the cursor escapes the virtual display
+
+**Symptom:**
+Moving the mouse over the virtual screen moves it onto a physical monitor,
+and clicks land on the wrong display.
+
+**Cause:**
+The X11 input path maps the injected pointer through the server, and a
+cursor that leaves the virtual screen's bounds is grabbed by whichever
+physical output is under the physical pointer position.
+
+**Fix:**
+Reposition the virtual output so it does not overlap a physical one, and
+verify the scaling the daemon applied:
+```bash
+xrandr --listmonitors
+```
+See [Multi-Monitor / X11](#cursor-clamping) for the cursor behaviour itself.
+
+---
+
+# Runtime Behaviour
+
+---
+
+<a id="runtime-no-screen"></a>
+## No screen displayed on the client
+
+**Symptom:**
+The client connects, reports a session, and shows nothing at all.
+
+**Cause:**
+Usually one of three things: the capture backend produced no frames, the
+encoder has no element, or the client is showing the wrong output.
+
+**Fix:**
+Work through them in order:
+1. Confirm frames exist: `busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon GetStatus`
+   and look at `frames_forwarded`
+2. Confirm the encoder resolved: the same output reports `encoder`
+3. Confirm the client targets the virtual screen: see
+   [Client shows the wrong screen](#wrong-screen)
+
+---
+
+<a id="runtime-input"></a>
+## Mouse or touch does nothing
+
+**Symptom:**
+Video streams, but input has no effect on the host.
+
+**Cause:**
+Input needs `/dev/uinput`, and the injector is opened once when a session
+starts. A daemon started without the permission opens no injector at all.
+
+**Fix:**
+Look for the injector line at startup:
+```bash
+journalctl --user -u orbiscreen | grep -i 'input injector'
+```
+If it is missing, see [uinput permission denied](#local-uinput). If it is
+present and input still does nothing, the session header may not be
+addressing the display you are clicking on; see
+[401 Unauthorized](#token-401).
+
+---
+
+<a id="runtime-exits"></a>
+## Host daemon exits immediately
+
+**Symptom:**
+`orbiscreen start` prints the banner and the process is gone before any
+client connects.
+
+**Cause:**
+A failed `systemd` unit is reported by the journal rather than the
+terminal, and a missing capture backend is fatal at start.
+
+**Fix:**
+Ask the daemon what it recorded, and read the unit log for the reason:
+```bash
+journalctl --user -u orbiscreen -n 40
+busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon GetStatus
+```
+The D-Bus surface is described in `docs/DBUS_SPEC.md`.
+
+---
+---
+
+# Android Client Gaps
+
+---
+
+<a id="android-decoder"></a>
+## Decoder falls back to software, or the picture never appears
+
+**Symptom:**
+The client logs
+```
+AOA Annex-B video up 2560x1600
+MediaCodec configured 2560x1600
+codec input full; hold until IDR
+```
+and then stays on the waiting message instead of showing a picture.
+
+**Cause:**
+The decoder is configured and fed, but no keyframe has arrived yet. The
+codec cannot start without one, so this is a symptom of the transport rather
+than of the decoder.
+
+**Fix:**
+Confirm the host actually sent one:
+```bash
+journalctl --user -u orbiscreen | grep -i 'IDR requested from encoder'
+```
+If IDRs are requested but the device still waits, the frames are not
+reaching it. Over USB that means the link cannot keep up:
+```bash
+for d in /sys/bus/usb/devices/*; do cat "$d/speed" 2>/dev/null && echo " <- $d"; done
+```
+A High-Speed link reports `12`. Lower the resolution or the framerate until
+it fits; the ceiling is the link, not the encoder.
+
+---
+
+<a id="android-app-crash-launch"></a>
+## App crashes immediately on launch
+
+**Symptom:**
+Tapping the icon shows a brief window and nothing else.
+
+**Cause:**
+Usually a stale install whose native libraries do not match the APK, or a
+build signed with a different key than the installed copy, which Android
+refuses to replace.
+
+**Fix:**
+Read the crash, then reinstall cleanly:
+```bash
+adb logcat -c && adb shell am start -n com.orbiscreen.android/.MainActivity
+adb logcat -d | grep -i orbiscreen
+adb uninstall com.orbiscreen.android
+adb install orbiscreen-android-release.apk
+```
+
+---
+
+<a id="android-usb-host"></a>
+## USB connection shows "Looking for host…" forever
+
+**Symptom:**
+The host claims the device and logs
+```
+AOA accessory claimed on "...", in_ep=0x81, out_ep=0x01
+```
+but the client never leaves "Looking for host…".
+
+**Cause:**
+The host has the accessory role, but the client has not been granted
+permission to open it. Android shows its own prompt for this; until it is
+answered the client can only wait.
+
+**Fix:**
+Accept the USB permission dialog on the device, and confirm the accessory is
+actually attached rather than merely claimed:
+```bash
+adb shell dumpsys usb | grep -i current_functions
+```
+`ACCESSORY` means the role is active. If the prompt never appears, the
+installed app is not the one whose accessory filter matches the host; compare
+the `usb-manufacturer`, `usb-model` and `usb-version` it advertises against
+what the daemon logs.
+
+---
+
+<a id="android-evdi-host"></a>
+## ADB connection fails on ASUS Chromebook CM3001
+
+**Symptom:**
+`adb devices` lists nothing on a CM3001 or another ChromeOS device, while
+the host and the device are on the same network.
+
+**Cause:**
+ChromeOS runs the host-side adb over a network transport, and that transport
+has to be allowed separately from USB.
+
+**Fix:**
+Use the network form, once the device is reachable:
+```bash
+adb connect <device-lan-ip>:5555
+adb devices
+```
+The Chromebook-specific path is described in `docs/DE_SUPPORT.md`.
+
+---
+
+<a id="android-touchpad-drag"></a>
+## Dragging windows or selecting text in Touchpad mode
+
+**Symptom:**
+A click-and-drag selects text or moves a window instead of drawing.
+
+**Cause:**
+A pen or finger reports as a touch, and the host injects it as one. Touchpad
+mode on the device layer reports button events the compositor already acts
+on, so the gesture is consumed before it reaches the virtual screen.
+
+**Fix:**
+Use the dedicated tablet or stylus tool in the toolbar rather than a direct
+finger contact, and check which device the host bound:
+```bash
+journalctl --user -u orbiscreen | grep 'bound KWin input device'
+```
+The daemon binds the mouse, touch and pen devices separately, so the log
+tells you which one a gesture arrived through.
+
+---
+
+<a id="android-touch-offset"></a>
+## Touch is rotated or misaligned
+
+**Symptom:**
+Drawing lands offset from the finger, or on the wrong side, while video is
+correct.
+
+**Cause:**
+The capture rotation and the injected touch rotation are decided separately.
+When the output is scaled, the touch coordinates need the same transform as
+the picture.
+
+**Fix:**
+Confirm the scale the daemon applied, then change one thing at a time:
+```bash
+journalctl --user -u orbiscreen | grep 'Enabled and scaled KWin output'
+```
+Restarting the client after a resolution change re-attaches the stream and
+rebinds the input devices, which usually clears a stale transform.
+
+---
+
+<a id="android-control-404"></a>
+## Control toolbar actions return 404
+
+**Symptom:**
+Tapping a control in the client produces a 404 in the daemon log.
+
+**Cause:**
+The toolbar posts to `/api/control`, which requires the session token. A
+client that never fetched it sends no credential, and the route rejects it.
+
+**Fix:**
+Confirm the client obtained the token:
+```bash
+adb logcat -d | grep -i 'token fetch'
+```
+A successful line reports `available=true`. If it fails, the session cannot
+authenticate at all; see [401 Unauthorized](#token-401).
+
+---
+
+<a id="android-discovery-empty"></a>
+## Discovery list is empty though hosts are on the same Wi-Fi
+
+**Symptom:**
+No hosts appear in the client's list, while a host typed in by hand works.
+
+**Cause:**
+Discovery is multicast based, and multicast is commonly filtered on
+Wi-Fi. A manually entered address takes a different path, which is why it
+can still work.
+
+**Fix:**
+Verify from the host that the service is advertised:
+```bash
+avahi-browse -rt _orbiscreen._tcp
+```
+Then see [mDNS discovery finds no host](#net-mdns).
+
+---
 
 ### Still Stuck?
 - [CI Failures](#ci-failures)

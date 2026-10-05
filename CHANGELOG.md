@@ -6,24 +6,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Released as 0.33.7.
+Released as 0.33.8.
+
+### Added
+- The 30 troubleshooting sections that the contents lists advertised but that were never
+  written, in both languages. The English guide goes from 23 sections to 49:
+  - CI packaging: Debian on the PPA, RPM on COPR, and the release gate itself
+  - Local build: Android SDK, uinput permission, evdi, GStreamer plugins
+  - Network: mDNS discovery, connection refused, bandwidth saturation, UDP versus HTTP
+  - Compositors: Mutter, wlroots, COSMIC, X11 cursor containment
+  - Runtime: no picture, input ignored, daemon exits immediately
+  - Android: decoder fallback, crash on launch, "Looking for host?", ChromeOS adb,
+    touchpad drag, rotated touch, toolbar 404, empty discovery
+- Each entry states the symptom as the user sees it, then the cause, then the fix, and
+  defers to `docs/DE_SUPPORT.md`, `docs/UDP_TRANSPORT.md`, `docs/PACKAGING.md` and
+  `docs/DBUS_SPEC.md` instead of restating what they already cover
 
 ### Fixed
-- The troubleshooting guides' contents lists and "Still Stuck?" blocks linked to sections
-  that do not exist, so each of those links jumped back to the top of the page: 66 dangling
-  anchors in the English guide and 78 in the Arabic one. The tables of contents now point
-  only at sections that exist, and `scripts/fix-doc-anchors.py` repoints the remaining
-  legacy anchors, reporting anything it cannot place
+- Every internal link in the troubleshooting and packaging guides now resolves: the
+  contents lists and "Still Stuck?" blocks pointed at sections that do not exist, so those
+  links jumped back to the top of the page. 66 dangling anchors in the English
+  troubleshooting guide, 78 in the Arabic one, 6 in the packaging guide and 13 in the
+  Arabic README
+- `scripts/fix-doc-anchors.py` repoints a legacy anchor to the heading that now carries
+  its content and reports anything it cannot place
 
 ### Changed
-- Drop the audio entries from both guides, because Orbiscreen streams no audio, and the
-  networking, local-build and extra-compositor entries, which were listed but never
-  written. The English guide has no sections for them, so the entries could not simply be
-  repointed
-- Add the missing "no encoder available" section to the Arabic guide, translated from the
-  English one, which is the only such section the two guides did not share
-- Remove the inline comments added in this series
-- Version bumped to 0.33.7 across the Cargo workspace, Android (`versionCode` 143), Tauri,
+- Drop the audio entries from both guides, because Orbiscreen streams no audio
+- Version bumped to 0.33.8 across the Cargo workspace, Android (`versionCode` 144), Tauri,
   PKGBUILD, Debian, COPR, and documentation badges.
 
 ## [v0.33.7] - 2026-10-05
