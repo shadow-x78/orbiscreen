@@ -2,7 +2,7 @@
 
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.33.6-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.33.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -21,54 +21,54 @@
 
 ### إجراءات سير عمل CI (`‎.github/workflows/ci.yml`)
 
-- [الإجراء: `Check formatting` ‏(`cargo fmt --all -- --check`)](#ci-fmt)
-- [الإجراء: `Clippy (deny warnings)` ‏(`cargo clippy --workspace --all-targets --locked -- -D warnings`)](#ci-clippy)
-- [الإجراء: `Build` ‏(`cargo build --workspace --locked`)](#ci-build)
-- [الإجراء: `Test` ‏(`cargo test --workspace --locked`)](#ci-test)
-- [الإجراء: `Run cargo-deny` ‏(`cargo deny check`)](#ci-deny)
-- [الإجراء: `Android assembleDebug` + `lintDebug`](#ci-android)
+- [الإجراء: `Check formatting` ‏(`cargo fmt --all -- --check`)](#إجراء-ci-format-cargo-fmt)
+- [الإجراء: `Clippy (deny warnings)` ‏(`cargo clippy --workspace --all-targets --locked -- -D warnings`)](#إجراء-ci-clippy-deny-warnings)
+- [الإجراء: `Build` ‏(`cargo build --workspace --locked`)](#إجراء-ci-build-cargo-build---workspace---locked)
+- [الإجراء: `Test` ‏(`cargo test --workspace --locked`)](#إجراء-ci-test-cargo-test---workspace---locked)
+- [الإجراء: `Run cargo-deny` ‏(`cargo deny check`)](#إجراء-ci-run-cargo-deny)
+- [الإجراء: `Android assembleDebug` + `lintDebug`](#إجراء-ci-android-assembledebug-lintdebug)
 
 ### وقت التشغيل
 
-- [وقت التشغيل: فشل `orbiscreen start` - `kernel module is not installed`](#runtime-evdi)
-- [وقت التشغيل: KDE Plasma (شاشة افتراضية بدون evdi وبدون root)](#runtime-kwin)
-- [وقت التشغيل: واجهة الالتقاط غير متاحة على Wayland](#runtime-wayland)
-- [وقت التشغيل: تحذيرات lint `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`](#runtime-lints)
+- [وقت التشغيل: فشل `orbiscreen start` - `kernel module is not installed`](#وقت-التشغيل-kde-plasma-شاشة-افتراضية-بدون-evdi-وبدون-root)
+- [وقت التشغيل: KDE Plasma (شاشة افتراضية بدون evdi وبدون root)](#وقت-التشغيل-kde-plasma-شاشة-افتراضية-بدون-evdi-وبدون-root)
+- [وقت التشغيل: واجهة الالتقاط غير متاحة على Wayland](#وقت-التشغيل-واجهة-الالتقاط-غير-متاحة-على-wayland)
+- [وقت التشغيل: تحذيرات lint `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`](#وقت-التشغيل-unsafe_op_in_unsafe_fn-missing_debug_implementations)
 
 ### Android
 
-- [Android / ChromeOS: فشل اتصال ADB أو بقاء الرسالة "Looking for host" على ASUS Chromebook CM3001](#android-chromebook-adb)
-- [Android: القلم لا يرسم، أو حساسية ضغط غير صحيحة، أو توقف التطبيق على Lenovo Tab](#android-stylus)
-- [Android: سحب النوافذ وتحديد النصوص في وضع لوحة اللمس (Touchpad Drag-and-Drop)](#android-touchpad-drag)
-- [Android: التطبيق يتعطل أو تموت العملية عند النقر على Connect](#android-connect-crash)
-- [Android: شاشة سوداء بعد Connect](#android-black-screen)
-- [Android: قائمة الاكتشاف فارغة رغم وجود مضيفين على نفس شبكة Wi-Fi](#android-no-hosts)
-- [Android: اللمس مُدوَّر / غير محاذٍ](#android-touch-offset)
-- [Android: إجراءات شريط التحكم تُرجع 404](#android-control-404)
-- [Android: التطبيق يتعطل فوراً عند التشغيل](#android-crash)
-- [Android: اتصال USB يعرض "Looking for host…"](#android-usb)
+- [Android / ChromeOS: فشل اتصال ADB أو بقاء الرسالة "Looking for host" على ASUS Chromebook CM3001](#android-chromeos-فشل-اتصال-adb-أو-بقاء-الرسالة-looking-for-host-على-asus-chromebook-cm3001)
+- [Android: القلم لا يرسم، أو حساسية ضغط غير صحيحة، أو توقف التطبيق على Lenovo Tab](#android-القلم-لا-يرسم،-أو-حساسية-ضغط-غير-صحيحة،-أو-توقف-التطبيق-على-lenovo-tab)
+- [Android: سحب النوافذ وتحديد النصوص في وضع لوحة اللمس (Touchpad Drag-and-Drop)](#android-سحب-النوافذ-وتحديد-النصوص-في-وضع-لوحة-اللمس-touchpad-drag-and-drop)
+- [Android: التطبيق يتعطل أو تموت العملية عند النقر على Connect](#android-التطبيق-يتعطل-أو-تموت-العملية-عند-النقر-على-connect)
+- [Android: شاشة سوداء بعد Connect](#android-شاشة-سوداء-بعد-connect)
+- [Android: قائمة الاكتشاف فارغة رغم وجود مضيفين على نفس شبكة Wi-Fi](#android-قائمة-الاكتشاف-فارغة-رغم-وجود-مضيفين-على-نفس-شبكة-wi-fi)
+- [Android: اللمس مُدوَّر / غير محاذٍ](#android-اللمس-مُدوَّر-غير-محاذٍ)
+- [Android: إجراءات شريط التحكم تُرجع 404](#android-إجراءات-شريط-التحكم-تُرجع-404)
+- [Android: التطبيق يتعطل فوراً عند التشغيل](#android-التطبيق-يتعطل-أو-تموت-العملية-عند-النقر-على-connect)
+- [Android: اتصال USB يعرض "Looking for host…"](#android-اتصال-usb-يعرض-looking-for-host)
 
 ### البث والعملاء
 
-- [البث: بطء شديد أو تقطيع في حركة الفأرة عبر شبكة 5GHz Wi-Fi](#streaming-wifi-latency)
-- [البث: وميض وإعادة اتصال لانهائية عند حدوث خطأ في البث بدل التعرف على انقطاع الاتصال](#stream-disconnect-retry)
-- [تعدد الشاشات / X11: هروب مؤشر الفأرة من الشاشة الافتراضية إلى الشاشات المادية الأخرى](#cursor-clamping)
-- [العميل يعرض الشاشة الخطأ (سطح المكتب الرئيسي بدل الشاشة الافتراضية)](#wrong-screen)
-- [عميل الويب يُحمَّل لكن بلا صورة](#web-no-picture)
-- [لا يوجد مُرمَّز - البث يبدأ لكنه يفشل (غياب x264)](#no-encoder)
-- [رفض 401 من `/stream` أو `/input` أو `/api/control` (التوكن)](#token-401)
-- [الـ daemon غير موجود على D-Bus](#dbus-missing)
+- [البث: بطء شديد أو تقطيع في حركة الفأرة عبر شبكة 5GHz Wi-Fi](#البث-بطء-شديد-أو-تقطيع-في-حركة-الفأرة-عبر-شبكة-5ghz-wi-fi)
+- [البث: وميض وإعادة اتصال لانهائية عند حدوث خطأ في البث بدل التعرف على انقطاع الاتصال](#البث-وميض-وإعادة-اتصال-لانهائية-عند-حدوث-خطأ-في-البث-بدل-التعرف-على-انقطاع-الاتصال)
+- [تعدد الشاشات / X11: هروب مؤشر الفأرة من الشاشة الافتراضية إلى الشاشات المادية الأخرى](#تعدد-الشاشات-x11-هروب-مؤشر-الفأرة-من-الشاشة-الافتراضية-إلى-الشاشات-المادية-الأخرى)
+- [العميل يعرض الشاشة الخطأ (سطح المكتب الرئيسي بدل الشاشة الافتراضية)](#العميل-يعرض-الشاشة-الخطأ-سطح-المكتب-الرئيسي-بدل-الشاشة-الافتراضية)
+- [عميل الويب يُحمَّل لكن بلا صورة](#عميل-الويب-يُحمَّل-لكن-بلا-صورة)
+- [لا يوجد مُرمَّز - البث يبدأ لكنه يفشل (غياب x264)](#لا-يوجد-مُرمَّز---البث-يبدأ-لكنه-يفشل-غياب-x264)
+- [رفض 401 من `/stream` أو `/input` أو `/api/control` (التوكن)](#رفض-401-من-stream-أو-input-أو-apicontrol-التوكن)
+- [الـ daemon غير موجود على D-Bus](#الـ-daemon)
 
 ### الـ Daemon
 
-- [الـ Daemon: استهلاك 100% للمعالج أو تجمّد](#daemon-cpu)
+- [الـ Daemon: استهلاك 100% للمعالج أو تجمّد](#الـ-daemon)
 
 ### ما زلت عالقاً؟
 
-- [ما زال البناء يفشل؟ راجع سجلات الإجراء](#still-stuck)
-- [إعادة تشغيل مهمة CI واحدة](#re-run-job)
-- [التحقق من بث حي من طرف إلى طرف ‏(`scripts/verify-stream.sh`)](#verify-stream)
-- [تجهيز بيئة تطوير ‏(`scripts/setup-dev-env.sh`)](#setup-dev-env)
+- [ما زال البناء يفشل؟ راجع سجلات الإجراء](#ما-زلت-عالقاً؟)
+- [إعادة تشغيل مهمة CI واحدة](#إجراءات-سير-عمل-ci-githubworkflowsciyml)
+- [التحقق من بث حي من طرف إلى طرف ‏(`scripts/verify-stream.sh`)](#رفض-401-من-stream-أو-input-أو-apicontrol-التوكن)
+- [تجهيز بيئة تطوير ‏(`scripts/setup-dev-env.sh`)](#إجراءات-سير-عمل-ci-githubworkflowsciyml)
 
 ---
 
@@ -443,7 +443,7 @@ USB يستخدم Android Open Accessory وليس `adb reverse`. تأكد من:
 وحدة النواة `evdi` غير محملة، فيتراجع Orbiscreen إلى التقاط سطح المكتب الرئيسي (Wayland portal أو نافذة جذر X11). هذا الوضع المتدهور مقصود: يبلغ `GetStatus.capture_backend` عن `wayland-portal-fallback` أو `x11-portal-fallback` بدل `evdi`، ويسجل الدامن تحذير `EVDI kernel module missing/inactive ... Falling back` عند البدء.
 
 **الإصلاح:**
-1. ثبّت وحمّل `evdi` عبر DKMS - راجع [وقت التشغيل: فشل `orbiscreen start`](#runtime-evdi)، ثم:
+1. ثبّت وحمّل `evdi` عبر DKMS - راجع [وقت التشغيل: فشل `orbiscreen start`](#وقت-التشغيل-kde-plasma-شاشة-افتراضية-بدون-evdi-وبدون-root)، ثم:
    ```bash
    sudo modprobe evdi && lsmod | grep evdi
    ```
@@ -468,7 +468,7 @@ USB يستخدم Android Open Accessory وليس `adb reverse`. تأكد من:
 **الإصلاح:**
 1. افتح الصفحة في Chrome أو Brave أو Edge أو أي متصفح Chromium آخر. Firefox Mobile لا يدعم ‏WebCodecs `VideoDecoder`‏.
 2. تأكد أن الصفحة خُدمت عبر HTTPS على منفذ WebTransport ‏(`signaling_port + 2`، أي 8790 عادةً)‏ وأنك قبلت الشهادة.
-3. راجع وحدة التحكم/الشبكة في أدوات المطور: خطأ 401 على `/au` أو فشل رسالة Hello يعني أن مسار التوكن تعطّل - راجع [رفض 401](#token-401).
+3. راجع وحدة التحكم/الشبكة في أدوات المطور: خطأ 401 على `/au` أو فشل رسالة Hello يعني أن مسار التوكن تعطّل - راجع [رفض 401](#رفض-401-من-stream-أو-input-أو-apicontrol-التوكن).
 
 ---
 
@@ -493,6 +493,30 @@ sudo apt install gstreamer1.0-plugins-ugly gstreamer1.0-plugins-bad gstreamer1.0
 gst-inspect-1.0 x264enc
 ```
 ثم أعد تشغيل الدامن؛ يبلغ `GetStatus.encoder` عن المُرمَّز المستخدم فعلياً.
+
+---
+
+<a id="no-encoder"></a>
+## لا يوجد مُرمِّز - البث يبدأ لكنه يفشل (غياب x264)
+
+**الأعراض:**
+الخدمة تبدأ، والعملاء يتصلون، لكن الفيديو لا يصل أبداً، أو تظهر في السجل أخطاء ربط عناصر GStreamer تشير إلى `x264enc` أو `no element found`.
+
+**السبب:**
+الترميز يمر عبر GStreamer. عنصر الاحتياطي البرمجي `x264enc` يأتي في مجموعة الإضافات `ugly`، والمُرمِّزات العتادية تحتاج `vaapih264enc` من `bad` أو `nvh264enc` من `bad`. بدونها لا يُنتَج أي H.264.
+
+**الحل:**
+```bash
+# Fedora / Nobara
+sudo dnf install gstreamer1-plugins-ugly gstreamer1-plugins-bad-free gstreamer1-plugins-good
+
+# Ubuntu / Debian
+sudo apt install gstreamer1.0-plugins-ugly gstreamer1.0-plugins-bad gstreamer1.0-plugins-good
+
+# التحقق من وجود عنصر المُرمِّز
+gst-inspect-1.0 x264enc
+```
+ثم أعد تشغيل الخدمة؛ ويعرض `GetStatus.encoder` المُرمِّز المستخدَم فعلياً.
 
 ---
 

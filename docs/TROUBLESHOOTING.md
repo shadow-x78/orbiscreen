@@ -2,7 +2,7 @@
 
 # Troubleshooting - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.33.6-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.33.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -19,87 +19,75 @@
 
 ## Table of Contents
 
-### CI Workflow Actions (`.github/workflows/ci.yml`)
+- [Action: `Check formatting` (`cargo fmt --all -- --check`)](#ci-action-format-lint-cargo-fmt---check)
+- [Action: `Clippy (deny warnings)` (`cargo clippy --workspace --all-targets --locked -- -D warnings`)](#ci-action-clippy-deny-warnings)
+- [Action: `Build` (`cargo build --workspace --locked`)](#ci-action-build-cargo-build---workspace---locked)
+- [Action: `Test` (`cargo test --workspace --locked`)](#ci-action-test-cargo-test---workspace---locked)
+- [Action: `Run cargo-deny` (`cargo deny check`)](#ci-action-run-cargo-deny)
+- [Action: `Android assembleDebug` + `lintDebug`](#ci-action-android-assembledebug-lintdebug)
 
-- [Action: `Check formatting` (`cargo fmt --all -- --check`)](#ci-fmt)
-- [Action: `Clippy (deny warnings)` (`cargo clippy --workspace --all-targets --locked -- -D warnings`)](#ci-clippy)
-- [Action: `Build` (`cargo build --workspace --locked`)](#ci-build)
-- [Action: `Test` (`cargo test --workspace --locked`)](#ci-test)
-- [Action: `Run cargo-deny` (`cargo deny check`)](#ci-deny)
-- [Action: `Android assembleDebug` + `lintDebug`](#ci-android)
+- [Runtime: `orbiscreen start` fails - `kernel module is not installed`](#runtime-kde-plasma-virtual-display-without-evdi-or-root)
+- [Runtime: KDE Plasma (virtual display without evdi or root)](#runtime-kde-plasma-virtual-display-without-evdi-or-root)
+- [Runtime: capture backend unavailable on Wayland](#runtime-capture-backend-unavailable-on-wayland)
+- [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations` lint warnings](#runtime-unsafe_op_in_unsafe_fn-missing_debug_implementations)
 
-### Runtime
+- [Android / ChromeOS: ADB connection fails on ASUS Chromebook CM3001](#android-chromeos-adb-connection-fails-on-asus-chromebook-cm3001)
+- [Android: Stylus / Pen not drawing, incorrect pressure, or app crash on Lenovo Tab](#android-stylus-pen-not-drawing-incorrect-pressure-or-app-crash-on-lenovo-tab)
+- [Android: Dragging windows or selecting files in Touchpad mode](#android-dragging-windows-or-selecting-files-in-touchpad-mode)
+- [Android: app crashes or process dies when tapping Connect](#android-app-crashes-or-process-dies-when-tapping-connect)
+- [Android: black screen after Connect](#android-black-screen-after-connect)
+- [Android: discovery list is empty even though hosts are on the same Wi-Fi](#android-discovery-list-is-empty-even-though-hosts-are-on-the-same-wi-fi)
+- [Android: touch is rotated / misaligned](#android-touch-is-rotated-misaligned)
+- [Android: control toolbar actions return 404](#android-control-toolbar-actions-return-404)
+- [Android: app crashes immediately on launch](#android-app-crashes-or-process-dies-when-tapping-connect)
+- [Android: USB connection shows "Looking for host…"](#android-usb-connection-shows-looking-for-host)
 
-- [Runtime: `orbiscreen start` fails - `kernel module is not installed`](#runtime-evdi)
-- [Runtime: KDE Plasma (virtual display without evdi or root)](#runtime-kwin)
-- [Runtime: capture backend unavailable on Wayland](#runtime-wayland)
-- [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations` lint warnings](#runtime-lints)
+- [Streaming: High latency, stutter, or slow mouse movement on 5GHz Wi-Fi](#streaming-high-latency-stutter-or-slow-mouse-movement-on-5ghz-wi-fi)
+- [Streaming: Stream error causes infinite reconnect flicker instead of detecting disconnect](#streaming-stream-error-causes-infinite-reconnect-flicker-instead-of-detecting-disconnect)
+- [Multi-Monitor / X11: Mouse cursor escapes virtual display to other physical screens](#multi-monitor-x11-mouse-cursor-escapes-virtual-display-to-other-physical-screens)
+- [Client shows the wrong screen (primary desktop instead of virtual display)](#client-shows-the-wrong-screen-primary-desktop-instead-of-virtual-display)
+- [Web client loads but shows no picture](#web-client-loads-but-shows-no-picture)
+- [No encoder available - stream starts but errors out (x264 missing)](#no-encoder-available---stream-starts-but-errors-out-x264-missing)
+- [401 Unauthorized from `/stream`, `/input` or `/api/control` (token)](#401-unauthorized-from-stream-input-or-apicontrol-token)
+- [Daemon not found on D-Bus](#daemon-not-found-on-d-bus)
 
-### Android
-
-- [Android / ChromeOS: ADB connection fails on ASUS Chromebook CM3001](#android-chromebook-adb)
-- [Android: Stylus / Pen not drawing, incorrect pressure, or app crash on Lenovo Tab](#android-stylus)
-- [Android: Dragging windows or selecting files in Touchpad mode](#android-touchpad-drag)
-- [Android: app crashes or process dies when tapping Connect](#android-connect-crash)
-- [Android: black screen after Connect](#android-black-screen)
-- [Android: discovery list is empty even though hosts are on the same Wi-Fi](#android-no-hosts)
-- [Android: touch is rotated / misaligned](#android-touch-offset)
-- [Android: control toolbar actions return 404](#android-control-404)
-- [Android: app crashes immediately on launch](#android-crash)
-- [Android: USB connection shows "Looking for host…"](#android-usb)
-
-### Streaming & Clients
-
-- [Streaming: High latency, stutter, or slow mouse movement on 5GHz Wi-Fi](#streaming-wifi-latency)
-- [Streaming: Stream error causes infinite reconnect flicker instead of detecting disconnect](#stream-disconnect-retry)
-- [Multi-Monitor / X11: Mouse cursor escapes virtual display to other physical screens](#cursor-clamping)
-- [Client shows the wrong screen (primary desktop instead of virtual display)](#wrong-screen)
-- [Web client loads but shows no picture](#web-no-picture)
-- [No encoder available - stream starts but errors out (x264 missing)](#no-encoder)
-- [401 Unauthorized from `/stream`, `/input` or `/api/control` (token)](#token-401)
-- [Daemon not found on D-Bus](#dbus-missing)
-
-### Daemon
-
-- [Daemon: 100% CPU usage or freeze](#daemon-cpu)
+- [Daemon: 100% CPU usage or freeze](#daemon-100-cpu-usage-or-freeze)
 
 ### Still Stuck?
 - [CI Failures](#ci-failures)
-  - [Cargo Fmt / Lint Check](#ci-fmt)
-  - [Clippy (deny warnings)](#ci-clippy)
-  - [Build](#ci-build)
-  - [Test](#ci-test)
-  - [Debian Package Build](#ci-deb)
-  - [RPM Package Build](#ci-rpm)
-  - [Release Workflow](#ci-release)
-- [Local Build Issues](#local-build-issues)
-  - [Missing evdi kernel module](#local-evdi)
-  - [GStreamer plugins missing](#local-gst)
-  - [Android SDK not found](#local-android-sdk)
-  - [uinput permission denied](#local-uinput)
-- [Runtime Issues](#runtime-issues)
-  - [No screen displayed on client](#runtime-no-screen)
-  - [High latency or stuttering](#runtime-latency)
-  - [Mouse / Touch not responding](#runtime-touch)
-  - [Host daemon exits immediately](#runtime-exit)
-- [Audio Issues](#audio-issues)
-  - [No sound on Android device](#audio-no-sound)
-  - [Audio out of sync with video](#audio-sync)
-- [Network & Connection Issues](#network--connection-issues)
-  - [mDNS discovery fails](#net-mdns)
-  - [Connection refused / timed out](#net-timeout)
-  - [Bandwidth saturation](#net-bandwidth)
-- [Compositor-Specific Issues](#compositor-specific-issues)
-  - [KDE Plasma Wayland (KWin)](#comp-kwin)
-  - [GNOME Wayland (Mutter)](#comp-mutter)
-  - [sway / Hyprland (wlroots)](#comp-wlroots)
-  - [COSMIC (cosmic-comp)](#comp-cosmic)
-  - [X11](#comp-x11)
-- [Android Client Issues](#android-client-issues)
-  - [App crashes on launch](#app-crash)
-  - [Decoder fallback to software](#app-sw-decoder)
-  - [Stylus pressure/tilt not working](#app-stylus)
-- [Performance & Resource Leaks](#performance--resource-leaks)
+  - [Format & Lint](#ci-action-format-lint-cargo-fmt---check)
+  - [Clippy (deny warnings)](#ci-action-clippy-deny-warnings)
+  - [Build](#ci-action-build-cargo-build---workspace---locked)
+  - [Test](#ci-action-test-cargo-test---workspace---locked)
+  - [cargo-deny](#ci-action-run-cargo-deny)
+  - [Android assembleDebug + lintDebug](#ci-action-android-assembledebug-lintdebug)
+- [Runtime](#runtime-orbiscreen-start-fails---kernel-module-is-not-installed)
+  - [orbiscreen start fails - kernel module not installed](#runtime-orbiscreen-start-fails---kernel-module-is-not-installed)
+  - [KDE Plasma without evdi or root](#runtime-kde-plasma-virtual-display-without-evdi-or-root)
+  - [Capture backend unavailable on Wayland](#runtime-capture-backend-unavailable-on-wayland)
+  - [unsafe_op_in_unsafe_fn lint warnings](#runtime-unsafe_op_in_unsafe_fn-missing_debug_implementations)
+- [Android Client & Devices](#android-client-devices)
+  - [ADB connection fails on ASUS Chromebook CM3001](#android-chromeos-adb-connection-fails-on-asus-chromebook-cm3001)
+  - [Stylus / Pen not drawing on Lenovo Tab](#android-stylus-pen-not-drawing-incorrect-pressure-or-app-crash-on-lenovo-tab)
+  - [Touchpad drag and select](#android-dragging-windows-or-selecting-files-in-touchpad-mode)
+  - [App crashes when tapping Connect](#android-app-crashes-or-process-dies-when-tapping-connect)
+  - [App crashes immediately on launch](#android-app-crashes-immediately-on-launch)
+  - [Black screen after Connect](#android-black-screen-after-connect)
+  - [Discovery list empty on the same Wi-Fi](#android-discovery-list-is-empty-even-though-hosts-are-on-the-same-wi-fi)
+  - [Touch rotated or misaligned](#android-touch-is-rotated-misaligned)
+  - [Control toolbar actions return 404](#android-control-toolbar-actions-return-404)
+  - [USB connection shows "Looking for host…"](#android-usb-connection-shows-looking-for-host)
+- [Streaming & Clients](#streaming-high-latency-stutter-or-slow-mouse-movement-on-5ghz-wi-fi)
+  - [High latency or stuttering on 5GHz Wi-Fi](#streaming-high-latency-stutter-or-slow-mouse-movement-on-5ghz-wi-fi)
+  - [Infinite reconnect flicker](#streaming-stream-error-causes-infinite-reconnect-flicker-instead-of-detecting-disconnect)
+  - [Mouse cursor escapes to other screens](#multi-monitor-x11-mouse-cursor-escapes-virtual-display-to-other-physical-screens)
+  - [Wrong screen shown](#client-shows-the-wrong-screen-primary-desktop-instead-of-virtual-display)
+  - [Web client loads but shows no picture](#web-client-loads-but-shows-no-picture)
+  - [No encoder available](#no-encoder-available---stream-starts-but-errors-out-x264-missing)
+- [Daemon](#daemon-not-found-on-d-bus)
+  - [401 Unauthorized from /stream, /input or /api/control](#401-unauthorized-from-stream-input-or-apicontrol-token)
+  - [Daemon not found on D-Bus](#daemon-not-found-on-d-bus)
+  - [100% CPU usage or freeze](#daemon-100-cpu-usage-or-freeze)
 - [Still Stuck?](#still-stuck)
 
 ---
@@ -479,7 +467,7 @@ The Android/web client connects and displays video, but it mirrors the host's ma
 The `evdi` kernel module is not loaded, so Orbiscreen falls back to primary-desktop capture (Wayland portal or X11 root window). This degraded mode is intentional: `GetStatus.capture_backend` reports `wayland-portal-fallback` or `x11-portal-fallback` instead of `evdi`, and the daemon logs a `EVDI kernel module missing/inactive ... Falling back` warning at start.
 
 **Fix:**
-1. Install and load `evdi` (DKMS) - see [Runtime: `orbiscreen start` fails](#runtime-evdi), then:
+1. Install and load `evdi` (DKMS) - see [Runtime: `orbiscreen start` fails](#runtime-kde-plasma-virtual-display-without-evdi-or-root), then:
    ```bash
    sudo modprobe evdi && lsmod | grep evdi
    ```
@@ -504,7 +492,7 @@ The web client opens WebTransport and decodes Annex-B with WebCodecs `VideoDecod
 **Fix:**
 1. Open the page in Chrome, Brave, Edge, or another Chromium browser. Firefox Mobile does not implement WebCodecs `VideoDecoder`.
 2. Confirm the tab was served over HTTPS on the WebTransport port (`signaling_port + 2`, usually 8790) and that you accepted the certificate.
-3. Check DevTools console/network: a 401 on `/au` or a failed Hello means the token flow failed - see [401 Unauthorized](#token-401).
+3. Check DevTools console/network: a 401 on `/au` or a failed Hello means the token flow failed - see [401 Unauthorized](#401-unauthorized-from-stream-input-or-apicontrol-token).
 
 ---
 

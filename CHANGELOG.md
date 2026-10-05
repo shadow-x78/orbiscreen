@@ -6,7 +6,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Released as 0.33.6.
+Released as 0.33.7.
+
+### Fixed
+- The troubleshooting guides' contents lists and "Still Stuck?" blocks linked to sections
+  that do not exist, so each of those links jumped back to the top of the page: 66 dangling
+  anchors in the English guide and 78 in the Arabic one. The tables of contents now point
+  only at sections that exist, and `scripts/fix-doc-anchors.py` repoints the remaining
+  legacy anchors, reporting anything it cannot place
+
+### Changed
+- Drop the audio entries from both guides, because Orbiscreen streams no audio, and the
+  networking, local-build and extra-compositor entries, which were listed but never
+  written. The English guide has no sections for them, so the entries could not simply be
+  repointed
+- Add the missing "no encoder available" section to the Arabic guide, translated from the
+  English one, which is the only such section the two guides did not share
+- Remove the inline comments added in this series
+- Version bumped to 0.33.7 across the Cargo workspace, Android (`versionCode` 143), Tauri,
+  PKGBUILD, Debian, COPR, and documentation badges.
+
+## [v0.33.7] - 2026-10-05
+
+### Changed
+- docs: rebuild the troubleshooting contents so every link reaches a section
+- Version bumped to 0.33.7 across the Cargo workspace, Android (`versionCode` 143), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
+## [v0.33.6] - 2026-10-05
 
 ### Added
 - `scripts/check-comments.sh` enforces the comment policy: a source file may
