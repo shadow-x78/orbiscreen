@@ -37,6 +37,11 @@ jobs:
           cache: gradle
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+      # ── Quality Gates ──
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest
+      - name: Lint
+        run: ./gradlew lintDebug
       - name: Prepare signing keystore
         # ── Fork PRs get no repo secrets, so signing is skipped and the
         # ── build runs unsigned; the sign check only runs on trusted events.

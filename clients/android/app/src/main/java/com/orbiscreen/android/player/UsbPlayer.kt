@@ -129,10 +129,7 @@ class UsbPlayer(
         val opened = CountDownLatch(1)
         val httpOk = AtomicBoolean(false)
         pumpJob = scope.launch {
-            val client = OkHttpClient.Builder()
-                .connectTimeout(3, TimeUnit.SECONDS)
-                .readTimeout(0, TimeUnit.MILLISECONDS)
-                .build()
+            val client = streamHttp
             val req = Request.Builder()
                 .url(url.toString().toHttpUrl())
                 .apply { if (token.isNotBlank()) header("Authorization", "Bearer $token") }
@@ -452,5 +449,10 @@ class UsbPlayer(
     private companion object {
         const val STALE_PAYLOAD_WATERMARK = 32
         const val STARVED_IDR_RETRY_MS = 500L
+
+        val streamHttp: OkHttpClient = OkHttpClient.Builder()
+            .connectTimeout(3, TimeUnit.SECONDS)
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .build()
     }
 }

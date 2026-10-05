@@ -97,6 +97,7 @@ private class UdpVideoLayout(ctx: Context) : FrameLayout(ctx) {
 @Composable
 fun PlayerSurface(
     player: ExoPlayer?,
+    modifier: Modifier = Modifier,
     udp: SurfaceTarget? = null,
     isTouchMode: Boolean,
     onPointer: (Float?, Float?, Int, Int, Int, Boolean) -> Unit,
@@ -105,7 +106,6 @@ fun PlayerSurface(
     onLeftClick: () -> Unit,
     onRightClick: () -> Unit,
     onScroll: (Double) -> Unit,
-    modifier: Modifier = Modifier,
     streamWidth: Int = 1920,
     streamHeight: Int = 1080,
     scaleMode: Int = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
@@ -200,7 +200,7 @@ fun PlayerSurface(
                     } else false
                 }
 
-                setOnTouchListener { _, ev ->
+                setOnTouchListener { view, ev ->
                     val w = width
                     val hPx = height
 
@@ -310,6 +310,7 @@ fun PlayerSurface(
                                 } else {
                                     val duration = now - downTime
                                     if (!moved && duration < 300L) {
+                                        view.performClick()
                                         if (maxPointers >= 2) {
                                             lastTapTime = 0L
                                             holder.onRightClick()

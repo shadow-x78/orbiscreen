@@ -54,6 +54,14 @@ jobs:
           done
           exit "$status"
 
+      # ── Frontend Tests ──
+      - name: Run web client unit tests
+        run: node --test clients/web/*.test.js
+
+      # ── Comment Policy ──
+      - name: Enforce code comment policy
+        run: ./scripts/check-comments.sh
+
       # ── Release Consistency ──
       - name: Check version consistency
         run: ./scripts/check-versions.sh

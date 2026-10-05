@@ -30,6 +30,12 @@ import java.util.concurrent.atomic.AtomicLong
 
 private const val TAG = "Orbi.Udp"
 private const val HOST_TIMEOUT_MS = 4_000L
+
+private val idrHttp: OkHttpClient = OkHttpClient.Builder()
+    .connectTimeout(2, TimeUnit.SECONDS)
+    .readTimeout(0, TimeUnit.MILLISECONDS)
+    .writeTimeout(2, TimeUnit.SECONDS)
+    .build()
 private const val HELLO_WINDOW_MS = 1_500L
 private const val TYPE_VIDEO: Byte = 1
 private const val TYPE_HELLO_ACK: Byte = 3
@@ -508,17 +514,12 @@ class UdpPlayer(
         if (token.isNotBlank()) q.add("token=$token")
         if (!session.isNullOrBlank()) q.add("session=$session")
         if (q.isNotEmpty()) url.append('?').append(q.joinToString("&"))
-        val client = OkHttpClient.Builder()
-            .connectTimeout(2, TimeUnit.SECONDS)
-            .readTimeout(0, TimeUnit.MILLISECONDS)
-            .writeTimeout(2, TimeUnit.SECONDS)
-            .build()
         val req = Request.Builder()
             .url(url.toString().toHttpUrl())
             .apply { if (token.isNotBlank()) header("Authorization", "Bearer $token") }
             .get()
             .build()
-        val call = client.newCall(req)
+        val call = idrHttp.newCall(req)
         idrCall = call
         try {
             call.execute().use { resp ->

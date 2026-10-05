@@ -96,6 +96,10 @@ class StreamViewModel(
     private val hostApi = HostApi()
     private val credentialStore = com.orbiscreen.android.data.HostCredentialStore(context)
     private val isLan = !HostApi.isLoopback(host)
+    private val healthHttp: okhttp3.OkHttpClient = okhttp3.OkHttpClient.Builder()
+        .connectTimeout(1000, java.util.concurrent.TimeUnit.MILLISECONDS)
+        .readTimeout(1000, java.util.concurrent.TimeUnit.MILLISECONDS)
+        .build()
     private val _login = MutableStateFlow(LoginState())
     val login: StateFlow<LoginState> = _login.asStateFlow()
     private var loginJob: kotlinx.coroutines.Job? = null
@@ -674,15 +678,11 @@ class StreamViewModel(
     private suspend fun checkHostAlive(targetHost: String, targetPort: Int): Boolean =
         withContext(Dispatchers.IO) {
             try {
-                val client = okhttp3.OkHttpClient.Builder()
-                    .connectTimeout(1000, java.util.concurrent.TimeUnit.MILLISECONDS)
-                    .readTimeout(1000, java.util.concurrent.TimeUnit.MILLISECONDS)
-                    .build()
                 val req = okhttp3.Request.Builder()
                     .url("http://$targetHost:$targetPort/health")
                     .get()
                     .build()
-                client.newCall(req).execute().use { it.isSuccessful }
+                healthHttp.newCall(req).execute().use { it.isSuccessful }
             } catch (_: Exception) {
                 false
             }
@@ -691,6 +691,7 @@ class StreamViewModel(
     override fun onCleared() {
         disconnect()
         inputDispatcher?.release()
+        healthHttp.connectionPool.evictAll()
         super.onCleared()
     }
 }

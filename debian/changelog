@@ -1,3 +1,11 @@
+orbiscreen (0.33.6~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.33.6 for Ubuntu noble.
+  * chore: comment policy guard, branding and Android stream UI
+  * Bump version to 0.33.6 across all packages; Android versionCode 142.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.33.5~ubuntunoble1) noble; urgency=medium
 
   * Release 0.33.5 for Ubuntu noble.

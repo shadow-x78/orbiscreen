@@ -229,8 +229,8 @@ class StreamStats(
         fun formatRate(bytesPerSec: Long): String {
             val n = bytesPerSec.coerceAtLeast(0L)
             return when {
-                n >= 1_000_000L -> String.format("%.1f MB/s", n / 1_000_000.0)
-                n >= 1_000L -> String.format("%.0f KB/s", n / 1_000.0)
+                n >= 1_000_000L -> String.format(java.util.Locale.US, "%.1f MB/s", n / 1_000_000.0)
+                n >= 1_000L -> String.format(java.util.Locale.US, "%.0f KB/s", n / 1_000.0)
                 else -> "$n B/s"
             }
         }

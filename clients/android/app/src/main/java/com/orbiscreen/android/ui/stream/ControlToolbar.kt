@@ -53,6 +53,7 @@ fun ControlToolbar(
     hostLabel: String,
     encoder: String,
     resolution: String,
+    modifier: Modifier = Modifier,
     delayMs: Int? = null,
     isTouchMode: Boolean = false,
     statsVisible: Boolean = false,
@@ -65,7 +66,6 @@ fun ControlToolbar(
     onDisconnect: () -> Unit,
     notice: String? = null,
     onDismissNotice: () -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT

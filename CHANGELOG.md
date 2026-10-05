@@ -4,6 +4,53 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Released as 0.33.6.
+
+### Added
+- `scripts/check-comments.sh` enforces the comment policy: a source file may
+  not contain a comment, except the file-top credit banner. Configuration files
+  keep theirs and stay out of scope
+
+### Fixed
+- AOA proxy streams were misrouted into the 8-slot priority lane: the video marker
+  scanned for `/stream`, but the client requests `/au`, so the marker never matched and
+  HTTP-AU video competed with keyframes and control traffic. `is_video_request` now
+  recognizes `GET /au` (the legacy `/stream` substring still matches) and routes those
+  streams over the video lane
+- Opening an AOA proxy stream could freeze input delivery for up to 1.5 s: the
+  stream-open handler ran on the USB read loop itself with a blocking connect and a
+  retry chain. The fast path now does a single non-blocking connect attempt and the
+  retry chain moved to a background thread (`open_proxy_stream`/`finish_proxy_stream`),
+  so the read loop never sleeps. This also removes the leaked map entry when the
+  reader-side socket clone failed
+- The udev rules covered only 14 of the 29 Android vendor ids `is_android_candidate`
+  probes, so phones from the missing vendors could not open AOA at all. The rules now
+  list every vendor and a unit test (`the_udev_rules_cover_every_android_candidate_vendor`)
+  fails the build when the two lists drift
+- Android lint: `String.format` without a locale in `StreamStats.formatRate` produced
+  "5,2 MB/s" on comma-decimal locales; `PlayerSurface`, `ControlToolbar` and
+  `StatsOverlay` declared `modifier` in the wrong parameter position; the touch
+  handler never called `performClick()` for accessibility. All fixed
+- One-shot `OkHttpClient`s remained in `UsbPlayer.startHttp`, `UdpPlayer.readIdrStream`
+  and the settings avatar fetch, each leaking a parked keep-alive connection (and an
+  AOA stream on USB) until eviction. All three now share one client
+
+### Changed
+- The native AOA video lane drops the oldest queued access unit when full instead of
+  the freshest one, and its depth is capped at 8 (`VIDEO_QUEUE_CAP`): congestion now
+  costs stale frames instead of turning into standing latency. The negotiated USB link
+  speed is logged when the accessory is claimed
+- Comments are now forbidden in code files (Rust, Kotlin, JavaScript, HTML); banners
+  at the top of a file are exempt. `scripts/check-comments.sh` enforces it in CI
+- CI now runs the web unit tests (`node --test`), the Android unit tests and
+  `lintDebug`; previously only `node --check` syntax and the release APK build ran
+- Dead code removed: `aoa_video::{is_video, is_video_open, is_video_close,
+  encode_video_open, decode_video_open_ack, drop_p_on_full_queue, clock_offset_ns,
+  reassemble_video_payloads}` had no production caller. Unreferenced logo derivatives
+  (48/96/128/512 px, preview, banner/social SVG sources) deleted from `assets/logo`
+
 ## [v0.33.5] - 2026-10-04
 
 ### Fixed

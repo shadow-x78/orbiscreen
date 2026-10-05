@@ -11,7 +11,7 @@ class IdrFramesReaderTest {
     private fun videoFrame(key: Boolean, ptsNs: Long, payload: Int): ByteArray {
         val au = ByteArray(payload) { (it and 0xff).toByte() }
         val body = ByteArray(18 + au.size)
-        body[0] = 1 // TYPE_VIDEO
+        body[0] = 1
         body[1] = if (key) 1 else 0
         for (i in 0 until 8) {
             body[2 + i] = ((ptsNs shr (8 * i)) and 0xff).toByte()
@@ -86,8 +86,8 @@ class IdrFramesReaderTest {
     @Test
     fun aStreamThatNeverFramesIsBoundedInsteadOfGrowing() {
         val reader = IdrFrames.Reader()
-        val junk = ByteArray(64 * 1024) { 0x7f } // no valid length prefix anywhere
-        repeat(200) { reader.push(junk) }        // 13 MB of unframable data
+        val junk = ByteArray(64 * 1024) { 0x7f }
+        repeat(200) { reader.push(junk) }
 
         assertNull("junk must not decode", reader.pop())
         assertTrue(
@@ -124,7 +124,7 @@ class IdrFramesReaderTest {
         val holed = IdrFrames.Reader()
         val chunk = frame.size / 2
         holed.push(frame.copyOfRange(0, chunk))
-        holed.push(frame.copyOfRange(chunk + 16_379, frame.size)) // one chunk never arrives
+        holed.push(frame.copyOfRange(chunk + 16_379, frame.size))
 
         val recovered = holed.pop()
         if (recovered != null) {

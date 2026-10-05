@@ -687,6 +687,11 @@ private fun SwitchPreferenceRow(
     }
 }
 
+private val avatarHttp: OkHttpClient = OkHttpClient.Builder()
+    .connectTimeout(5, TimeUnit.SECONDS)
+    .readTimeout(5, TimeUnit.SECONDS)
+    .build()
+
 @Composable
 private fun DeveloperCard(onOpenProfile: () -> Unit) {
     var avatarBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
@@ -694,15 +699,11 @@ private fun DeveloperCard(onOpenProfile: () -> Unit) {
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             try {
-                val client = OkHttpClient.Builder()
-                    .connectTimeout(5, TimeUnit.SECONDS)
-                    .readTimeout(5, TimeUnit.SECONDS)
-                    .build()
                 val req = Request.Builder()
                     .url("https://github.com/shadow-x78.png")
                     .header("User-Agent", "Orbiscreen-Android")
                     .build()
-                client.newCall(req).execute().use { res ->
+                avatarHttp.newCall(req).execute().use { res ->
                     if (res.isSuccessful) {
                         res.body?.byteStream()?.use { stream ->
                             val bmp = BitmapFactory.decodeStream(stream)

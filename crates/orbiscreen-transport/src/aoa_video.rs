@@ -11,22 +11,10 @@ pub const FRAME_FLAG_VIDEO: u8 = 0x10;
 pub const FRAME_HEADER_LEN: usize = 5;
 pub const MAX_PAYLOAD_LEN: usize = 16384;
 pub const VIDEO_STREAM_ID: u16 = 0;
-pub const VIDEO_QUEUE_CAP: usize = 64;
+pub const VIDEO_QUEUE_CAP: usize = 8;
 
 pub fn max_aoa_payload() -> usize {
     MAX_PAYLOAD_LEN.saturating_sub(FRAME_HEADER_LEN)
-}
-
-pub fn is_video(flags: u8) -> bool {
-    flags & FRAME_FLAG_VIDEO != 0
-}
-
-pub fn is_video_open(flags: u8) -> bool {
-    is_video(flags) && flags & FRAME_FLAG_OPEN != 0
-}
-
-pub fn is_video_close(flags: u8) -> bool {
-    is_video(flags) && flags & FRAME_FLAG_CLOSE != 0
 }
 
 pub fn encode_aoa_frame(stream_id: u16, flags: u8, payload: &[u8]) -> Option<Vec<u8>> {
@@ -96,15 +84,6 @@ pub fn pack_video_bytes(stream_id: u16, bytes: &[u8]) -> Vec<u8> {
     out
 }
 
-pub fn encode_video_open(session_id: &str) -> Vec<u8> {
-    encode_aoa_frame(
-        VIDEO_STREAM_ID,
-        FRAME_FLAG_VIDEO | FRAME_FLAG_OPEN,
-        session_id.as_bytes(),
-    )
-    .expect("session id fits one AOA frame")
-}
-
 pub fn decode_video_open_session(payload: &[u8]) -> Option<String> {
     if payload.is_empty() {
         return Some(String::new());
@@ -119,13 +98,6 @@ pub fn encode_video_open_ack(host_ns: u64) -> Vec<u8> {
         &host_ns.to_le_bytes(),
     )
     .expect("ack is 8 bytes")
-}
-
-pub fn decode_video_open_ack(payload: &[u8]) -> Option<u64> {
-    if payload.len() != 8 {
-        return None;
-    }
-    Some(u64::from_le_bytes(payload.try_into().ok()?))
 }
 
 pub fn encode_video_close() -> Vec<u8> {
@@ -145,15 +117,6 @@ pub fn lane_for(is_keyframe: bool) -> Lane {
     } else {
         Lane::Video
     }
-}
-
-pub fn drop_p_on_full_queue(try_send_ok: bool) -> bool {
-    !try_send_ok
-}
-
-pub fn clock_offset_ns(host_ns: u64, t0_ns: u64, now_ns: u64) -> i64 {
-    let rtt = now_ns.saturating_sub(t0_ns);
-    host_ns.wrapping_add(rtt / 2).wrapping_sub(now_ns) as i64
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -189,26 +152,6 @@ pub fn pack_h264_packet(
     }
     let framed = wt_protocol::encode_video(&pkt, sent_ns).ok()?;
     Some(pack_video_bytes(VIDEO_STREAM_ID, &framed))
-}
-
-pub fn reassemble_video_payloads(payloads: &[Vec<u8>]) -> Vec<wt_protocol::VideoFrame> {
-    let mut buf = Vec::new();
-    for p in payloads {
-        buf.extend_from_slice(p);
-    }
-    let mut out = Vec::new();
-    while buf.len() >= 4 {
-        match wt_protocol::split_frame(&buf) {
-            Ok(Some((body, used))) => {
-                if let Ok(wt_protocol::Message::Video(v)) = wt_protocol::decode_message(body) {
-                    out.push(v);
-                }
-                buf.drain(..used);
-            }
-            _ => break,
-        }
-    }
-    out
 }
 
 #[cfg(test)]
@@ -253,65 +196,73 @@ mod tests {
         assert_eq!(frame.len(), MAX_PAYLOAD_LEN);
     }
 
+    fn reassemble_wt(buf: &[u8]) -> Vec<wt_protocol::VideoFrame> {
+        let mut buf = buf.to_vec();
+        let mut out = Vec::new();
+        while buf.len() >= 4 {
+            match wt_protocol::split_frame(&buf) {
+                Ok(Some((body, used))) => {
+                    if let Ok(wt_protocol::Message::Video(v)) = wt_protocol::decode_message(body) {
+                        out.push(v);
+                    }
+                    buf.drain(..used);
+                }
+                _ => break,
+            }
+        }
+        out
+    }
+
     #[test]
     fn pack_splits_large_au_on_urb_boundary() {
-        let pkt = sample_au(true, 40_000);
-        let packed = pack_h264_packet(&pkt, 99, &mut None).unwrap();
-        let (frames, used) = drain_aoa_frames(&packed);
-        assert_eq!(used, packed.len());
-        assert!(frames.len() >= 2);
-        for (id, flags, payload) in &frames {
-            assert_eq!(*id, VIDEO_STREAM_ID);
-            assert_eq!(*flags, FRAME_FLAG_VIDEO);
-            assert!(payload.len() <= max_aoa_payload());
-            assert!(FRAME_HEADER_LEN + payload.len() <= MAX_PAYLOAD_LEN);
+        for key in [true, false] {
+            let pkt = sample_au(key, 40_000);
+            let packed = pack_h264_packet(&pkt, 99, &mut None).unwrap();
+            let (frames, used) = drain_aoa_frames(&packed);
+            assert_eq!(used, packed.len());
+            assert!(frames.len() >= 2);
+            for (id, flags, payload) in &frames {
+                assert_eq!(*id, VIDEO_STREAM_ID);
+                assert_eq!(*flags, FRAME_FLAG_VIDEO);
+                assert!(payload.len() <= max_aoa_payload());
+                assert!(FRAME_HEADER_LEN + payload.len() <= MAX_PAYLOAD_LEN);
+            }
+            let joined: Vec<u8> = frames.into_iter().flat_map(|(_, _, p)| p).collect();
+            let videos = reassemble_wt(&joined);
+            assert_eq!(videos.len(), 1);
+            assert_eq!(videos[0].is_keyframe, key);
+            assert_eq!(videos[0].sent_ns, 99);
+            assert_eq!(videos[0].au, pkt.bytes);
         }
-        let payloads: Vec<Vec<u8>> = frames.into_iter().map(|(_, _, p)| p).collect();
-        let videos = reassemble_video_payloads(&payloads);
-        assert_eq!(videos.len(), 1);
-        assert!(videos[0].is_keyframe);
-        assert_eq!(videos[0].sent_ns, 99);
-        assert_eq!(videos[0].au, pkt.bytes);
     }
 
     #[test]
-    fn usb_packet_splits_still_reassemble() {
-        let pkt = sample_au(false, 20_000);
-        let packed = pack_h264_packet(&pkt, 7, &mut None).unwrap();
-        let mut payloads = Vec::new();
-        let (frames, _) = drain_aoa_frames(&packed);
-        for (_, _, p) in frames {
-            payloads.push(p);
-        }
-        let videos = reassemble_video_payloads(&payloads);
-        assert_eq!(videos.len(), 1);
-        assert!(!videos[0].is_keyframe);
-        assert_eq!(videos[0].au, pkt.bytes);
-    }
-
-    #[test]
-    fn open_ack_clock_offset_matches_udp_formula() {
-        let open = encode_video_open("sess-1");
-        let (parsed, _) = parse_aoa_frame(&open).unwrap();
-        assert!(is_video_open(parsed.flags));
-        assert_eq!(decode_video_open_session(parsed.payload).unwrap(), "sess-1");
-
-        let t0 = 1_000_000_000u64;
-        let host = 2_000_000_000u64;
-        let now = t0 + 4_000_000;
-        let ack = encode_video_open_ack(host);
+    fn the_open_ack_carries_the_host_clock() {
+        let ack = encode_video_open_ack(123_456_789_012);
         let (parsed, _) = parse_aoa_frame(&ack).unwrap();
-        assert_eq!(decode_video_open_ack(parsed.payload).unwrap(), host);
-        assert_eq!(clock_offset_ns(host, t0, now), 998_000_000);
+        assert_eq!(parsed.stream_id, VIDEO_STREAM_ID);
+        assert_eq!(
+            parsed.flags,
+            FRAME_FLAG_VIDEO | FRAME_FLAG_OPEN,
+            "the ack reuses the video-open flag"
+        );
+        assert_eq!(parsed.payload, 123_456_789_012u64.to_le_bytes());
     }
 
     #[test]
-    fn keyframes_use_priority_lane_pframes_drop_when_full() {
+    fn keyframes_use_the_priority_lane() {
         assert_eq!(lane_for(true), Lane::Priority);
         assert_eq!(lane_for(false), Lane::Video);
-        assert!(!drop_p_on_full_queue(true));
-        assert!(drop_p_on_full_queue(false));
-        const { assert!(VIDEO_QUEUE_CAP >= 32) };
+        const {
+            assert!(
+                VIDEO_QUEUE_CAP >= 4,
+                "the video lane must absorb a multi-URB write window"
+            );
+            assert!(
+                VIDEO_QUEUE_CAP <= 8,
+                "a deeper video lane turns congestion into standing latency"
+            );
+        }
     }
 
     #[test]
@@ -338,7 +289,11 @@ mod tests {
     fn video_close_flag() {
         let frame = encode_video_close();
         let (parsed, _) = parse_aoa_frame(&frame).unwrap();
-        assert!(is_video_close(parsed.flags));
+        assert_eq!(
+            parsed.flags,
+            FRAME_FLAG_VIDEO | FRAME_FLAG_CLOSE,
+            "the close frame must carry the video and close flags"
+        );
         assert!(parsed.payload.is_empty());
     }
 }

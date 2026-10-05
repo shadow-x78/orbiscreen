@@ -54,8 +54,8 @@ private val OtherGray = Color(0xFF6C7086)
 @Composable
 fun StatsOverlay(
     stats: StreamStats,
-    transport: String = "",
     modifier: Modifier = Modifier,
+    transport: String = "",
 ) {
     var snap by remember { mutableStateOf(stats.snapshot()) }
     LaunchedEffect(stats) {
