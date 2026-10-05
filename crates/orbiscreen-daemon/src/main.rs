@@ -114,6 +114,14 @@ enum Command {
         #[arg(long, help = "Output devices list in JSON format")]
         json: bool,
     },
+    #[command(
+        about = "Review, accept or reject device pairing requests",
+        alias = "pairing"
+    )]
+    Pair {
+        #[command(subcommand)]
+        action: Option<PairAction>,
+    },
     #[command(about = "Run comprehensive system diagnostics and check compatibility")]
     Doctor {
         #[arg(long, help = "Output diagnostic report in JSON format")]
@@ -137,6 +145,36 @@ enum Command {
     Version {
         #[arg(long, help = "Output version details in raw JSON format")]
         json: bool,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum PairAction {
+    #[command(about = "Show pending pairing requests and paired devices")]
+    List,
+    #[command(about = "Accept a pairing request (defaults to the newest one)")]
+    Approve {
+        #[arg(
+            value_name = "ID",
+            help = "Request id from `orbiscreen pair list` (omit for the newest request)"
+        )]
+        id: Option<String>,
+    },
+    #[command(about = "Reject a pairing request (defaults to the newest one)")]
+    Deny {
+        #[arg(
+            value_name = "ID",
+            help = "Request id from `orbiscreen pair list` (omit for the newest request)"
+        )]
+        id: Option<String>,
+    },
+    #[command(about = "Revoke an already paired device by its client id")]
+    Revoke {
+        #[arg(
+            value_name = "CLIENT_ID",
+            help = "Client id from `orbiscreen pair list`"
+        )]
+        client_id: String,
     },
 }
 
@@ -453,6 +491,7 @@ async fn main() -> ExitCode {
         Some(Command::Status { json }) => run_status(json, cfg.transport.signaling_port).await,
         Some(Command::Display { action }) => run_display(&config_path, action).await,
         Some(Command::Devices { json }) => run_devices(json).await,
+        Some(Command::Pair { action }) => run_pair(action).await,
         Some(Command::Doctor { json, fix, yes }) => {
             if fix {
                 run_doctor_fix(yes).await
@@ -1308,6 +1347,140 @@ fn load_or_create_token() -> String {
     t
 }
 
+async fn run_pair(action: Option<PairAction>) -> ExitCode {
+    let action = action.unwrap_or(PairAction::List);
+    let conn = match async {
+        let builder = zbus::connection::Builder::session()?;
+        builder.build().await
+    }
+    .await
+    {
+        Ok(conn) => conn,
+        Err(e) => {
+            eprintln!("{} Cannot reach the session bus: {e}", ui::badge_warn());
+            return ExitCode::from(1);
+        }
+    };
+    match action {
+        PairAction::List => match dbus::call_pair_list(&conn).await {
+            Ok(json) => {
+                print_pair_list(&json);
+                ExitCode::SUCCESS
+            }
+            Err(e) => print_pair_unreachable(e),
+        },
+        PairAction::Approve { id } => {
+            let id = id.unwrap_or_default();
+            match dbus::call_pair_approve(&conn, &id).await {
+                Ok(json) => print_pair_outcome(
+                    &json,
+                    "Pairing approved. The device picks up its credential automatically.",
+                ),
+                Err(e) => print_pair_unreachable(e),
+            }
+        }
+        PairAction::Deny { id } => {
+            let id = id.unwrap_or_default();
+            match dbus::call_pair_deny(&conn, &id).await {
+                Ok(json) => {
+                    print_pair_outcome(&json, "Pairing request denied.");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => print_pair_unreachable(e),
+            }
+        }
+        PairAction::Revoke { client_id } => match dbus::call_pair_revoke(&conn, &client_id).await {
+            Ok(json) => print_pair_outcome(&json, "Paired device revoked."),
+            Err(e) => print_pair_unreachable(e),
+        },
+    }
+}
+
+fn print_pair_unreachable(e: zbus::Error) -> ExitCode {
+    let err_str = e.to_string();
+    if err_str.contains("ServiceUnknown")
+        || err_str.contains("NameHasNoOwner")
+        || err_str.contains("No such file or directory")
+    {
+        println!(
+            "{} The Orbiscreen daemon is not running on the session bus.",
+            ui::badge_warn()
+        );
+        println!("   Start it with 'orbiscreen start', then retry 'orbiscreen pair list'.");
+    } else {
+        println!("{} Pairing call failed: {e}", ui::badge_warn());
+    }
+    ExitCode::from(1)
+}
+
+fn print_pair_outcome(json: &str, success_msg: &str) -> ExitCode {
+    match serde_json::from_str::<serde_json::Value>(json) {
+        Ok(value) if value["ok"] == serde_json::Value::Bool(true) => {
+            println!("{} {success_msg}", ui::badge_ok());
+            if let Some(label) = value["label"].as_str() {
+                println!("   Device: {label}");
+            }
+            ExitCode::SUCCESS
+        }
+        Ok(value) => {
+            let reason = value["error"]
+                .as_str()
+                .unwrap_or("no matching pairing entry");
+            println!("{} {reason}", ui::badge_warn());
+            println!("   Run 'orbiscreen pair list' to see the pending requests.");
+            ExitCode::from(1)
+        }
+        Err(_) => {
+            println!("{} Unexpected daemon reply: {json}", ui::badge_warn());
+            ExitCode::from(1)
+        }
+    }
+}
+
+fn print_pair_list(json: &str) {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(json) else {
+        println!("{json}");
+        return;
+    };
+    let requests = value["requests"].as_array().cloned().unwrap_or_default();
+    let clients = value["clients"].as_array().cloned().unwrap_or_default();
+    if requests.is_empty() && clients.is_empty() {
+        println!(
+            "{} No pending pairing requests and no paired devices.",
+            ui::badge_info()
+        );
+        println!("   A device submits a pairing request from the client app's connect screen.");
+        return;
+    }
+    if !requests.is_empty() {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        println!("{} Pending pairing request(s):", ui::badge_info());
+        for (i, req) in requests.iter().enumerate() {
+            let label = req["label"].as_str().unwrap_or("device");
+            let peer = req["peer"].as_str().unwrap_or("?");
+            let id = req["request_id"].as_str().unwrap_or("");
+            let age = now.saturating_sub(req["created_at"].as_u64().unwrap_or(now));
+            println!("   {}. {label} ({peer}), submitted {age}s ago", i + 1);
+            println!("      id: {id}");
+        }
+        println!(
+            "   Accept with: orbiscreen pair approve <id>   (or just 'orbiscreen pair approve')"
+        );
+    }
+    if !clients.is_empty() {
+        println!("{} Paired device(s):", ui::badge_ok());
+        for client in clients.iter() {
+            let label = client["label"].as_str().unwrap_or("device");
+            let id = client["client_id"].as_str().unwrap_or("?");
+            println!("   - {label} (client id: {id})");
+        }
+        println!("   Revoke with: orbiscreen pair revoke <client id>");
+    }
+}
+
 async fn run_start_per_client(
     cfg: Config,
     no_mdns: bool,
@@ -1331,6 +1504,10 @@ async fn run_start_per_client(
     let stats = std::sync::Arc::new(Stats::default());
     let (shutdown_tx, mut shutdown_rx) = tokio::sync::watch::channel(false);
     let shutdown_keepalive = shutdown_tx.clone();
+    let pairing = std::sync::Arc::new(
+        orbiscreen_transport::pairing::PairingRegistry::load()
+            .map_err(|e| format!("pairing registry: {e}"))?,
+    );
     let dbus_handles = std::sync::Arc::new(dbus::DaemonHandles {
         owner_uid: dbus::current_uid(),
         is_running: is_running.clone(),
@@ -1340,6 +1517,7 @@ async fn run_start_per_client(
         capture_backend: "kwin-virtual",
         shutdown_tx,
         displays: Some(displays.clone()),
+        pairing: pairing.clone(),
     });
     tokio::spawn(async move {
         if let Err(e) = dbus::run_dbus_server(dbus_handles).await {
@@ -1362,7 +1540,8 @@ async fn run_start_per_client(
         },
         input_tx,
         Some(load_or_create_token()),
-    );
+    )
+    .with_pairing(pairing.clone());
     let token = transport.token().to_owned();
     info!("stream authentication enabled");
 
@@ -2917,6 +3096,10 @@ async fn run_start(
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let backend_name = source.backend_name();
+    let pairing = std::sync::Arc::new(
+        orbiscreen_transport::pairing::PairingRegistry::load()
+            .map_err(|e| format!("pairing registry: {e}"))?,
+    );
     let dbus_handles = std::sync::Arc::new(dbus::DaemonHandles {
         owner_uid: dbus::current_uid(),
         is_running: is_running.clone(),
@@ -2926,6 +3109,7 @@ async fn run_start(
         capture_backend: backend_name,
         shutdown_tx,
         displays: None,
+        pairing: pairing.clone(),
     });
     tokio::spawn(async move {
         if let Err(e) = dbus::run_dbus_server(dbus_handles).await {
@@ -3263,7 +3447,8 @@ async fn run_start(
         },
         input_tx,
         Some(token_to_use),
-    );
+    )
+    .with_pairing(pairing.clone());
     let token = transport.token().to_owned();
     let sec_aoa_active = transport.aoa_active();
     let sec_cfg = cfg.clone();
@@ -3438,5 +3623,46 @@ mod tests {
         ));
         let cli = Cli::try_parse_from(["orbiscreen", "version", "--json"]).unwrap();
         assert!(matches!(cli.command, Some(Command::Version { json: true })));
+    }
+
+    #[test]
+    fn pair_subcommand_is_parsed() {
+        let cli = Cli::try_parse_from(["orbiscreen", "pair"]).unwrap();
+        assert!(matches!(cli.command, Some(Command::Pair { action: None })));
+        let cli = Cli::try_parse_from(["orbiscreen", "pair", "list"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Command::Pair {
+                action: Some(PairAction::List)
+            })
+        ));
+        let cli = Cli::try_parse_from(["orbiscreen", "pair", "approve"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Command::Pair {
+                action: Some(PairAction::Approve { id: None })
+            })
+        ));
+        let cli = Cli::try_parse_from(["orbiscreen", "pair", "approve", "req-42"]).unwrap();
+        match cli.command {
+            Some(Command::Pair {
+                action: Some(PairAction::Approve { id }),
+            }) => assert_eq!(id.as_deref(), Some("req-42")),
+            other => panic!("unexpected command: {other:?}"),
+        }
+        let cli = Cli::try_parse_from(["orbiscreen", "pair", "deny", "req-42"]).unwrap();
+        match cli.command {
+            Some(Command::Pair {
+                action: Some(PairAction::Deny { id }),
+            }) => assert_eq!(id.as_deref(), Some("req-42")),
+            other => panic!("unexpected command: {other:?}"),
+        }
+        let cli = Cli::try_parse_from(["orbiscreen", "pair", "revoke", "client-7"]).unwrap();
+        match cli.command {
+            Some(Command::Pair {
+                action: Some(PairAction::Revoke { client_id }),
+            }) => assert_eq!(client_id, "client-7"),
+            other => panic!("unexpected command: {other:?}"),
+        }
     }
 }

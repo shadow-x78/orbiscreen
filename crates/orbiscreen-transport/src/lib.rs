@@ -215,6 +215,7 @@ pub struct Transport {
     token: String,
     loopback_token: String,
     aoa_active: Arc<AtomicUsize>,
+    pairing: Option<std::sync::Arc<pairing::PairingRegistry>>,
 }
 
 impl Transport {
@@ -234,7 +235,13 @@ impl Transport {
             loopback_token: generate_token(),
             token,
             aoa_active: Arc::new(AtomicUsize::new(0)),
+            pairing: None,
         }
+    }
+
+    pub fn with_pairing(mut self, pairing: std::sync::Arc<pairing::PairingRegistry>) -> Self {
+        self.pairing = Some(pairing);
+        self
     }
 
     pub fn token(&self) -> &str {
@@ -276,10 +283,13 @@ impl Transport {
             stats,
             token: self.token.clone(),
             loopback_token: self.loopback_token.clone(),
-            pairing: Arc::new(
-                pairing::PairingRegistry::load()
-                    .map_err(|e| TransportError::Http(format!("pairing registry: {e}")))?,
-            ),
+            pairing: match self.pairing.clone() {
+                Some(shared) => shared,
+                None => Arc::new(
+                    pairing::PairingRegistry::load()
+                        .map_err(|e| TransportError::Http(format!("pairing registry: {e}")))?,
+                ),
+            },
             display_width,
             display_height,
             refresh_hz,
@@ -1073,7 +1083,12 @@ async fn api_pair_request(
         .unwrap_or("device");
     match state.pairing.request_pairing(label, &peer.ip().to_string()) {
         Some(request) => {
-            info!(peer = %peer, "pairing request submitted; awaiting host approval");
+            info!(
+                label = %request.label,
+                peer = %request.peer,
+                request_id = %request.request_id,
+                "pairing request awaiting host approval; run 'orbiscreen pair list' on the host"
+            );
             (
                 StatusCode::OK,
                 [("cache-control", "no-store")],

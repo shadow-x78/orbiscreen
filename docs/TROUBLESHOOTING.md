@@ -2,7 +2,7 @@
 
 # Troubleshooting - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.33.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.33.9-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -30,8 +30,9 @@
 - [Connection refused or timed out](#connection-refused-or-timed-out)
 - [Bandwidth saturation on a wireless link](#bandwidth-saturation-on-a-wireless-link)
 - [UDP video stutters while HTTP video is fine](#udp-video-stutters-while-http-video-is-fine)
-- [GNOME / Wayland (Mutter) shows no picture](#gnome-wayland-mutter-shows-no-picture)
-- [sway / Hyprland reports a capture backend that never starts](#sway-hyprland-reports-a-capture-backend-that-never-starts)
+- [Cannot pair: the request arrives with no way to accept it](#cannot-pair-the-request-arrives-with-no-way-to-accept-it)
+- [GNOME / Wayland (Mutter) shows no picture](#gnome--wayland-mutter-shows-no-picture)
+- [sway / Hyprland reports a capture backend that never starts](#sway--hyprland-reports-a-capture-backend-that-never-starts)
 - [COSMIC (cosmic-comp) does not offer a capture backend](#cosmic-cosmic-comp-does-not-offer-a-capture-backend)
 - [X11: the cursor escapes the virtual display](#x11-the-cursor-escapes-the-virtual-display)
 - [No screen displayed on the client](#no-screen-displayed-on-the-client)
@@ -46,30 +47,30 @@
 - [Control toolbar actions return 404](#control-toolbar-actions-return-404)
 - [Discovery list is empty though hosts are on the same Wi-Fi](#discovery-list-is-empty-though-hosts-are-on-the-same-wi-fi)
   - [Still Stuck?](#still-stuck)
-- [CI Action: `Format & Lint` (`cargo fmt --check`)](#ci-action-format-lint-cargo-fmt---check)
+- [CI Action: `Format & Lint` (`cargo fmt --check`)](#ci-action-format--lint-cargo-fmt---check)
 - [CI Action: `Clippy (deny warnings)`](#ci-action-clippy-deny-warnings)
 - [CI Action: `Build` (`cargo build --workspace --locked`)](#ci-action-build-cargo-build---workspace---locked)
 - [CI Action: `Test` (`cargo test --workspace --locked`)](#ci-action-test-cargo-test---workspace---locked)
 - [CI Action: `Run cargo-deny`](#ci-action-run-cargo-deny)
-- [CI Action: `Android assembleDebug` + `lintDebug`](#ci-action-android-assembledebug-lintdebug)
+- [CI Action: `Android assembleDebug` + `lintDebug`](#ci-action-android-assembledebug--lintdebug)
 - [Runtime: `orbiscreen start` fails - `kernel module is not installed`](#runtime-orbiscreen-start-fails---kernel-module-is-not-installed)
 - [Runtime: KDE Plasma (virtual display without evdi or root)](#runtime-kde-plasma-virtual-display-without-evdi-or-root)
 - [Runtime: capture backend unavailable on Wayland](#runtime-capture-backend-unavailable-on-wayland)
-- [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`](#runtime-unsafe_op_in_unsafe_fn-missing_debug_implementations)
-- [Android Client & Devices](#android-client-devices)
-  - [Android / ChromeOS: ADB connection fails on ASUS Chromebook CM3001](#android-chromeos-adb-connection-fails-on-asus-chromebook-cm3001)
-  - [Android: Stylus / Pen not drawing, incorrect pressure, or app crash on Lenovo Tab](#android-stylus-pen-not-drawing-incorrect-pressure-or-app-crash-on-lenovo-tab)
+- [Runtime: `unsafe_op_in_unsafe_fn` / `missing_debug_implementations`](#runtime-unsafe_op_in_unsafe_fn--missing_debug_implementations)
+- [Android Client & Devices](#android-client--devices)
+  - [Android / ChromeOS: ADB connection fails on ASUS Chromebook CM3001](#android--chromeos-adb-connection-fails-on-asus-chromebook-cm3001)
+  - [Android: Stylus / Pen not drawing, incorrect pressure, or app crash on Lenovo Tab](#android-stylus--pen-not-drawing-incorrect-pressure-or-app-crash-on-lenovo-tab)
   - [Android: Dragging windows or selecting files in Touchpad mode](#android-dragging-windows-or-selecting-files-in-touchpad-mode)
   - [Android: app crashes or process dies when tapping Connect](#android-app-crashes-or-process-dies-when-tapping-connect)
   - [Android: black screen after Connect](#android-black-screen-after-connect)
   - [Android: discovery list is empty even though hosts are on the same Wi-Fi](#android-discovery-list-is-empty-even-though-hosts-are-on-the-same-wi-fi)
-  - [Android: touch is rotated / misaligned](#android-touch-is-rotated-misaligned)
+  - [Android: touch is rotated / misaligned](#android-touch-is-rotated--misaligned)
   - [Android: control toolbar actions return 404](#android-control-toolbar-actions-return-404)
   - [Android: app crashes immediately on launch](#android-app-crashes-immediately-on-launch)
   - [Android: USB connection shows "Looking for host…"](#android-usb-connection-shows-looking-for-host)
 - [Streaming: High latency, stutter, or slow mouse movement on 5GHz Wi-Fi](#streaming-high-latency-stutter-or-slow-mouse-movement-on-5ghz-wi-fi)
 - [Streaming: Stream error causes infinite reconnect flicker instead of detecting disconnect](#streaming-stream-error-causes-infinite-reconnect-flicker-instead-of-detecting-disconnect)
-- [Multi-Monitor / X11: Mouse cursor escapes virtual display to other physical screens](#multi-monitor-x11-mouse-cursor-escapes-virtual-display-to-other-physical-screens)
+- [Multi-Monitor / X11: Mouse cursor escapes virtual display to other physical screens](#multi-monitor--x11-mouse-cursor-escapes-virtual-display-to-other-physical-screens)
 - [Client shows the wrong screen (primary desktop instead of virtual display)](#client-shows-the-wrong-screen-primary-desktop-instead-of-virtual-display)
 - [Web client loads but shows no picture](#web-client-loads-but-shows-no-picture)
 - [No encoder available - stream starts but errors out (x264 missing)](#no-encoder-available---stream-starts-but-errors-out-x264-missing)
@@ -371,6 +372,36 @@ Set the hooks from that document and re-measure:
 export ORBISCREEN_UDP_MAX_DATAGRAM=1200
 export ORBISCREEN_UDP_MAX_CLIENTS=8
 ```
+
+---
+
+## Cannot pair: the request arrives with no way to accept it
+
+**Symptom:**
+The Android or web client waits on "awaiting host approval", and the PC receives
+the pairing request, but nothing on the desktop offers an accept action.
+
+**Cause:**
+The approval endpoint existed, but nothing on the host called it: the only reachable
+surface was the web client's host-approvals modal, which requires pasting the host
+admin token by hand. The daemon now exposes the queue over D-Bus and `orbiscreen
+pair` manages it.
+
+**Fix:**
+1. Review what is waiting:
+   ```bash
+   orbiscreen pair list
+   ```
+   The daemon also logs every incoming request with the device label, its IP, and
+   the same command hint.
+2. Accept it:
+   ```bash
+   orbiscreen pair approve          # newest pending request
+   orbiscreen pair approve <id>     # a specific id from the list
+   ```
+   The device picks up its credential automatically on its next status poll.
+3. Requests expire after 10 minutes. `orbiscreen pair deny [id]` rejects one, and
+   `orbiscreen pair revoke <client id>` removes an already paired device.
 
 ---
 
@@ -726,32 +757,32 @@ Then see [mDNS discovery finds no host](#net-mdns).
 
 ### Still Stuck?
 - [CI Failures](#ci-failures)
-  - [Format & Lint](#ci-action-format-lint-cargo-fmt---check)
+  - [Format & Lint](#ci-action-format--lint-cargo-fmt---check)
   - [Clippy (deny warnings)](#ci-action-clippy-deny-warnings)
   - [Build](#ci-action-build-cargo-build---workspace---locked)
   - [Test](#ci-action-test-cargo-test---workspace---locked)
   - [cargo-deny](#ci-action-run-cargo-deny)
-  - [Android assembleDebug + lintDebug](#ci-action-android-assembledebug-lintdebug)
+  - [Android assembleDebug + lintDebug](#ci-action-android-assembledebug--lintdebug)
 - [Runtime](#runtime-orbiscreen-start-fails---kernel-module-is-not-installed)
   - [orbiscreen start fails - kernel module not installed](#runtime-orbiscreen-start-fails---kernel-module-is-not-installed)
   - [KDE Plasma without evdi or root](#runtime-kde-plasma-virtual-display-without-evdi-or-root)
   - [Capture backend unavailable on Wayland](#runtime-capture-backend-unavailable-on-wayland)
-  - [unsafe_op_in_unsafe_fn lint warnings](#runtime-unsafe_op_in_unsafe_fn-missing_debug_implementations)
-- [Android Client & Devices](#android-client-devices)
-  - [ADB connection fails on ASUS Chromebook CM3001](#android-chromeos-adb-connection-fails-on-asus-chromebook-cm3001)
-  - [Stylus / Pen not drawing on Lenovo Tab](#android-stylus-pen-not-drawing-incorrect-pressure-or-app-crash-on-lenovo-tab)
+  - [unsafe_op_in_unsafe_fn lint warnings](#runtime-unsafe_op_in_unsafe_fn--missing_debug_implementations)
+- [Android Client & Devices](#android-client--devices)
+  - [ADB connection fails on ASUS Chromebook CM3001](#android--chromeos-adb-connection-fails-on-asus-chromebook-cm3001)
+  - [Stylus / Pen not drawing on Lenovo Tab](#android-stylus--pen-not-drawing-incorrect-pressure-or-app-crash-on-lenovo-tab)
   - [Touchpad drag and select](#android-dragging-windows-or-selecting-files-in-touchpad-mode)
   - [App crashes when tapping Connect](#android-app-crashes-or-process-dies-when-tapping-connect)
   - [App crashes immediately on launch](#android-app-crashes-immediately-on-launch)
   - [Black screen after Connect](#android-black-screen-after-connect)
   - [Discovery list empty on the same Wi-Fi](#android-discovery-list-is-empty-even-though-hosts-are-on-the-same-wi-fi)
-  - [Touch rotated or misaligned](#android-touch-is-rotated-misaligned)
+  - [Touch rotated or misaligned](#android-touch-is-rotated--misaligned)
   - [Control toolbar actions return 404](#android-control-toolbar-actions-return-404)
   - [USB connection shows "Looking for host…"](#android-usb-connection-shows-looking-for-host)
 - [Streaming & Clients](#streaming-high-latency-stutter-or-slow-mouse-movement-on-5ghz-wi-fi)
   - [High latency or stuttering on 5GHz Wi-Fi](#streaming-high-latency-stutter-or-slow-mouse-movement-on-5ghz-wi-fi)
   - [Infinite reconnect flicker](#streaming-stream-error-causes-infinite-reconnect-flicker-instead-of-detecting-disconnect)
-  - [Mouse cursor escapes to other screens](#multi-monitor-x11-mouse-cursor-escapes-virtual-display-to-other-physical-screens)
+  - [Mouse cursor escapes to other screens](#multi-monitor--x11-mouse-cursor-escapes-virtual-display-to-other-physical-screens)
   - [Wrong screen shown](#client-shows-the-wrong-screen-primary-desktop-instead-of-virtual-display)
   - [Web client loads but shows no picture](#web-client-loads-but-shows-no-picture)
   - [No encoder available](#no-encoder-available---stream-starts-but-errors-out-x264-missing)

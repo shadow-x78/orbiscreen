@@ -8,7 +8,7 @@
 
 Secondary monitor for Linux, powered by an Android tablet or phone.
 
-[![Version](https://img.shields.io/badge/version-0.33.8-2563eb?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.33.9-2563eb?style=for-the-badge)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge)
@@ -153,6 +153,8 @@ orbiscreen start --width 1920 --height 1080 --fps 60
 orbiscreen display set 1920x1080@60            # persist a display size
 orbiscreen doctor                             # diagnostics
 orbiscreen doctor --fix                       # install missing dependencies
+orbiscreen pair list                          # review device pairing requests
+orbiscreen pair approve                       # accept the newest pairing request
 orbiscreen stop                               # stop a running daemon
 ```
 

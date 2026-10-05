@@ -17,6 +17,7 @@ pub struct DaemonHandles {
     pub capture_backend: &'static str,
     pub shutdown_tx: tokio::sync::watch::Sender<bool>,
     pub displays: Option<orbiscreen_transport::DisplayCtl>,
+    pub pairing: std::sync::Arc<orbiscreen_transport::pairing::PairingRegistry>,
 }
 
 #[derive(Clone, Debug)]
@@ -167,6 +168,53 @@ impl OrbiscreenDbusServer {
         }
         self.read_config()
     }
+
+    async fn list_pairings(
+        &self,
+        #[zbus(connection)] connection: &zbus::Connection,
+        #[zbus(header)] header: zbus::message::Header<'_>,
+    ) -> String {
+        if let Err(denied) = self.authorize(connection, &header, "ListPairings").await {
+            return denied;
+        }
+        self.pair_list_json()
+    }
+
+    async fn approve_pairing(
+        &self,
+        #[zbus(connection)] connection: &zbus::Connection,
+        #[zbus(header)] header: zbus::message::Header<'_>,
+        request_id: String,
+    ) -> String {
+        if let Err(denied) = self.authorize(connection, &header, "ApprovePairing").await {
+            return denied;
+        }
+        self.pair_approve_json(&request_id)
+    }
+
+    async fn deny_pairing(
+        &self,
+        #[zbus(connection)] connection: &zbus::Connection,
+        #[zbus(header)] header: zbus::message::Header<'_>,
+        request_id: String,
+    ) -> String {
+        if let Err(denied) = self.authorize(connection, &header, "DenyPairing").await {
+            return denied;
+        }
+        self.pair_deny_json(&request_id)
+    }
+
+    async fn revoke_pairing(
+        &self,
+        #[zbus(connection)] connection: &zbus::Connection,
+        #[zbus(header)] header: zbus::message::Header<'_>,
+        client_id: String,
+    ) -> String {
+        if let Err(denied) = self.authorize(connection, &header, "RevokePairing").await {
+            return denied;
+        }
+        self.pair_revoke_json(&client_id)
+    }
 }
 
 impl OrbiscreenDbusServer {
@@ -235,6 +283,82 @@ impl OrbiscreenDbusServer {
             }
         } else {
             "config read error".to_string()
+        }
+    }
+
+    fn pair_list_json(&self) -> String {
+        serde_json::json!({
+            "requests": self.handles.pairing.pending_requests(),
+            "clients": self.handles.pairing.clients(),
+        })
+        .to_string()
+    }
+
+    fn pair_resolve_request_id(&self, request_id: &str) -> Option<String> {
+        if !request_id.is_empty() {
+            return Some(request_id.to_string());
+        }
+        self.handles
+            .pairing
+            .pending_requests()
+            .last()
+            .map(|r| r.request_id.clone())
+    }
+
+    fn pair_approve_json(&self, request_id: &str) -> String {
+        let Some(id) = self.pair_resolve_request_id(request_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "error": "no pending pairing request",
+            })
+            .to_string();
+        };
+        match self.handles.pairing.approve(&id) {
+            Ok(Some(client)) => serde_json::json!({
+                "ok": true,
+                "client_id": client.client_id,
+                "label": client.label,
+            })
+            .to_string(),
+            Ok(None) => serde_json::json!({
+                "ok": false,
+                "error": "unknown request",
+            })
+            .to_string(),
+            Err(_) => serde_json::json!({
+                "ok": false,
+                "error": "pairing storage unavailable",
+            })
+            .to_string(),
+        }
+    }
+
+    fn pair_deny_json(&self, request_id: &str) -> String {
+        let Some(id) = self.pair_resolve_request_id(request_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "error": "no pending pairing request",
+            })
+            .to_string();
+        };
+        match self.handles.pairing.deny(&id) {
+            Ok(removed) => serde_json::json!({ "ok": removed }).to_string(),
+            Err(_) => serde_json::json!({
+                "ok": false,
+                "error": "pairing storage unavailable",
+            })
+            .to_string(),
+        }
+    }
+
+    fn pair_revoke_json(&self, client_id: &str) -> String {
+        match self.handles.pairing.revoke(client_id) {
+            Ok(removed) => serde_json::json!({ "ok": removed }).to_string(),
+            Err(_) => serde_json::json!({
+                "ok": false,
+                "error": "pairing storage unavailable",
+            })
+            .to_string(),
         }
     }
 }
@@ -375,6 +499,85 @@ pub async fn run_dbus_server(handles: Arc<DaemonHandles>) -> zbus::Result<()> {
     Ok(())
 }
 
+async fn call_owned_method<B>(
+    conn: &zbus::Connection,
+    member: &str,
+    body: &B,
+) -> zbus::Result<String>
+where
+    B: zbus::export::serde::Serialize + zbus::zvariant::DynamicType,
+{
+    let proxy = zbus::Proxy::new(
+        conn,
+        "org.shadow-x78.Orbiscreen",
+        "/com/orbiscreen/Daemon",
+        "com.orbiscreen.Daemon",
+    )
+    .await?;
+    match tokio::time::timeout(
+        std::time::Duration::from_millis(1500),
+        proxy.call::<_, B, String>(member, body),
+    )
+    .await
+    {
+        Ok(Ok(res)) => Ok(res),
+        _ => {
+            let fallback = zbus::Proxy::new(
+                conn,
+                "com.orbiscreen.Daemon",
+                "/com/orbiscreen/Daemon",
+                "com.orbiscreen.Daemon",
+            )
+            .await?;
+            match tokio::time::timeout(
+                std::time::Duration::from_millis(1500),
+                fallback.call::<_, B, String>(member, body),
+            )
+            .await
+            {
+                Ok(res) => res,
+                Err(_) => Err(zbus::Error::Failure("D-Bus request timed out".to_string())),
+            }
+        }
+    }
+}
+
+pub async fn call_pair_list(conn: &zbus::Connection) -> zbus::Result<String> {
+    call_owned_method::<()>(conn, "ListPairings", &()).await
+}
+
+pub async fn call_pair_approve(conn: &zbus::Connection, request_id: &str) -> zbus::Result<String> {
+    call_owned_method(conn, "ApprovePairing", &request_id.to_string()).await
+}
+
+pub async fn call_pair_deny(conn: &zbus::Connection, request_id: &str) -> zbus::Result<String> {
+    call_owned_method(conn, "DenyPairing", &request_id.to_string()).await
+}
+
+pub async fn call_pair_revoke(conn: &zbus::Connection, client_id: &str) -> zbus::Result<String> {
+    call_owned_method(conn, "RevokePairing", &client_id.to_string()).await
+}
+
+pub async fn request_pair_list() -> zbus::Result<String> {
+    let conn = zbus::connection::Builder::session()?.build().await?;
+    call_pair_list(&conn).await
+}
+
+pub async fn request_pair_approve(request_id: &str) -> zbus::Result<String> {
+    let conn = zbus::connection::Builder::session()?.build().await?;
+    call_pair_approve(&conn, request_id).await
+}
+
+pub async fn request_pair_deny(request_id: &str) -> zbus::Result<String> {
+    let conn = zbus::connection::Builder::session()?.build().await?;
+    call_pair_deny(&conn, request_id).await
+}
+
+pub async fn request_pair_revoke(client_id: &str) -> zbus::Result<String> {
+    let conn = zbus::connection::Builder::session()?.build().await?;
+    call_pair_revoke(&conn, client_id).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -390,6 +593,9 @@ mod tests {
             capture_backend: "Wayland",
             shutdown_tx,
             displays: None,
+            pairing: std::sync::Arc::new(
+                orbiscreen_transport::pairing::PairingRegistry::load_from(None).expect("registry"),
+            ),
         })
     }
 
@@ -455,5 +661,146 @@ mod tests {
         assert!(status.contains("\"display_width\":2560"));
         assert!(status.contains("\"display_height\":1600"));
         assert!(status.contains("\"display_fps\":90"));
+    }
+
+    fn pair_server_with_request(label: &str, peer: &str) -> (OrbiscreenDbusServer, String) {
+        let handles = test_handles();
+        let server = OrbiscreenDbusServer::new(handles.clone());
+        let id = handles
+            .pairing
+            .request_pairing(label, peer)
+            .expect("request accepted")
+            .request_id;
+        (server, id)
+    }
+
+    #[tokio::test]
+    async fn pair_list_reports_pending_and_paired() {
+        let (server, id) = pair_server_with_request("Tab S5e", "192.0.2.30");
+        let list = server.pair_list_json();
+        let value: serde_json::Value = serde_json::from_str(&list).unwrap();
+        assert_eq!(
+            value["requests"][0]["request_id"].as_str().unwrap(),
+            id,
+            "the pending request must be listed"
+        );
+        assert_eq!(value["requests"][0]["label"], "Tab S5e");
+        assert_eq!(
+            value["clients"].as_array().unwrap().len(),
+            0,
+            "nothing is paired before approval"
+        );
+    }
+
+    #[tokio::test]
+    async fn approve_pairing_issues_a_claimable_credential_slot() {
+        let (server, id) = pair_server_with_request("Tab S5e", "192.0.2.30");
+        let reply: serde_json::Value =
+            serde_json::from_str(&server.pair_approve_json(&id)).unwrap();
+        assert_eq!(reply["ok"], true, "approval must succeed: {reply}");
+        assert_eq!(server.handles.pairing.clients().len(), 1);
+        let pending = server.handles.pairing.pending_requests();
+        assert_eq!(
+            pending.len(),
+            1,
+            "the request stays queued until the device claims it"
+        );
+        assert!(
+            pending[0].approved,
+            "approval must mark the request as approved"
+        );
+        let credential = server
+            .handles
+            .pairing
+            .claim(&id, "192.0.2.30")
+            .expect("the device must be able to claim its credential after approval");
+        assert!(!credential.is_empty());
+        assert!(
+            server.handles.pairing.pending_requests().is_empty(),
+            "claim consumes the request"
+        );
+        assert!(
+            server.handles.pairing.claim(&id, "192.0.2.30").is_none(),
+            "a request must yield its credential exactly once"
+        );
+    }
+
+    #[tokio::test]
+    async fn approve_without_an_id_targets_the_newest_request() {
+        let handles = test_handles();
+        let server = OrbiscreenDbusServer::new(handles.clone());
+        let first = handles
+            .pairing
+            .request_pairing("first", "192.0.2.30")
+            .unwrap()
+            .request_id;
+        let second = handles
+            .pairing
+            .request_pairing("second", "192.0.2.31")
+            .unwrap()
+            .request_id;
+        let reply: serde_json::Value = serde_json::from_str(&server.pair_approve_json("")).unwrap();
+        assert_eq!(reply["ok"], true);
+        let pending = server.handles.pairing.pending_requests();
+        assert_eq!(pending.len(), 2, "both requests remain until claimed");
+        assert!(
+            pending.iter().any(|r| r.request_id == second && r.approved),
+            "the newest request must be the approved one"
+        );
+        assert!(
+            pending.iter().any(|r| r.request_id == first && !r.approved),
+            "the oldest request must remain unapproved"
+        );
+    }
+
+    #[test]
+    fn approve_and_deny_unknown_ids_fail_cleanly() {
+        let server = OrbiscreenDbusServer::new(test_handles());
+        let approve: serde_json::Value =
+            serde_json::from_str(&server.pair_approve_json("")).unwrap();
+        assert_eq!(approve["ok"], false);
+        assert_eq!(approve["error"], "no pending pairing request");
+        let deny: serde_json::Value =
+            serde_json::from_str(&server.pair_deny_json("no-such-id")).unwrap();
+        assert_eq!(deny["ok"], false);
+    }
+
+    #[tokio::test]
+    async fn deny_pairing_removes_the_request() {
+        let (server, id) = pair_server_with_request("Tab S5e", "192.0.2.30");
+        let reply: serde_json::Value = serde_json::from_str(&server.pair_deny_json(&id)).unwrap();
+        assert_eq!(reply["ok"], true);
+        assert!(server.handles.pairing.pending_requests().is_empty());
+        assert!(server.handles.pairing.clients().is_empty());
+    }
+
+    #[tokio::test]
+    async fn revoke_pairing_removes_a_paired_client() {
+        let (server, id) = pair_server_with_request("Tab S5e", "192.0.2.30");
+        let approved: serde_json::Value =
+            serde_json::from_str(&server.pair_approve_json(&id)).unwrap();
+        let client_id = approved["client_id"].as_str().unwrap().to_string();
+        let reply: serde_json::Value =
+            serde_json::from_str(&server.pair_revoke_json(&client_id)).unwrap();
+        assert_eq!(reply["ok"], true);
+        let clients = server.handles.pairing.clients();
+        assert_eq!(
+            clients.len(),
+            1,
+            "the stored entry stays for the audit trail"
+        );
+        assert_eq!(
+            clients[0].status,
+            orbiscreen_transport::pairing::ClientStatus::Revoked,
+            "the paired device must be revoked"
+        );
+        assert!(
+            server.handles.pairing.claim(&id, "192.0.2.30").is_none(),
+            "a revoked request must never yield a credential"
+        );
+        assert!(
+            server.handles.pairing.pending_requests().is_empty(),
+            "claim of a revoked request consumes it"
+        );
     }
 }

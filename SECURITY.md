@@ -2,7 +2,7 @@
 
 # Security Policy - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.33.8-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.33.9-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -88,7 +88,7 @@ We follow a **coordinated disclosure** model:
 <a id="considerations"></a>
 ## Security Considerations
 
-### Scope (v0.33.8)
+### Scope (v0.33.9)
 
 Orbiscreen is a Linux host daemon plus a Material 3 Android client and a browser web client that:
 - Creates compositor-native virtual displays without root: KWin's `zkde_screencast_unstable_v1` on Plasma, headless outputs via sway/Hyprland IPC on wlroots, falling back to the `evdi` kernel module or primary-desktop capture (Wayland portal or X11) when unavailable
@@ -117,6 +117,26 @@ Clients obtain the token in two ways:
 - `/health`, `/api/info`, `/client/config.json`, `/client/*` stay public by design (liveness, metadata, web-client bootstrap).
 
 Run `orbiscreen start --no-mdns` to stop advertising the host (and the token TXT record) if discovery is not needed.
+
+### Device Pairing
+
+Devices that need to authenticate without the per-session token (for example after the
+session token rotates) submit a pairing request to the public `/api/pair/request`
+endpoint. A request carries the device label and the requester's IP, queues for up
+to 10 minutes, and is worthless without host approval: the credential it yields is
+handed only to the same IP that submitted the request (`/api/pair/status` doubles as
+the claim endpoint).
+
+Approval is a host-side decision and runs through two uid-gated surfaces:
+
+- `orbiscreen pair list | approve [id] | deny [id] | revoke <client id>` on the CLI
+- `POST /api/pair` with the host admin token (what the web client's host-approvals
+  modal uses)
+
+Both reach the same in-memory registry the HTTP API serves, through the daemon's
+session-bus interface (`com.orbiscreen.Daemon`, owner-uid only). Credentials are
+stored as SHA-256 hashes, never in the clear, and revocation flips the stored
+client's status so its credential stops verifying immediately.
 
 ### Trust Boundaries
 
@@ -208,7 +228,7 @@ The Android release signing key (`orbiscreen-release.keystore`) was removed from
 <a id="audit"></a>
 ## Security Audit
 
-Orbiscreen (v0.33.8) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose), a small browser web client (WebTransport + WebCodecs `VideoDecoder`), and a Linux desktop GUI control center (Tauri v2 + WebKitGTK). A running daemon performs:
+Orbiscreen (v0.33.9) is written in Rust (edition 2021) plus a Kotlin Android client (Material 3 + Jetpack Compose), a small browser web client (WebTransport + WebCodecs `VideoDecoder`), and a Linux desktop GUI control center (Tauri v2 + WebKitGTK). A running daemon performs:
  
 - `open()` on `/dev/dri/card*` evdi nodes for capture
 - Compositor IPC over session-local Unix sockets: sway i3-ipc (`$SWAYSOCK`) and Hyprland (`HYPRLAND_INSTANCE_SIGNATURE`) to create/destroy headless outputs

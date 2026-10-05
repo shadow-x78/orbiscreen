@@ -6,7 +6,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Released as 0.33.8.
+### Fixed
+- A pairing request arrived with no way to accept it: the approval endpoint
+  (`POST /api/pair`) existed and worked, but nothing on the host called it - no CLI
+  command, no D-Bus method, no GUI - so a device pairing wirelessly waited forever
+  and the request expired. The registry is now created once and shared between the
+  HTTP server and the D-Bus interface, which gains four owner-uid-gated methods
+  (`ListPairings`, `ApprovePairing`, `DenyPairing`, `RevokePairing`), and a new
+  `orbiscreen pair` subcommand drives them: `pair list`, `pair approve [id]`
+  (newest request by default), `pair deny [id]`, `pair revoke <client id>`. Approve
+  hands the credential to the requesting device automatically on its next status
+  poll. The daemon log now names the device label, IP and request id, and the
+  troubleshooting guides (EN/AR) plus README document the flow
+- The Arabic troubleshooting guide said "jako" where it meant "كاهتزاز"
+- 28 more dangling in-page links that survived the v0.33.8 guide rework: 23 in the
+  troubleshooting contents tails (single-dash anchors where the renamed headings
+  derive double-dash ones, "Android:"-prefixed targets that no longer exist under
+  those names) and 5 in the packaging guide (`#arch-linux-manjaro-pkgbuild` and
+  friends, whose explicit anchors are double-dashed). Every markdown file in the
+  repository now audits clean under GitHub's anchor rules
+
+## [v0.33.8] - 2026-10-05
 
 ### Added
 - The 30 troubleshooting sections that the contents lists advertised but that were never
@@ -35,6 +55,12 @@ Released as 0.33.8.
 - Drop the audio entries from both guides, because Orbiscreen streams no audio
 - Version bumped to 0.33.8 across the Cargo workspace, Android (`versionCode` 144), Tauri,
   PKGBUILD, Debian, COPR, and documentation badges.
+
+## [v0.33.9] - 2026-10-03
+
+### Changed
+- chore: bump version to 0.33.6
+- Version bumped to 0.33.9 across the Cargo workspace, Android (`versionCode` 144), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
 
 ## [v0.33.7] - 2026-10-05
 
