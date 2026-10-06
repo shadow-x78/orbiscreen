@@ -1,3 +1,11 @@
+orbiscreen (0.35.0~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.35.0 for Ubuntu noble.
+  * feat: unify the web client and GUI on the Android app's design system
+  * Bump version to 0.35.0 across all packages; Android versionCode 149.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.34.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.34.2 for Ubuntu noble.

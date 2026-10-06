@@ -55,6 +55,8 @@ done
 for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     cp -f "clients/web/${f}" "${BUILD_DIR}/usr/share/orbiscreen/client/"
 done
+install -d "${BUILD_DIR}/usr/share/orbiscreen/client/fonts"
+install -m644 clients/web/fonts/*.ttf "${BUILD_DIR}/usr/share/orbiscreen/client/fonts/"
 cp -f scripts/install-evdi-module.sh "${BUILD_DIR}/usr/share/orbiscreen/"
 cp -f data/99-orbiscreen-usb.rules "${BUILD_DIR}/usr/lib/udev/rules.d/"
 

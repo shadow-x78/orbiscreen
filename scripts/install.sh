@@ -39,6 +39,8 @@ echo "[Orbiscreen] Installing web client files..."
 for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     cp "clients/web/${f}" "${CLIENT_DIR}/"
 done
+mkdir -p "${CLIENT_DIR}/fonts"
+cp clients/web/fonts/*.ttf "${CLIENT_DIR}/fonts/"
 
 echo "[Orbiscreen] Binary installed to ${INSTALL_DIR}/orbiscreen"
 

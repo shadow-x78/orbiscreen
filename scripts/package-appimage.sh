@@ -50,6 +50,8 @@ fi
 for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     install -m644 "clients/web/$f" "$APP/usr/share/orbiscreen/client/$f"
 done
+install -m644 -D clients/web/fonts/noto_kufi_arabic_regular.ttf "$APP/usr/share/orbiscreen/client/fonts/noto_kufi_arabic_regular.ttf"
+install -m644 -D clients/web/fonts/noto_kufi_arabic_bold.ttf "$APP/usr/share/orbiscreen/client/fonts/noto_kufi_arabic_bold.ttf"
 
 # ── Bundle GStreamer Runtime ──
 GST_PREFIX="$(pkg-config --variable=prefix gstreamer-1.0 2>/dev/null || true)"

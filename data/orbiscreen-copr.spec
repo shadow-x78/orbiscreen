@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.34.2
+%global version 0.35.0
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -76,6 +76,9 @@ install -Dm0644 data/99-orbiscreen-usb.rules %{buildroot}%{_udevrulesdir}/99-orb
 for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     install -Dm0644 "clients/web/$f" "%{buildroot}%{_datadir}/orbiscreen/client/$f"
 done
+install -d "%{buildroot}%{_datadir}/orbiscreen/client/fonts"
+install -m 0644 "clients/web/fonts/noto_kufi_arabic_regular.ttf" "%{buildroot}%{_datadir}/orbiscreen/client/fonts/"
+install -m 0644 "clients/web/fonts/noto_kufi_arabic_bold.ttf" "%{buildroot}%{_datadir}/orbiscreen/client/fonts/"
 
 install -Dm0644 /dev/null %{buildroot}%{_userunitdir}/orbiscreen.service
 cat > %{buildroot}%{_userunitdir}/orbiscreen.service << 'EOF'
@@ -135,6 +138,8 @@ fi
 %{_datadir}/orbiscreen/client/style.css
 %{_datadir}/orbiscreen/client/app.js
 %{_datadir}/orbiscreen/client/annexb.js
+%dir %{_datadir}/orbiscreen/client/fonts
+%{_datadir}/orbiscreen/client/fonts/*.ttf
 %{_datadir}/orbiscreen/client/stats.js
 %{_datadir}/orbiscreen/client/favicon.svg
 %{_datadir}/orbiscreen/client/favicon.png
@@ -143,6 +148,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Mon Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.0-1
+- Release 0.35.0: ship Noto Kufi Arabic and the shared radius and colour tokens to the web client and GUI
+
 * Mon Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.34.2-1
 - Release 0.34.2: accept Xbgr8888/Abgr8888 in screencopy and fix the portal fallback session; see https://github.com/shadow-x78/orbiscreen/issues/89
 

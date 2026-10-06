@@ -1,6 +1,25 @@
 
+@font-face {
+    font-family: "Noto Kufi Arabic";
+    src: url("fonts/noto_kufi_arabic_regular.ttf") format("truetype");
+    font-weight: 400 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Noto Kufi Arabic";
+    src: url("fonts/noto_kufi_arabic_bold.ttf") format("truetype");
+    font-weight: 600 700;
+    font-display: swap;
+}
+
 :root {
     color-scheme: dark;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 22px;
+    --radius-full: 9999px;
     --bg: #11111b;
     --surface: #181825;
     --surface-variant: #1e1e2e;
@@ -9,15 +28,20 @@
     --primary: #89b4fa;
     --primary-on: #11111b;
     --primary-variant: rgba(137, 180, 250, 0.16);
+    --secondary: #b4befe;
+    --secondary-container: rgba(180, 190, 254, 0.16);
+    --tertiary: #a6e3a1;
+    --tertiary-container: rgba(166, 227, 161, 0.16);
     --sapphire: #74c7ec;
     --active-green: #a6e3a1;
     --peach: #fab387;
+    --error: #f38ba8;
     --error-red: rgba(243, 139, 168, 0.88);
     --text: #cdd6f4;
     --subtext: #a6adc8;
     --btn-glass: rgba(255, 255, 255, 0.14);
     --btn-glass-hover: rgba(255, 255, 255, 0.24);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: "Noto Kufi Arabic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 body.theme-light {
@@ -30,9 +54,14 @@ body.theme-light {
     --primary: #1e66f5;
     --primary-on: #ffffff;
     --primary-variant: rgba(30, 102, 245, 0.14);
+    --secondary: #7287fd;
+    --secondary-container: rgba(114, 135, 253, 0.14);
+    --tertiary: #40a02b;
+    --tertiary-container: rgba(64, 160, 43, 0.14);
     --sapphire: #04a5e5;
     --active-green: #40a02b;
     --peach: #df8e1d;
+    --error: #d20f39;
     --error-red: rgba(210, 15, 57, 0.88);
     --text: #4c4f69;
     --subtext: #5c5f77;
@@ -101,7 +130,7 @@ html, body {
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border: 1px solid var(--glass-border);
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
     z-index: 100;
     transition: all 0.25s ease;
@@ -165,7 +194,7 @@ html, body {
 .actionBtn {
     background: var(--btn-glass);
     border: 1px solid var(--glass-border);
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     width: 32px;
     height: 32px;
     display: flex;
@@ -214,7 +243,7 @@ html, body {
     background: var(--glass-dark);
     backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     z-index: 99;
     cursor: pointer;
@@ -277,7 +306,7 @@ html, body {
     padding: 10px 12px;
     background: rgba(17, 17, 27, 0.62);
     border: 1px solid rgba(137, 180, 250, 0.4);
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
@@ -394,10 +423,10 @@ html, body {
     flex: 1;
     background: var(--surface);
     border: 1px solid var(--glass-border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 8px 12px;
     color: var(--text);
-    font-size: 13px;
+    font-size: 14px;
     outline: none;
 }
 
@@ -405,9 +434,9 @@ html, body {
     background: var(--primary);
     color: var(--primary-on);
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 8px 16px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     display: inline-flex;
@@ -461,7 +490,7 @@ html, body {
     height: 36px;
     background: var(--surface);
     border: 1px solid var(--glass-border);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 12px;
     font-weight: 600;
@@ -519,7 +548,7 @@ html, body {
     max-width: 400px;
     background: var(--surface);
     border: 1px solid var(--glass-border);
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     padding: 18px 20px;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
     display: flex;
@@ -536,7 +565,7 @@ html, body {
 }
 
 .settingsHeader h2 {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--text);
 }
@@ -575,7 +604,7 @@ html, body {
     flex: 1;
     background: var(--surface-variant);
     border: 1px solid var(--glass-border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 6px 10px;
     font-size: 12px;
     font-weight: 600;
@@ -604,7 +633,7 @@ html, body {
 .statItem {
     background: var(--surface-variant);
     border: 1px solid var(--glass-border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 6px 8px;
     display: flex;
     flex-direction: column;
@@ -633,7 +662,7 @@ html, body {
     transform: translateX(-50%);
     background: rgba(17, 17, 27, 0.85);
     border: 1px solid var(--glass-border);
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     padding: 4px 14px;
     font-size: 11px;
     color: var(--text);
@@ -651,7 +680,7 @@ html, body {
     transform: translateX(-50%);
     background: var(--surface);
     border: 1px solid var(--glass-border);
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     padding: 6px 14px;
     font-size: 12px;
     font-weight: 600;
@@ -690,7 +719,7 @@ html, body {
 
 .pairingPanel,
 .pairingAdminCard {
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.5;
 }
 
@@ -700,7 +729,7 @@ html, body {
     min-width: 0;
     padding: 10px 12px;
     border: 1px solid var(--glass-border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     color: var(--text);
     background: var(--surface-variant);
     user-select: text;
@@ -755,7 +784,7 @@ html, body {
     gap: 8px;
     background: var(--surface-variant);
     border: 1px solid var(--glass-border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
 }
 
 .overlay {

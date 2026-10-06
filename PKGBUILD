@@ -6,7 +6,7 @@
 # Maintainer: shadow-x78 <107577376+shadow-x78@users.noreply.github.com>
 
 pkgname=orbiscreen
-pkgver=0.34.2
+pkgver=0.35.0
 pkgrel=1
 pkgdesc="Turn Android devices into high-performance secondary monitors for Linux (Wayland & X11)"
 arch=('x86_64')
@@ -65,6 +65,8 @@ package() {
     for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
         install -Dm0644 "clients/web/${f}" "${pkgdir}/usr/share/orbiscreen/client/${f}"
     done
+    mkdir -p "$pkgdir"/usr/share/orbiscreen/client/fonts
+    cp clients/web/fonts/*.ttf "$pkgdir"/usr/share/orbiscreen/client/fonts/
 
     install -Dm0644 /dev/null "${pkgdir}/usr/lib/systemd/user/orbiscreen.service"
     cat > "${pkgdir}/usr/lib/systemd/user/orbiscreen.service" << 'EOF'

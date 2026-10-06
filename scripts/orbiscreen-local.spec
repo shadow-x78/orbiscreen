@@ -58,6 +58,9 @@ install -m 0755 %{_projectroot}/scripts/install-evdi-module.sh %{buildroot}/usr/
 for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     install -m 0644 "%{_projectroot}/clients/web/$f" "%{buildroot}/usr/share/orbiscreen/client/$f"
 done
+install -d "%{buildroot}%{_datadir}/orbiscreen/client/fonts"
+install -m 0644 "%{_projectroot}/clients/web/fonts/noto_kufi_arabic_regular.ttf" "%{buildroot}%{_datadir}/orbiscreen/client/fonts/"
+install -m 0644 "%{_projectroot}/clients/web/fonts/noto_kufi_arabic_bold.ttf" "%{buildroot}%{_datadir}/orbiscreen/client/fonts/"
 
 cat << 'EOF' > %{buildroot}/usr/lib/systemd/user/orbiscreen.service
 [Unit]
@@ -122,6 +125,7 @@ fi
 /usr/share/orbiscreen/client/style.css
 /usr/share/orbiscreen/client/app.js
 /usr/share/orbiscreen/client/annexb.js
+/usr/share/orbiscreen/client/fonts
 /usr/share/orbiscreen/client/stats.js
 /usr/share/orbiscreen/client/favicon.svg
 /usr/share/orbiscreen/client/favicon.png

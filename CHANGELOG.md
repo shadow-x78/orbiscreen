@@ -4,6 +4,12 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.35.0] - 2026-10-06
+
+### Changed
+- feat: unify the web client and GUI on the Android app's design system
+- Version bumped to 0.35.0 across the Cargo workspace, Android (`versionCode` 149), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.34.2] - 2026-10-03
 
 ### Changed
@@ -15,6 +21,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - fix: raise the GUI minimum width above the WebKitGTK header requirement
 - Version bumped to 0.34.1 across the Cargo workspace, Android (`versionCode` 147), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
+## [v0.35.0] - 2026-10-06
+
+Unifies the web client and the desktop control centre on the Android app's design
+system, so all three clients read as one product.
+
+### Added
+- The web client and the GUI now ship and load Noto Kufi Arabic - the same type family
+  the Android app bundles - via `@font-face` with `font-display: swap`, so the
+  platform stack only appears as a fallback. Arabic and Latin text now carry the app's
+  identity in every client instead of only on the tablet
+- The web stylesheet gains the shared radius scale (`8/12/16/22px`, with 12px the
+  dominant card radius, matching the app's Compose shapes) and the named colour tokens
+  the Android `Color.kt` defines: `--secondary`, `--tertiary`, `--error` plus their
+  containers, in both the Mocha and Latte themes
+
+### Changed
+- Web radii move onto that scale (6px controls become 8px, 14px cards become 12px)
+  and font sizes normalise to the Material scale from the app's `Type.kt`
+  (13px to 14px, 15px to 16px)
+- The client asset version bumps to `?v=23` so cached clients pick up the redesign
+- Every packager - install.sh, the AppImage and deb scripts, debian/rules, both RPM
+  specs, PKGBUILD and the release tarball step - ships the `fonts/` directory, so no
+  packaging path silently falls back to the system stack
+- The GUI already carried the palette and radius scale; its type stack now puts
+  Noto Kufi Arabic first and Tauri embeds the fonts through `frontendDist`
+- Version bumped to 0.35.0 across the Cargo workspace, Android (`versionCode` 149),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
 
 ## [v0.34.2] - 2026-10-06
 
