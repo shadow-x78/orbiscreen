@@ -27,6 +27,7 @@ pub enum DisplayCommand {
         height: u32,
 
         bitrate_kbps: Option<u32>,
+        refresh_hz: Option<u32>,
         reply: oneshot::Sender<Result<DisplayInfo, String>>,
     },
     Release {
@@ -96,7 +97,7 @@ impl DisplayCtl {
         width: u32,
         height: u32,
     ) -> Result<DisplayInfo, String> {
-        self.acquire_with_bitrate(name, key, width, height, None)
+        self.acquire_with_bitrate(name, key, width, height, None, None)
             .await
     }
 
@@ -107,6 +108,7 @@ impl DisplayCtl {
         width: u32,
         height: u32,
         bitrate_kbps: Option<u32>,
+        refresh_hz: Option<u32>,
     ) -> Result<DisplayInfo, String> {
         let (reply, rx) = oneshot::channel();
         self.tx
@@ -116,6 +118,7 @@ impl DisplayCtl {
                 width,
                 height,
                 bitrate_kbps,
+                refresh_hz,
                 reply,
             })
             .await

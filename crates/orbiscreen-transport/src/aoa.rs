@@ -603,7 +603,7 @@ async fn run_native_video(
                     if !resent {
                         dropped_keyframes = dropped_keyframes.saturating_add(1);
                         if dropped_keyframes % 16 == 1 {
-                            debug!(
+                            warn!(
                                 session = %sid,
                                 dropped_keyframes,
                                 "AOA keyframe queue full; dropping the frame"
@@ -638,17 +638,23 @@ async fn run_native_video(
                 if evicted_stale {
                     dropped_stale_aus = dropped_stale_aus.saturating_add(1);
                     if dropped_stale_aus % 16 == 1 {
-                        debug!(
+                        warn!(
                             session = %sid,
                             dropped_stale_aus,
                             "AOA video lane full; discarded the oldest queued frame"
                         );
                     }
+                    wait_key = true;
+                    let now = Instant::now();
+                    if idr_due(last_idr, now) {
+                        last_idr = now;
+                        displays.idr(&sid).await;
+                    }
                 }
                 if !admitted {
                     dropped_fresh_aus = dropped_fresh_aus.saturating_add(1);
                     if dropped_fresh_aus % 16 == 1 {
-                        debug!(
+                        warn!(
                             session = %sid,
                             dropped_fresh_aus,
                             key = pkt.is_keyframe,

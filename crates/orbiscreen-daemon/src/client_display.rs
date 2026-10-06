@@ -193,9 +193,11 @@ async fn handle_cmd(
             width,
             height,
             bitrate_kbps,
+            refresh_hz,
             reply,
         } => {
             let (target_w, target_h) = target_resolution(cfg, width, height);
+            let target_refresh = refresh_hz.unwrap_or(cfg.refresh_hz).clamp(30, 240);
             if let Some(ref k) = key {
                 if let Some((existing_id, existing_session)) = sessions
                     .iter_mut()
@@ -203,6 +205,7 @@ async fn handle_cmd(
                 {
                     if existing_session.info.width == target_w
                         && existing_session.info.height == target_h
+                        && existing_session.refresh_hz == target_refresh
                     {
                         if existing_session.viewers == 0 {
                             idle_at.insert(existing_id.clone(), tokio::time::Instant::now());
@@ -252,7 +255,7 @@ async fn handle_cmd(
                 target_w,
                 target_h,
                 bitrate_kbps,
-                cfg.refresh_hz,
+                target_refresh,
             )
             .await;
             if let Ok(session) = result {

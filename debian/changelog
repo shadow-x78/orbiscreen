@@ -1,3 +1,15 @@
+orbiscreen (0.35.1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.35.1 for Ubuntu noble.
+  * Fix: open the initial per-client session at the client's panel refresh
+    (sent as refresh_hz) instead of the host monitor's, bound USB AOA
+    recovery to one IDR after a lane eviction instead of silent stream
+    holes, warn on AOA lane drops, and print the stream URL with #token=
+    so the credential stays out of server logs and Referer headers.
+  * Bump version to 0.35.1 across all packages; Android versionCode 150.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 07 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.35.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.35.0 for Ubuntu noble.

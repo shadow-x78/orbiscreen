@@ -211,6 +211,7 @@ class HostApi {
                     .put("width", identity.width)
                     .put("height", identity.height)
                     .put("bitrate_kbps", identity.bitrateKbps)
+                    .put("refresh_hz", identity.refreshHz)
                     .toString()
                 val req = Request.Builder()
                     .url("http://$host:$port/api/session")

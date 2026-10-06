@@ -1,8 +1,12 @@
-# Changelog
+## [v0.35.1] - 2026-10-07
 
-All notable changes to Orbiscreen are documented here. Entries follow
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
-adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### Changed
+- fix: honor the client's refresh rate on session open, bound USB AOA recovery to one IDR, and stop printing the token in the query string
+- The initial per-client session always opened at the daemon's configured refresh rate (the host monitor's), so a 60Hz tablet received a 90fps full-resolution stream its decoder could not sustain, which drove the client into the wait-key/IDR recovery loop behind the reported frame drops and latency. `POST /api/session` now accepts `refresh_hz`, `Acquire` carries it clamped to 30-240, and the Android client sends its panel's real refresh rate (auto-detected from `Display.mode.refreshRate` when not requested explicitly)
+- On the USB path the video lane silently discarded the oldest queued access unit under load, leaving a hole in an ordered reliable stream the client cannot detect (the AOA video lane carries no sequence numbers). A lane eviction now switches the pump to wait for the next keyframe, bounding the corruption window to one IDR instead of the whole intra-refresh cycle of an unbounded GOP
+- AOA lane-full drops (`keyframe queue full`, `video lane full`) were logged at debug level, so nothing appeared in info-level daemon logs during exactly these episodes; they are warn now
+- The startup card and the status dashboard print the stream URL with `#token=` instead of `?token=`, so the credential never reaches server logs, browser history or Referer headers for first-party clients (the web client already reads the fragment first); query-token acceptance stays for compatibility
+- Version bumped to 0.35.1 across the Cargo workspace, Android (`versionCode` 150), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
 
 ## [v0.35.0] - 2026-10-06
 

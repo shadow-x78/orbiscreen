@@ -11,14 +11,16 @@ data class ClientIdentity(
     val key: String,
     val width: Int,
     val height: Int,
-    
+
     val bitrateKbps: Int,
+    val refreshHz: Int = 60,
 ) {
     companion object {
         fun from(
             context: Context,
             requestedWidth: Int = 0,
             requestedHeight: Int = 0,
+            requestedRefreshHz: Int = 0,
         ): ClientIdentity {
             val resolverName = Settings.Global.getString(resolver(context), Settings.Global.DEVICE_NAME)
             val name = resolverName
@@ -28,13 +30,30 @@ data class ClientIdentity(
             val (nativeW, nativeH) = nativePixels(context)
             val w = requestedWidth.takeIf { it > 0 } ?: nativeW
             val h = requestedHeight.takeIf { it > 0 } ?: nativeH
+            val hz = requestedRefreshHz.takeIf { it in 30..240 } ?: panelRefreshHz(context)
             return ClientIdentity(
                 name = name,
                 key = deviceKey(context),
                 width = w,
                 height = h,
                 bitrateKbps = detectedBitrateKbps(context),
+                refreshHz = hz,
             )
+        }
+
+        private fun panelRefreshHz(context: Context): Int {
+            return try {
+                val wm = context.getSystemService(WindowManager::class.java)
+                val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    context.display
+                } else {
+                    @Suppress("DEPRECATION")
+                    wm.defaultDisplay
+                }
+                display?.mode?.refreshRate?.toInt()?.coerceIn(30, 240) ?: 60
+            } catch (_: Exception) {
+                60
+            }
         }
 
         private fun detectedBitrateKbps(context: Context): Int {

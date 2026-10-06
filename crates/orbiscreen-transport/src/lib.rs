@@ -864,12 +864,16 @@ async fn api_session_open(
         .get("bitrate_kbps")
         .and_then(|v| v.as_u64())
         .map(|v| v.clamp(1_000, 120_000) as u32);
+    let refresh_hz = payload
+        .get("refresh_hz")
+        .and_then(|v| v.as_u64())
+        .map(|v| v.clamp(30, 240) as u32);
     let owner_id = supplied_credential
         .as_deref()
         .and_then(|c| state.pairing.verify(c))
         .map(|client| client.client_id);
     match ctl
-        .acquire_with_bitrate(name, key, width, height, bitrate_kbps)
+        .acquire_with_bitrate(name, key, width, height, bitrate_kbps, refresh_hz)
         .await
     {
         Ok(info) => {

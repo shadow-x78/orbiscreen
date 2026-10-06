@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.35.0
+%global version 0.35.1
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -148,6 +148,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Wed Oct 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.1-1
+- Release 0.35.1: open the client session at the panel refresh, bound USB AOA recovery to one IDR, warn on lane drops, print #token= URLs
+
 * Mon Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.0-1
 - Release 0.35.0: ship Noto Kufi Arabic and the shared radius and colour tokens to the web client and GUI
 

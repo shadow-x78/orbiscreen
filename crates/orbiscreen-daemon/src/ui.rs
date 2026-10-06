@@ -217,7 +217,7 @@ pub fn print_startup_card(
 ) {
     let lan_ip = get_lan_ip().unwrap_or_else(|| "localhost".to_string());
     let https_port = port.saturating_add(2);
-    let lan_url = format!("https://{lan_ip}:{https_port}/client/index.html?token={token}");
+    let lan_url = format!("https://{lan_ip}:{https_port}/client/index.html#token={token}");
     let enc = format_encoder_name(encoder_name);
     let back = format_backend_name(backend_name);
 
@@ -280,7 +280,7 @@ pub fn print_status_dashboard(
 ) {
     let lan_ip = get_lan_ip().unwrap_or_else(|| "localhost".to_string());
     let https_port = port.saturating_add(2);
-    let stream_url = format!("https://{lan_ip}:{https_port}/client/index.html?token={token}");
+    let stream_url = format!("https://{lan_ip}:{https_port}/client/index.html#token={token}");
     let enc = format_encoder_name(encoder);
     let back = format_backend_name(capture);
 
