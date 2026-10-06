@@ -4,6 +4,35 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.34.1] - 2026-10-03
+
+### Changed
+- fix: raise the GUI minimum width above the WebKitGTK header requirement
+- Version bumped to 0.34.1 across the Cargo workspace, Android (`versionCode` 147), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
+## [v0.34.1] - 2026-10-06
+
+Closes the residual from
+[#86 - Window not wide enough on launch to show full GUI](https://github.com/shadow-x78/orbiscreen/issues/86).
+
+The report was filed against v0.31.9, where two things stacked up: the window opened
+at 540 px, and the control centre's JavaScript was still broken by the template-literal
+truncation (fixed in v0.33.0), so the host showed a dead skeleton in a narrow frame.
+The launch width has been 760 px since v0.32.2 and the full UI works again, and measured
+in a headless browser neither the 760 px launch size nor even the 460 px minimum
+overflowed. But the header's right side cannot shrink, and WebKitGTK - the toolkit the
+Linux build actually renders with - runs its text wider than Chromium's metrics, so the
+old minimum left the restart and language buttons at risk of being cut off.
+
+### Fixed
+- Raise the window minimum width from 460 px to 520 px, above the measured requirement
+  of the unshrinkable header actions under WebKitGTK metrics, so no element can be
+  clipped however far the user drags the resize handle
+
+### Changed
+- Version bumped to 0.34.1 across the Cargo workspace, Android (`versionCode` 147),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.34.0] - 2026-10-06
 
 ### Fixed
@@ -27,7 +56,6 @@ Closes [#88 - Cannot pair to PC](https://github.com/shadow-x78/orbiscreen/issues
 a pairing request arrived with no way to accept it, because nothing on the host ever
 called the approval endpoint.
 
-### Fixed
 ### Fixed
 - A pairing request arrived with no way to accept it: the approval endpoint
   (`POST /api/pair`) existed and worked, but nothing on the host called it - no CLI

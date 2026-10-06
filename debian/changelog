@@ -1,3 +1,13 @@
+orbiscreen (0.34.1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.34.1 for Ubuntu noble.
+  * Fix: raise the GUI window minimum width from 460 to 520, above the measured
+    requirement of the unshrinkable header under WebKitGTK metrics. See
+    https://github.com/shadow-x78/orbiscreen/issues/86
+  * Bump version to 0.34.1 across all packages; Android versionCode 147.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.34.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.34.0 for Ubuntu noble.
