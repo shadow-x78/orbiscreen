@@ -287,9 +287,16 @@ impl OrbiscreenDbusServer {
     }
 
     fn pair_list_json(&self) -> String {
+        let clients: Vec<_> = self
+            .handles
+            .pairing
+            .clients()
+            .into_iter()
+            .filter(|c| c.status == orbiscreen_transport::pairing::ClientStatus::Approved)
+            .collect();
         serde_json::json!({
             "requests": self.handles.pairing.pending_requests(),
-            "clients": self.handles.pairing.clients(),
+            "clients": clients,
         })
         .to_string()
     }

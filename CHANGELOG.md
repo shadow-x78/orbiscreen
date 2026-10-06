@@ -4,8 +4,30 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.34.0] - 2026-10-06
 
+### Fixed
+- A revoked pairing still showed under "Paired device(s)" in `orbiscreen pair list`,
+  so a device whose credential was already rejected looked like it was still trusted.
+  `revoke` itself was effective - the revoked token gets 401 on every authenticated
+  route - but the list never filtered it. The D-Bus `ListPairings` reply now carries
+  Approved clients only, so the CLI and anything else reading the surface see live
+  pairings; the revoked entries stay in the persisted registry as an audit trail.
+  Verified end to end on a physical host: request, `pair list`, `pair approve`,
+  credential claimed by the client, 884 KB of video over `/stream`, then `pair revoke`
+  and the same token gets 401 and the device leaves the list.
+
+### Changed
+- Version bumped to 0.34.0 across the Cargo workspace, Android (`versionCode` 146),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
+## [v0.33.9] - 2026-10-05
+
+Closes [#88 - Cannot pair to PC](https://github.com/shadow-x78/orbiscreen/issues/88):
+a pairing request arrived with no way to accept it, because nothing on the host ever
+called the approval endpoint.
+
+### Fixed
 ### Fixed
 - A pairing request arrived with no way to accept it: the approval endpoint
   (`POST /api/pair`) existed and worked, but nothing on the host called it - no CLI
@@ -25,6 +47,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   those names) and 5 in the packaging guide (`#arch-linux-manjaro-pkgbuild` and
   friends, whose explicit anchors are double-dashed). Every markdown file in the
   repository now audits clean under GitHub's anchor rules
+
+- Version bumped to 0.33.9 across the Cargo workspace, Android (`versionCode` 145),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
 
 ## [v0.33.8] - 2026-10-05
 
@@ -55,12 +80,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Drop the audio entries from both guides, because Orbiscreen streams no audio
 - Version bumped to 0.33.8 across the Cargo workspace, Android (`versionCode` 144), Tauri,
   PKGBUILD, Debian, COPR, and documentation badges.
-
-## [v0.33.9] - 2026-10-03
-
-### Changed
-- chore: bump version to 0.33.6
-- Version bumped to 0.33.9 across the Cargo workspace, Android (`versionCode` 144), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
 
 ## [v0.33.7] - 2026-10-05
 

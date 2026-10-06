@@ -1,3 +1,26 @@
+orbiscreen (0.34.0~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.34.0 for Ubuntu noble.
+  * Fix: a revoked pairing still showed under "Paired device(s)" in
+    `orbiscreen pair list`; the D-Bus ListPairings reply now carries Approved
+    clients only. Closes the pairing review surface follow-up to
+    https://github.com/shadow-x78/orbiscreen/issues/88
+  * Bump version to 0.34.0 across all packages; Android versionCode 146.
+
+  * Release 0.34.0 for Ubuntu noble.
+  * fix: hide revoked devices from the pairing list
+  * Bump version to 0.34.0 across all packages; Android versionCode 146.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
+orbiscreen (0.33.10~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.33.10 for Ubuntu noble.
+  * fix: hide revoked devices from the pairing list
+  * Bump version to 0.33.10 across all packages; Android versionCode 146.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.33.9~ubuntunoble1) noble; urgency=medium
 
   * Release 0.33.9 for Ubuntu noble.

@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.33.9
+%global version 0.34.0
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -143,6 +143,12 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Mon Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.34.0-1
+- Release 0.34.0: hide revoked devices from the pairing list; see https://github.com/shadow-x78/orbiscreen/issues/88
+
+* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.10-1
+- Release 0.33.10: fix: hide revoked devices from the pairing list
+
 * Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.9-1
 - Release 0.33.9: chore: bump version to 0.33.6
 
