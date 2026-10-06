@@ -1,3 +1,15 @@
+orbiscreen (0.34.2~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.34.2 for Ubuntu noble.
+  * Fix: accept all four 32-bit wl_shm formats in screencopy, so Sway's native
+    virtual output (offered as Xbgr8888) captures instead of dying; and negotiate
+    the portal monitor fallback on a fresh session instead of the handle the wlr
+    portal invalidated. See
+    https://github.com/shadow-x78/orbiscreen/issues/89
+  * Bump version to 0.34.2 across all packages; Android versionCode 148.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.34.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.34.1 for Ubuntu noble.

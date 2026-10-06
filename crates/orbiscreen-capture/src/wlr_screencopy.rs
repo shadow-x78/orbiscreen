@@ -76,6 +76,7 @@ struct PendingFrame {
     height: u32,
     stride: u32,
     premultiplied: bool,
+    swap_rb: bool,
     ready: bool,
     failed: bool,
 }
@@ -266,9 +267,11 @@ impl Dispatch<ZwlrScreencopyFrameV1, ()> for CaptureState {
                     tracing::warn!("screencopy buffer event but no wl_shm global");
                     return;
                 };
-                let (premultiplied, fmt) = match format {
-                    WEnum::Value(f @ wl_shm::Format::Xrgb8888) => (true, f),
-                    WEnum::Value(f @ wl_shm::Format::Argb8888) => (false, f),
+                let (premultiplied, swap_rb, fmt) = match format {
+                    WEnum::Value(f @ wl_shm::Format::Xrgb8888) => (true, false, f),
+                    WEnum::Value(f @ wl_shm::Format::Argb8888) => (false, false, f),
+                    WEnum::Value(f @ wl_shm::Format::Xbgr8888) => (true, true, f),
+                    WEnum::Value(f @ wl_shm::Format::Abgr8888) => (false, true, f),
                     other => {
                         tracing::warn!("screencopy offered unsupported shm format {other:?}");
                         state.pending = Some(PendingFrame::failed(width, height, stride));
@@ -321,6 +324,7 @@ impl Dispatch<ZwlrScreencopyFrameV1, ()> for CaptureState {
                     height,
                     stride,
                     premultiplied,
+                    swap_rb,
                     ready: false,
                     failed: false,
                 });
@@ -355,6 +359,7 @@ impl PendingFrame {
             height,
             stride,
             premultiplied: false,
+            swap_rb: false,
             ready: false,
             failed: true,
         }
@@ -659,6 +664,7 @@ fn copy_frame(pending: &PendingFrame, pool: &Arc<FramePool>) -> Option<CapturedF
         pending.height,
         pending.stride,
         pending.premultiplied,
+        pending.swap_rb,
     ) {
         return None;
     }
@@ -676,6 +682,7 @@ fn assemble_frame_rows(
     height: u32,
     stride: u32,
     premultiplied: bool,
+    swap_rb: bool,
 ) -> bool {
     let row_bytes = (width as usize) * 4;
     let expected = row_bytes * height as usize;
@@ -693,8 +700,11 @@ fn assemble_frame_rows(
         }
         let dst = &mut dst[row * row_bytes..row * row_bytes + row_bytes];
         dst.copy_from_slice(&src[start..end]);
-        if premultiplied {
-            for px in dst.as_chunks_mut::<4>().0 {
+        for px in dst.as_chunks_mut::<4>().0 {
+            if swap_rb {
+                px.swap(0, 2);
+            }
+            if premultiplied {
                 px[3] = 0xFF;
             }
         }
@@ -713,12 +723,44 @@ mod tests {
         stride: u32,
         premultiplied: bool,
     ) -> Option<Vec<u8>> {
+        assemble_with(src, width, height, stride, premultiplied, false)
+    }
+
+    fn assemble_with(
+        src: &[u8],
+        width: u32,
+        height: u32,
+        stride: u32,
+        premultiplied: bool,
+        swap_rb: bool,
+    ) -> Option<Vec<u8>> {
         let mut dst = vec![0u8; (width as usize) * 4 * height as usize];
-        if assemble_frame_rows(&mut dst, src, width, height, stride, premultiplied) {
+        if assemble_frame_rows(&mut dst, src, width, height, stride, premultiplied, swap_rb) {
             Some(dst)
         } else {
             None
         }
+    }
+
+    #[test]
+    fn assembly_swaps_red_and_blue_for_xbgr_sources() {
+        let src = [0x11, 0x22, 0x33, 0x44];
+        let data = assemble_with(&src, 1, 1, 4, false, true).expect("assembly");
+        assert_eq!(data, [0x33, 0x22, 0x11, 0x44]);
+    }
+
+    #[test]
+    fn assembly_swaps_and_fills_alpha_for_xbgr_sources() {
+        let src = [0xAA, 0xBB, 0xCC, 0x00];
+        let data = assemble_with(&src, 1, 1, 4, true, true).expect("assembly");
+        assert_eq!(data, [0xCC, 0xBB, 0xAA, 0xFF]);
+    }
+
+    #[test]
+    fn assembly_leaves_bgra_sources_untouched_without_the_flag() {
+        let src = [0x11, 0x22, 0x33, 0xFF, 0x44, 0x55, 0x66, 0xFF];
+        let data = assemble_with(&src, 2, 1, 8, false, false).expect("assembly");
+        assert_eq!(data, src);
     }
 
     #[test]

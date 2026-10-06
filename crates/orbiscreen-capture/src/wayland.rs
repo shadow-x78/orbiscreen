@@ -79,31 +79,41 @@ async fn negotiate_screencast(
         .create_session(Default::default())
         .await
         .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
-    let select_res = screencast
+    let selected = match screencast
         .select_sources(
             &session,
             virtual_only_options().set_restore_token(restore_token),
         )
-        .await;
-    if let Err(e) = select_res {
-        tracing::warn!("virtual source request failed ({e}); falling back to monitor source");
-        screencast
-            .select_sources(
-                &session,
-                monitor_fallback_options().set_restore_token(restore_token),
-            )
-            .await
-            .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
-    }
+        .await
+    {
+        Ok(_) => session,
+        Err(e) => {
+            tracing::warn!(
+                "virtual source request failed ({e}); falling back to a fresh monitor session"
+            );
+            let session = screencast
+                .create_session(Default::default())
+                .await
+                .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
+            screencast
+                .select_sources(
+                    &session,
+                    monitor_fallback_options().set_restore_token(restore_token),
+                )
+                .await
+                .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
+            session
+        }
+    };
     let request = screencast
-        .start(&session, None, StartCastOptions::default())
+        .start(&selected, None, StartCastOptions::default())
         .await
         .map_err(|e| WaylandCaptureError::Dbus(e.to_string()))?;
     let streams = request.response().map_err(|e| match e {
         ashpd::Error::Response(ResponseError::Cancelled) => WaylandCaptureError::PermissionDenied,
         other => WaylandCaptureError::Dbus(other.to_string()),
     })?;
-    Ok((session, streams))
+    Ok((selected, streams))
 }
 
 #[allow(missing_debug_implementations)]

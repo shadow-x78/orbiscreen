@@ -4,11 +4,46 @@ All notable changes to Orbiscreen are documented here. Entries follow
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.34.2] - 2026-10-03
+
+### Changed
+- fix: Sway capture rejects Xbgr8888 and the portal fallback reuses a dead session
+- Version bumped to 0.34.2 across the Cargo workspace, Android (`versionCode` 148), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.34.1] - 2026-10-03
 
 ### Changed
 - fix: raise the GUI minimum width above the WebKitGTK header requirement
 - Version bumped to 0.34.1 across the Cargo workspace, Android (`versionCode` 147), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
+## [v0.34.2] - 2026-10-06
+
+Fixes [#89 - Sway capture rejects Xbgr8888 (fails with invalid session)](https://github.com/shadow-x78/orbiscreen/issues/89).
+
+### Fixed
+- Sway (wlroots 0.19) offers its native virtual output to screencopy in `Xbgr8888`, which
+  the capture side rejected as an unsupported shm format, so direct capture created the
+  output, refused the only buffer the compositor offered, and the capture pump died
+  before a single frame. All four 32-bit shm formats are now accepted: `Xrgb8888` and
+  `Argb8888` arrive in the BGRA byte order the encoder expects, while `Xbgr8888` and
+  `Abgr8888` arrive as R,G,B and are swapped into it. The X variants keep their unused
+  alpha slot forced to 0xFF. Regression tests cover the swap on its own and combined
+  with the alpha fill
+- Portal capture failed with `Invalid session` before any share dialog on
+  xdg-desktop-portal-wlr: the first `SelectSources` request asks for a `Virtual` source
+  type, which the wlr portal does not offer (its `AvailableSourceTypes` is Monitor
+  only), and a rejected request invalidates the session handle. The monitor fallback
+  then reused that dead handle. The fallback now negotiates on a brand-new session
+
+### Notes
+- On a terminal capture error the daemon stays up by design: it is a per-client host,
+  and the capture pump stopping only ends that session's stream while pairing and the
+  control API remain available for the next client. The `GetStatus` D-Bus call reports
+  `frames_forwarded` so a dead capture is observable from the outside
+
+### Changed
+- Version bumped to 0.34.2 across the Cargo workspace, Android (`versionCode` 148),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
 
 ## [v0.34.1] - 2026-10-06
 
