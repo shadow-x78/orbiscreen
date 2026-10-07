@@ -654,27 +654,26 @@ private fun ConnectionSettingsSheet(
                             shape = RoundedCornerShape(8.dp),
                             color = if (isSel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                             border = if (isSel) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
-                            modifier = Modifier.padding(end = 6.dp, bottom = 6.dp).height(32.dp),
+                            modifier = Modifier.weight(1f).height(32.dp),
                         ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 10.dp)) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
                                 Text(
                                     text = label,
                                     fontSize = 11.sp,
                                     fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
                                 )
                             }
                         }
                     }
 
-                    Row(modifier = Modifier.fillMaxWidth()) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         resChip(stringResource(R.string.resolution_native), "native", 0, 0)
                         resChip("720p", "720p", 1280, 720)
                         resChip("1080p", "1080p", 1920, 1080)
-                    }
-                    Row(modifier = Modifier.fillMaxWidth()) {
                         resChip("1440p", "1440p", 2560, 1440)
-                        resChip("2K (2560x1600)", "2k", 2560, 1600)
+                        resChip("2K", "2k", 2560, 1600)
                     }
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -737,7 +736,7 @@ private fun ConnectionSettingsSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        val modes = listOf("fit" to R.string.scale_fit, "fill" to R.string.scale_fill, "100" to R.string.scale_100)
+                        val modes = listOf("fit" to R.string.scale_fit, "fill" to R.string.scale_fill)
                         modes.forEach { (key, labelRes) ->
                             val isSel = scaleMode == key
                             Surface(

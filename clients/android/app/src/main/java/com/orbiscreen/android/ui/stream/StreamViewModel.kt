@@ -119,7 +119,6 @@ class StreamViewModel(
 
     private fun scaleModeFromPref(pref: String): Int = when (pref) {
         "fill" -> 3
-        "100" -> 4
         else -> 0
     }
 
@@ -475,6 +474,30 @@ class StreamViewModel(
                 _state.value.displayHeight,
             )
             playerHolder.refreshSession = { reopenDisplaySession() }
+            playerHolder.udpKeyIssuer = { opened ->
+                if (!isLan) {
+                    null
+                } else {
+                    val fresh = freshToken()
+                    val issued = withContext(Dispatchers.IO) {
+                        hostApi.issueUdpKey(transportHost, transportPort, fresh, opened.id)
+                    }
+                    if (issued == null) {
+                        android.util.Log.w("StreamVM", "UDP key was not issued on session refresh")
+                        null
+                    } else {
+                        com.orbiscreen.android.player.UdpVideoTarget(
+                            host = host,
+                            port = issued.udpPort,
+                            keyId = issued.keyId,
+                            secret = issued.secret,
+                            sessionId = opened.id,
+                            httpHost = transportHost,
+                            httpPort = transportPort,
+                        )
+                    }
+                }
+            }
             val udpTarget = if (isLan && session != null && token.isNotBlank()) {
                 val issued = withContext(Dispatchers.IO) {
                     hostApi.issueUdpKey(transportHost, transportPort, token, session.id)

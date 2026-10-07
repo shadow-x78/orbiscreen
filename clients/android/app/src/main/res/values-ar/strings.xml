@@ -107,7 +107,6 @@
     <string name="clear_history_desc">حذف الجلسات والأجهزة المحفوظة من القائمة</string>
     <string name="disconnect_confirm_title">إنهاء الجلسة؟</string>
     <string name="scale_mode_title">وضع الملاءمة</string>
-    <string name="scale_100">100%</string>
     <string name="battery_optimization_title">تحسين استهلاك البطارية</string>
     <string name="battery_optimization_unrestricted">غير مقيد · لن يتم إيقاف التطبيق أو تجميده في الخلفية</string>
     <string name="battery_optimization_restricted">مقيد · انقر لتعطيل قيود البطارية لضمان استقرار البث وعدم انقطاعه</string>

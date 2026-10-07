@@ -107,7 +107,6 @@
     <string name="clear_history_desc">Remove saved connections and history</string>
     <string name="disconnect_confirm_title">End Session?</string>
     <string name="scale_mode_title">Fit Mode</string>
-    <string name="scale_100">100%</string>
     <string name="battery_optimization_title">Battery Optimization</string>
     <string name="battery_optimization_unrestricted">Unrestricted · App won\'t be stopped in background</string>
     <string name="battery_optimization_restricted">Optimized · Tap to disable battery restrictions</string>

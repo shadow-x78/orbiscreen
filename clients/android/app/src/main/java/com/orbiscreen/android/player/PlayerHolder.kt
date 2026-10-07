@@ -92,6 +92,7 @@ class PlayerHolder(
     private val maxRetries = 3
     private var lastTarget: StreamTarget? = null
     var refreshSession: (suspend () -> com.orbiscreen.android.net.HostApi.SessionInfo?)? = null
+    var udpKeyIssuer: (suspend (com.orbiscreen.android.net.HostApi.SessionInfo) -> UdpVideoTarget?)? = null
 
     private val lastIdrAtMs = java.util.concurrent.atomic.AtomicLong(0L)
     private var bufferingWatchdogJob: Job? = null
@@ -230,7 +231,13 @@ class PlayerHolder(
                 _usb.value = null
                 _player.value = null
                 scope.launch {
-                    udpPlayer.event.collect { ev -> _event.value = ev }
+                    udpPlayer.event.collect { ev ->
+                        if (ev is StreamEvent.Disconnected && ev.reason.contains("Host closed session")) {
+                            onUdpSessionClosed()
+                        } else {
+                            _event.value = ev
+                        }
+                    }
                 }
                 return null
             }
@@ -528,6 +535,25 @@ class PlayerHolder(
             .setMediaCodecSelector(selector)
     }
 
+    private fun onUdpSessionClosed() {
+        val target = lastTarget
+        if (target == null) {
+            _event.value = StreamEvent.Disconnected("Host closed session")
+            return
+        }
+        scope.launch {
+            val isHostAlive = checkHostAlive(target.host, target.port)
+            if (!isHostAlive) {
+                _event.value = StreamEvent.Disconnected("Host daemon stopped or disconnected")
+                return@launch
+            }
+            retryCount = 0
+            reconnectDelayMs = 1_000L
+            _event.value = StreamEvent.Buffering
+            scheduleReconnect(forceRefresh = true)
+        }
+    }
+
     private fun scheduleReconnect(forceRefresh: Boolean = false) {
         val target = lastTarget ?: return
         if (reconnectJob?.isActive == true) return
@@ -539,13 +565,17 @@ class PlayerHolder(
             } else {
                 target.session
             }
+            var udp = target.udp?.takeIf { it.sessionId == session?.id }
+            if (udp == null && session != null) {
+                udp = udpKeyIssuer?.invoke(session) ?: udp
+            }
             buildInternal(
                 target.host,
                 target.port,
                 target.tokenProvider,
                 fromReconnect = true,
                 session = session,
-                udp = target.udp?.takeIf { it.sessionId == session?.id },
+                udp = udp,
             )
         }
     }

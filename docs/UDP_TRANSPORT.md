@@ -2,7 +2,7 @@
 
 # UDP Annex-B Transport - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.35.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.35.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -19,7 +19,7 @@ The daemon advertises `udp_port` on `GET /api/info` (`signaling_port + 1`, defau
 
 ## Session
 
-On KDE the host does not create a virtual output at daemon start. The client calls `POST /api/session` with `{ name, key, width, height }` (native pixels). `key` is a stable per-device id (Android: last 8 hex of `ANDROID_ID`; web: 8 hex in `localStorage`). That opens one output: the KScreen description is `name` (for example `Galaxy Tab S5e`) and the connector is `Virtual-Orbi-<key>` (for example `Virtual-Orbi-a1b2c3d4`). Two tablets with the same model name therefore get different connectors. KWin remembers position and scale by `connectorName` only, virtual outputs have no EDID, so the same device gets the same layout next time. If `key` is omitted, the host slugs `name` instead. If that connector is already enabled, the host tries `-2` then `-<pid>`. `DELETE /api/session?id=` or UDP **Bye** (type 10) closes that output.
+On KDE the host does not create a virtual output at daemon start. The client calls `POST /api/session` with `{ name, key, width, height, bitrate_kbps, refresh_hz }` (native pixels). `key` is a stable per-device id (Android: last 8 hex of `ANDROID_ID`; web: 8 hex in `localStorage`). `bitrate_kbps` is clamped to 1_000-120_000 and `refresh_hz` to 30-240; the Android client sends its panel's real refresh rate, auto-detected from `Display.mode.refreshRate`, so the first session opens at the tablet's refresh instead of the host monitor's. That opens one output: the KScreen description is `name` (for example `Galaxy Tab S5e`) and the connector is `Virtual-Orbi-<key>` (for example `Virtual-Orbi-a1b2c3d4`). Two tablets with the same model name therefore get different connectors. KWin remembers position and scale by `connectorName` only, virtual outputs have no EDID, so the same device gets the same layout next time. If `key` is omitted, the host slugs `name` instead. If that connector is already enabled, the host tries `-2` then `-<pid>`. `DELETE /api/session?id=` or UDP **Bye** (type 10) closes that output; when the host closes the session itself (a resolution change recreates it), the Android client checks the daemon is alive, re-opens the display session, re-issues the UDP key for the new session id, and rebuilds the UDP player, so a resolution change over Wi-Fi no longer cuts the stream.
 
 1. Client sends **Hello** with the session token (same constant-time compare as HTTP Bearer). An optional `\0` + session id attaches this UDP socket to that display.
 2. Host replies **Hello-Ack** and starts DPLPMTUD. The client waits 1.5 s and treats probes that arrive before the ack as control, not failure.

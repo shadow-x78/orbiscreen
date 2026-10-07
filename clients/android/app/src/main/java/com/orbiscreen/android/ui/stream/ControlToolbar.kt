@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -75,6 +76,7 @@ fun ControlToolbar(
         color = GlassDark,
         tonalElevation = 8.dp,
         modifier = modifier
+            .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .border(1.dp, GlassBorderDark, RoundedCornerShape(24.dp)),
     ) {
@@ -103,13 +105,17 @@ fun ControlToolbar(
                 )
             }
 
-            Column(modifier = Modifier.padding(end = 6.dp)) {
+            Column(
+                modifier = Modifier.weight(1f, fill = false).padding(end = 6.dp),
+            ) {
                 if (!isPortrait) {
                     Text(
                         text = hostLabel,
                         style = MaterialTheme.typography.labelLarge,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 }
                 val delayText = StreamStats.formatToolbarDelay(delayMs)
@@ -124,6 +130,8 @@ fun ControlToolbar(
                     color = Color.White.copy(alpha = 0.7f),
                     fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
 

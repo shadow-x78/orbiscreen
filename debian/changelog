@@ -1,3 +1,16 @@
+orbiscreen (0.35.2~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.35.2 for Ubuntu noble.
+  * Fix: the Android control toolbar sat under the status bar in portrait and
+    its action buttons could overflow off-screen; changing dimensions over
+    Wi-Fi cut the session (a host-closed UDP session now re-opens the display
+    session and re-issues its UDP key); the resolution presets were two rows
+    of fixed-width chips instead of one full-width row; and the mislabeled
+    100% scale mode (a crop on ExoPlayer, fit on UDP) is removed.
+  * Bump version to 0.35.2 across all packages; Android versionCode 151.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 07 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.35.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.35.1 for Ubuntu noble.

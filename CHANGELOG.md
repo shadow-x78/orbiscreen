@@ -1,3 +1,13 @@
+## [v0.35.2] - 2026-10-07
+
+### Changed
+- fix: portrait toolbar clipping, Wi-Fi session drop on resolution change, and the resolution preset chips
+- In portrait the control toolbar sat under the status bar and camera cutout (the app draws edge-to-edge and hides system bars; when they appear transiently they overlaid the bar) and its info column had no width constraint, so the action buttons could overflow off-screen. The toolbar now reserves the status-bar inset and the info text is a single ellipsized line with the remaining width, so the buttons always stay fully visible
+- Changing dimensions over Wi-Fi cut the session entirely: the host closes the video broadcast and sends BYE, and the UDP player treated that as a fatal disconnect which exits the stream screen, with no re-open of the display session and no new UDP key (the USB path survives because the host re-attaches native video itself). A host-closed UDP session now checks the daemon is alive, re-opens the display session, re-issues the UDP key for the new session id, and rebuilds the UDP player
+- The resolution presets (Native, 720p, 1080p, 1440p, 2K) were laid out as two plain rows of fixed-width chips - three per row and the rest below. They are now a single full-width row of equal-weight chips, matching the scale-mode chips
+- Removed the "100%" scale-mode chip: it mapped to `RESIZE_MODE_ZOOM` (a crop, not 1:1) on the ExoPlayer path while behaving as fit on the UDP path - mislabeled and inconsistent. Fit and Fill remain; a persisted "100" preference falls back to fit
+- Version bumped to 0.35.2 across the Cargo workspace, Android (`versionCode` 151), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.35.1] - 2026-10-07
 
 ### Changed
@@ -7,24 +17,6 @@
 - AOA lane-full drops (`keyframe queue full`, `video lane full`) were logged at debug level, so nothing appeared in info-level daemon logs during exactly these episodes; they are warn now
 - The startup card and the status dashboard print the stream URL with `#token=` instead of `?token=`, so the credential never reaches server logs, browser history or Referer headers for first-party clients (the web client already reads the fragment first); query-token acceptance stays for compatibility
 - Version bumped to 0.35.1 across the Cargo workspace, Android (`versionCode` 150), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
-
-## [v0.35.0] - 2026-10-06
-
-### Changed
-- feat: unify the web client and GUI on the Android app's design system
-- Version bumped to 0.35.0 across the Cargo workspace, Android (`versionCode` 149), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
-
-## [v0.34.2] - 2026-10-03
-
-### Changed
-- fix: Sway capture rejects Xbgr8888 and the portal fallback reuses a dead session
-- Version bumped to 0.34.2 across the Cargo workspace, Android (`versionCode` 148), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
-
-## [v0.34.1] - 2026-10-03
-
-### Changed
-- fix: raise the GUI minimum width above the WebKitGTK header requirement
-- Version bumped to 0.34.1 across the Cargo workspace, Android (`versionCode` 147), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
 
 ## [v0.35.0] - 2026-10-06
 
