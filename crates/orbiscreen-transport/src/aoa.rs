@@ -560,6 +560,7 @@ async fn run_native_video(
                                 video_rx = a.video;
                                 wait_key = true;
                                 last_idr = Instant::now();
+                                let _ = send_control(&prio_tx, encode_video_open_ack(host_now_ns()));
                                 displays.idr(&sid).await;
                                 info!("AOA native video re-attached session={sid}");
                                 reattached = true;

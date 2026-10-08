@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.35.5
+%global version 0.35.6
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -148,6 +148,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Thu Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.6-1
+- Release 0.35.6: bound the USB client payload buffer, clear it when waiting for a keyframe, and reconfigure the decoder after a resolution-change re-attach
+
 * Thu Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.5-1
 - Release 0.35.5: size the Android session to a hardware-decodable resolution and release failed codec instances, restoring hardware AVC decode over USB
 

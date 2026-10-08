@@ -1,3 +1,14 @@
+## [v0.35.6] - 2026-10-09
+
+### Changed
+- fix: cut USB video latency from ~660 ms to ~55 ms by bounding the client buffer and reconfiguring on re-attach
+
+The USB path ran at 663 ms and 23 fps on the test tablet even after hardware decode was restored. Two client-side buffers were holding frames: the payload queue was allowed to grow to 32 chunks before dropping, and `enterWaitKey` left the stale queue in place, so a requested keyframe had to wait behind the backlog. The payload watermark is now 6, and entering the wait-for-keyframe state clears the queue so the fresh keyframe is decoded immediately.
+
+- Re-attaching the native video stream (which is what a resolution change does) now sends a fresh open-ack, and the client reconfigures the decoder on the next keyframe using the pending size, instead of keeping the decoder configured for the previous resolution. Before this, a fallback from 2560x1600 to 1920x1200 left the stream on the software decoder
+- Measured on the test tablet: `decoding/sw` 23 fps / 663 ms before, `decoding/hw` 51 fps / 52 ms after
+- Version bumped to 0.35.6 across the Cargo workspace, Android (`versionCode` 155), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.35.5] - 2026-10-09
 
 ### Changed

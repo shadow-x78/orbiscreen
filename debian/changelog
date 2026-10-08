@@ -1,3 +1,17 @@
+orbiscreen (0.35.6~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.35.6 for Ubuntu noble.
+  * Fix: the USB client buffered too many frames (32-chunk payload watermark
+    and a stale queue left in place when waiting for a keyframe) and did not
+    reconfigure the decoder after a resolution-change re-attach. The
+    watermark is now 6, entering the wait-for-keyframe state clears the
+    queue, and re-attach sends a fresh open-ack so the client reconfigures
+    at the new size. Measured on the test tablet: 23 fps / 663 ms before,
+    51 fps / 52 ms after.
+  * Bump version to 0.35.6 across all packages; Android versionCode 155.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.35.5~ubuntunoble1) noble; urgency=medium
 
   * Release 0.35.5 for Ubuntu noble.

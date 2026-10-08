@@ -49,6 +49,8 @@ class UsbPlayer(
         private set
     var onResolutionFallback: ((Int, Int) -> Unit)? = null
     private var resolutionFallbackRequested = false
+    private var pendingWidth = 0
+    private var pendingHeight = 0
 
     init {
         stats.decoderState = codecState
@@ -255,6 +257,7 @@ class UsbPlayer(
 
     private fun enterWaitKey() {
         waitKey = true
+        payloads.clear()
         requestIdrWhileStarved()
     }
 
@@ -269,6 +272,28 @@ class UsbPlayer(
     override fun onVideoOpenAck(hostNs: Long) {
         openAck.set(hostNs)
         openLatch?.countDown()
+        reconfigureOnNextKeyframe()
+    }
+
+    @Synchronized
+    private fun reconfigureOnNextKeyframe() {
+        if (!running.get()) return
+        if (pendingWidth > 0 && pendingHeight > 0) {
+            width = pendingWidth
+            height = pendingHeight
+            pendingWidth = 0
+            pendingHeight = 0
+        }
+        releaseCodec()
+        sps = null
+        pps = null
+        reader.reset()
+        payloads.clear()
+        waitKey = true
+        idrAskedWhileWaiting = false
+        waitKeySinceMs = 0L
+        resolutionFallbackRequested = false
+        requestIdrWhileStarved()
     }
 
     override fun onVideoClose() {
@@ -442,6 +467,8 @@ class UsbPlayer(
                 if (c != null) {
                     c.release()
                     resolutionFallbackRequested = true
+                    pendingWidth = w
+                    pendingHeight = h
                     Log.w(TAG, "hardware decoder rejected ${width}x$height; requesting ${w}x$h")
                     onResolutionFallback?.invoke(w, h)
                     break
@@ -606,7 +633,7 @@ class UsbPlayer(
     }
 
     private companion object {
-        const val STALE_PAYLOAD_WATERMARK = 32
+        const val STALE_PAYLOAD_WATERMARK = 6
         const val STARVED_IDR_RETRY_MS = 500L
 
         val streamHttp: OkHttpClient = OkHttpClient.Builder()
