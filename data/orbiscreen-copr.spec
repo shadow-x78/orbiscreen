@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.35.3
+%global version 0.35.4
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -148,6 +148,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Wed Oct 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.4-1
+- Release 0.35.4: unique uinput device names per session plus awaited input teardown; see https://github.com/shadow-x78/orbiscreen/issues/90
+
 * Wed Oct 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.3-1
 - Release 0.35.3: Android USB video decoder fallback chain (hw, hw-min, software) and a visible decoder state in the stats overlay
 

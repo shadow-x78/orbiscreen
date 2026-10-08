@@ -67,6 +67,7 @@ struct Session {
     capture: Option<Arc<KwinVirtualCapture>>,
     encoder: Option<Arc<Encoder>>,
     video_pump_handle: Option<tokio::task::JoinHandle<()>>,
+    input_pump_handle: Option<tokio::task::JoinHandle<()>>,
 }
 
 pub fn spawn_hub(cfg: HubConfig) -> DisplayCtl {
@@ -88,7 +89,7 @@ async fn run_hub(mut cfg: HubConfig, mut rx: mpsc::Receiver<DisplayCommand>) {
                 if let DisplayCommand::Shutdown { reply } = cmd {
                     let ids: Vec<String> = sessions.keys().cloned().collect();
                     for id in ids {
-                        close_session(&mut sessions, &mut aliases, &id);
+                        close_session(&mut sessions, &mut aliases, &id).await;
                     }
                     let _ = reply.send(());
                     break;
@@ -136,7 +137,7 @@ async fn run_hub(mut cfg: HubConfig, mut rx: mpsc::Receiver<DisplayCommand>) {
                         }
                         idle_at.remove(&id);
                         if sessions.contains_key(&id) {
-                            close_session(&mut sessions, &mut aliases, &id);
+                            close_session(&mut sessions, &mut aliases, &id).await;
                         }
                     } else {
                         idle_at.insert(id.clone(), tokio::time::Instant::now());
@@ -147,7 +148,7 @@ async fn run_hub(mut cfg: HubConfig, mut rx: mpsc::Receiver<DisplayCommand>) {
     }
     let ids: Vec<String> = sessions.keys().cloned().collect();
     for id in ids {
-        close_session(&mut sessions, &mut aliases, &id);
+        close_session(&mut sessions, &mut aliases, &id).await;
     }
 }
 
@@ -218,7 +219,7 @@ async fn handle_cmd(
                     }
                     let id_to_remove = existing_id.clone();
                     if let Some(old) = sessions.remove(&id_to_remove) {
-                        close_session_inner(old);
+                        close_session_inner(old).await;
                     }
                 }
             }
@@ -245,7 +246,7 @@ async fn handle_cmd(
                     return;
                 }
                 for id in evictable {
-                    close_session(sessions, aliases, &id);
+                    close_session(sessions, aliases, &id).await;
                 }
             }
             let result = open_session(
@@ -269,7 +270,7 @@ async fn handle_cmd(
         }
         DisplayCommand::Release { id } => {
             idle_at.remove(&id);
-            close_session(sessions, aliases, &id);
+            close_session(sessions, aliases, &id).await;
         }
         DisplayCommand::Attach { id, key, reply } => {
             let chosen =
@@ -400,7 +401,7 @@ async fn handle_cmd(
                     aliases.insert(id.clone(), sid);
 
                     if let Some(old) = sessions.remove(&id) {
-                        close_session_inner(old);
+                        close_session_inner(old).await;
                     }
                     let _ = reply.send(Ok(info));
                 }
@@ -687,7 +688,7 @@ async fn open_session(
         refresh_hz,
         shutdown_rx,
     );
-    spawn_input_pump(
+    let input_pump_handle = spawn_input_pump(
         input_rx,
         actual_w,
         actual_h,
@@ -719,6 +720,7 @@ async fn open_session(
         capture: Some(capture),
         encoder: Some(encoder),
         video_pump_handle: Some(video_pump_handle),
+        input_pump_handle: Some(input_pump_handle),
     })
 }
 
@@ -804,16 +806,21 @@ fn spawn_input_pump(
     connector: String,
     client_name: String,
     client_key: Option<String>,
-) {
+) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let label = client_key
             .as_deref()
             .filter(|s| !s.is_empty())
             .unwrap_or(client_name.as_str());
-        let prefix = format!(
-            "OrbiScreen-{}",
-            orbiscreen_capture::kwin_virtual::sanitize_client_name(label)
-        );
+        let prefix = connector
+            .strip_prefix("Virtual-Orbi-")
+            .map(|suffix| format!("OrbiScreen-{suffix}"))
+            .unwrap_or_else(|| {
+                format!(
+                    "OrbiScreen-{}",
+                    orbiscreen_capture::kwin_virtual::sanitize_client_name(label)
+                )
+            });
         let spec = VirtualTouchscreenSpec {
             width,
             height,
@@ -856,23 +863,24 @@ fn spawn_input_pump(
                 }
             }
         }
-    });
+    })
 }
 
-fn close_session(
+async fn close_session(
     sessions: &mut HashMap<String, Session>,
     aliases: &mut HashMap<String, String>,
     id: &str,
 ) {
     if let Some(session) = sessions.remove(id) {
-        close_session_inner(session);
+        close_session_inner(session).await;
     }
     aliases.retain(|_, v| v != id);
 }
 
-fn close_session_inner(session: Session) {
+async fn close_session_inner(session: Session) {
     let Session {
         mut video_pump_handle,
+        mut input_pump_handle,
         shutdown,
         encoder,
         capture,
@@ -881,6 +889,10 @@ fn close_session_inner(session: Session) {
     } = session;
     if let Some(h) = video_pump_handle.take() {
         h.abort();
+    }
+    if let Some(h) = input_pump_handle.take() {
+        h.abort();
+        let _ = h.await;
     }
     let _ = shutdown.send(true);
     let encoder_stop = encoder;
@@ -953,9 +965,9 @@ async fn bind_inputs(target_output: &str, device_prefix: &str) {
         };
         last_resolved = resolved.clone();
         if let Ok(conn) = zbus::Connection::session().await {
+            let exact = format!("{device_prefix} ");
             last_bound =
-                bind_named_kwin_devices(&conn, &resolved, |name| name.starts_with(device_prefix))
-                    .await;
+                bind_named_kwin_devices(&conn, &resolved, |name| name.starts_with(&exact)).await;
             if last_bound >= 3 {
                 return;
             }
@@ -1080,6 +1092,7 @@ mod tests {
             capture: None,
             encoder: None,
             video_pump_handle: None,
+            input_pump_handle: None,
         }
     }
 

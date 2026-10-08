@@ -1,3 +1,14 @@
+## [v0.35.4] - 2026-10-08
+
+### Changed
+- fix: unique uinput device names per session and awaited input teardown
+
+Closes [#90 - Too many uinput devices, intermittent input](https://github.com/shadow-x78/orbiscreen/issues/90):
+
+each `input injector open` log line is one client session opening (one injector per session, by design), and the devices are destroyed when the session closes. The problem in the log was the churn: the same client reconnects while its previous session is still tearing down, and both sessions created uinput devices with identical names (`OrbiScreen-<key> Mouse/Touch/Pen`). `bind_inputs` matches by name prefix, so a replacement session could bind the dying devices of the old one and input stopped intermittently. The device label now carries the KWin connector suffix (e.g. `OrbiScreen-<key>-2`), `bind_inputs` matches the exact `label + " "` prefix, and closing a session awaits the input pump so the old devices are guaranteed gone before a replacement session binds.
+
+- Version bumped to 0.35.4 across the Cargo workspace, Android (`versionCode` 153), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.35.3] - 2026-10-08
 
 ### Changed
