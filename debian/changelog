@@ -1,3 +1,15 @@
+orbiscreen (0.35.5~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.35.5 for Ubuntu noble.
+  * Fix: the Android client now probes the hardware AVC decoder at the
+    session size and, when the decoder rejects it, asks the host for a
+    smaller hardware-decodable size, instead of silently falling back to the
+    software decoder (which was slower and capped at 1920x1088). Failed
+    codec instances are released before the next attempt.
+  * Bump version to 0.35.5 across all packages; Android versionCode 154.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.35.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.35.4 for Ubuntu noble.

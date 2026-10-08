@@ -1,3 +1,14 @@
+## [v0.35.5] - 2026-10-09
+
+### Changed
+- fix: hardware decode restored by sizing the session to the decoder, not the panel
+
+The USB path decoded in software (`decoding/sw`) at about 20 fps with 600-700 ms of latency. On the affected tablet the hardware AVC decoder advertises a 2560-wide range but rejects 2560x1600 at configure time (`isSizeSupported(2560,1600)` is false, while 1920x1200 configures fine), so the client fell back to the software decoder, which is both slower and capped at 1920x1088. The client now probes the hardware decoder at the session size and, when it is rejected, asks the host for a smaller size that the decoder accepts (three-quarters, two-thirds, then half, aligned to 16), so the next session opens at a hardware-decodable resolution. On the test tablet this moves the stream from `decoding/sw` 23 fps / 663 ms to `decoding/hw` 44 fps / 334 ms.
+
+- Failed codec instances are now released before the next attempt, because the MediaTek decoder exhausts its instances after repeated failed configures and then rejects sizes it would otherwise accept
+- The stats overlay still reports the decoder state, so `decoding/hw`, `decoding/sw` and `codec-failed(...)` remain visible on the device
+- Version bumped to 0.35.5 across the Cargo workspace, Android (`versionCode` 154), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.35.4] - 2026-10-08
 
 ### Changed

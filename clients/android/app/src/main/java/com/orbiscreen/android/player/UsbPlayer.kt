@@ -2,6 +2,7 @@
 package com.orbiscreen.android.player
 
 import android.media.MediaCodec
+import android.media.MediaCodecList
 import android.media.MediaFormat
 import android.net.Uri
 import android.os.Build
@@ -46,6 +47,8 @@ class UsbPlayer(
     private var configureFailures = 0
     @Volatile var codecState: String = "idle"
         private set
+    var onResolutionFallback: ((Int, Int) -> Unit)? = null
+    private var resolutionFallbackRequested = false
 
     init {
         stats.decoderState = codecState
@@ -192,6 +195,7 @@ class UsbPlayer(
         codecState = "waiting-key"
         stats.decoderState = codecState
         configureFailures = 0
+        resolutionFallbackRequested = false
         codecKind = "hw"
         waitKey = true
         idrAskedWhileWaiting = false
@@ -414,41 +418,142 @@ class UsbPlayer(
     }
 
     private fun createConfiguredCodec(sps0: ByteArray, pps0: ByteArray, surf: Surface): MediaCodec {
-        val base = avcFormat(sps0, pps0, lowLatencyHints = false)
-        val full = avcFormat(sps0, pps0, lowLatencyHints = true)
+        logAvcCapabilities()
+        val spsNo = stripStartCode(sps0)
+        val ppsNo = stripStartCode(pps0)
 
-        var last: Exception = IllegalStateException("no AVC decoder available")
-        val attempts: Array<Pair<String, MediaFormat>> = arrayOf("hw" to full, "hw-min" to base)
-        for ((kind, format) in attempts) {
-            try {
-                val c = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
-                c.configure(format, surf, null, 0)
+        if (!resolutionFallbackRequested) {
+            val sessionSize = tryConfigure(width, height, sps0, pps0, surf, true)
+                ?: tryConfigure(width, height, sps0, pps0, surf, false)
+            if (sessionSize != null) {
+                codecKind = "hw"
+                return sessionSize
+            }
+            val candidates = listOf(
+                (width * 3 / 4) to (height * 3 / 4),
+                (width * 2 / 3) to (height * 2 / 3),
+                (width / 2) to (height / 2),
+            )
+            for ((rawW, rawH) in candidates) {
+                val w = (rawW / 16) * 16
+                val h = (rawH / 16) * 16
+                if (w < 64 || h < 64) continue
+                val c = tryConfigure(w, h, sps0, pps0, surf, false)
+                if (c != null) {
+                    c.release()
+                    resolutionFallbackRequested = true
+                    Log.w(TAG, "hardware decoder rejected ${width}x$height; requesting ${w}x$h")
+                    onResolutionFallback?.invoke(w, h)
+                    break
+                }
+            }
+            return tryConfigureSoftware(sps0, pps0, surf)
+                ?: throw IllegalStateException("no AVC decoder available")
+        }
+
+        val variants: List<Triple<String, Pair<ByteArray, ByteArray>, Boolean>> = listOf(
+            Triple("hw", sps0 to pps0, true),
+            Triple("hw-plain", sps0 to pps0, false),
+            Triple("hw-nostart", spsNo to ppsNo, false),
+        )
+        for ((kind, csd, hints) in variants) {
+            val c = tryConfigure(width, height, csd.first, csd.second, surf, hints)
+            if (c != null) {
                 codecKind = kind
                 return c
-            } catch (e: Exception) {
-                last = e
-                Log.w(TAG, "codec configure attempt $kind failed: ${e.message}")
             }
         }
-        for (name in arrayOf("c2.android.avc.decoder", "OMX.google.h264.decoder")) {
+        return tryConfigureSoftware(sps0, pps0, surf)
+            ?: throw IllegalStateException("no AVC decoder available")
+    }
+
+    private fun tryConfigure(
+        w: Int,
+        h: Int,
+        sps: ByteArray,
+        pps: ByteArray,
+        surf: Surface,
+        hints: Boolean,
+    ): MediaCodec? {
+        var c: MediaCodec? = null
+        return try {
+            c = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+            c.configure(avcFormat(w, h, sps, pps, hints), surf, null, 0)
+            c
+        } catch (e: Exception) {
+            Log.w(TAG, "hw configure ${w}x$h hints=$hints failed: ${e.javaClass.simpleName}")
             try {
-                val c = MediaCodec.createByCodecName(name)
-                c.configure(base, surf, null, 0)
+                c?.release()
+            } catch (_: Exception) {
+            }
+            null
+        }
+    }
+
+    private fun tryConfigureSoftware(sps: ByteArray, pps: ByteArray, surf: Surface): MediaCodec? {
+        for (name in arrayOf("c2.android.avc.decoder", "OMX.google.h264.decoder")) {
+            var c: MediaCodec? = null
+            try {
+                c = MediaCodec.createByCodecName(name)
+                c.configure(avcFormat(width, height, sps, pps, false), surf, null, 0)
                 codecKind = "sw"
                 return c
             } catch (e: Exception) {
-                last = e
-                Log.w(TAG, "codec configure attempt $name failed: ${e.message}")
+                Log.w(TAG, "sw configure $name failed: ${e.javaClass.simpleName}")
+                try {
+                    c?.release()
+                } catch (_: Exception) {
+                }
             }
         }
-        throw last
+        return null
     }
 
-    private fun avcFormat(sps0: ByteArray, pps0: ByteArray, lowLatencyHints: Boolean): MediaFormat {
-        val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height)
+    private fun logAvcCapabilities() {
+        try {
+            val list = MediaCodecList(MediaCodecList.REGULAR_CODECS)
+            for (info in list.codecInfos) {
+                if (info.isEncoder || !info.supportedTypes.any { it.equals("video/avc", true) }) continue
+                val caps = info.getCapabilitiesForType("video/avc")
+                val video = caps.videoCapabilities ?: continue
+                val levels = caps.profileLevels.joinToString(",") { "${it.profile}/${it.level}" }
+                Log.i(
+                    TAG,
+                    "avc decoder ${info.name} hw=${!info.name.startsWith("c2.android") && !info.name.startsWith("OMX.google")} " +
+                        "w=${video.supportedWidths} h=${video.supportedHeights} size2560x1600=${video.isSizeSupported(2560, 1600)} " +
+                        "levels=[$levels]",
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "capabilities query failed: ${e.message}")
+        }
+    }
+
+    private fun stripStartCode(nal: ByteArray): ByteArray {
+        var i = 0
+        if (nal.size >= 4 &&
+            nal[0] == 0.toByte() && nal[1] == 0.toByte() &&
+            nal[2] == 0.toByte() && nal[3] == 1.toByte()
+        ) {
+            i = 4
+        } else if (nal.size >= 3 &&
+            nal[0] == 0.toByte() && nal[1] == 0.toByte() && nal[2] == 1.toByte()
+        ) {
+            i = 3
+        }
+        return if (i == 0) nal else nal.copyOfRange(i, nal.size)
+    }
+
+    private fun avcFormat(
+        w: Int,
+        h: Int,
+        sps0: ByteArray,
+        pps0: ByteArray,
+        lowLatencyHints: Boolean,
+    ): MediaFormat {
+        val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, w, h)
         format.setByteBuffer("csd-0", ByteBuffer.wrap(sps0))
         format.setByteBuffer("csd-1", ByteBuffer.wrap(pps0))
-        format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 4 * 1024 * 1024)
         if (lowLatencyHints) {
             if (Build.VERSION.SDK_INT >= 30) {
                 format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1)

@@ -93,6 +93,7 @@ class PlayerHolder(
     private var lastTarget: StreamTarget? = null
     var refreshSession: (suspend () -> com.orbiscreen.android.net.HostApi.SessionInfo?)? = null
     var udpKeyIssuer: (suspend (com.orbiscreen.android.net.HostApi.SessionInfo) -> UdpVideoTarget?)? = null
+    var onResolutionFallback: ((Int, Int) -> Unit)? = null
 
     private val lastIdrAtMs = java.util.concurrent.atomic.AtomicLong(0L)
     private var bufferingWatchdogJob: Job? = null
@@ -254,6 +255,7 @@ class PlayerHolder(
                 }
             }
             val usb = UsbPlayer(stats) { postIdr() }
+            usb.onResolutionFallback = { w, h -> onResolutionFallback?.invoke(w, h) }
             val started = kotlinx.coroutines.withContext(Dispatchers.IO) {
                 val aoa = com.orbiscreen.android.usb.UsbAccessoryManager.isAoaActive
                 val native = if (aoa) {

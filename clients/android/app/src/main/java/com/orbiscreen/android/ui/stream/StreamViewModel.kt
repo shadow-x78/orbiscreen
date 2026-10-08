@@ -474,6 +474,7 @@ class StreamViewModel(
                 _state.value.displayHeight,
             )
             playerHolder.refreshSession = { reopenDisplaySession() }
+            playerHolder.onResolutionFallback = { w, h -> updateDimensions(w, h) }
             playerHolder.udpKeyIssuer = { opened ->
                 if (!isLan) {
                     null

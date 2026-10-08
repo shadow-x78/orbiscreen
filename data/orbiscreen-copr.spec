@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.35.4
+%global version 0.35.5
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -148,6 +148,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Thu Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.5-1
+- Release 0.35.5: size the Android session to a hardware-decodable resolution and release failed codec instances, restoring hardware AVC decode over USB
+
 * Wed Oct 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.4-1
 - Release 0.35.4: unique uinput device names per session plus awaited input teardown; see https://github.com/shadow-x78/orbiscreen/issues/90
 
