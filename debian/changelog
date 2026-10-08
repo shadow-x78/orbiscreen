@@ -1,3 +1,15 @@
+orbiscreen (0.35.3~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.35.3 for Ubuntu noble.
+  * Fix: the Android client's native USB video path kept retrying a failing
+    MediaCodec configuration forever (black screen plus an endless IDR
+    request loop). The decoder now falls back through hardware with low
+    latency hints, hardware without them, and the software AVC decoder, and
+    the stats overlay shows the decoder state.
+  * Bump version to 0.35.3 across all packages; Android versionCode 152.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 08 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.35.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.35.2 for Ubuntu noble.

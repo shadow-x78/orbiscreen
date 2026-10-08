@@ -42,6 +42,14 @@ class UsbPlayer(
     @Volatile private var surface: Surface? = null
     private val running = AtomicBoolean(false)
     private var configured = false
+    private var codecKind = "hw"
+    private var configureFailures = 0
+    @Volatile var codecState: String = "idle"
+        private set
+
+    init {
+        stats.decoderState = codecState
+    }
     private var waitKey = true
     private var waitKeySinceMs = 0L
     private var idrAskedWhileWaiting = false
@@ -181,6 +189,10 @@ class UsbPlayer(
         this.width = width
         this.height = height
         stats.reset()
+        codecState = "waiting-key"
+        stats.decoderState = codecState
+        configureFailures = 0
+        codecKind = "hw"
         waitKey = true
         idrAskedWhileWaiting = false
         waitKeySinceMs = 0L
@@ -339,25 +351,19 @@ class UsbPlayer(
             }
             try {
                 releaseCodec()
-                val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height)
-                format.setByteBuffer("csd-0", ByteBuffer.wrap(sps0))
-                format.setByteBuffer("csd-1", ByteBuffer.wrap(pps0))
-                format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 4 * 1024 * 1024)
-                if (Build.VERSION.SDK_INT >= 30) {
-                    format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1)
-                }
-                if (Build.VERSION.SDK_INT >= 23) {
-                    format.setInteger(MediaFormat.KEY_PRIORITY, 0)
-                    format.setInteger(MediaFormat.KEY_OPERATING_RATE, Short.MAX_VALUE.toInt())
-                }
-                val c = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
-                c.configure(format, surf, null, 0)
+                val c = createConfiguredCodec(sps0, pps0, surf)
                 c.start()
                 codec = c
                 configured = true
-                Log.i(TAG, "MediaCodec configured ${width}x${height}")
+                configureFailures = 0
+                codecState = "decoding/$codecKind"
+                stats.decoderState = codecState
+                Log.i(TAG, "MediaCodec configured ${width}x${height} kind=$codecKind")
             } catch (e: Exception) {
                 Log.w(TAG, "codec configure: ${e.message}")
+                configureFailures++
+                codecState = "codec-failed(${e.javaClass.simpleName})x$configureFailures"
+                stats.decoderState = codecState
                 requestIdr()
                 return
             }
@@ -405,6 +411,54 @@ class UsbPlayer(
             configured = false
             enterWaitKey()
         }
+    }
+
+    private fun createConfiguredCodec(sps0: ByteArray, pps0: ByteArray, surf: Surface): MediaCodec {
+        val base = avcFormat(sps0, pps0, lowLatencyHints = false)
+        val full = avcFormat(sps0, pps0, lowLatencyHints = true)
+
+        var last: Exception = IllegalStateException("no AVC decoder available")
+        val attempts: Array<Pair<String, MediaFormat>> = arrayOf("hw" to full, "hw-min" to base)
+        for ((kind, format) in attempts) {
+            try {
+                val c = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+                c.configure(format, surf, null, 0)
+                codecKind = kind
+                return c
+            } catch (e: Exception) {
+                last = e
+                Log.w(TAG, "codec configure attempt $kind failed: ${e.message}")
+            }
+        }
+        for (name in arrayOf("c2.android.avc.decoder", "OMX.google.h264.decoder")) {
+            try {
+                val c = MediaCodec.createByCodecName(name)
+                c.configure(base, surf, null, 0)
+                codecKind = "sw"
+                return c
+            } catch (e: Exception) {
+                last = e
+                Log.w(TAG, "codec configure attempt $name failed: ${e.message}")
+            }
+        }
+        throw last
+    }
+
+    private fun avcFormat(sps0: ByteArray, pps0: ByteArray, lowLatencyHints: Boolean): MediaFormat {
+        val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height)
+        format.setByteBuffer("csd-0", ByteBuffer.wrap(sps0))
+        format.setByteBuffer("csd-1", ByteBuffer.wrap(pps0))
+        format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 4 * 1024 * 1024)
+        if (lowLatencyHints) {
+            if (Build.VERSION.SDK_INT >= 30) {
+                format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1)
+            }
+            if (Build.VERSION.SDK_INT >= 23) {
+                format.setInteger(MediaFormat.KEY_PRIORITY, 0)
+                format.setInteger(MediaFormat.KEY_OPERATING_RATE, Short.MAX_VALUE.toInt())
+            }
+        }
+        return format
     }
 
     private fun drainOutputs(c: MediaCodec, sentNs: Long) {

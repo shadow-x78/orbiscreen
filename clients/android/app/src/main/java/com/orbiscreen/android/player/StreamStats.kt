@@ -39,6 +39,7 @@ class StreamStats(
     @Volatile private var livePtsOriginUs: Long = Long.MIN_VALUE
     @Volatile private var liveWallOriginMs: Long = 0L
     @Volatile var clockOffsetNs: Long = 0L
+    @Volatile var decoderState: String = ""
 
     fun reset() {
         synchronized(lock) {

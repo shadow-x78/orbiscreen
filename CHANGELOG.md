@@ -1,3 +1,11 @@
+## [v0.35.3] - 2026-10-08
+
+### Changed
+- fix: progressive AVC decoder fallback for the USB path and a visible decoder state
+- Over the cable the tablet showed a fully black screen with the host log reporting an endless IDR request loop from the client every ~250 ms. The host encoder was verified healthy on the same machine (a forced-IDR capture streams SPS/PPS/IDR units correctly), and the Wi-Fi path played on the emulator, so the failure is confined to the tablet's MediaCodec configuration on the native AOA video path. The client now tries a chain of decoder setups - hardware with low-latency hints, hardware without them, then the software AVC decoder - instead of retrying the same failing configuration forever
+- The stats overlay footer now shows the decoder state (`waiting-key`, `decoding/hw`, `decoding/hw-min`, `decoding/sw`, or `codec-failed(...)`), so a device that still fails reports exactly which stage failed
+- Version bumped to 0.35.3 across the Cargo workspace, Android (`versionCode` 152), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.35.2] - 2026-10-07
 
 ### Changed

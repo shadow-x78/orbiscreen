@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.35.2
+%global version 0.35.3
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -148,6 +148,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Wed Oct 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.3-1
+- Release 0.35.3: Android USB video decoder fallback chain (hw, hw-min, software) and a visible decoder state in the stats overlay
+
 * Wed Oct 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.2-1
 - Release 0.35.2: portrait toolbar insets and full-width resolution chips, Wi-Fi resolution change re-opens the session, drop the mislabeled 100% scale mode
 

@@ -116,9 +116,12 @@ fun StatsOverlay(
             LegendSwatch(DarkError, "D ${snap.lastMinuteDropped}")
             Spacer(Modifier.weight(1f))
             Text(
-                text = stringResource(R.string.stats_window),
+                text = stats.decoderState.ifBlank { stringResource(R.string.stats_window) },
                 style = compactText(10.sp, FontWeight.Normal),
                 color = Color.White.copy(alpha = 0.48f),
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
         }
     }

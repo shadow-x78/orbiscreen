@@ -8,7 +8,7 @@
 
 Secondary monitor for Linux, powered by an Android tablet or phone.
 
-[![Version](https://img.shields.io/badge/version-0.35.2-2563eb?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.35.3-2563eb?style=for-the-badge)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge)
