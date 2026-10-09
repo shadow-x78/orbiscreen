@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.35.7] - 2026-10-09
+
+### Changed
+- fix: the client now detects a stopped host instead of showing a rising delay
+
+Stopping the daemon left the tablet on the stream screen with the frame age climbing forever (measured 195 s after a stop) because the AOA accessory stays claimed when the host goes away, so no detach event ever arrived, and the frame-age calculation kept adding the elapsed time with no ceiling. The client now runs a stall watchdog: with no video for three seconds it treats the stream as ended and returns to host discovery, and the frame age is capped so a stopped stream reports `-` rather than an ever-growing number. The same watchdog and end-of-stream handling cover the HTTP `/au` fallback path.
+
+- Version bumped to 0.35.7 across the Cargo workspace, Android (`versionCode` 156), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.35.6] - 2026-10-09
 
 ### Changed

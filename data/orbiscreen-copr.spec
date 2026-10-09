@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.35.6
+%global version 0.35.7
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -148,6 +148,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Thu Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.7-1
+- Release 0.35.7: stall watchdog returns the client to discovery when the host stops, and the reported frame age is capped
+
 * Thu Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.6-1
 - Release 0.35.6: bound the USB client payload buffer, clear it when waiting for a keyframe, and reconfigure the decoder after a resolution-change re-attach
 

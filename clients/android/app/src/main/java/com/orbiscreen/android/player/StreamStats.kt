@@ -185,11 +185,12 @@ class StreamStats(
         if (presentedSentNs > 0L) {
             val nowNs = nowMs * 1_000_000L
             val age = ((nowNs + clockOffsetNs - presentedSentNs) / 1_000_000L).toInt()
-            if (age in 0..30_000) return age
+            if (age in 0..STALE_AGE_MS) return age
         }
         val delay = delayMs
         if (presentedAtMs > 0L && delay != null) {
-            return delay + (nowMs - presentedAtMs).toInt().coerceAtLeast(0)
+            val age = delay + (nowMs - presentedAtMs).toInt().coerceAtLeast(0)
+            if (age <= STALE_AGE_MS) return age
         }
         return null
     }
@@ -227,6 +228,8 @@ class StreamStats(
     }
 
     companion object {
+        const val STALE_AGE_MS = 5_000
+
         fun formatRate(bytesPerSec: Long): String {
             val n = bytesPerSec.coerceAtLeast(0L)
             return when {

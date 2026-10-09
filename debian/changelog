@@ -1,3 +1,15 @@
+orbiscreen (0.35.7~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.35.7 for Ubuntu noble.
+  * Fix: stopping the host left the client on the stream screen with the
+    frame age climbing forever, because the AOA accessory stays claimed and
+    the frame-age calculation had no ceiling. The client now treats three
+    seconds without video as a disconnect and returns to discovery, caps the
+    reported frame age, and applies the same handling to the HTTP /au path.
+  * Bump version to 0.35.7 across all packages; Android versionCode 156.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.35.6~ubuntunoble1) noble; urgency=medium
 
   * Release 0.35.6 for Ubuntu noble.

@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -70,6 +71,8 @@ class UsbPlayer(
     private val openAck = AtomicLong(Long.MIN_VALUE)
     @Volatile private var openLatch: CountDownLatch? = null
     private var pumpJob: Job? = null
+    private var watchdogJob: Job? = null
+    @Volatile private var lastPayloadAtMs = 0L
     private val reader = AoaFrames.VideoReader()
     private var aoaMode = false
     val usesAoa: Boolean get() = aoaMode
@@ -114,6 +117,7 @@ class UsbPlayer(
             stats.clockOffsetNs = clockOffsetNs
         }
         pumpJob = scope.launch { pumpLoop() }
+        startStallWatchdog()
         _event.value = StreamEvent.Buffering
         Log.i(TAG, "AOA Annex-B video up ${width}x${height} offsetNs=$clockOffsetNs")
         requestIdr()
@@ -166,14 +170,20 @@ class UsbPlayer(
                     _event.value = StreamEvent.Buffering
                     Log.i(TAG, "HTTP /au Annex-B video up ${width}x${height}")
                     requestIdr()
+                    startStallWatchdog()
                     val tmp = ByteArray(8192)
                     while (running.get()) {
                         val n = src.read(tmp)
                         if (n < 0) break
                         if (n == 0) continue
+                        lastPayloadAtMs = android.os.SystemClock.elapsedRealtime()
                         stats.noteBytes(n.toLong())
                         val frames = reader.pushPayload(tmp.copyOf(n))
                         for (v in frames) emit(v)
+                    }
+                    if (running.get()) {
+                        running.set(false)
+                        _event.value = StreamEvent.Disconnected("Host stopped or the stream ended")
                     }
                 }
             } catch (e: Exception) {
@@ -224,6 +234,9 @@ class UsbPlayer(
         httpCall = null
         pumpJob?.cancel()
         pumpJob = null
+        watchdogJob?.cancel()
+        watchdogJob = null
+        lastPayloadAtMs = 0L
         payloads.clear()
         openLatch?.countDown()
         openLatch = null
@@ -263,6 +276,7 @@ class UsbPlayer(
 
     override fun onVideoPayload(payload: ByteArray) {
         if (!running.get()) return
+        lastPayloadAtMs = android.os.SystemClock.elapsedRealtime()
         stats.noteBytes(payload.size.toLong())
         if (!payloads.offer(payload)) {
             enterWaitKey()
@@ -302,6 +316,23 @@ class UsbPlayer(
         openLatch?.countDown()
         if (_event.value is StreamEvent.Playing || _event.value is StreamEvent.Buffering) {
             _event.value = StreamEvent.Disconnected("Host closed the USB video stream")
+        }
+    }
+
+    private fun startStallWatchdog() {
+        watchdogJob?.cancel()
+        watchdogJob = scope.launch {
+            while (running.get()) {
+                delay(STALL_CHECK_MS)
+                val last = lastPayloadAtMs
+                if (last == 0L) continue
+                if (android.os.SystemClock.elapsedRealtime() - last > STALL_TIMEOUT_MS) {
+                    Log.w(TAG, "no video for ${STALL_TIMEOUT_MS}ms; treating as host disconnect")
+                    running.set(false)
+                    _event.value = StreamEvent.Disconnected("Host stopped or the stream stalled")
+                    return@launch
+                }
+            }
         }
     }
 
@@ -635,6 +666,8 @@ class UsbPlayer(
     private companion object {
         const val STALE_PAYLOAD_WATERMARK = 6
         const val STARVED_IDR_RETRY_MS = 500L
+        const val STALL_CHECK_MS = 1_000L
+        const val STALL_TIMEOUT_MS = 3_000L
 
         val streamHttp: OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(3, TimeUnit.SECONDS)
