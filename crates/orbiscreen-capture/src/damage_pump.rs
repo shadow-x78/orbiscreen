@@ -242,7 +242,7 @@ fn run(
         (),
     );
 
-    tracing::debug!(
+    tracing::info!(
         "damage pump active on virtual display ({width}x{height}, every {}ms)",
         period.as_millis()
     );

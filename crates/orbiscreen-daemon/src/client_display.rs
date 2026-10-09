@@ -586,6 +586,7 @@ async fn open_session(
         height,
         names,
         description,
+        refresh_hz,
     };
     let mut open_task = tokio::task::spawn_blocking(move || KwinVirtualCapture::open(spec));
     let capture = match tokio::time::timeout(OPEN_SESSION_TIMEOUT, &mut open_task).await {

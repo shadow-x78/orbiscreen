@@ -24,7 +24,7 @@ use super::{sample_to_captured_frame, CaptureError, CapturedFrame};
 
 const POINTER_EMBEDDED: u32 = 2;
 
-const FRAME_CHANNEL_CAPACITY: usize = 2;
+const FRAME_CHANNEL_CAPACITY: usize = 8;
 
 const HANDSHAKE_DEADLINE: Duration = Duration::from_secs(5);
 const EVENT_POLL_TIMEOUT_MS: i32 = 100;
@@ -38,6 +38,7 @@ pub struct KwinVirtualSpec {
     pub height: u32,
     pub names: Vec<String>,
     pub description: String,
+    pub refresh_hz: u32,
 }
 
 impl KwinVirtualSpec {
@@ -47,6 +48,7 @@ impl KwinVirtualSpec {
             height,
             names: Vec::new(),
             description: "Orbiscreen Virtual Display".into(),
+            refresh_hz: 60,
         }
     }
 }
@@ -851,7 +853,8 @@ impl KwinVirtualCapture {
             .set_state(gstreamer::State::Playing)
             .map_err(|e| KwinVirtualError::Wayland(format!("State error: {e}")))?;
 
-        let pump_interval = Duration::from_millis(16);
+        let pump_interval =
+            Duration::from_nanos(1_000_000_000u64 / u64::from(spec.refresh_hz.max(1)));
         let hint = accepted_name
             .clone()
             .unwrap_or_else(|| VIRTUAL_OUTPUT_CONNECTOR.to_string());

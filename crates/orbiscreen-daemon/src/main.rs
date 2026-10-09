@@ -2595,6 +2595,7 @@ async fn run_secondary_display_session(
         spec.width,
         spec.height,
         Some("ORBISCREEN-2".to_string()),
+        spec.refresh_rate_hz,
     )
     .await
     {

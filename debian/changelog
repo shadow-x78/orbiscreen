@@ -1,3 +1,16 @@
+orbiscreen (0.35.8~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.35.8 for Ubuntu noble.
+  * Fix: the KWin virtual-display damage pump committed on a fixed 16 ms
+    interval (62.5 Hz) instead of the output refresh rate, which beat against
+    the 60 Hz vblank and held the stream near 51 fps. The pump now paces at
+    1e9/refresh_hz nanoseconds and the refresh rate is threaded from the
+    session into the virtual-display spec; the capture frame channel was
+    widened from 2 to 8 to stop "consumer channel full" drops on transitions.
+  * Bump version to 0.35.8 across all packages; Android versionCode 157.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.35.7~ubuntunoble1) noble; urgency=medium
 
   * Release 0.35.7 for Ubuntu noble.

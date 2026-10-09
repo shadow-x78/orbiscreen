@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.35.7
+%global version 0.35.8
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -148,6 +148,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Thu Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.8-1
+- Release 0.35.8: pace the KWin virtual-display damage pump at the session refresh rate and widen the capture frame channel
+
 * Thu Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.7-1
 - Release 0.35.7: stall watchdog returns the client to discovery when the host stops, and the reported frame age is capped
 

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.35.8] - 2026-10-09
+
+### Changed
+- fix: pace the KWin virtual-display damage pump at the session refresh rate and widen the capture channel
+
+The KWin virtual-display damage pump committed a frame every 16 ms (62.5 Hz) regardless of the output refresh rate, which beat against the 60 Hz vblank and held the stream near 51 fps. The pump interval is now derived from the session refresh rate (`1_000_000_000 / refresh_hz` nanoseconds), so a 60 Hz output commits every 16.67 ms in step with vblank.
+
+- The refresh rate is threaded from the session configuration into the KWin virtual-display spec on both the per-client hub path and the secondary display
+- The capture frame channel between the appsink and the pump was 2 frames; it overflowed with `capture frame dropped: consumer channel full` during resolution-change transitions, and is now 8
+- The `damage pump active` line is promoted from debug to info so the pacing is visible
+- Version bumped to 0.35.8 across the Cargo workspace, Android (`versionCode` 157), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.35.7] - 2026-10-09
 
 ### Changed
