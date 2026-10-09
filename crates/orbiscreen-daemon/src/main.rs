@@ -1987,6 +1987,22 @@ fn cleanup_lingering_audio_sinks() {
     }
 }
 
+pub(crate) fn pointer_frame_for(
+    output: Option<&str>,
+    width: u32,
+    height: u32,
+) -> Option<orbiscreen_input::PointerFrame> {
+    let name = output?;
+    orbiscreen_capture::kwin_virtual::pointer_frame(name, width, height).map(
+        |(origin_x, origin_y, workspace_width, workspace_height)| orbiscreen_input::PointerFrame {
+            origin_x,
+            origin_y,
+            workspace_width,
+            workspace_height,
+        },
+    )
+}
+
 async fn bind_kwin_virtual_inputs(preferred_output: String) {
     for _attempt in 0..6 {
         tokio::time::sleep(std::time::Duration::from_millis(120)).await;
@@ -2628,6 +2644,8 @@ async fn run_secondary_display_session(
                     .arg(&enable_spec)
                     .arg(&scale_spec)
                     .arg(&pos_spec)
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
                     .status()
                     .await;
                 if let Ok(s) = status {
@@ -2647,6 +2665,7 @@ async fn run_secondary_display_session(
         height: spec.height,
         output_name: target_kwin_output.clone(),
         device_label: None,
+        pointer_frame: pointer_frame_for(target_kwin_output.as_deref(), spec.width, spec.height),
     };
     tokio::spawn(async move {
         match InputInjector::open_async(input_spec).await {
@@ -3026,6 +3045,8 @@ async fn run_start(
                     .arg(&enable_spec)
                     .arg(&scale_spec)
                     .arg(&pos_spec)
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
                     .status()
                     .await;
                 if let Ok(s) = status {
@@ -3047,6 +3068,7 @@ async fn run_start(
         height: spec.height,
         output_name: captured_output_name.clone(),
         device_label: None,
+        pointer_frame: pointer_frame_for(captured_output_name.as_deref(), spec.width, spec.height),
     };
     tokio::spawn(async move {
         match InputInjector::open_async(input_spec).await {

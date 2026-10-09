@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.35.8
+%global version 0.35.9
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -148,22 +148,25 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
-* Thu Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.8-1
+* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.9-1
+- Release 0.35.9: confine the trackpad pointer to the virtual display and silence the remaining startup warnings
+
+* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.8-1
 - Release 0.35.8: pace the KWin virtual-display damage pump at the session refresh rate and widen the capture frame channel
 
-* Thu Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.7-1
+* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.7-1
 - Release 0.35.7: stall watchdog returns the client to discovery when the host stops, and the reported frame age is capped
 
-* Thu Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.6-1
+* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.6-1
 - Release 0.35.6: bound the USB client payload buffer, clear it when waiting for a keyframe, and reconfigure the decoder after a resolution-change re-attach
 
-* Thu Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.5-1
+* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.5-1
 - Release 0.35.5: size the Android session to a hardware-decodable resolution and release failed codec instances, restoring hardware AVC decode over USB
 
-* Wed Oct 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.4-1
+* Thu Oct 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.4-1
 - Release 0.35.4: unique uinput device names per session plus awaited input teardown; see https://github.com/shadow-x78/orbiscreen/issues/90
 
-* Wed Oct 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.3-1
+* Thu Oct 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.3-1
 - Release 0.35.3: Android USB video decoder fallback chain (hw, hw-min, software) and a visible decoder state in the stats overlay
 
 * Wed Oct 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.2-1
@@ -172,79 +175,79 @@ fi
 * Wed Oct 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.1-1
 - Release 0.35.1: open the client session at the panel refresh, bound USB AOA recovery to one IDR, warn on lane drops, print #token= URLs
 
-* Mon Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.0-1
+* Tue Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.0-1
 - Release 0.35.0: ship Noto Kufi Arabic and the shared radius and colour tokens to the web client and GUI
 
-* Mon Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.34.2-1
+* Tue Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.34.2-1
 - Release 0.34.2: accept Xbgr8888/Abgr8888 in screencopy and fix the portal fallback session; see https://github.com/shadow-x78/orbiscreen/issues/89
 
-* Mon Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.34.1-1
+* Tue Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.34.1-1
 - Release 0.34.1: raise the GUI window minimum width to 520; see https://github.com/shadow-x78/orbiscreen/issues/86
 
-* Mon Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.34.0-1
+* Tue Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.34.0-1
 - Release 0.34.0: hide revoked devices from the pairing list; see https://github.com/shadow-x78/orbiscreen/issues/88
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.10-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.10-1
 - Release 0.33.10: fix: hide revoked devices from the pairing list
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.9-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.9-1
 - Release 0.33.9: chore: bump version to 0.33.6
 
-* Fri Oct 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.8-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.8-1
 - Release 0.33.8: the 30 troubleshooting sections the contents lists advertised but that were never written
 
-* Fri Oct 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.7-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.7-1
 - Release 0.33.7: troubleshooting contents rebuilt so every link reaches a section that exists
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.6-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.6-1
 - Release 0.33.6: chore: comment policy guard, branding and Android stream UI
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.5-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.5-1
 - Release 0.33.5: fix: accept the query-string token again; web input retries without a session
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.4-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.4-1
 - Release 0.33.4: fix: AOA video starvation, encoder VBV sizing, bounded USB writes
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.3-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.3-1
 - Release 0.33.3: fix: the AOA stream bound must evict, not refuse; and loopback peers are not TLS-redirected.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.2-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.2-1
 - Release 0.33.2: fix: restore the RPM_GPG_KEY fallback for the Launchpad upload.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.1-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.1-1
 - Release 0.33.1: fix: ship the web client and system files in the release tarball.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.0-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.0-1
 - Release 0.33.0: chore: promote 0.32.10 to the 0.33.0 minor release.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.10-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.10-1
 - Release 0.32.10: chore: add the version synchronization script used by the release train.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.9-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.9-1
 - Release 0.32.9: chore: remove the inline comments added during this series.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
 - Release 0.32.8: unsafe documentation, TLS-only credential paths, D-Bus authorization.
 
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
 - Release 0.32.8: enforce display-session ownership on the input channels and on WebTransport; cap the UDP and AOA client tables; repair the dead Tauri control center UI; complete the web client asset set; restore the vendored MIT notice in qrcode.js.
 
-* Thu Oct 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+* Fri Oct 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
 - Release 0.32.8: fix duplicate BTN_TOUCH writes and redundant AbsEvent::X/Y writes in touch injection; re-indent hub idle reap branch.
 
-* Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+* Thu Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
 - Release 0.32.8: fix resize switchover latency, fps-aware resize, AOA session alias.
 
-* Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.9-1
+* Thu Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.9-1
 - Release 0.31.9: fix resize switchover latency and `no display session` error; encoder now honors requested fps on resize.
 
-* Wed Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.8-1
+* Thu Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.8-1
 - Release 0.31.8: restore stable ExoPlayer buffers and toolbar layout on Android; repair web client template literals broken by the comment-removal pass.
 
-* Tue Sep 30 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.7-1
+* Wed Sep 30 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.7-1
 - Release 0.31.7: restore resize stream stall fix and damage pump deadline pacing, Android saved resolution preset priority, toolbar width layout, and low-latency ExoPlayer buffers.
 
-* Tue Sep 30 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.4-1
+* Wed Sep 30 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.4-1
 - Release 0.31.4: fix host-side latency and to robustly survive USB/AOA protocol errors and resolution changes; add AppImage update metadata (zsync) and dynamic desktop entry.
 
 * Mon Sep 21 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.2-1

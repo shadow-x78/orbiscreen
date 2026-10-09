@@ -438,6 +438,54 @@ pub fn next_available_output_x(exclude_output: &str) -> i32 {
         .unwrap_or(0)
 }
 
+pub fn pointer_frame(connector: &str, width: u32, height: u32) -> Option<(i32, i32, u32, u32)> {
+    pointer_frame_from(&list_kscreen_outputs(), connector, width, height)
+}
+
+pub fn pointer_frame_from(
+    outputs: &[KscreenOutput],
+    connector: &str,
+    width: u32,
+    height: u32,
+) -> Option<(i32, i32, u32, u32)> {
+    if width == 0 || height == 0 {
+        return None;
+    }
+    let (origin_x, origin_y) = outputs
+        .iter()
+        .find(|o| o.enabled && o.name == connector)
+        .and_then(|o| o.geometry)
+        .map(|(x, y, _w, _h)| (x, y))
+        .unwrap_or_else(|| (next_available_output_x_from(outputs, connector), 0));
+    let mut workspace_width = origin_x + width as i32;
+    let mut workspace_height = origin_y + height as i32;
+    for output in outputs.iter().filter(|o| o.enabled && o.name != connector) {
+        if let Some((x, y, w, h)) = output.geometry {
+            workspace_width = workspace_width.max(x + w as i32);
+            workspace_height = workspace_height.max(y + h as i32);
+        }
+    }
+    if workspace_width <= origin_x || workspace_height <= origin_y {
+        return None;
+    }
+    Some((
+        origin_x,
+        origin_y,
+        workspace_width as u32,
+        workspace_height as u32,
+    ))
+}
+
+fn next_available_output_x_from(outputs: &[KscreenOutput], exclude_output: &str) -> i32 {
+    outputs
+        .iter()
+        .filter(|o| o.enabled && o.name != exclude_output)
+        .filter_map(|o| o.geometry)
+        .map(|(x, _y, w, _h)| x + w as i32)
+        .max()
+        .unwrap_or(0)
+}
+
 fn is_portal_virtual_output(name: &str) -> bool {
     name.starts_with("Virtual-virtual-xdp-kde")
 }
@@ -505,6 +553,8 @@ pub fn disable_stale_portal_virtual_outputs() {
             let spec = format!("output.{}.disable", output.name);
             match std::process::Command::new("kscreen-doctor")
                 .arg(&spec)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
                 .status()
             {
                 Ok(status) if status.success() => tracing::info!(
@@ -1116,6 +1166,48 @@ disabled
         assert_eq!(
             select_tablet_output(&with_orbi, None).as_deref(),
             Some("Virtual-ORBISCREEN-123")
+        );
+    }
+
+    #[test]
+    fn pointer_frame_offsets_the_output_within_the_workspace() {
+        let text = "
+Output: 1 eDP-1 8d4cd7b2-4072-46fe-9076-a472ff599d3e
+enabled
+Geometry: 0,0 1920x1200
+Output: 2 DP-6 2185e147-5700-4a76-95c7-4ca01c705bea
+enabled
+Geometry: 1920,0 2560x1440
+Output: 3 Virtual-Orbi-1234 3ab51ad6-f454-4c80-bee1-bb69124801de
+enabled
+Geometry: 4480,0 2560x1600
+";
+        let outs = parse_kscreen_outputs(text);
+        assert_eq!(
+            pointer_frame_from(&outs, "Virtual-Orbi-1234", 2560, 1600),
+            Some((4480, 0, 7040, 1600))
+        );
+        assert_eq!(
+            pointer_frame_from(&outs, "DP-6", 2560, 1440),
+            Some((1920, 0, 7040, 1600))
+        );
+        assert_eq!(
+            pointer_frame_from(&outs, "Virtual-Orbi-1234", 0, 1600),
+            None
+        );
+    }
+
+    #[test]
+    fn pointer_frame_falls_back_to_the_right_edge_when_unplaced() {
+        let text = "
+Output: 1 eDP-1 8d4cd7b2-4072-46fe-9076-a472ff599d3e
+enabled
+Geometry: 0,0 1920x1200
+";
+        let outs = parse_kscreen_outputs(text);
+        assert_eq!(
+            pointer_frame_from(&outs, "Virtual-Orbi-9999", 2560, 1600),
+            Some((1920, 0, 4480, 1600))
         );
     }
 }

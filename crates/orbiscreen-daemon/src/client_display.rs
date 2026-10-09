@@ -623,6 +623,8 @@ async fn open_session(
                     .arg(&enable_spec)
                     .arg(&scale_spec)
                     .arg(&pos_spec)
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
                     .status()
                     .await;
                 if let Ok(s) = status {
@@ -827,6 +829,7 @@ fn spawn_input_pump(
             height,
             output_name: Some(connector.clone()),
             device_label: Some(prefix.clone()),
+            pointer_frame: crate::pointer_frame_for(Some(&connector), width, height),
         };
         let mut injector = match InputInjector::open_async(spec).await {
             Ok(inj) => {
@@ -888,9 +891,6 @@ async fn close_session_inner(session: Session) {
         info,
         ..
     } = session;
-    if let Some(h) = video_pump_handle.take() {
-        h.abort();
-    }
     if let Some(h) = input_pump_handle.take() {
         h.abort();
         let _ = h.await;
@@ -898,21 +898,29 @@ async fn close_session_inner(session: Session) {
     let _ = shutdown.send(true);
     let encoder_stop = encoder;
     let capture_drop = capture;
-    if encoder_stop.is_none() && capture_drop.is_none() {
-        return;
+    if encoder_stop.is_some() || capture_drop.is_some() {
+        let _ = tokio::task::spawn_blocking(move || {
+            if let Some(encoder) = encoder_stop.as_ref() {
+                encoder.stop();
+            }
+            if let Some(capture) = capture_drop {
+                info!(
+                    connector = %info.connector,
+                    "closed client virtual output"
+                );
+                drop(capture);
+            }
+        })
+        .await;
     }
-    tokio::task::spawn_blocking(move || {
-        if let Some(encoder) = encoder_stop.as_ref() {
-            encoder.stop();
+    if let Some(mut h) = video_pump_handle.take() {
+        if tokio::time::timeout(std::time::Duration::from_millis(500), &mut h)
+            .await
+            .is_err()
+        {
+            h.abort();
         }
-        if let Some(capture) = capture_drop {
-            info!(
-                connector = %info.connector,
-                "closed client virtual output"
-            );
-            drop(capture);
-        }
-    });
+    }
 }
 
 pub(crate) fn event_paths_from_introspect(xml: &str) -> Vec<String> {
@@ -1011,19 +1019,14 @@ where
         if !name_matches(&name) {
             continue;
         }
-        let is_pointer = name.ends_with("Mouse") || name.contains("Mouse and Keyboard");
-        if is_pointer {
-            let _ = proxy.set_property::<bool>("mapToWorkspace", true).await;
-        } else {
-            if let Err(e) = proxy.set_property::<&str>("outputName", resolved).await {
-                warn!("could not set outputName={resolved} on {path} ({name}): {e}");
-                continue;
-            }
-            if let Some(uuid) = uuid.as_deref() {
-                let _ = proxy.set_property::<&str>("outputUuid", uuid).await;
-            }
-            let _ = proxy.set_property::<bool>("mapToWorkspace", false).await;
+        if let Err(e) = proxy.set_property::<&str>("outputName", resolved).await {
+            warn!("could not set outputName={resolved} on {path} ({name}): {e}");
+            continue;
         }
+        if let Some(uuid) = uuid.as_deref() {
+            let _ = proxy.set_property::<&str>("outputUuid", uuid).await;
+        }
+        let _ = proxy.set_property::<bool>("mapToWorkspace", false).await;
         info!("bound KWin input device {path} ({name}) to output {resolved}");
         bound += 1;
     }

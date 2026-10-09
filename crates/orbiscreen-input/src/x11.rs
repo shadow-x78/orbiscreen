@@ -24,9 +24,11 @@ pub struct UinputInjector {
     mouse_keyboard: UinputDevice,
     touchscreen: UinputDevice,
     tablet: UinputDevice,
+    mk_name: String,
     ts_name: String,
     tab_name: String,
     output_name: Option<String>,
+    pointer_frame: Option<crate::PointerFrame>,
     prod_offset: u16,
     width: u32,
     height: u32,
@@ -47,6 +49,7 @@ impl UinputInjector {
 
         let width_axis = AbsInfo::new(0, spec.width.saturating_sub(1) as i32);
         let height_axis = AbsInfo::new(0, spec.height.saturating_sub(1) as i32);
+        let (mouse_x_axis, mouse_y_axis) = mouse_axes(spec.pointer_frame, spec.width, spec.height);
 
         let is_secondary = spec.output_name.as_deref().is_some_and(is_secondary_output);
         let prod_offset = if is_secondary { 0x0010 } else { 0x0000 };
@@ -78,7 +81,11 @@ impl UinputInjector {
                 0x0001,
             ))?
             .with_props([InputProp::POINTER])?
-            .with_rel_axes([Rel::X, Rel::Y, Rel::WHEEL])?
+            .with_abs_axes([
+                AbsSetup::new(Abs::X, mouse_x_axis),
+                AbsSetup::new(Abs::Y, mouse_y_axis),
+            ])?
+            .with_rel_axes([Rel::WHEEL])?
             .with_keys(mk_keys)?
             .build(&mk_name)?;
 
@@ -147,9 +154,11 @@ impl UinputInjector {
             mouse_keyboard,
             touchscreen,
             tablet,
+            mk_name,
             ts_name,
             tab_name,
             output_name,
+            pointer_frame: spec.pointer_frame,
             prod_offset,
             width: spec.width,
             height: spec.height,
@@ -163,6 +172,9 @@ impl UinputInjector {
             pen_release_at: None,
         };
         let _ = injector.release_tools();
+        let center_x = (spec.width.saturating_sub(1) / 2) as i32;
+        let center_y = (spec.height.saturating_sub(1) / 2) as i32;
+        let _ = injector.emit_pointer_position(center_x, center_y);
         Ok(injector)
     }
 
@@ -170,6 +182,27 @@ impl UinputInjector {
         let cx = x.clamp(0.0, f64::from(self.width.saturating_sub(1))) as i32;
         let cy = y.clamp(0.0, f64::from(self.height.saturating_sub(1))) as i32;
         (cx, cy)
+    }
+
+    fn open_mouse_keyboard(&self, width: u32, height: u32) -> Result<UinputDevice, InputError> {
+        let mut mk_keys: Vec<Key> = (1u16..=248).map(Key::from_raw).collect();
+        mk_keys.extend((0x110u16..=0x117).map(Key::from_raw));
+        let (mouse_x_axis, mouse_y_axis) = mouse_axes(self.pointer_frame, width, height);
+        Ok(UinputDevice::builder()?
+            .with_input_id(InputId::new(
+                Bus::VIRTUAL,
+                0x0BEE,
+                0x0001 + self.prod_offset,
+                0x0001,
+            ))?
+            .with_props([InputProp::POINTER])?
+            .with_abs_axes([
+                AbsSetup::new(Abs::X, mouse_x_axis),
+                AbsSetup::new(Abs::Y, mouse_y_axis),
+            ])?
+            .with_rel_axes([Rel::WHEEL])?
+            .with_keys(mk_keys)?
+            .build(&self.mk_name)?)
     }
 
     fn open_touchscreen(&self, width: u32, height: u32) -> Result<UinputDevice, InputError> {
@@ -237,8 +270,10 @@ impl UinputInjector {
             return Ok(());
         }
         self.release_tools()?;
+        let mouse_keyboard = self.open_mouse_keyboard(width, height)?;
         let touchscreen = self.open_touchscreen(width, height)?;
         let tablet = self.open_tablet(width, height)?;
+        self.mouse_keyboard = mouse_keyboard;
         self.touchscreen = touchscreen;
         self.tablet = tablet;
         self.width = width;
@@ -249,7 +284,7 @@ impl UinputInjector {
         self.cursor_x = (self.cursor_x).clamp(0.0, f64::from(width.saturating_sub(1)));
         self.cursor_y = (self.cursor_y).clamp(0.0, f64::from(height.saturating_sub(1)));
         if let Some(output) = self.output_name.clone() {
-            configure_kwin_device(&[&self.ts_name, &self.tab_name], &output);
+            configure_kwin_device(&[&self.mk_name, &self.ts_name, &self.tab_name], &output);
         }
         info!(width, height, "recreated uinput devices for resized output");
         Ok(())
@@ -259,39 +294,19 @@ impl UinputInjector {
         match event {
             PointerEvent::Move { x, y } => {
                 let (xi, yi) = self.clamp_point(x, y);
-                let want = (f64::from(xi) - self.cursor_x, f64::from(yi) - self.cursor_y);
-                let ((nx, ny), (dx, dy)) = clamped_relative(
-                    (self.cursor_x, self.cursor_y),
-                    want,
-                    (self.width, self.height),
-                );
-                self.cursor_x = f64::from(nx);
-                self.cursor_y = f64::from(ny);
-                if dx != 0 || dy != 0 {
-                    let events = vec![
-                        RelEvent::new(Rel::X, dx).into(),
-                        RelEvent::new(Rel::Y, dy).into(),
-                        SynEvent::new(Syn::REPORT).into(),
-                    ];
-                    self.mouse_keyboard.write_events(&events)?;
-                }
+                self.cursor_x = f64::from(xi);
+                self.cursor_y = f64::from(yi);
+                self.emit_pointer_position(xi, yi)?;
             }
             PointerEvent::RelativeMove { dx, dy } => {
-                let ((tx, ty), (edx, edy)) = clamped_relative(
+                let ((tx, ty), _) = clamped_relative(
                     (self.cursor_x, self.cursor_y),
                     (dx, dy),
                     (self.width, self.height),
                 );
                 self.cursor_x = f64::from(tx);
                 self.cursor_y = f64::from(ty);
-                if edx != 0 || edy != 0 {
-                    let events = vec![
-                        RelEvent::new(Rel::X, edx).into(),
-                        RelEvent::new(Rel::Y, edy).into(),
-                        SynEvent::new(Syn::REPORT).into(),
-                    ];
-                    self.mouse_keyboard.write_events(&events)?;
-                }
+                self.emit_pointer_position(tx, ty)?;
             }
             PointerEvent::Button { button, pressed } => {
                 let Some(btn_key) = button_key(button) else {
@@ -302,7 +317,15 @@ impl UinputInjector {
                 } else {
                     KeyState::RELEASED
                 };
+                let xi = self.cursor_x.round() as i32;
+                let yi = self.cursor_y.round() as i32;
+                let (gx, gy) = match self.pointer_frame {
+                    Some(f) => (f.origin_x + xi, f.origin_y + yi),
+                    None => (xi, yi),
+                };
                 let events = vec![
+                    AbsEvent::new(Abs::X, gx).into(),
+                    AbsEvent::new(Abs::Y, gy).into(),
                     KEv::new(btn_key, state).into(),
                     SynEvent::new(Syn::REPORT).into(),
                 ];
@@ -323,6 +346,20 @@ impl UinputInjector {
                 self.mouse_keyboard.write_events(&events)?;
             }
         }
+        Ok(())
+    }
+
+    fn emit_pointer_position(&mut self, x: i32, y: i32) -> Result<(), InputError> {
+        let (gx, gy) = match self.pointer_frame {
+            Some(f) => (f.origin_x + x, f.origin_y + y),
+            None => (x, y),
+        };
+        let events = vec![
+            AbsEvent::new(Abs::X, gx).into(),
+            AbsEvent::new(Abs::Y, gy).into(),
+            SynEvent::new(Syn::REPORT).into(),
+        ];
+        self.mouse_keyboard.write_events(&events)?;
         Ok(())
     }
 
@@ -553,6 +590,19 @@ pub(crate) fn is_secondary_output(name: &str) -> bool {
     name.ends_with("-2")
 }
 
+fn mouse_axes(frame: Option<crate::PointerFrame>, width: u32, height: u32) -> (AbsInfo, AbsInfo) {
+    match frame {
+        Some(f) => (
+            AbsInfo::new(0, f.workspace_width.max(1) as i32),
+            AbsInfo::new(0, f.workspace_height.max(1) as i32),
+        ),
+        None => (
+            AbsInfo::new(0, width.saturating_sub(1) as i32),
+            AbsInfo::new(0, height.saturating_sub(1) as i32),
+        ),
+    }
+}
+
 fn configure_kwin_device(device_names: &[&str], output_name: &str) {
     if std::env::var_os("WAYLAND_DISPLAY").is_none() {
         return;
@@ -652,8 +702,8 @@ pub fn clamped_relative(
 #[cfg(test)]
 mod tests {
     use super::{
-        button_code, button_key, clamped_relative, is_secondary_output, pen_proximity_action,
-        PenProximity,
+        button_code, button_key, clamped_relative, is_secondary_output, mouse_axes,
+        pen_proximity_action, PenProximity,
     };
 
     #[test]
@@ -666,6 +716,22 @@ mod tests {
         assert!(button_key(9).is_none());
         assert_eq!(button_code(6), 0x115);
         assert_eq!(button_code(8), 0x117);
+    }
+
+    #[test]
+    fn pointer_frame_stretches_the_mouse_axes_to_the_workspace() {
+        let frame = crate::PointerFrame {
+            origin_x: 4480,
+            origin_y: 0,
+            workspace_width: 7040,
+            workspace_height: 1600,
+        };
+        let (x, y) = mouse_axes(Some(frame), 2560, 1600);
+        assert_eq!((x.minimum(), x.maximum()), (0, 7040));
+        assert_eq!((y.minimum(), y.maximum()), (0, 1600));
+        let (lx, ly) = mouse_axes(None, 2560, 1600);
+        assert_eq!((lx.minimum(), lx.maximum()), (0, 2559));
+        assert_eq!((ly.minimum(), ly.maximum()), (0, 1599));
     }
 
     #[test]

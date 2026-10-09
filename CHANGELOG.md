@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.35.9] - 2026-10-09
+
+### Changed
+- fix: confine the trackpad pointer to the virtual display and silence the remaining startup warnings
+
+Pointer control moved the cursor across every monitor because the virtual mouse was a pure relative device, so its motion was applied to the shared desktop cursor. The virtual mouse is now an absolute pointer whose axis range spans the whole workspace and whose injected position is offset by the virtual output's origin, so the cursor can only land inside the virtual display while the finger still drives it 1:1. The position is derived from `kscreen-doctor` at session open.
+
+- The KWin input devices (mouse, touch, and pen) are all bound to the virtual output again; the mouse is bound by output name and positioned by the workspace offset instead of being left to roam
+- The `?token=` query-string warning is emitted only when a query token is actually accepted, instead of once per process at startup
+- The `capture frame dropped` / `encoded chunk dropped` burst during resolution changes is removed by stopping the encoder before draining its video pump, and by awaiting the encoder teardown in `close_session`
+- `kscreen-doctor` output is silenced on every call, so `Enabling output N` no longer leaks to the daemon's stdout
+- The COPR `%changelog` is in descending order with correct weekdays, clearing the `%changelog not in descending chronological order` and `bogus date` build warnings
+- Version bumped to 0.35.9 across the Cargo workspace, Android (`versionCode` 158), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.35.8] - 2026-10-09
 
 ### Changed

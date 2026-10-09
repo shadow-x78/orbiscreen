@@ -71,12 +71,21 @@ pub enum InputError {
     Uinput(String),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PointerFrame {
+    pub origin_x: i32,
+    pub origin_y: i32,
+    pub workspace_width: u32,
+    pub workspace_height: u32,
+}
+
 #[derive(Debug, Clone)]
 pub struct VirtualTouchscreenSpec {
     pub width: u32,
     pub height: u32,
     pub output_name: Option<String>,
     pub device_label: Option<String>,
+    pub pointer_frame: Option<PointerFrame>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

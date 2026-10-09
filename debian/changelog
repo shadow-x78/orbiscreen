@@ -1,3 +1,20 @@
+orbiscreen (0.35.9~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.35.9 for Ubuntu noble.
+  * Fix: confine the trackpad pointer to the virtual display. The virtual
+    mouse is now an absolute pointer whose axis range spans the workspace and
+    whose injected position is offset by the virtual output origin, so the
+    cursor can no longer roam across every monitor; the position is derived
+    from kscreen-doctor at session open.
+  * Bind all KWin input devices (mouse, touch, pen) to the virtual output, and
+    stop leaking kscreen-doctor output to the daemon stdout.
+  * Emit the query-string token warning only when a query token is accepted,
+    and stop the encoder before draining its pump to avoid transition drops.
+  * Put the COPR %changelog in descending order with correct weekdays.
+  * Bump version to 0.35.9 across all packages; Android versionCode 158.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.35.8~ubuntunoble1) noble; urgency=medium
 
   * Release 0.35.8 for Ubuntu noble.

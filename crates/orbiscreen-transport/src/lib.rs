@@ -652,31 +652,37 @@ async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 fn query_token(uri_query: Option<&str>) -> Option<&str> {
+    let token = uri_query?
+        .split('&')
+        .find_map(|pair| pair.strip_prefix("token="))
+        .filter(|t| !t.is_empty())?;
     if !query_token_allowed() {
         return None;
     }
-    uri_query?
-        .split('&')
-        .find_map(|pair| pair.strip_prefix("token="))
-        .filter(|t| !t.is_empty())
+    warn_query_token_once();
+    Some(token)
 }
 
 fn query_token_allowed() -> bool {
     use std::sync::OnceLock;
     static ALLOWED: OnceLock<bool> = OnceLock::new();
     *ALLOWED.get_or_init(|| {
-        let opt_out = std::env::var("ORBISCREEN_ALLOW_QUERY_TOKEN")
+        !std::env::var("ORBISCREEN_ALLOW_QUERY_TOKEN")
             .map(|v| matches!(v.trim(), "0" | "false" | "no"))
-            .unwrap_or(false);
-        if !opt_out {
-            warn!(
-                "accepting ?token= in the query string: a credential in the URL can reach \
-                 server logs, browser history and Referer headers. Set \
-                 ORBISCREEN_ALLOW_QUERY_TOKEN=0 to refuse it."
-            );
-        }
-        !opt_out
+            .unwrap_or(false)
     })
+}
+
+fn warn_query_token_once() {
+    use std::sync::Once;
+    static WARNED: Once = Once::new();
+    WARNED.call_once(|| {
+        warn!(
+            "accepting ?token= in the query string: a credential in the URL can reach \
+             server logs, browser history and Referer headers. Set \
+             ORBISCREEN_ALLOW_QUERY_TOKEN=0 to refuse it."
+        );
+    });
 }
 
 fn bearer_from_headers(headers: &HeaderMap) -> Option<String> {
@@ -1491,6 +1497,8 @@ async fn api_control(
             let mode_str = format!("output.{target_output}.mode.{width}x{height}@{fps}");
             let res = tokio::process::Command::new("kscreen-doctor")
                 .arg(&mode_str)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
                 .status()
                 .await;
             let ok = match res {
@@ -1499,6 +1507,8 @@ async fn api_control(
                     let fallback_str = format!("output.{target_output}.mode.{width}x{height}@60");
                     tokio::process::Command::new("kscreen-doctor")
                         .arg(&fallback_str)
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
                         .status()
                         .await
                         .map(|s| s.success())

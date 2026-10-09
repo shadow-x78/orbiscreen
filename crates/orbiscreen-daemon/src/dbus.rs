@@ -253,6 +253,8 @@ impl OrbiscreenDbusServer {
         let mode_str = format!("output.{target_output}.mode.{width}x{height}@{fps}");
         let res = tokio::process::Command::new("kscreen-doctor")
             .arg(&mode_str)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
             .status()
             .await;
 
