@@ -58,7 +58,7 @@ impl From<gstreamer::glib::BoolError> for WaylandCaptureError {
 fn virtual_only_options() -> SelectSourcesOptions {
     SelectSourcesOptions::default()
         .set_sources(Some(BitFlags::from(SourceType::Virtual)))
-        .set_cursor_mode(CursorMode::Hidden)
+        .set_cursor_mode(CursorMode::Embedded)
         .set_multiple(false)
         .set_persist_mode(PersistMode::ExplicitlyRevoked)
 }
@@ -66,7 +66,7 @@ fn virtual_only_options() -> SelectSourcesOptions {
 fn monitor_fallback_options() -> SelectSourcesOptions {
     SelectSourcesOptions::default()
         .set_sources(Some(BitFlags::from(SourceType::Monitor)))
-        .set_cursor_mode(CursorMode::Hidden)
+        .set_cursor_mode(CursorMode::Embedded)
         .set_multiple(false)
         .set_persist_mode(PersistMode::ExplicitlyRevoked)
 }
