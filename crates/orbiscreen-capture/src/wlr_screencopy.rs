@@ -562,7 +562,7 @@ fn run_capture_loop(
         let Some((manager, _version)) = state.manager.as_ref() else {
             break;
         };
-        let frame = manager.capture_output(0, &output.proxy, &qh, ());
+        let frame = manager.capture_output(1, &output.proxy, &qh, ());
 
         let mut stopped = false;
         loop {

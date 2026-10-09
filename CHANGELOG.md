@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.36.0] - 2026-10-09
+
+### Changed
+- fix: show the mouse pointer on the streamed second display under GNOME Wayland
+
+On GNOME (Mutter) Wayland the daemon captures through the ScreenCast portal, and the portal session requested `CursorMode::Hidden`, so the compositor never composited the pointer into the streamed buffers and the second display showed windows but no cursor. The portal session now requests `CursorMode::Embedded` for both the virtual-source and the monitor-fallback paths, so Mutter draws the pointer into the captured frame.
+
+- The wlroots screencopy backend now passes `overlay_cursor = 1` to `zwlr_screencopy_manager_v1.capture_output`, so sway and other wlroots compositors composite the cursor as well
+- Reported and diagnosed by @sarawer in #91, who traced the Portal cursor mode and the wlroots overlay flag. The issue is intentionally left open.
+- Version bumped to 0.36.0 across the Cargo workspace, Android (`versionCode` 159), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.35.9] - 2026-10-09
 
 ### Changed

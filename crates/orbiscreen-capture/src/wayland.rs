@@ -58,7 +58,7 @@ impl From<gstreamer::glib::BoolError> for WaylandCaptureError {
 fn virtual_only_options() -> SelectSourcesOptions {
     SelectSourcesOptions::default()
         .set_sources(Some(BitFlags::from(SourceType::Virtual)))
-        .set_cursor_mode(CursorMode::Hidden)
+        .set_cursor_mode(CursorMode::Embedded)
         .set_multiple(false)
         .set_persist_mode(PersistMode::ExplicitlyRevoked)
 }
@@ -66,7 +66,7 @@ fn virtual_only_options() -> SelectSourcesOptions {
 fn monitor_fallback_options() -> SelectSourcesOptions {
     SelectSourcesOptions::default()
         .set_sources(Some(BitFlags::from(SourceType::Monitor)))
-        .set_cursor_mode(CursorMode::Hidden)
+        .set_cursor_mode(CursorMode::Embedded)
         .set_multiple(false)
         .set_persist_mode(PersistMode::ExplicitlyRevoked)
 }
@@ -278,6 +278,18 @@ mod tests {
     #[test]
     fn virtual_only_options_uses_monitor_source() {
         let _ = virtual_only_options();
+    }
+
+    #[test]
+    fn portal_options_embed_the_cursor_in_the_stream() {
+        assert_eq!(
+            virtual_only_options().cursor_mode(),
+            Some(CursorMode::Embedded)
+        );
+        assert_eq!(
+            monitor_fallback_options().cursor_mode(),
+            Some(CursorMode::Embedded)
+        );
     }
 
     #[test]

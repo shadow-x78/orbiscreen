@@ -1,3 +1,17 @@
+orbiscreen (0.36.0~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.36.0 for Ubuntu noble.
+  * Fix: show the mouse pointer on the streamed second display under GNOME
+    Wayland. The ScreenCast portal session requested CursorMode::Hidden, so
+    Mutter never composited the pointer; it now requests
+    CursorMode::Embedded for both the virtual-source and monitor-fallback
+    paths. The wlroots screencopy backend also passes overlay_cursor=1 to
+    zwlr_screencopy_manager_v1.capture_output.
+  * Reported and diagnosed by @sarawer in #91; the issue is left open.
+  * Bump version to 0.36.0 across all packages; Android versionCode 159.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.35.9~ubuntunoble1) noble; urgency=medium
 
   * Release 0.35.9 for Ubuntu noble.

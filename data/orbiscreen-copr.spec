@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.35.9
+%global version 0.36.0
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -148,6 +148,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.36.0-1
+- Release 0.36.0: show the mouse pointer on the streamed second display under GNOME Wayland (Portal CursorMode::Embedded + wlroots overlay_cursor); reported by @sarawer in #91
+
 * Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.9-1
 - Release 0.35.9: confine the trackpad pointer to the virtual display and silence the remaining startup warnings
 
