@@ -323,11 +323,6 @@ fun StreamScreen(
         ) {
             ControlToolbar(
                 hostLabel = StreamTransport.hostLabel(videoTransport, state.host),
-                encoder = if (videoTransport.isBlank()) {
-                    state.encoder
-                } else {
-                    "${state.encoder} · $videoTransport"
-                },
                 resolution = "${state.displayWidth}×${state.displayHeight}",
                 delayMs = frameDelayMs,
                 isTouchMode = isTouchMode,

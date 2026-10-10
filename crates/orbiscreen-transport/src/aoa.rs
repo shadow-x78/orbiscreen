@@ -782,6 +782,7 @@ fn finish_proxy_stream(
             enforce_stream_limit(&mut map, stream_id, MAX_AOA_STREAMS)
         {
             let _ = evicted.shutdown(std::net::Shutdown::Both);
+            send_proxy_close(evicted_stream_id, prio_tx);
             warn!(
                 evicted_stream_id,
                 stream_id,

@@ -163,7 +163,7 @@ class StreamViewModel(
 
     private fun hasLocalResolutionChoice(): Boolean {
         val preset = prefs.resolutionPreset
-        return preset.isNotEmpty() && preset != "native" && !preset.startsWith("custom_")
+        return preset.isNotEmpty() && preset != "native"
     }
 
     private suspend fun refreshHostGeometry() {

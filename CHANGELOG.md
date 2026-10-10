@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.36.1] - 2026-10-10
+
+### Fixed
+- fix: apply resolution changes to a resized session, lift the USB bitrate floor, and stop the AOA stream eviction loop
+
+- Resolution changes after the first resize were rejected with `unknown session`, so the request never reached the display and neither the stream nor the toolbar size updated. The hub now resolves the session alias chain before resizing, so a client that keeps sending its original id is followed to the live session
+- The virtual-display bitrate was taken verbatim from the client's RAM-tier estimate, so a lower-memory device capped a 2560x1600@60 stream near 10 Mbps and looked soft. The effective bitrate is now floored at the resolution's suggested rate (the client value is kept when higher)
+- When the AOA stream table hit its cap the host shut the socket but never sent a `CLOSE`, so the Android proxy kept the dead stream, reconnected, and opened another, producing a steady loop of `AOA stream limit reached` evictions and `Broken pipe` writes. The evicted stream id is now closed explicitly
+- A saved custom resolution (for example 1280x800) was ignored on reconnect because `hasLocalResolutionChoice()` excluded `custom_` presets and the host geometry overwrote it; custom presets are now respected
+- The encoder badge (for example `nvenc`) is removed from the Android control toolbar
+- Version bumped to 0.36.1 across the Cargo workspace, Android (`versionCode` 160), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.36.0] - 2026-10-09
 
 ### Changed

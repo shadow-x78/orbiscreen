@@ -359,7 +359,11 @@ async fn handle_cmd(
             refresh_hz,
             reply,
         } => {
-            let Some(old) = sessions.get(&id) else {
+            let Some(resolved) = resolve_id(sessions, aliases, Some(id.as_str())) else {
+                let _ = reply.send(Err("unknown session".into()));
+                return;
+            };
+            let Some(old) = sessions.get(&resolved) else {
                 let _ = reply.send(Err("unknown session".into()));
                 return;
             };
@@ -394,13 +398,16 @@ async fn handle_cmd(
                     sessions.insert(sid.clone(), carry);
 
                     for target in aliases.values_mut() {
-                        if *target == id {
+                        if *target == resolved {
                             *target = sid.clone();
                         }
                     }
-                    aliases.insert(id.clone(), sid);
+                    aliases.insert(resolved.clone(), sid.clone());
+                    if id != resolved {
+                        aliases.insert(id.clone(), sid.clone());
+                    }
 
-                    if let Some(old) = sessions.remove(&id) {
+                    if let Some(old) = sessions.remove(&resolved) {
                         close_session_inner(old).await;
                     }
                     let _ = reply.send(Ok(info));
@@ -638,13 +645,18 @@ async fn open_session(
         });
     }
 
-    let target_bitrate = bitrate_kbps.unwrap_or_else(|| {
-        if cfg.bitrate_kbps > 0 && cfg.bitrate_kbps != 8000 {
-            cfg.bitrate_kbps
-        } else {
-            orbiscreen_encode::suggested_bitrate_kbps(actual_w, actual_h, refresh_hz)
+    let suggested_bitrate =
+        orbiscreen_encode::suggested_bitrate_kbps(actual_w, actual_h, refresh_hz);
+    let target_bitrate = match bitrate_kbps {
+        Some(client) => client.max(suggested_bitrate),
+        None => {
+            if cfg.bitrate_kbps > 0 && cfg.bitrate_kbps != 8000 {
+                cfg.bitrate_kbps
+            } else {
+                suggested_bitrate
+            }
         }
-    });
+    };
 
     let mut encoder = Encoder::new(EncodeParams {
         kind: cfg.encode_kind,

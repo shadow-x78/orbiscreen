@@ -1,3 +1,22 @@
+orbiscreen (0.36.1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.36.1 for Ubuntu noble.
+  * Fix: resolution changes were rejected with "unknown session" once the
+    first resize had aliased the session id, so the client's request never
+    reached the display and the toolbar size never updated. The hub now
+    resolves the alias chain before resizing.
+  * Fix: the virtual-display bitrate was taken verbatim from the client's
+    RAM-tier estimate; it is now floored at the resolution's suggested rate so
+    a lower-memory device does not cap a 2560x1600 stream near 10 Mbps.
+  * Fix: evicted AOA streams were shut down without a CLOSE frame, so the
+    Android proxy reconnected and reopened streams in a loop. The evicted
+    stream id is now closed explicitly.
+  * Fix: saved custom resolutions (for example 1280x800) are respected again.
+  * Remove the encoder badge from the Android control toolbar.
+  * Bump version to 0.36.1 across all packages; Android versionCode 160.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 10 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.36.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.36.0 for Ubuntu noble.

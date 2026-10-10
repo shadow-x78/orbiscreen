@@ -52,7 +52,6 @@ import com.orbiscreen.android.ui.theme.GlassDark
 @Composable
 fun ControlToolbar(
     hostLabel: String,
-    encoder: String,
     resolution: String,
     modifier: Modifier = Modifier,
     delayMs: Int? = null,
@@ -121,7 +120,6 @@ fun ControlToolbar(
                 val delayText = StreamStats.formatToolbarDelay(delayMs)
                 val info = listOfNotNull(
                     resolution.takeIf { it.isNotBlank() && !isPortrait },
-                    encoder.takeIf { it.isNotBlank() && !isPortrait },
                     delayText,
                 ).joinToString("  ")
                 Text(
