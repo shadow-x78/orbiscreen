@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.39.0
+%global version 0.39.1
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -147,7 +147,10 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
-* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.0-1
+* Sun Oct 25 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.1-1
+- Release 0.39.1: keep paired Android clients working across the host certificate rotation (own long-lived HTTPS identity and one-tap re-confirmation), and bump tokio to 1.53.3; reported and fixed by @Bulrok in #107 (PR #108)
+
+* Wed Oct 21 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.0-1
 - Release 0.39.0: rewrite the desktop GUI as a native GTK4 + libadwaita application carrying the Orbiscreen brand theme
 
 * Tue Oct 20 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.38.0-1

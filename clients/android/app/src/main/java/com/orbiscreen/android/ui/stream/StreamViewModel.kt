@@ -36,15 +36,12 @@ data class LoginState(
     val fingerprint: String = "",
     val message: String = "Connecting securely to host…",
     val saved: Boolean = false,
-    /** The host presented a certificate other than the pinned one; [fingerprint] is the new one awaiting confirmation. */
     val changed: Boolean = false,
 )
 
-/** What to do when a host we already hold a credential for presents [live] while we pinned [savedFingerprint]. */
 enum class PairedLoginStep { Connect, Expired, Reconfirm }
 
 internal fun pairedLoginStep(savedFingerprint: String, live: HostApi.ObservedCertificate): PairedLoginStep = when {
-    // An expired certificate cannot be pinned (the trust manager rejects it), so re-confirming would not help either.
     !live.validNow -> PairedLoginStep.Expired
     live.fingerprint != savedFingerprint -> PairedLoginStep.Reconfirm
     else -> PairedLoginStep.Connect
@@ -352,8 +349,6 @@ class StreamViewModel(
                         PairedLoginStep.Connect -> connectPaired(saved)
                         PairedLoginStep.Expired -> _login.value = LoginState(LoginStage.Failed, saved = true,
                             message = HOST_CERT_EXPIRED_MESSAGE)
-                        // The host rotated its certificate (update, reinstall, deleted files). Instead of a dead end,
-                        // show the new fingerprint and let the user re-confirm it once, keeping the saved credential.
                         PairedLoginStep.Reconfirm -> _login.value =
                             LoginState(LoginStage.ConfirmFingerprint, live.fingerprint, saved = true, changed = true)
                     }
@@ -386,7 +381,6 @@ class StreamViewModel(
                         connectPaired(updated)
                         return@launch
                     }
-                    // The host no longer knows this credential (revoked, state reset): pair again under the new pin.
                     withContext(Dispatchers.IO) { credentialStore.forget(host, port) }
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e

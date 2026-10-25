@@ -27,7 +27,6 @@ class PairedLoginStepTest {
 
     @Test
     fun anExpiredCertificateWinsOverAChangedOne() {
-        // The pinned client refuses expired certificates, so re-confirming a new but expired one would fail too.
         assertEquals(PairedLoginStep.Expired, pairedLoginStep(pinned, HostApi.ObservedCertificate(other, validNow = false)))
     }
 }

@@ -1,16 +1,6 @@
 // Orbiscreen - HTTPS listener identity (GPL-3.0-or-later)
 // https://github.com/shadow-x78/orbiscreen
 
-//! Long-lived self-signed identity for the HTTPS listener on `wt_port`.
-//!
-//! WebTransport caps hash-pinned certificates at 14 days, so the QUIC endpoint keeps the
-//! short-lived `wt-cert.pem` and renews it at start. The HTTPS listener shares the port but
-//! not the constraint: it serves the pairing API, the web UI and the Android pinned proxy,
-//! and paired Android clients pin the SHA-256 fingerprint of whatever certificate it
-//! presents. Serving the 14-day certificate there broke every paired device at least every
-//! two weeks (expiry while running, then a new fingerprint on restart). This identity lives
-//! for ten years next to the WebTransport one, so the pinned fingerprint stays stable.
-
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -21,14 +11,10 @@ use tracing::{debug, info, warn};
 
 use super::wt_stream::{advertised_hosts, cert_usable, write_secret_file};
 
-/// Lifetime of a freshly generated HTTPS certificate.
 pub const HTTPS_CERT_VALIDITY: Duration = Duration::from_secs(10 * 365 * 24 * 60 * 60);
-/// Renew at daemon start when less than this remains.
 pub const HTTPS_CERT_RENEW_SLACK: Duration = Duration::from_secs(30 * 24 * 60 * 60);
-/// Back-date `not_before` so a client whose clock runs slightly behind still accepts it.
 const NOT_BEFORE_SKEW: Duration = Duration::from_secs(24 * 60 * 60);
 
-/// Certificate and private key for the HTTPS listener, PEM encoded for `axum_server`.
 #[derive(Debug, Clone)]
 pub struct HttpsIdentity {
     cert_pem: Vec<u8>,
@@ -43,8 +29,6 @@ fn default_paths() -> (PathBuf, PathBuf) {
     )
 }
 
-/// Upper-case hex SHA-256 of the DER certificate: the exact string the Android client pins
-/// and shows on its confirmation screen.
 pub fn fingerprint_hex(cert_der: &[u8]) -> String {
     Sha256::digest(cert_der)
         .iter()
@@ -92,7 +76,6 @@ fn generate(
     let cert = params
         .self_signed(&key)
         .map_err(|e| format!("self-sign: {e}"))?;
-    // PEM encoding goes through wtransport's types so no extra PEM crate is pulled in.
     let cert_pem = wtransport::tls::Certificate::from_der(cert.der().to_vec())
         .map_err(|e| format!("cert der: {e}"))?
         .to_pem();
@@ -114,7 +97,6 @@ fn store(identity: &HttpsIdentity, cert_path: &Path, key_path: &Path) -> Result<
 }
 
 impl HttpsIdentity {
-    /// Loads the persisted identity from the config directory, or generates and stores a new one.
     pub fn new() -> Result<Self, String> {
         let (cert_path, key_path) = default_paths();
         Self::load_or_create(&cert_path, &key_path)
@@ -152,12 +134,10 @@ impl HttpsIdentity {
         }
     }
 
-    /// Upper-case hex SHA-256 of the DER certificate, without separators.
     pub fn fingerprint(&self) -> &str {
         &self.fingerprint
     }
 
-    /// `AA:BB:...` form, as the Android confirmation screen prints it.
     pub fn fingerprint_display(&self) -> String {
         self.fingerprint
             .as_bytes()
@@ -171,7 +151,6 @@ impl HttpsIdentity {
         &self.cert_pem
     }
 
-    /// `(certificate PEM, private key PEM)` for `axum_server::tls_rustls::RustlsConfig::from_pem`.
     pub fn into_pem(self) -> (Vec<u8>, Vec<u8>) {
         (self.cert_pem, self.key_pem)
     }
@@ -292,7 +271,6 @@ mod tests {
         let (wt_cert, wt_key) = (dir.join("wt-cert.pem"), dir.join("wt-key.pem"));
         let https = HttpsIdentity::load_or_create(&https_cert, &https_key).expect("https");
         let wt_first = WtHub::load_or_create(0, &wt_cert, &wt_key).expect("wt first");
-        // Simulate the 14-day renewal: drop the WebTransport identity and start again.
         std::fs::remove_file(&wt_cert).expect("drop wt cert");
         std::fs::remove_file(&wt_key).expect("drop wt key");
         let wt_second = WtHub::load_or_create(0, &wt_cert, &wt_key).expect("wt second");
@@ -300,8 +278,6 @@ mod tests {
         let https_again =
             HttpsIdentity::load_or_create(&https_cert, &https_key).expect("https again");
         assert_eq!(https.fingerprint(), https_again.fingerprint());
-        // The two identities are distinct certificates: the HTTPS one is not hash-pinned by
-        // browsers, so it may outlive the WebTransport 14-day cap.
         assert_ne!(
             https.fingerprint(),
             fingerprint_hex(

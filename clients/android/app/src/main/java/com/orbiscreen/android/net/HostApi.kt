@@ -62,7 +62,6 @@ class HostApi {
         val udpPort: Int,
     )
 
-    /** What the host's HTTPS listener presented: the SHA-256 pin and whether the certificate is valid right now. */
     data class ObservedCertificate(val fingerprint: String, val validNow: Boolean)
 
     suspend fun certificateFingerprint(host: String, port: Int): String = observeCertificate(host, port).fingerprint
@@ -96,11 +95,6 @@ class HostApi {
         ObservedCertificate(fingerprint(cert.encoded), runCatching { cert.checkValidity() }.isSuccess)
     }
 
-    /**
-     * Whether the host still accepts a saved pairing credential when pinned to [pin]. Used after the host's
-     * certificate changed: a `2xx` keeps the saved login, `401`/`403` means the device has to pair again.
-     * Network and TLS failures throw.
-     */
     suspend fun credentialAccepted(host: String, port: Int, pin: String, credential: String): Boolean =
         withContext(Dispatchers.IO) {
             val request = Request.Builder()

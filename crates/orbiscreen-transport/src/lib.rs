@@ -303,9 +303,6 @@ impl Transport {
             wt_offer: wt_hub.as_ref().map(|h| h.offer.clone()),
             udp_keys: udp_crypto::UdpKeyRing::new(),
         };
-        // The HTTPS listener (pairing, Android pinned proxy, web UI) gets its own long-lived
-        // identity. The 14-day WebTransport certificate stays on the QUIC endpoint only, so the
-        // fingerprint paired clients pin no longer changes every time it is renewed.
         let https_pem = match https_identity::HttpsIdentity::new() {
             Ok(identity) => {
                 info!(

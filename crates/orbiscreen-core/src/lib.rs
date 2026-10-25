@@ -195,9 +195,6 @@ pub fn default_wt_key_path() -> std::path::PathBuf {
     default_config_path().with_file_name("wt-key.pem")
 }
 
-/// Long-lived self-signed certificate served on the HTTPS listener (pairing and the Android
-/// pinned proxy). Separate from the 14-day WebTransport certificate so the fingerprint paired
-/// clients pin stays stable across WebTransport renewals.
 pub fn default_https_cert_path() -> std::path::PathBuf {
     default_config_path().with_file_name("https-cert.pem")
 }

@@ -1,3 +1,23 @@
+orbiscreen (0.39.1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.39.1 for Ubuntu noble.
+  * Fix: the HTTPS listener on wt_port (pairing, web UI, Android pinned proxy)
+    served the same 14-day WebTransport certificate, so a daemon running for
+    two weeks expired it and a restart changed the fingerprint paired clients
+    pin. The listener now has its own 10-year identity (https-cert.pem /
+    https-key.pem, renewed when under 30 days remain); the 14-day certificate
+    stays on QUIC alone, and /api/info keeps publishing its cert_sha256.
+  * Android: a changed host certificate no longer dead-ends. The fingerprint
+    screen returns with a "host certificate changed" explanation, confirming
+    checks the saved credential against the new pin and keeps the login when
+    the host still accepts it. Existing paired devices re-confirm once.
+  * Dependencies: tokio bumped to 1.53.3 for RUSTSEC-2026-0386.
+  * Reported and fixed by @Bulrok in #107 (PR #108); the issue is left open
+    pending confirmation.
+  * Bump version to 0.39.1 across all packages; Android versionCode 182.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 25 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.39.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.39.0 for Ubuntu noble.
