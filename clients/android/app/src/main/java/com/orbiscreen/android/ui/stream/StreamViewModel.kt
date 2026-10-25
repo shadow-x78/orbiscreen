@@ -36,7 +36,22 @@ data class LoginState(
     val fingerprint: String = "",
     val message: String = "Connecting securely to host…",
     val saved: Boolean = false,
+    /** The host presented a certificate other than the pinned one; [fingerprint] is the new one awaiting confirmation. */
+    val changed: Boolean = false,
 )
+
+/** What to do when a host we already hold a credential for presents [live] while we pinned [savedFingerprint]. */
+enum class PairedLoginStep { Connect, Expired, Reconfirm }
+
+internal fun pairedLoginStep(savedFingerprint: String, live: HostApi.ObservedCertificate): PairedLoginStep = when {
+    // An expired certificate cannot be pinned (the trust manager rejects it), so re-confirming would not help either.
+    !live.validNow -> PairedLoginStep.Expired
+    live.fingerprint != savedFingerprint -> PairedLoginStep.Reconfirm
+    else -> PairedLoginStep.Connect
+}
+
+internal const val HOST_CERT_EXPIRED_MESSAGE =
+    "The host's certificate has expired. Restart Orbiscreen on the host (it issues a new one), then retry."
 
 internal fun resolveSelectedResolution(
     preset: String,
@@ -332,7 +347,16 @@ class StreamViewModel(
                 val saved = withContext(Dispatchers.IO) { credentialStore.load(host, port) }
                 if (saved != null) {
                     _login.value = LoginState(saved = true)
-                    connectPaired(saved)
+                    val live = hostApi.observeCertificate(host, port)
+                    when (pairedLoginStep(saved.fingerprint, live)) {
+                        PairedLoginStep.Connect -> connectPaired(saved)
+                        PairedLoginStep.Expired -> _login.value = LoginState(LoginStage.Failed, saved = true,
+                            message = HOST_CERT_EXPIRED_MESSAGE)
+                        // The host rotated its certificate (update, reinstall, deleted files). Instead of a dead end,
+                        // show the new fingerprint and let the user re-confirm it once, keeping the saved credential.
+                        PairedLoginStep.Reconfirm -> _login.value =
+                            LoginState(LoginStage.ConfirmFingerprint, live.fingerprint, saved = true, changed = true)
+                    }
                 } else {
                     val pin = hostApi.certificateFingerprint(host, port)
                     _login.value = LoginState(LoginStage.ConfirmFingerprint, pin)
@@ -348,9 +372,31 @@ class StreamViewModel(
     }
 
     fun confirmFingerprint() {
-        val pin = _login.value.takeIf { it.stage == LoginStage.ConfirmFingerprint }?.fingerprint ?: return
+        val confirming = _login.value.takeIf { it.stage == LoginStage.ConfirmFingerprint } ?: return
+        val pin = confirming.fingerprint
         loginJob?.cancel()
         loginJob = viewModelScope.launch {
+            if (confirming.changed) {
+                _login.value = LoginState(LoginStage.Pending, pin, "Checking the saved login against the new certificate…", saved = true)
+                try {
+                    val saved = withContext(Dispatchers.IO) { credentialStore.load(host, port) }
+                    if (saved != null && hostApi.credentialAccepted(host, port, pin, saved.credential)) {
+                        val updated = saved.copy(fingerprint = pin)
+                        withContext(Dispatchers.IO) { credentialStore.save(host, port, updated) }
+                        connectPaired(updated)
+                        return@launch
+                    }
+                    // The host no longer knows this credential (revoked, state reset): pair again under the new pin.
+                    withContext(Dispatchers.IO) { credentialStore.forget(host, port) }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.w("OrbiLogin", "saved login check failed: ${e.message}", e)
+                    _login.value = LoginState(LoginStage.Failed, pin, saved = true,
+                        message = "Could not check the saved login against the host's new certificate. Retry, or forget the saved login and pair again.")
+                    return@launch
+                }
+            }
             _login.value = LoginState(LoginStage.Pending, pin, "Approve this device on the host.")
             try {
                 val name = com.orbiscreen.android.net.ClientIdentity.from(context).name

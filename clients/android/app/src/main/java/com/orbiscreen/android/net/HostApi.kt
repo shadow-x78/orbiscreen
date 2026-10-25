@@ -62,7 +62,12 @@ class HostApi {
         val udpPort: Int,
     )
 
-    suspend fun certificateFingerprint(host: String, port: Int): String = withContext(Dispatchers.IO) {
+    /** What the host's HTTPS listener presented: the SHA-256 pin and whether the certificate is valid right now. */
+    data class ObservedCertificate(val fingerprint: String, val validNow: Boolean)
+
+    suspend fun certificateFingerprint(host: String, port: Int): String = observeCertificate(host, port).fingerprint
+
+    suspend fun observeCertificate(host: String, port: Int): ObservedCertificate = withContext(Dispatchers.IO) {
         val endpoint = pairingUrl(host, port)
         var observed: X509Certificate? = null
         val trust = object : X509TrustManager {
@@ -87,8 +92,30 @@ class HostApi {
                 }
             }
         }
-        fingerprint(requireNotNull(observed) { "Host did not present a certificate" }.encoded)
+        val cert = requireNotNull(observed) { "Host did not present a certificate" }
+        ObservedCertificate(fingerprint(cert.encoded), runCatching { cert.checkValidity() }.isSuccess)
     }
+
+    /**
+     * Whether the host still accepts a saved pairing credential when pinned to [pin]. Used after the host's
+     * certificate changed: a `2xx` keeps the saved login, `401`/`403` means the device has to pair again.
+     * Network and TLS failures throw.
+     */
+    suspend fun credentialAccepted(host: String, port: Int, pin: String, credential: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val request = Request.Builder()
+                .url(pairingUrl(host, port).newBuilder().encodedPath("/client/config.json").build())
+                .header("Authorization", "Bearer $credential")
+                .cacheControl(okhttp3.CacheControl.FORCE_NETWORK)
+                .build()
+            pinnedClient(host, port, pin).newCall(request).execute().use { response ->
+                when {
+                    response.isSuccessful -> true
+                    response.code == 401 || response.code == 403 -> false
+                    else -> error("Unexpected host response (HTTP ${response.code})")
+                }
+            }
+        }
 
     fun pinnedClient(host: String, port: Int, pin: String): OkHttpClient {
         val endpoint = pairingUrl(host, port)

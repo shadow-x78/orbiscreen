@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- fix: paired Android clients no longer break every 14 days when the host's certificate rotates
+
+The HTTPS listener on `wt_port` (pairing API, web UI, and the Android client's pinned proxy) served the same self-signed certificate as the QUIC/WebTransport endpoint. That certificate is capped at 14 days by WebTransport (`serverCertificateHashes`), and `WtHub::load_or_create` only renews it at daemon start. The Android client pins the SHA-256 fingerprint of the HTTPS certificate at pairing time and checks its validity dates, so a daemon running for 14 days started failing every login with `CertificateExpiredException`, and restarting it minted a new fingerprint (`Host fingerprint changed`), leaving "Forget saved login and verify again" plus a fresh host approval as the only way out. Reported in [#107](https://github.com/shadow-x78/orbiscreen/issues/107).
+
+- The HTTPS listener now has its own 10-year self-signed identity (`https_identity::HttpsIdentity`), persisted as `https-cert.pem` / `https-key.pem` next to `wt-cert.pem` with the same `0o600` handling, renewed at start only when less than 30 days remain. The 14-day certificate stays on the QUIC endpoint alone; `/api/info` and `/client/config.json` keep publishing its `cert_sha256` for the browser client. The daemon logs the HTTPS fingerprint at startup so it can be compared on the tablet.
+- Android: when a saved host presents a different certificate, the login no longer dead-ends. The fingerprint-confirmation screen comes back with a "host certificate changed" explanation; confirming checks the saved credential against the new pin (`/client/config.json`) and keeps the login if the host still accepts it, otherwise it falls through to a normal pairing request. A host still serving an expired certificate gets a clear message to restart the daemon instead of the generic "Secure connection failed".
+- Migration: existing paired devices see that one-time re-confirmation on the first start after the update, because the HTTPS fingerprint changes once from the WebTransport certificate to the new long-lived one. No new host approval is needed.
+
 ## [v0.39.0] - 2026-10-21
 
 ### Changed

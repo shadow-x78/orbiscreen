@@ -1055,7 +1055,7 @@ USB يستخدم Android Open Accessory وليس `adb reverse`. تأكد من:
 `https://<host>:8790/client/` يُحمل، وطبقة الحالة تظل على "Connecting"، أو تظهر رسالة "Unsupported browser" تطلب Chrome أو Brave أو Edge.
 
 **السبب:**
-عميل الويب يفتح جلسة WebTransport ويفك وحدات Annex-B عبر WebCodecs ‏`VideoDecoder`‏ على عنصر canvas. مسارا HTTP ‏`/` و `/client/`‏ على منفذ الإشارة يعيدان التوجيه إلى هناك. يجب قبول الشهادة الذاتية التوقيع مرة واحدة؛ ويعيد الدامن استخدام `$XDG_CONFIG_HOME/orbiscreen/wt-cert.pem` (مع `wt-key.pem`) بين عمليات إعادة التشغيل. المتصفحات بدون ‏`VideoDecoder`‏ (مثل Firefox Mobile) لا تفك البث إطلاقاً. لا يوجد مسار MSE ولا WebRTC.
+عميل الويب يفتح جلسة WebTransport ويفك وحدات Annex-B عبر WebCodecs ‏`VideoDecoder`‏ على عنصر canvas. مسارا HTTP ‏`/` و `/client/`‏ على منفذ الإشارة يعيدان التوجيه إلى هناك. يجب قبول الشهادة الذاتية التوقيع مرة واحدة؛ تُقدَّم صفحة HTTPS بالشهادة طويلة الأمد `$XDG_CONFIG_HOME/orbiscreen/https-cert.pem` (مع `https-key.pem`)، بينما تستخدم نقطة QUIC الشهادة `wt-cert.pem` / `wt-key.pem` الصالحة 14 يوماً والمعلَنة في `cert_sha256`؛ ويعيد الدامن استخدام كلتيهما بين عمليات إعادة التشغيل. المتصفحات بدون ‏`VideoDecoder`‏ (مثل Firefox Mobile) لا تفك البث إطلاقاً. لا يوجد مسار MSE ولا WebRTC.
 
 **الإصلاح:**
 1. افتح الصفحة في Chrome أو Brave أو Edge أو أي متصفح Chromium آخر. Firefox Mobile لا يدعم ‏WebCodecs `VideoDecoder`‏.

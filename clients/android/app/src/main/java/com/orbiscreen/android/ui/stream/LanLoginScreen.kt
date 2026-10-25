@@ -40,13 +40,26 @@ fun LanLoginScreen(viewModel: StreamViewModel, login: LoginState, onBack: () -> 
                     }
                 }
                 LoginStage.ConfirmFingerprint -> {
-                    Text("Verify the host certificate", style = MaterialTheme.typography.titleLarge)
-                    Text("Compare this SHA-256 fingerprint with the fingerprint shown locally on your host. Do not approve unless every character matches. This explicitly trusts this certificate for this host address, including its hostname identity.")
+                    if (login.changed) {
+                        Text("The host certificate changed", style = MaterialTheme.typography.titleLarge)
+                        Text("This host now presents a different certificate from the one saved on this device. That is expected once after Orbiscreen on the host was updated (it now keeps a long-lived certificate for logins), reinstalled, or had its certificate files removed. Compare this SHA-256 fingerprint with the one the host logs at startup (journalctl --user -u orbiscreen). Do not continue unless every character matches.")
+                    } else {
+                        Text("Verify the host certificate", style = MaterialTheme.typography.titleLarge)
+                        Text("Compare this SHA-256 fingerprint with the fingerprint shown locally on your host. Do not approve unless every character matches. This explicitly trusts this certificate for this host address, including its hostname identity.")
+                    }
                     SelectionContainer {
                         Text(login.fingerprint.chunked(2).joinToString(":"), fontFamily = FontFamily.Monospace)
                     }
-                    Button(onClick = viewModel::confirmFingerprint, modifier = Modifier.fillMaxWidth()) {
-                        Text("Fingerprint matches — request approval")
+                    if (login.changed) {
+                        Text("If it matches, your saved login is kept and no new approval is needed on the host. If the host no longer accepts it, a normal pairing request follows.")
+                        Button(onClick = viewModel::confirmFingerprint, modifier = Modifier.fillMaxWidth()) {
+                            Text("Fingerprint matches — keep saved login")
+                        }
+                        TextButton(onClick = viewModel::forgetLogin) { Text("Forget saved login and pair again") }
+                    } else {
+                        Button(onClick = viewModel::confirmFingerprint, modifier = Modifier.fillMaxWidth()) {
+                            Text("Fingerprint matches — request approval")
+                        }
                     }
                 }
                 LoginStage.Failed -> {

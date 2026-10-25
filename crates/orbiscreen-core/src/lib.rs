@@ -195,6 +195,17 @@ pub fn default_wt_key_path() -> std::path::PathBuf {
     default_config_path().with_file_name("wt-key.pem")
 }
 
+/// Long-lived self-signed certificate served on the HTTPS listener (pairing and the Android
+/// pinned proxy). Separate from the 14-day WebTransport certificate so the fingerprint paired
+/// clients pin stays stable across WebTransport renewals.
+pub fn default_https_cert_path() -> std::path::PathBuf {
+    default_config_path().with_file_name("https-cert.pem")
+}
+
+pub fn default_https_key_path() -> std::path::PathBuf {
+    default_config_path().with_file_name("https-key.pem")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -318,6 +329,14 @@ height = 999999
         assert_eq!(
             default_wt_key_path(),
             std::path::PathBuf::from("/tmp/orbiscreen-test-xdg/orbiscreen/wt-key.pem")
+        );
+        assert_eq!(
+            default_https_cert_path(),
+            std::path::PathBuf::from("/tmp/orbiscreen-test-xdg/orbiscreen/https-cert.pem")
+        );
+        assert_eq!(
+            default_https_key_path(),
+            std::path::PathBuf::from("/tmp/orbiscreen-test-xdg/orbiscreen/https-key.pem")
         );
         match prev {
             Some(value) => std::env::set_var("XDG_CONFIG_HOME", value),

@@ -1188,7 +1188,7 @@ The `evdi` kernel module is not loaded, so Orbiscreen falls back to primary-desk
 `https://<host>:8790/client/` loads, the overlay stays on "Connecting", or it reports "Unsupported browser" and asks for Chrome, Brave, or Edge.
 
 **Cause:**
-The web client opens WebTransport and decodes Annex-B with WebCodecs `VideoDecoder` onto a canvas. HTTP `/` and `/client/` on the signaling port redirect there. Accept the self-signed certificate once; the daemon reuses `$XDG_CONFIG_HOME/orbiscreen/wt-cert.pem` (and `wt-key.pem`) across restarts. Browsers without `VideoDecoder` (Firefox Mobile is one) never decode the stream. There is no MSE or WebRTC path.
+The web client opens WebTransport and decodes Annex-B with WebCodecs `VideoDecoder` onto a canvas. HTTP `/` and `/client/` on the signaling port redirect there. Accept the self-signed certificate once; the HTTPS page is served with the long-lived `$XDG_CONFIG_HOME/orbiscreen/https-cert.pem` (and `https-key.pem`), while the QUIC endpoint uses the 14-day `wt-cert.pem` / `wt-key.pem` advertised as `cert_sha256`; both are reused across restarts. Browsers without `VideoDecoder` (Firefox Mobile is one) never decode the stream. There is no MSE or WebRTC path.
 
 **Fix:**
 1. Open the page in Chrome, Brave, Edge, or another Chromium browser. Firefox Mobile does not implement WebCodecs `VideoDecoder`.

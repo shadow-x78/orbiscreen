@@ -73,7 +73,7 @@ fn default_identity_paths() -> (PathBuf, PathBuf) {
     )
 }
 
-fn cert_usable(der: &[u8], slack: Duration) -> bool {
+pub(crate) fn cert_usable(der: &[u8], slack: Duration) -> bool {
     let Ok((_, cert)) = x509_parser::certificate::X509Certificate::from_der(der) else {
         return false;
     };
@@ -109,7 +109,7 @@ fn load_identity(cert_path: &Path, key_path: &Path) -> Result<Identity, String> 
     Ok(Identity::new(CertificateChain::single(cert), key))
 }
 
-fn write_secret_file(path: &Path, contents: &[u8]) -> io::Result<()> {
+pub(crate) fn write_secret_file(path: &Path, contents: &[u8]) -> io::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
         #[cfg(unix)]

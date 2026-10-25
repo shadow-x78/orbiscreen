@@ -3,6 +3,7 @@ pub mod aoa;
 pub mod aoa_video;
 pub mod display;
 pub mod fec;
+pub mod https_identity;
 pub mod mdns;
 pub mod pairing;
 pub mod udp_crypto;
@@ -302,13 +303,28 @@ impl Transport {
             wt_offer: wt_hub.as_ref().map(|h| h.offer.clone()),
             udp_keys: udp_crypto::UdpKeyRing::new(),
         };
-        let https_pem = wt_hub.as_ref().and_then(|hub| match hub.https_pem() {
-            Ok(pem) => Some(pem),
-            Err(e) => {
-                warn!("https certificate export failed: {e}");
-                None
+        // The HTTPS listener (pairing, Android pinned proxy, web UI) gets its own long-lived
+        // identity. The 14-day WebTransport certificate stays on the QUIC endpoint only, so the
+        // fingerprint paired clients pin no longer changes every time it is renewed.
+        let https_pem = match https_identity::HttpsIdentity::new() {
+            Ok(identity) => {
+                info!(
+                    fingerprint = %identity.fingerprint_display(),
+                    "HTTPS certificate fingerprint (SHA-256); paired devices pin this"
+                );
+                Some(identity.into_pem())
             }
-        });
+            Err(e) => {
+                warn!("https identity failed, falling back to the 14-day WebTransport certificate: {e}");
+                wt_hub.as_ref().and_then(|hub| match hub.https_pem() {
+                    Ok(pem) => Some(pem),
+                    Err(e) => {
+                        warn!("https certificate export failed: {e}");
+                        None
+                    }
+                })
+            }
+        };
         let http_app = build_http_router(state.clone());
         let https_app = build_https_router(state.clone());
         let listener = TcpListener::bind(("0.0.0.0", self.cfg.signaling_port))
