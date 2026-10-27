@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.39.2] - 2026-10-27
+
+### Fixed
+- fix: flush the wlroots screencopy request before polling so frames are not delayed by the poll timeout
+
+The wlroots screencopy capture loop issued `capture_output` and then polled the Wayland socket without flushing the request. `prepare_read` does not flush, so the compositor had nothing to answer until the poll timeout expired (`EVENT_POLL_TIMEOUT_MS`, 100 ms), and only then was the request actually written. Every captured frame paid that delay, capping wlroots capture at roughly 10 FPS no matter which encoder or USB transport was in use. Reported by [@TinusgragLin](https://github.com/TinusgragLin) in [#109](https://github.com/shadow-x78/orbiscreen/issues/109). The issue is intentionally left open pending confirmation on the released build.
+
+- `wlr_screencopy::run_capture_loop` now flushes the connection before `prepare_read` and `poll` and no longer flushes after the read, matching the ordering of `wayland_client::EventQueue::blocking_dispatch`.
+- `kwin_virtual::pump_events` had the same flush-after-poll ordering and now flushes before polling as well.
+- Version bumped to 0.39.2 across the Cargo workspace, Android (`versionCode` 183), PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.39.1] - 2026-10-25
 
 ### Fixed

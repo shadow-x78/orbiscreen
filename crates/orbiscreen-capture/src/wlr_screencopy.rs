@@ -581,6 +581,7 @@ fn run_capture_loop(
                     break;
                 }
             }
+            let _ = conn.flush();
             let Some(guard) = conn.prepare_read() else {
                 std::thread::sleep(Duration::from_millis(5));
                 continue;
@@ -603,7 +604,6 @@ fn run_capture_loop(
                     }
                 }
             }
-            let _ = conn.flush();
         }
         frame.destroy();
 

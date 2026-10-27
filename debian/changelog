@@ -1,3 +1,20 @@
+orbiscreen (0.39.2~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.39.2 for Ubuntu noble.
+  * Fix: the wlroots screencopy capture loop issued capture_output and then
+    polled the Wayland socket without flushing the request, so the compositor
+    had nothing to answer until the 100 ms poll timeout expired and only then
+    was the request written. Every frame paid that delay, capping wlroots
+    capture at roughly 10 FPS regardless of the encoder or USB transport. The
+    loop now flushes before prepare_read and poll, matching the ordering of
+    wayland_client::EventQueue::blocking_dispatch; the KWin event pump had the
+    same flush-after-poll ordering and is fixed too.
+  * Reported by @TinusgragLin in #109; the issue is left open pending
+    confirmation.
+  * Bump version to 0.39.2 across all packages; Android versionCode 183.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 27 Oct 2026 00:00:00 +0300
+
 orbiscreen (0.39.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.39.1 for Ubuntu noble.

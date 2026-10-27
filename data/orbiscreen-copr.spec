@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.39.1
+%global version 0.39.2
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -147,6 +147,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Tue Oct 27 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.2-1
+- Release 0.39.2: flush the wlroots screencopy request before polling for events so frames are no longer delayed by the poll timeout; reported by @TinusgragLin in #109
+
 * Sun Oct 25 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.1-1
 - Release 0.39.1: keep paired Android clients working across the host certificate rotation (own long-lived HTTPS identity and one-tap re-confirmation), and bump tokio to 1.53.3; reported and fixed by @Bulrok in #107 (PR #108)
 

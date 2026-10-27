@@ -1018,6 +1018,7 @@ fn pump_events(
             break;
         }
 
+        let _ = conn.flush();
         let Some(guard) = conn.prepare_read() else {
             std::thread::sleep(Duration::from_millis(10));
             continue;
@@ -1038,7 +1039,6 @@ fn pump_events(
                 }
             }
         }
-        let _ = conn.flush();
     }
     ended.store(true, Ordering::Relaxed);
     ended_notify.notify_one();
