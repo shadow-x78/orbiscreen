@@ -138,7 +138,7 @@ impl Stats {
         }
     }
 
-    fn note_frame(&self) {
+    pub fn note_frame(&self) {
         self.frames_forwarded.fetch_add(1, Ordering::Relaxed);
     }
 

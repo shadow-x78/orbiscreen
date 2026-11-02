@@ -48,6 +48,8 @@ pub struct HubConfig {
     pub refresh_hz: u32,
     pub default_width: u32,
     pub default_height: u32,
+    pub stats: std::sync::Arc<orbiscreen_transport::Stats>,
+    pub encoder_in_use: Arc<std::sync::RwLock<Option<&'static str>>>,
 }
 
 struct Session {
@@ -662,6 +664,9 @@ async fn open_session(
     })
     .map_err(|e| e.to_string())?;
     let encoder_name = encoder_label(encoder.kind());
+    if let Ok(mut slot) = cfg.encoder_in_use.write() {
+        *slot = Some(encoder_name);
+    }
     let mut encoded_rx = encoder
         .subscribe()
         .ok_or_else(|| "encoder returned no rx".to_string())?;
@@ -676,6 +681,7 @@ async fn open_session(
 
     let (video_tx, _) = broadcast::channel::<H264Packet>(64);
     let video_out = video_tx.clone();
+    let stats_for_frames = std::sync::Arc::clone(&cfg.stats);
     let video_pump_handle = tokio::spawn(async move {
         let mut ts_base: Option<u64> = None;
         while let Some(chunk) = encoded_rx.recv().await {
@@ -685,6 +691,9 @@ async fn open_session(
                 is_keyframe: chunk.is_keyframe,
                 pts_ns: chunk.pts_ns.saturating_sub(base),
             };
+            if video_out.receiver_count() > 0 {
+                stats_for_frames.note_frame();
+            }
             let _ = video_out.send(pkt);
         }
     });
@@ -1303,6 +1312,8 @@ mod tests {
             refresh_hz: 60,
             default_width: w,
             default_height: h,
+            stats: std::sync::Arc::new(orbiscreen_transport::Stats::default()),
+            encoder_in_use: std::sync::Arc::new(std::sync::RwLock::new(None)),
         }
     }
 

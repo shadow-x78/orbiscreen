@@ -104,6 +104,16 @@ fn first_available_element(kind: EncoderKind) -> Option<&'static str> {
         .find(|name| element_available(name))
 }
 
+fn hardware_candidate_list() -> String {
+    EncoderKind::Nvenc
+        .gst_candidates()
+        .iter()
+        .chain(EncoderKind::Vaapi.gst_candidates().iter())
+        .copied()
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 fn detect_available(preferred: EncoderKind) -> (EncoderKind, &'static str) {
     let search_order = match preferred {
         EncoderKind::Auto | EncoderKind::Nvenc => {
@@ -116,7 +126,8 @@ fn detect_available(preferred: EncoderKind) -> (EncoderKind, &'static str) {
         if let Some(element) = first_available_element(kind) {
             if kind == EncoderKind::X264 && preferred != EncoderKind::X264 {
                 warn!(
-                    "hardware H.264 encoder not found (tried nvh264enc, nvcudah264enc, vah264enc, vaapih264enc); falling back to software x264, expect high encode latency at 1440p+"
+                    "no hardware H.264 encoder available (tried {}); using software x264enc, expect high encode latency at 1440p and above",
+                    hardware_candidate_list()
                 );
             }
             return (kind, element);

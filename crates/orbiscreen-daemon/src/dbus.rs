@@ -14,6 +14,7 @@ pub struct DaemonHandles {
     pub stats: Arc<Stats>,
     pub config: std::sync::RwLock<Config>,
     pub encoder: &'static str,
+    pub encoder_in_use: Arc<std::sync::RwLock<Option<&'static str>>>,
     pub capture_backend: &'static str,
     pub shutdown_tx: tokio::sync::watch::Sender<bool>,
     pub displays: Option<orbiscreen_transport::DisplayCtl>,
@@ -114,7 +115,13 @@ impl OrbiscreenDbusServer {
             "usb_devices": self.handles.stats.usb_devices(),
             "usb_connected_devices": self.handles.stats.usb_connected_names(),
             "usb_aoa_ready": self.handles.stats.is_usb_aoa_ready(),
-            "encoder": self.handles.encoder,
+            "encoder": self
+                .handles
+                .encoder_in_use
+                .read()
+                .ok()
+                .and_then(|slot| *slot)
+                .unwrap_or(self.handles.encoder),
             "capture_backend": self.handles.capture_backend,
             "display_width": dw,
             "display_height": dh,
@@ -599,6 +606,7 @@ mod tests {
             stats: Arc::new(Stats::default()),
             config: std::sync::RwLock::new(Config::default()),
             encoder: "x264",
+            encoder_in_use: Arc::new(std::sync::RwLock::new(None)),
             capture_backend: "Wayland",
             shutdown_tx,
             displays: None,

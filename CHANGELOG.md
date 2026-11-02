@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.39.4] - 2026-11-02
+
+### Fixed
+- fix: report `frames_forwarded` and the encoder actually in use in per-client mode, and stop the software x264 fallback from reading as an error
+
+Two reporting problems made [#110](https://github.com/shadow-x78/orbiscreen/issues/110) point at the encoder when the numbers said nothing of the sort.
+
+The default per-client mode created the transport video channel and immediately dropped its only sender (`drop(video_tx)` in `run_start_per_client`). The transport's stats pump reads that channel, so `recv()` returned `None` on the first poll, the pump exited, and `note_frame()` was never called: `GetStatus.frames_forwarded` was **always 0**, no matter how much video was on the wire. The per-session video pump now counts each chunk it forwards while a viewer is attached, so the field reflects real traffic in per-client mode.
+
+`GetStatus.encoder` also always reported the configured preference (`auto`) instead of the encoder in use, even though the troubleshooting guide says it names the encoder. The hub now records the detected encoder when a session opens, and the daemon reports that.
+
+- The per-client mode counts forwarded frames in the session video pump, so `frames_forwarded` is no longer stuck at 0.
+- `GetStatus.encoder` now reports the detected encoder (`x264`, `nvenc`, `vaapi`) once a session is open, falling back to the configured preference before then.
+- The software fallback warning no longer reads as a failure: it says a hardware encoder was not available and that `x264enc` is being used, with the tried elements listed as before.
+- Version bumped to 0.39.4 across the Cargo workspace, Android (`versionCode` 185), PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.39.3] - 2026-11-02
 
 ### Fixed

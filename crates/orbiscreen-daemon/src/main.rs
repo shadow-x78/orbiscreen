@@ -1492,15 +1492,19 @@ async fn run_start_per_client(
     );
     let encode_kind =
         EncoderKind::parse(&cfg.encode.preferred_encoder).unwrap_or(EncoderKind::Auto);
+    let stats = std::sync::Arc::new(Stats::default());
+    let encoder_in_use: std::sync::Arc<std::sync::RwLock<Option<&'static str>>> =
+        std::sync::Arc::new(std::sync::RwLock::new(None));
     let displays = client_display::spawn_hub(client_display::HubConfig {
         encode_kind,
         bitrate_kbps: cfg.encode.bitrate_kbps,
         refresh_hz: cfg.display.refresh_rate_hz,
         default_width: cfg.display.width,
         default_height: cfg.display.height,
+        stats: std::sync::Arc::clone(&stats),
+        encoder_in_use: std::sync::Arc::clone(&encoder_in_use),
     });
 
-    let stats = std::sync::Arc::new(Stats::default());
     let (shutdown_tx, mut shutdown_rx) = tokio::sync::watch::channel(false);
     let shutdown_keepalive = shutdown_tx.clone();
     let pairing = std::sync::Arc::new(
@@ -1513,6 +1517,7 @@ async fn run_start_per_client(
         stats: stats.clone(),
         config: std::sync::RwLock::new(cfg.clone()),
         encoder: "auto",
+        encoder_in_use: std::sync::Arc::clone(&encoder_in_use),
         capture_backend: "kwin-virtual",
         shutdown_tx,
         displays: Some(displays.clone()),
@@ -3130,6 +3135,7 @@ async fn run_start(
         stats: stats.clone(),
         config: std::sync::RwLock::new(cfg.clone()),
         encoder: encoder_name,
+        encoder_in_use: std::sync::Arc::new(std::sync::RwLock::new(Some(encoder_name))),
         capture_backend: backend_name,
         shutdown_tx,
         displays: None,
