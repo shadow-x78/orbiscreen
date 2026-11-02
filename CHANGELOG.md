@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.39.3] - 2026-11-02
+
+### Fixed
+- fix: keep the KWin virtual output beside the real outputs instead of on top of the primary screen
+
+Plasma 6.8 rewrote `kscreen-doctor` and it no longer prints a plain `enabled` / `disabled`
+line for outputs that do not advertise the `Disable` capability: it prints
+`disable unsupported` instead, because such an output cannot be turned off. Every output on
+the reporter's system (DP-1, HDMI-A-1, and the KWin virtual output) reports that capability
+as unsupported, so `parse_kscreen_outputs` saw **no enabled outputs at all**.
+
+Two things then went wrong. `next_available_output_x` filters on `enabled` and falls back to
+`0`, so the virtual display was enabled at `0,0` — exactly on top of the primary screen,
+which makes the tablet show a copy of the primary desktop instead of an independent one and
+disturbs which screen Plasma treats as primary, moving the panel to another screen.
+`output_uuid` and `select_tablet_output` also filter on `enabled`, so the KWin input
+devices were never bound and the daemon logged
+`KWin input bind found fewer than 3 OrbiScreen devices`.
+
+- `parse_kscreen_outputs` now treats `disable unsupported` as an enabled output, since an output that cannot be disabled is necessarily on.
+- `enabled` / `disabled` parsing is unchanged, so the output of older libkscreen versions still parses the same way.
+- Version bumped to 0.39.3 across the Cargo workspace, Android (`versionCode` 184), PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.39.2] - 2026-10-27
 
 ### Fixed

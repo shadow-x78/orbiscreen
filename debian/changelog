@@ -1,3 +1,23 @@
+orbiscreen (0.39.3~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.39.3 for Ubuntu noble.
+  * Fix: Plasma 6.8's rewritten kscreen-doctor no longer prints a plain
+    enabled/disabled line for outputs without the Disable capability; it
+    prints "disable unsupported" instead. Every output on the affected system
+    reports that, so the parser saw no enabled outputs, next_available_output_x
+    fell back to 0 and the KWin virtual output was placed at 0,0 on top of the
+    primary screen. The tablet then showed a copy of the primary desktop
+    instead of an independent display, Plasma's notion of the primary screen
+    was disturbed (the panel moved to another screen), and the KWin input
+    devices were never bound because output_uuid and select_tablet_output
+    filter on the same flag.
+  * The parser now treats "disable unsupported" as an enabled output, since an
+    output that cannot be disabled is necessarily on; enabled/disabled parsing
+    is unchanged for older libkscreen versions.
+  * Bump version to 0.39.3 across all packages; Android versionCode 184.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 02 Nov 2026 00:00:00 +0300
+
 orbiscreen (0.39.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.39.2 for Ubuntu noble.

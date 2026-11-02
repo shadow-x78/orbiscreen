@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.39.2
+%global version 0.39.3
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -147,6 +147,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Mon Nov 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.3-1
+- Release 0.39.3: Plasma 6.8's kscreen-doctor prints "disable unsupported" instead of enabled/disabled for outputs without the Disable capability, which left the parser with no enabled outputs and placed the KWin virtual output at 0,0 on top of the primary screen; treat that line as enabled so the virtual display sits beside the real outputs
+
 * Tue Oct 27 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.2-1
 - Release 0.39.2: flush the wlroots screencopy request before polling for events so frames are no longer delayed by the poll timeout; reported by @TinusgragLin in #109
 

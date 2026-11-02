@@ -397,6 +397,10 @@ pub fn parse_kscreen_outputs(text: &str) -> Vec<KscreenOutput> {
             if let Some(cur) = current.as_mut() {
                 cur.enabled = false;
             }
+        } else if line.trim() == "disable unsupported" {
+            if let Some(cur) = current.as_mut() {
+                cur.enabled = true;
+            }
         } else if let Some(geom) = line.trim().strip_prefix("Geometry: ") {
             let mut parts = geom.split_whitespace();
             if let (Some(pos), Some(size)) = (parts.next(), parts.next()) {
@@ -1083,6 +1087,37 @@ mod tests {
         assert!(raw.contains("eDP-1"));
         assert!(!forget_saved_virtual_output(&path, VIRTUAL_OUTPUT_CONNECTOR).unwrap());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn parse_kscreen_doctor_outputs_without_disable_capability() {
+        let text = "\
+\u{1b}[01;32mOutput: \u{1b}[0;0m1 Virtual-Orbi-9d41ad1e 176a146e-5197-4e7d-9630-984a72a2ca0c
+\t\u{1b}[01;33mdisable unsupported\u{1b}[0;0m
+\t\u{1b}[01;32mconnected\u{1b}[0;0m
+\t\u{1b}[01;32mpriority 3\u{1b}[0;0m
+\tGeometry: 3360,0 1920x1200
+Output: 2 DP-1 3356e458-e8d2-4a69-9e9f-2cfde533f035
+\tdisable unsupported
+\tconnected
+\tGeometry: 0,0 1920x1080
+Output: 3 HDMI-A-1 720ddf38-49b9-4d4c-bb53-5c965c3052f5
+\tdisable unsupported
+\tconnected
+\tGeometry: 1920,0 1440x900
+";
+        let outs = parse_kscreen_outputs(text);
+        assert_eq!(outs.len(), 3);
+        assert!(outs.iter().all(|o| o.enabled));
+        assert_eq!(outs[0].geometry, Some((3360, 0, 1920, 1200)));
+        let max_x = outs
+            .iter()
+            .filter(|o| o.name != "Virtual-Orbi-9d41ad1e")
+            .filter_map(|o| o.geometry)
+            .map(|(x, _, w, _)| x + w as i32)
+            .max()
+            .unwrap_or(0);
+        assert_eq!(max_x, 3360);
     }
 
     #[test]
