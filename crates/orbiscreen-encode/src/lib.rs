@@ -267,8 +267,13 @@ fn infinite_gop_requested() -> bool {
 }
 
 fn configure_infinite_gop(encoder: &gstreamer::Element) {
-    set_str_if_present(encoder, "intra-refresh", "true");
-    let on_demand = infinite_gop_requested();
+    configure_gop(encoder, infinite_gop_requested());
+}
+
+fn configure_gop(encoder: &gstreamer::Element, on_demand: bool) {
+    if on_demand {
+        set_str_if_present(encoder, "intra-refresh", "true");
+    }
     if let Some(max) = max_u32_property(encoder, "key-int-max") {
         let value = if on_demand {
             if max == 0 {
@@ -844,9 +849,26 @@ mod tests {
             Ok(enc) => enc,
             Err(_) => return,
         };
-        configure_infinite_gop(&encoder);
+        configure_gop(&encoder, true);
         assert!(encoder.property::<bool>("intra-refresh"));
         assert!(encoder.property::<u32>("key-int-max") > 60);
+    }
+
+    #[test]
+    fn default_gop_leaves_intra_refresh_off() {
+        init().unwrap();
+        let encoder = match make_element("x264enc") {
+            Ok(enc) => enc,
+            Err(_) => return,
+        };
+        configure_gop(&encoder, false);
+        assert!(
+            !encoder.property::<bool>("intra-refresh"),
+            "intra-refresh must stay off unless ORBISCREEN_INFINITE_GOP is set: with it on, \
+             x264enc emits no IDR after the first frame and force-key-unit only marks a \
+             P-frame, so clients can never recover from a lost keyframe"
+        );
+        assert!(encoder.property::<u32>("key-int-max") <= 120);
     }
 
     fn try_live_encoder(kind: EncoderKind) -> Option<Encoder> {
@@ -1003,6 +1025,87 @@ mod tests {
             encoder.request_keyframe();
             encoder.stop();
         }
+    }
+
+    fn nal_types(au: &[u8]) -> Vec<u8> {
+        let mut types = Vec::new();
+        let mut i = 0;
+        while i + 3 < au.len() {
+            let sc = if au[i] == 0 && au[i + 1] == 0 && au[i + 2] == 1 {
+                Some(3)
+            } else if i + 4 < au.len()
+                && au[i] == 0
+                && au[i + 1] == 0
+                && au[i + 2] == 0
+                && au[i + 3] == 1
+            {
+                Some(4)
+            } else {
+                None
+            };
+            if let Some(n) = sc {
+                if i + n < au.len() {
+                    types.push(au[i + n] & 0x1f);
+                }
+                i += n;
+            } else {
+                i += 1;
+            }
+        }
+        types
+    }
+
+    #[test]
+    fn forced_keyframe_is_a_real_idr() {
+        init().unwrap();
+        let mut encoder = match Encoder::new(EncodeParams {
+            kind: EncoderKind::X264,
+            bitrate_kbps: 16000,
+            width: 640,
+            height: 360,
+            framerate: 60,
+            vbv_frames: 1,
+        }) {
+            Ok(e) => e,
+            Err(_) => return,
+        };
+        assert!(
+            !encoder.encoder.property::<bool>("intra-refresh"),
+            "intra-refresh must be off by default so force-key-unit yields a real IDR"
+        );
+        let mut rx = encoder.subscribe().unwrap();
+        let frame = vec![40u8; 640 * 360 * 4];
+        let mut forced_ids = Vec::new();
+        let mut idx = 0u64;
+        let mut forced = false;
+        let start = std::time::Instant::now();
+        while start.elapsed() < std::time::Duration::from_millis(1500) {
+            if idx == 30 && !forced {
+                std::thread::sleep(std::time::Duration::from_millis(120));
+                encoder.request_keyframe();
+                forced = true;
+            }
+            let _ = encoder.push_frame(&frame, 640, 360, idx * 16_666_666);
+            idx += 1;
+            while let Ok(chunk) = rx.try_recv() {
+                if chunk.is_keyframe {
+                    forced_ids.push((idx, nal_types(&chunk.bytes).contains(&5)));
+                }
+            }
+            std::thread::sleep(std::time::Duration::from_millis(8));
+        }
+        assert!(
+            forced_ids.len() >= 2,
+            "expected an opening IDR and a forced one, got {forced_ids:?}"
+        );
+        for (at, has_idr) in &forced_ids {
+            assert!(
+                *has_idr,
+                "keyframe flagged at frame {at} carries no IDR NAL (type 5): clients cannot \
+                 decode it, which leaves the tablet black and stuck requesting IDRs"
+            );
+        }
+        encoder.stop();
     }
 
     #[test]

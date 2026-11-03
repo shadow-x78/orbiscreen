@@ -1,3 +1,23 @@
+orbiscreen (0.39.5~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.39.5 for Ubuntu noble.
+  * Fix: configure_infinite_gop set intra-refresh=true on x264enc
+    unconditionally, not only with ORBISCREEN_INFINITE_GOP=1. With
+    intra-refresh on, x264enc emits a real IDR only for the first frame, and
+    GstForceKeyUnit afterwards yields a frame that h264parse flags as a
+    keyframe but that carries no IDR NAL, only P-slices (measured 389 B of
+    [9,7,8,6,1,1,1,1] versus 7065 B of [9,7,8,6,5,5,5,5] for a real IDR).
+    Clients clear their wait-for-keyframe state on that flag, hand the access
+    unit to MediaCodec, get nothing decodable, and request another IDR, so the
+    tablet stayed black while the host logged an IDR every ~300 ms. Hardware
+    encoders masked this because they honour force-key-unit with a real IDR.
+  * intra-refresh is now enabled only with ORBISCREEN_INFINITE_GOP; the
+    default keeps periodic IDRs every 120 frames plus real on-demand IDRs.
+  * Adds a regression test that fails if intra-refresh is enabled again.
+  * Bump version to 0.39.5 across all packages; Android versionCode 186.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 03 Nov 2026 00:00:00 +0300
+
 orbiscreen (0.39.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.39.4 for Ubuntu noble.

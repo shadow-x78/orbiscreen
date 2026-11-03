@@ -2,7 +2,7 @@
 
 # Frame Transport - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.39.4-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.39.5-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -33,8 +33,8 @@ How a coded picture gets from the host encoder to the tablet decoder. Wi-Fi: And
 | **Keyframe** | In this codebase, GStreamer's `!DELTA_UNIT` flag. A force-key-unit request is meant to produce an IDR. The reliable stream carries those AUs. |
 | **SPS** | Sequence Parameter Set. Profile/level, coded size, the `avc1.…` codec string. Not picture data. |
 | **PPS** | Picture Parameter Set. Entropy mode and related defaults. Refers to an SPS by id. |
-| **GOP** | Group of pictures: an IDR plus the P-frames that depend on it. Orbiscreen uses an **infinite GOP**: no periodic IDR. Refresh is intra-refresh plus on-demand IDR. |
-| **Intra-refresh** | Each P-frame includes a moving strip of intra macroblocks. Over about a second the whole picture is refreshed without a giant IDR. A lost P-frame can heal as the wave passes. |
+| **GOP** | Group of pictures: an IDR plus the P-frames that depend on it. Orbiscreen emits a periodic IDR every 120 frames and an on-demand IDR whenever a client asks, so a lost keyframe is always recoverable. `ORBISCREEN_INFINITE_GOP=1` switches to an unbounded GOP with intra-refresh and IDR strictly on demand. |
+| **Intra-refresh** | Each P-frame includes a moving strip of intra macroblocks. Over about a second the whole picture is refreshed without a giant IDR. A lost P-frame can heal as the wave passes. Only enabled with `ORBISCREEN_INFINITE_GOP=1`: while it is on, `x264enc` emits no IDR after the first frame and a forced keyframe is just a P-frame, which a client cannot start decoding from. |
 | **VBV / CPB** | Video / coded picture buffer. Caps how large one AU may be. Orbiscreen sizes this to **one frame** of the CBR target so an IDR cannot occupy hundreds of milliseconds of wire. |
 | **Datagram** | Unreliable, unordered-enough packet: UDP, or a WebTransport QUIC datagram. A late frame can be dropped. Loss is an erasure. |
 | **Reliable stream** | Ordered, retransmitted bytes: WebTransport control stream, or TCP `GET /idr`. Used for IDR + SPS/PPS so a recovery frame arrives whole. |
@@ -60,7 +60,7 @@ flowchart LR
    - Android Wi-Fi: UDP Hello (token + session id) → Hello-Ack → DPLPMTUD until a datagram size is confirmed (up to ~1472 B). Then `GET /idr` on TCP for keys.
    - Android USB: AOA accessory only (no `adb reverse`). HTTP for session/input rides the AOA TCP proxy. Video is a native AOA stream: `OPEN|VIDEO` with the session id, host replies with an 8-byte clock ack, then length-prefixed `encode_video` AUs. If native video handshake fails, `GET /au` on that same proxy feeds MediaCodec. MPEG-TS/ExoPlayer is not used on USB.
    - Web: HTTPS page, WebTransport with `serverCertificateHashes`, Hello on the bidi stream → Hello-Ack. Video P-frames use QUIC datagrams (capped ~1024 B).
-3. **Encode.** Hardware H.264 preferred (VA-API / NVENC), CBR 8 Mbps, no B-frames, infinite GOP, intra-refresh, one-frame VBV. `h264parse config-interval=1` (and `repeat-sequence-header` when present) so an IDR should carry SPS/PPS. `is_keyframe` is `!DELTA_UNIT`.
+3. **Encode.** Hardware H.264 preferred (VA-API / NVENC), CBR 8 Mbps, no B-frames, periodic IDR every 120 frames, one-frame VBV. `h264parse config-interval=1` (and `repeat-sequence-header` when present) so an IDR should carry SPS/PPS. `is_keyframe` is `!DELTA_UNIT`. Intra-refresh is off unless `ORBISCREEN_INFINITE_GOP=1`: with it on, a forced keyframe is not an IDR and clients cannot recover.
 4. **Split by `video_carrier` (Wi-Fi) or USB lane.**
    - **Keyframe** → reliable: `encode_video` (length-prefixed WT frame). If SPS/PPS are missing, the last cached pair is prepended (`with_parameter_sets`). Datagram `seq` does not increment. On USB the same blob is packed into AOA frames (max 16 379-byte payload, one USB URB each) and written on the **priority** queue.
    - **P-frame** → datagrams on Wi-Fi: split into `frag` / `frags` at the path MTU. `seq` increments by one per P-AU. On USB the packed AU is `try_send` on a depth-2 video queue; if that is full the P-frame is dropped and an IDR is requested (USB bulk does not lose packets, a full queue means the tablet is behind).
@@ -69,7 +69,7 @@ flowchart LR
    - P-datagrams are reassembled (`DatagramAssembler` / `AuReorder`). In-order `seq` is fed to the decoder. A one-seq hole is held briefly (~48 ms) in case of reorder.
 6. **Idle.** Client ping ~500 ms. Android UDP expires after ~4-5 s silence. The last viewer of a session tears down that virtual output.
 
-On a clean LAN the picture is almost all P-datagrams after the join IDR. Intra-refresh keeps quality up without periodic keyframes.
+On a clean LAN the picture is almost all P-datagrams after the join IDR. A periodic IDR every 120 frames bounds recovery time; `ORBISCREEN_INFINITE_GOP=1` replaces it with intra-refresh for the reliable transports.
 
 ---
 
@@ -95,7 +95,7 @@ Without that reset, `lastSeq` stayed on the old GOP, every later P-frame looked 
 ### What a lost packet does *not* do
 
 - It does not close the session. Ping/PMTU/Hello stay on their own packets.
-- It does not wait for the lost P-frame. That frame is gone; intra-refresh and the next IDR repair the picture.
+- It does not wait for the lost P-frame. That frame is gone; the next periodic IDR repairs the picture (or intra-refresh does, when `ORBISCREEN_INFINITE_GOP=1`).
 - USB/AOA native video is ordered bulk, not datagrams. A late picture is a full write queue, not a lost packet: drop that P-frame, hold until IDR. MPEG-TS `GET /stream` remains the fallback and still cannot drop mid-mux.
 
 ### Test hooks
@@ -106,4 +106,4 @@ Without that reset, `lastSeq` stayed on the old GOP, every later P-frame looked 
 | `ORBISCREEN_UDP_DROP_ABOVE` | Pretend larger datagrams were lost (PMTU) |
 | `ORBISCREEN_UDP_MAX_DATAGRAM` | Cap of the PMTU search |
 
-P-frame datagrams use systematic Cauchy Reed-Solomon over GF(256). `frags` is the data count k. Parity uses `frag >= frags`. Ladder: 1-3 → no FEC (a lost tiny AU is healed by intra-refresh on x264, or by the IDR-on-gap path on VA-API, which has no `intra-refresh` property); 4-16 → +2; 17-64 → +3; 65+ → +4. IDRs stay on the reliable stream and are not FEC'd. When FEC is on, the AU is prefixed with a 4-byte length so a reconstructed last shard can be trimmed.
+P-frame datagrams use systematic Cauchy Reed-Solomon over GF(256). `frags` is the data count k. Parity uses `frag >= frags`. Ladder: 1-3 → no FEC (a lost tiny AU is healed by the next periodic IDR, or by the IDR-on-gap path when the client reports the hole); 4-16 → +2; 17-64 → +3; 65+ → +4. IDRs stay on the reliable stream and are not FEC'd. When FEC is on, the AU is prefixed with a 4-byte length so a reconstructed last shard can be trimmed.

@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.39.4
+%global version 0.39.5
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -147,6 +147,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Tue Nov 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.5-1
+- Release 0.39.5: intra-refresh was forced on x264enc unconditionally, so after the first frame every forced keyframe was a P-frame flagged as a keyframe; Android cleared its wait-for-keyframe state, MediaCodec could not decode, and the tablet stayed black while the host logged an IDR every ~300 ms. intra-refresh is now opt-in via ORBISCREEN_INFINITE_GOP
+
 * Mon Nov 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.4-1
 - Release 0.39.4: per-client mode no longer leaves GetStatus.frames_forwarded stuck at 0 (the dropped sender exited the stats pump) and reports the encoder actually in use instead of the configured preference; the software x264 fallback warning no longer reads as an error
 

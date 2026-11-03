@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.39.5] - 2026-11-03
+
+### Fixed
+- fix: stop forcing intra-refresh on x264, which turned every on-demand keyframe into an undecodable P-frame
+
+`configure_infinite_gop` set `intra-refresh=true` on `x264enc` unconditionally, not only when `ORBISCREEN_INFINITE_GOP=1` opts into it. With intra-refresh on, `x264enc` emits a real IDR only for the very first frame: `GstForceKeyUnit` afterwards produces a frame that `h264parse` flags as a keyframe (no `DELTA_UNIT`) but that carries **no IDR NAL** — just P-slices. Measured at 1920x1080 the opening IDR is 7065 B with NAL types `[9,7,8,6,5,5,5,5]`, while a forced keyframe is 389 B with `[9,7,8,6,1,1,1,1]`.
+
+Clients trust that flag: the Android player clears its wait-for-keyframe state, feeds the access unit to `MediaCodec`, gets nothing decodable, and asks for another IDR. That is the loop in [#110](https://github.com/shadow-x78/orbiscreen/issues/110): the host logs `requested IDR from encoder` and `UDP IDR for session` every ~300 ms, `frames_forwarded` climbs, and the tablet stays black. Hardware encoders masked the bug because they honour force-key-unit with a real IDR.
+
+- `intra-refresh` is now set only when `ORBISCREEN_INFINITE_GOP` is enabled, so the default keeps periodic IDRs every 120 frames and real on-demand IDRs.
+- Splits the GOP configuration into `configure_gop(encoder, on_demand)` so the default and the opt-in paths are testable without environment variables.
+- Adds `forced_keyframe_is_a_real_idr`, which fails if intra-refresh is enabled again: it asserts that every keyframe the encoder flags carries an IDR NAL.
+- `docs/FRAME_TRANSPORT.md` and `_AR` describe the periodic-IDR default, the intra-refresh opt-in, and its incompatibility with on-demand IDR.
+- Version bumped to 0.39.5 across the Cargo workspace, Android (`versionCode` 186), PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.39.4] - 2026-11-02
 
 ### Fixed
