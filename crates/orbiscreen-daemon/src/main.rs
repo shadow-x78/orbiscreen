@@ -236,8 +236,12 @@ fn init_tracing(verbose: u8) {
         1 => Level::DEBUG,
         _ => Level::TRACE,
     };
-    let filter_str = format!("{},zbus=error,ashpd=error", level.as_str());
+    let filter_str = format!(
+        "{},zbus=error,ashpd=error,wayland_backend=off",
+        level.as_str()
+    );
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(filter_str));
+    let _ = tracing_log::LogTracer::init();
     let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }
 
@@ -3562,6 +3566,44 @@ async fn run_start(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn log_records_reach_tracing() {
+        use std::io::Write;
+        use std::sync::{Arc, Mutex};
+
+        #[derive(Clone)]
+        struct Buf(Arc<Mutex<Vec<u8>>>);
+        impl Write for Buf {
+            fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+                self.0
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .extend_from_slice(bytes);
+                Ok(bytes.len())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+
+        let buf = Arc::new(Mutex::new(Vec::new()));
+        let sink = Buf(buf.clone());
+        let subscriber = tracing_subscriber::fmt()
+            .with_ansi(false)
+            .with_writer(move || sink.clone())
+            .finish();
+        let _ = tracing_log::LogTracer::init();
+        tracing::subscriber::with_default(subscriber, || {
+            log::error!("wayland backend probe");
+        });
+        let text =
+            String::from_utf8_lossy(&buf.lock().unwrap_or_else(|p| p.into_inner())).into_owned();
+        assert!(
+            text.contains("wayland backend probe"),
+            "log records must reach tracing: {text:?}"
+        );
+    }
 
     #[test]
     fn default_config_loads_when_file_absent() {

@@ -1,3 +1,27 @@
+orbiscreen (0.39.6~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.39.6 for Ubuntu noble.
+  * Fix: AOA proxy streams leaked because each stream maps to a keep-alive TCP
+    connection to the local daemon, and when the client went away the daemon
+    kept the connection open, so the host reader never saw EOF and the entry
+    stayed in the map. The map filled to its 48-entry bound and then evicted
+    one stream per new connection, logging "AOA stream limit reached"
+    indefinitely. Streams now carry a last-activity stamp and are reaped after
+    30 s idle; the eviction warning is rate-limited to the first three.
+  * Unplugging the cable is no longer reported as a fault: ENODEV and ESHUTDOWN
+    log "accessory disconnected" at info instead of a bulk read error, and a
+    draining endpoint logs one writer warning instead of one per packet.
+  * The bare "Io error: Broken pipe" line came from wayland-backend, which
+    falls back to eprintln! without its log feature. The log feature is now
+    enabled, a tracing-log bridge is installed, and wayland_backend is muted by
+    default since Orbiscreen already reports those failures with context.
+  * The Android input dispatcher retried the input WebSocket on every input
+    event; retries are now 1.5 s apart, which stops the AOA stream churn at the
+    source.
+  * Bump version to 0.39.6 across all packages; Android versionCode 187.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 04 Nov 2026 00:00:00 +0300
+
 orbiscreen (0.39.5~ubuntunoble1) noble; urgency=medium
 
   * Release 0.39.5 for Ubuntu noble.

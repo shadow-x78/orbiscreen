@@ -27,6 +27,8 @@ orbiscreen-transport = { path = "../orbiscreen-transport" }
 tokio = { workspace = true }
 clap = { workspace = true }
 tracing = { workspace = true }
+tracing-log = { workspace = true }
+log = { workspace = true }
 tracing-subscriber = { workspace = true }
 hostname = { workspace = true }
 zbus = { workspace = true }

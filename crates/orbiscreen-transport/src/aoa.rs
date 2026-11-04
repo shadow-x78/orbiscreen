@@ -4,7 +4,7 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
@@ -64,10 +64,45 @@ type StreamEntry = (
     std::sync::mpsc::SyncSender<Vec<u8>>,
     TcpStream,
     Arc<AtomicBool>,
+    Arc<AtomicU64>,
 );
 type StreamMap = Arc<Mutex<HashMap<u16, StreamEntry>>>;
 
 const MAX_AOA_STREAMS: usize = 48;
+const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+const EVICTION_REPORT_INTERVAL: Duration = Duration::from_secs(60);
+static EVICTION_REPORTS: AtomicUsize = AtomicUsize::new(0);
+static LAST_EVICTION_REPORT_MS: AtomicU64 = AtomicU64::new(0);
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+fn touch(activity: &AtomicU64) {
+    activity.store(now_ms(), Ordering::Relaxed);
+}
+
+fn reap_idle_streams(
+    map: &mut HashMap<u16, StreamEntry>,
+    prio_tx: &std::sync::mpsc::SyncSender<Vec<u8>>,
+) {
+    let cutoff = now_ms().saturating_sub(STREAM_IDLE_TIMEOUT.as_millis() as u64);
+    let stale: Vec<u16> = map
+        .iter()
+        .filter(|(_, (_, _, _, activity))| activity.load(Ordering::Relaxed) < cutoff)
+        .map(|(id, _)| *id)
+        .collect();
+    for id in stale {
+        if let Some((_, stream, _, _)) = map.remove(&id) {
+            let _ = stream.shutdown(std::net::Shutdown::Both);
+            send_proxy_close(id, prio_tx);
+            debug!(stream_id = id, "reaped idle AOA proxy stream");
+        }
+    }
+}
 
 const ANDROID_VENDORS: &[u16] = &[
     0x18d1, 0x17ef, 0x2717, 0x04e8, 0x12d1, 0x22b8, 0x22d9, 0x2d95, 0x1004, 0x0fce, 0x0b05, 0x0bb4,
@@ -84,7 +119,7 @@ fn enforce_stream_limit(
         return None;
     }
     let oldest = map.keys().copied().filter(|id| *id != incoming).min()?;
-    map.remove(&oldest).map(|(_, sock, _)| (oldest, sock))
+    map.remove(&oldest).map(|(_, sock, _, _)| (oldest, sock))
 }
 
 const CONTROL_SEND_TIMEOUT: Duration = Duration::from_millis(500);
@@ -781,32 +816,51 @@ fn finish_proxy_stream(
     }
     let (tcp_tx, tcp_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(64);
     let is_video = Arc::new(AtomicBool::new(false));
+    let activity = Arc::new(AtomicU64::new(now_ms()));
     let Ok(stream_for_map) = tcp_stream.try_clone() else {
         let _ = tcp_stream.shutdown(std::net::Shutdown::Both);
         return;
     };
     {
         let mut map = tcp_streams.lock().unwrap_or_else(|p| p.into_inner());
+        reap_idle_streams(&mut map, prio_tx);
         if let Some((evicted_stream_id, evicted)) =
             enforce_stream_limit(&mut map, stream_id, MAX_AOA_STREAMS)
         {
             let _ = evicted.shutdown(std::net::Shutdown::Both);
             send_proxy_close(evicted_stream_id, prio_tx);
-            warn!(
-                evicted_stream_id,
-                stream_id,
-                open_streams = map.len(),
-                max_streams = MAX_AOA_STREAMS,
-                "AOA stream limit reached; evicted the oldest stream"
-            );
+            let suppressed = EVICTION_REPORTS.fetch_add(1, Ordering::Relaxed);
+            let now = now_ms();
+            let last = LAST_EVICTION_REPORT_MS.load(Ordering::Relaxed);
+            if now.saturating_sub(last) >= EVICTION_REPORT_INTERVAL.as_millis() as u64 {
+                LAST_EVICTION_REPORT_MS.store(now, Ordering::Relaxed);
+                EVICTION_REPORTS.store(0, Ordering::Relaxed);
+                warn!(
+                    evicted_stream_id,
+                    stream_id,
+                    open_streams = map.len(),
+                    max_streams = MAX_AOA_STREAMS,
+                    suppressed,
+                    "AOA stream limit reached; evicted the oldest stream"
+                );
+            } else {
+                debug!(
+                    evicted_stream_id,
+                    stream_id, "AOA stream limit reached; evicted the oldest stream"
+                );
+            }
         }
-        map.insert(stream_id, (tcp_tx, stream_for_map, is_video.clone()));
+        map.insert(
+            stream_id,
+            (tcp_tx, stream_for_map, is_video.clone(), activity.clone()),
+        );
     }
 
     let prio_tx_clone = prio_tx.clone();
     let video_tx_clone = video_tx.clone();
     let running_tcp = running.clone();
     let tcp_streams_reader = tcp_streams.clone();
+    let activity_reader = activity.clone();
     let mut tcp_read_stream = match tcp_stream.try_clone() {
         Ok(s) => s,
         Err(_) => {
@@ -822,6 +876,7 @@ fn finish_proxy_stream(
             match tcp_read_stream.read(&mut buf) {
                 Ok(0) => break,
                 Ok(n) => {
+                    touch(&activity_reader);
                     let mut frame = Vec::with_capacity(FRAME_HEADER_LEN + n);
                     frame.extend_from_slice(&stream_id.to_be_bytes());
                     frame.push(FRAME_FLAG_DATA);
@@ -853,6 +908,7 @@ fn finish_proxy_stream(
     });
 
     let running_writer = running.clone();
+    let activity_writer = activity.clone();
     std::thread::spawn(move || {
         while running_writer.load(Ordering::Relaxed) {
             match tcp_rx.recv_timeout(Duration::from_millis(200)) {
@@ -860,6 +916,7 @@ fn finish_proxy_stream(
                     if tcp_stream.write_all(&bytes).is_err() {
                         break;
                     }
+                    touch(&activity_writer);
                 }
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
                 Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
@@ -968,8 +1025,10 @@ pub fn run_accessory_bridge(
             drop(prio_rx);
 
             if !write_aoa_chunk(fd_writer, out_ep, &chunk, &running_writer) {
-                warn!("AOA writer could not send a packet; dropping it and continuing");
                 consecutive_write_failures = consecutive_write_failures.saturating_add(1);
+                if consecutive_write_failures == 1 {
+                    warn!("AOA writer could not send a packet; retrying until the lane drains");
+                }
                 if consecutive_write_failures >= WRITE_FAILURE_LIMIT {
                     warn!(
                         failures = consecutive_write_failures,
@@ -1019,7 +1078,12 @@ pub fn run_accessory_bridge(
                 std::thread::sleep(Duration::from_millis(sleep_ms));
                 continue;
             }
-            warn!("USB bulk read error on accessory: {err}");
+            match err.raw_os_error() {
+                Some(libc::ENODEV) | Some(libc::ESHUTDOWN) => {
+                    info!("accessory disconnected; releasing the AOA bridge");
+                }
+                _ => warn!("USB bulk read error on accessory: {err}"),
+            }
             break;
         }
         consecutive_proto_errs = 0;
@@ -1087,7 +1151,8 @@ pub fn run_accessory_bridge(
                     );
                 } else if (flags & FRAME_FLAG_DATA) != 0 {
                     let map = tcp_streams.lock().unwrap_or_else(|p| p.into_inner());
-                    if let Some((tx, _, is_video)) = map.get(&stream_id) {
+                    if let Some((tx, _, is_video, activity)) = map.get(&stream_id) {
+                        touch(activity);
                         if is_video_request(&payload) {
                             is_video.store(true, Ordering::Relaxed);
                         }
@@ -1097,7 +1162,7 @@ pub fn run_accessory_bridge(
                     }
                 } else if (flags & FRAME_FLAG_CLOSE) != 0 {
                     let mut map = tcp_streams.lock().unwrap_or_else(|p| p.into_inner());
-                    if let Some((_, stream, _)) = map.remove(&stream_id) {
+                    if let Some((_, stream, _, _)) = map.remove(&stream_id) {
                         let _ = stream.shutdown(std::net::Shutdown::Both);
                     }
                 }
@@ -1118,7 +1183,7 @@ pub fn run_accessory_bridge(
     running.store(false, Ordering::Relaxed);
     {
         let mut map = tcp_streams.lock().unwrap_or_else(|p| p.into_inner());
-        for (_, (_, stream, _)) in map.drain() {
+        for (_, (_, stream, _, _)) in map.drain() {
             let _ = stream.shutdown(std::net::Shutdown::Both);
         }
     }
@@ -1329,7 +1394,7 @@ mod tests {
         open_proxy_stream(port, 42, &streams, &prio_tx, &video_tx, &running);
         {
             let map = streams.lock().unwrap_or_else(|p| p.into_inner());
-            let (tx, _, is_video) = map.get(&42).expect("stream registered");
+            let (tx, _, is_video, _) = map.get(&42).expect("stream registered");
             assert!(!is_video.load(Ordering::Relaxed));
             let tx = tx.clone();
             drop(map);
@@ -1461,7 +1526,15 @@ mod tests {
             });
             let sock = std::net::TcpStream::connect(addr).expect("connect");
             let (tx, _rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(1);
-            map.insert(id, (tx, sock, Arc::new(AtomicBool::new(false))));
+            map.insert(
+                id,
+                (
+                    tx,
+                    sock,
+                    Arc::new(AtomicBool::new(false)),
+                    Arc::new(AtomicU64::new(now_ms())),
+                ),
+            );
         }
         map
     }
@@ -1519,7 +1592,25 @@ mod tests {
         });
         let sock = std::net::TcpStream::connect(addr).expect("connect");
         let (tx, _rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(1);
-        (tx, sock, Arc::new(AtomicBool::new(false)))
+        (
+            tx,
+            sock,
+            Arc::new(AtomicBool::new(false)),
+            Arc::new(AtomicU64::new(now_ms())),
+        )
+    }
+
+    #[test]
+    fn idle_proxy_streams_are_reaped_before_the_limit_is_hit() {
+        let mut map = fake_streams(&[1, 2]);
+        let stale = now_ms().saturating_sub(STREAM_IDLE_TIMEOUT.as_millis() as u64 + 1_000);
+        if let Some((_, _, _, activity)) = map.get_mut(&1) {
+            activity.store(stale, Ordering::Relaxed);
+        }
+        let (prio_tx, _prio_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(PRIO_QUEUE_CAP);
+        reap_idle_streams(&mut map, &prio_tx);
+        assert!(!map.contains_key(&1), "the idle stream should be gone");
+        assert!(map.contains_key(&2), "the active stream must survive");
     }
 
     #[test]

@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
 private const val TAG = "Orbi.Input"
+private const val WS_RETRY_BACKOFF_MS = 1_500L
 
 internal class VirtualCursor(initialWidth: Int, initialHeight: Int) {
     private var maxX = (initialWidth - 1).coerceAtLeast(0).toFloat()
@@ -199,6 +200,9 @@ class InputDispatcher(
 
     private fun ensureWebSocket() {
         if (webSocket != null) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastWsAttemptMs < WS_RETRY_BACKOFF_MS) return
+        lastWsAttemptMs = now
         val t = tokenProvider?.invoke()?.takeIf { it.isNotBlank() } ?: token
         if (t.isBlank()) return
         val builder = Request.Builder().url("ws://$host:$port/input/ws")
@@ -211,10 +215,12 @@ class InputDispatcher(
             }
             override fun onClosed(webSocket: okhttp3.WebSocket, code: Int, reason: String) {
                 this@InputDispatcher.webSocket = null
+                lastWsAttemptMs = android.os.SystemClock.elapsedRealtime()
             }
             override fun onFailure(webSocket: okhttp3.WebSocket, t: Throwable, response: okhttp3.Response?) {
                 Log.w(TAG, "input WebSocket failed: ${response?.code ?: "-"} ${t.message}")
                 this@InputDispatcher.webSocket = null
+                lastWsAttemptMs = android.os.SystemClock.elapsedRealtime()
             }
         })
     }
@@ -458,6 +464,7 @@ class InputDispatcher(
     private var lastUnauthorizedMs = 0L
     private var lastMotionFallbackLogMs = 0L
     private var motionFallbackCount = 0
+    private var lastWsAttemptMs = 0L
 
     private fun send(payload: JSONObject, isMotion: Boolean = false) {
         try {

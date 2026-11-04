@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.39.5
+%global version 0.39.6
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -147,6 +147,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Wed Nov 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.6-1
+- Release 0.39.6: AOA proxy streams leaked (each maps to a keep-alive daemon connection that never saw EOF) until the 48-entry bound evicted one per connection; streams now carry a last-activity stamp and are reaped after 30 s idle, and the eviction warning is rate-limited. A pulled cable logs a disconnect instead of a bulk read error, a draining endpoint logs one writer warning instead of one per packet, and wayland-backend logs now route through tracing with its log feature instead of eprintln
+
 * Tue Nov 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.5-1
 - Release 0.39.5: intra-refresh was forced on x264enc unconditionally, so after the first frame every forced keyframe was a P-frame flagged as a keyframe; Android cleared its wait-for-keyframe state, MediaCodec could not decode, and the tablet stayed black while the host logged an IDR every ~300 ms. intra-refresh is now opt-in via ORBISCREEN_INFINITE_GOP
 

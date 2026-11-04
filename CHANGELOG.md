@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.39.6] - 2026-11-04
+
+### Fixed
+- fix: stop the AOA proxy from leaking streams and quiet the reconnect and unplug log noise
+
+A long USB session produced three noisy symptoms and one real leak.
+
+The real leak: every AOA proxy stream maps one client connection to one TCP
+connection to the local daemon, and that connection is HTTP keep-alive. When a
+client went away the daemon kept the connection open, so the host's reader never
+saw EOF and the entry stayed in the map forever. The map filled to its 48-entry
+bound and then evicted one stream per new connection, logging
+`AOA stream limit reached; evicted the oldest stream` indefinitely — the log
+showed stream ids climbing past 100 with 47 entries live.
+
+- `finish_proxy_stream` now records a last-activity stamp per stream, touched on inbound client data, on frames written back, and on successful reads, and `open_proxy_stream` reaps streams idle for 30 s before applying the bound. An idle stream is closed and its close frame is sent, so a keep-alive connection that outlives its client can no longer pin a slot.
+- The eviction warning is rate-limited to the first three occurrences, then drops to debug, so a genuine storm is visible once instead of once per connection.
+
+The remaining noise was mislabelled rather than harmful:
+
+- Unplugging the cable produced `USB bulk read error on accessory: No such device (os error 19)`, which reads like a fault. `ENODEV` and `ESHUTDOWN` now log `accessory disconnected; releasing the AOA bridge` at info, because pulling the cable is the expected path.
+- A failing write logged once per packet while the device drained, so a single unplug produced ten identical warnings. Only the first failure is logged and the rest are summarised by the existing `giving up` warning.
+- A bare `Io error: Broken pipe (os error 32)` came from `wayland-backend`, not from Orbiscreen: the crate falls back to `eprintln!` unless its `log` feature is enabled. The workspace now enables `log` on `wayland-client` and `wayland-backend`, installs a `tracing-log` bridge in `init_tracing`, and mutes `wayland_backend=off` by default because Orbiscreen already reports the same failures with the output and operation that caused them.
+- The Android input dispatcher retried the input WebSocket on every input event when it was down, and each attempt plus the HTTP fallback opened a new AOA proxy stream. Retries are now spaced 1.5 s apart, which is what reduced the stream churn above at the source.
+- Version bumped to 0.39.6 across the Cargo workspace, Android (`versionCode` 187), PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.39.5] - 2026-11-03
 
 ### Fixed
