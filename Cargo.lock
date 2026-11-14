@@ -745,7 +745,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1110,7 +1110,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps 9.0.0",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1990,7 +1990,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-capture"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "ashpd",
  "enumflags2",
@@ -2010,7 +2010,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-core"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "libc",
  "serde",
@@ -2022,7 +2022,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-daemon"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "clap",
  "hostname",
@@ -2043,7 +2043,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-display"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "drm-fourcc",
  "evdi",
@@ -2055,7 +2055,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-encode"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "gstreamer",
  "gstreamer-app",
@@ -2067,7 +2067,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-gui"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "async-channel",
  "gtk4",
@@ -2085,7 +2085,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-input"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "ashpd",
  "enumflags2",
@@ -2107,7 +2107,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-transport"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "axum",
  "axum-server",
@@ -2367,16 +2367,16 @@ dependencies = [
 
 [[package]]
 name = "quinn-udp"
-version = "0.5.15"
+version = "0.5.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35a133f956daabe89a61a685c2649f13d82d5aa4bd5d12d1277e1072a21c0694"
+checksum = "af66907df18639dcf4db56ca65490cabc4b27a97dbadd96f2926cca73298f016"
 dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2584,7 +2584,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3007,7 +3007,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

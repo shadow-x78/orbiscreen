@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.40.0
+%global version 0.40.1
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -147,6 +147,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.40.1-1
+- Release 0.40.1: return the pairing deny ExitCode instead of discarding it, upgrade quinn-udp to 0.5.16 for RUSTSEC-2026-0538, and drop stale cargo-deny ignores so the v0.40.0 refactor can pass the release gates
+
 * Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.40.0-1
 - Release 0.40.0: structural refactor around shared core, protocol, and session modules. Capture opens one explicit plan and shares one PipeWire sink; transport shares SessionAttachment/KeyframeGate/AnnexBPreparer across HTTP, MPEG-TS, and WebTransport and owns one protocol module; the daemon shares pipeline pumps and input dispatch; the GUI consumes core StatusReport/DoctorReport and reads the real token; the web client uses protocol.js as its single protocol source; Android uses Protocol/HostSpec/IdrRequester. Removed the separate secondary-display session, which bound the same signaling+2 port as WebTransport; the KWin per-client hub handles multiple tablets. Fixed wlroots/portal relative pointer motion, the IDR first-request debounce, and the 8790 connector guess.
 

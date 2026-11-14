@@ -1,3 +1,18 @@
+orbiscreen (0.40.1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.40.1 for Ubuntu noble.
+  * Fix the pairing deny branch discarding the ExitCode returned by
+    print_pair_outcome, which failed the workspace and release clippy gates
+    under -D unused-must-use.
+  * Upgrade quinn-udp to 0.5.16 for RUSTSEC-2026-0538 (a truncated datagram
+    could spin the receive loop on non-Linux targets). Linux and Android were
+    not exposed, but the advisory database now flags 0.5.15.
+  * Drop cargo-deny ignore entries whose advisories are no longer encountered;
+    cargo-deny treats them as warnings and the release gate denied warnings.
+  * Bump version to 0.40.1 across all packages; Android versionCode 189.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 00:10:00 +0300
+
 orbiscreen (0.40.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.40.0 for Ubuntu noble.

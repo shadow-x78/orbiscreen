@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.40.1] - 2026-11-15
+
+### Fixed
+- fix: repair the CI and release gates after the v0.40.0 refactor
+
+`v0.40.0` published the source but its CI, release, and PPA jobs failed, so no
+release artifacts were produced. The failures were in the gates, not in the
+runtime refactor:
+
+- `pair deny` called `print_pair_outcome` and discarded its `ExitCode`; the
+  workspace and release jobs run clippy with `-D warnings` and
+  `-D unused-must-use`, so the daemon did not compile under the gate. The
+  branch now returns the outcome, like approve and revoke.
+- `quinn-udp 0.5.15` is flagged by RUSTSEC-2026-0538 (a truncated datagram
+  could spin the receive loop on non-Linux targets). Linux and Android use a
+  different receive path and were not exposed, but the advisory database
+  flags the version, so the workspace is on 0.5.16.
+- `deny.toml` still ignored six advisories that no crate matches; cargo-deny
+  reports `advisory-not-detected` as a warning, and the release gate denies
+  warnings. The stale entries are gone.
+
+Verified with `cargo clippy --workspace --all-targets --locked -- -D warnings`,
+`cargo deny check`, and the full workspace test suite. Version bumped to 0.40.1
+across the Cargo workspace, Android (`versionCode` 189), PKGBUILD, Debian,
+COPR, and documentation badges.
+
+### Changed
+- The web asset cache version is `?v=25`.
+
 ## [v0.40.0] - 2026-11-15
 
 ### Changed

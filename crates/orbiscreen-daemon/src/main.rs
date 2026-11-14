@@ -1383,10 +1383,7 @@ async fn run_pair(action: Option<PairAction>) -> ExitCode {
         PairAction::Deny { id } => {
             let id = id.unwrap_or_default();
             match dbus::call_pair_deny(&conn, &id).await {
-                Ok(json) => {
-                    print_pair_outcome(&json, "Pairing request denied.");
-                    ExitCode::SUCCESS
-                }
+                Ok(json) => print_pair_outcome(&json, "Pairing request denied."),
                 Err(e) => print_pair_unreachable(e),
             }
         }
