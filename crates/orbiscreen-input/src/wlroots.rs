@@ -195,16 +195,10 @@ impl Dispatch<ZwpVirtualKeyboardV1, ()> for WlState {
     }
 }
 
-#[allow(unsafe_code)]
 fn anonymous_keymap_file(bytes: &[u8]) -> Result<std::fs::File, String> {
     use std::io::Write as _;
-    use std::os::fd::FromRawFd as _;
-    let name = std::ffi::CString::new("orbiscreen-keymap").map_err(|e| e.to_string())?;
-    let fd = unsafe { libc::memfd_create(name.as_ptr(), libc::MFD_CLOEXEC) };
-    if fd < 0 {
-        return Err(format!("memfd_create: {}", std::io::Error::last_os_error()));
-    }
-    let mut file = unsafe { std::fs::File::from_raw_fd(fd) };
+    let mut file = orbiscreen_core::shm::anonymous_file("orbiscreen-keymap", bytes.len())
+        .map_err(|e| format!("keymap memfd: {e}"))?;
     file.write_all(bytes)
         .map_err(|e| format!("write keymap: {e}"))?;
     file.flush().map_err(|e| format!("flush keymap: {e}"))?;
@@ -444,10 +438,11 @@ fn apply_command(state: &mut WlState, cmd: WlCmd, extent: (u32, u32), start: Ins
                     pointer.frame();
                 }
                 PointerEvent::RelativeMove { dx, dy } => {
-                    let (xw, yw) = extent;
-                    let x = dx.clamp(-f64::from(xw), f64::from(xw)).round() as u32;
-                    let y = dy.clamp(-f64::from(yw), f64::from(yw)).round() as u32;
-                    pointer.motion_absolute(time, x, y, xw, yw);
+                    if !dx.is_finite() || !dy.is_finite() {
+                        warn!("ignoring relative pointer move with non-finite deltas");
+                        return;
+                    }
+                    pointer.motion(time, dx, dy);
                     pointer.frame();
                 }
                 PointerEvent::Button { button, pressed } => {

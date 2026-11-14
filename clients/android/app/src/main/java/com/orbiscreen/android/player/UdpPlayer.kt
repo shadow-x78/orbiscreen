@@ -1,6 +1,8 @@
 
 package com.orbiscreen.android.player
 
+import com.orbiscreen.android.net.Protocol
+
 import android.media.MediaCodec
 import android.media.MediaFormat
 import android.net.Uri
@@ -37,15 +39,6 @@ private val idrHttp: OkHttpClient = OkHttpClient.Builder()
     .writeTimeout(2, TimeUnit.SECONDS)
     .build()
 private const val HELLO_WINDOW_MS = 1_500L
-private const val TYPE_VIDEO: Byte = 1
-private const val TYPE_HELLO_ACK: Byte = 3
-private const val TYPE_PING: Byte = 4
-private const val TYPE_PONG: Byte = 5
-private const val TYPE_IDR: Byte = 6
-private const val TYPE_PROBE: Byte = 7
-private const val TYPE_PROBE_ACK: Byte = 8
-private const val TYPE_PMTU: Byte = 9
-private const val TYPE_BYE: Byte = 10
 private const val RECV_BUF: Int = 65_507
 
 enum class HandshakeAction { Ack, Control, Ignore }
@@ -76,7 +69,7 @@ class UdpPlayer(
     private var pps: ByteArray? = null
     private var configured = false
     private var waitKey = true
-    private val lastIdr = AtomicLong(0)
+    private val idrRequester = IdrRequester()
     private val sentQueue = ArrayDeque<Long>()
     private val lastHeardMs = AtomicLong(0)
     private var hostAddr: InetAddress? = null
@@ -268,8 +261,8 @@ class UdpPlayer(
         lastHeardMs.set(System.currentTimeMillis())
         stats.noteBytes(wireSize.toLong())
         when (data[4]) {
-            TYPE_VIDEO -> handleVideo(data)
-            TYPE_PONG -> {
+            Protocol.UDP_TYPE_VIDEO -> handleVideo(data)
+            Protocol.UDP_TYPE_PONG -> {
                 if (data.size < 21) return
                 val t0 = le64(data, 5)
                 val hostNs = le64(data, 13)
@@ -282,38 +275,38 @@ class UdpPlayer(
                 clockOffsetNs = ewmaClockOffsetNs
                 stats.clockOffsetNs = clockOffsetNs
             }
-            TYPE_PROBE -> {
+            Protocol.UDP_TYPE_PROBE -> {
                 val recv = UdpInbound.probeAckRecv(wireSize, data) ?: return
                 val id = le16(data, 5)
                 Log.i(TAG, "PMTU probe id=$id size=$recv")
                 sendPlain(encodeProbeAck(id, recv))
             }
-            TYPE_PMTU -> {
+            Protocol.UDP_TYPE_PMTU -> {
                 if (data.size < 7) return
                 Log.i(TAG, "PMTU confirmed datagram=${le16(data, 5)}")
-                
-                
+
+
                 requestIdr()
             }
-            TYPE_BYE -> {
+            Protocol.UDP_TYPE_BYE -> {
                 Log.i(TAG, "received BYE from host")
                 fail("Host closed session")
             }
-            TYPE_HELLO_ACK -> {}
+            Protocol.UDP_TYPE_HELLO_ACK -> {}
             else -> {}
         }
     }
 
     @Synchronized
     private fun handleVideo(data: ByteArray) {
-        if (data.size < 28) return
-        val flags = data[5].toInt() and 0xff
+        if (data.size < Protocol.UDP_VIDEO_HEADER_LEN) return
+        val flags = data[Protocol.UDP_VIDEO_FLAGS_OFFSET].toInt() and 0xff
         val key = flags and 1 != 0
-        val seq = le16(data, 6)
-        val frag = le16(data, 8)
-        val frags = le16(data, 10)
-        val sentNs = le64(data, 20)
-        val block = Fec.viewBlock(flags, data.copyOfRange(28, data.size)) ?: return
+        val seq = le16(data, Protocol.UDP_VIDEO_SEQ_OFFSET)
+        val frag = le16(data, Protocol.UDP_VIDEO_FRAG_OFFSET)
+        val frags = le16(data, Protocol.UDP_VIDEO_FRAGS_OFFSET)
+        val sentNs = le64(data, Protocol.UDP_VIDEO_SENT_NS_OFFSET)
+        val block = Fec.viewBlock(flags, data.copyOfRange(Protocol.UDP_VIDEO_HEADER_LEN, data.size)) ?: return
         dropStale(seq)
         val done = pending.offer(
             seq, frag, frags, key, sentNs, block.body, block.index, block.count,
@@ -434,9 +427,9 @@ class UdpPlayer(
             return
         }
         try {
-            
-            
-            
+
+
+
             drainOutputs(c, sentNs)
             var inIx = c.dequeueInputBuffer(8_000)
             if (inIx < 0) {
@@ -463,8 +456,8 @@ class UdpPlayer(
             inBuf.clear()
             inBuf.put(au)
             val flags = if (key) MediaCodec.BUFFER_FLAG_KEY_FRAME else 0
-            
-            
+
+
             val ptsUs = System.nanoTime() / 1000L
             if (sentNs > 0L) {
                 sentQueue.addLast(sentNs)
@@ -552,10 +545,7 @@ class UdpPlayer(
     }
 
     fun requestIdr() {
-        val now = System.currentTimeMillis()
-        if (!Idr.due(now, lastIdr.get())) return
-        lastIdr.set(now)
-        sendPlain(encodeCtrl(TYPE_IDR))
+        idrRequester.request { sendPlain(encodeCtrl(Protocol.UDP_TYPE_IDR)) }
     }
 
     private fun sendPlain(bytes: ByteArray) {
@@ -584,17 +574,12 @@ class UdpPlayer(
 
     companion object {
         fun handshakeAction(data: ByteArray): HandshakeAction {
-            if (data.size < 5 ||
-                data[0] != 'O'.code.toByte() ||
-                data[1] != 'R'.code.toByte() ||
-                data[2] != 'B'.code.toByte() ||
-                data[3] != '1'.code.toByte()
-            ) {
+            if (data.size < Protocol.UDP_HEADER_LEN || !Protocol.hasUdpMagic(data)) {
                 return HandshakeAction.Ignore
             }
             return when (data[4]) {
-                TYPE_HELLO_ACK -> HandshakeAction.Ack
-                TYPE_PROBE, TYPE_PONG, TYPE_PMTU, TYPE_VIDEO, TYPE_IDR -> HandshakeAction.Control
+                Protocol.UDP_TYPE_HELLO_ACK -> HandshakeAction.Ack
+                Protocol.UDP_TYPE_PROBE, Protocol.UDP_TYPE_PONG, Protocol.UDP_TYPE_PMTU, Protocol.UDP_TYPE_VIDEO, Protocol.UDP_TYPE_IDR -> HandshakeAction.Control
                 else -> HandshakeAction.Ignore
             }
         }
@@ -603,25 +588,20 @@ class UdpPlayer(
             pkt.length = buf.size
         }
 
-        private const val TYPE_BYE: Byte = 10
 
         fun encodeBye(session: String?): ByteArray {
             val extra = if (session.isNullOrBlank()) ByteArray(0) else session.toByteArray(Charsets.UTF_8)
-            return byteArrayOf('O'.code.toByte(), 'R'.code.toByte(), 'B'.code.toByte(), '1'.code.toByte(), TYPE_BYE) + extra
+            return Protocol.udpDatagram(Protocol.UDP_TYPE_BYE) + extra
         }
-        fun encodeCtrl(type: Byte): ByteArray =
-            byteArrayOf('O'.code.toByte(), 'R'.code.toByte(), 'B'.code.toByte(), '1'.code.toByte(), type)
+        fun encodeCtrl(type: Byte): ByteArray = Protocol.udpDatagram(type)
         fun encodePing(t0: Long): ByteArray {
-            val b = ByteArray(13)
-            b[0] = 'O'.code.toByte(); b[1] = 'R'.code.toByte(); b[2] = 'B'.code.toByte(); b[3] = '1'.code.toByte()
-            b[4] = TYPE_PING
+            val b = Protocol.udpDatagram(Protocol.UDP_TYPE_PING, Protocol.UDP_PING_LEN)
             putLe64(b, 5, t0)
             return b
         }
         fun encodeProbeAck(id: Int, recv: Int): ByteArray {
-            val b = ByteArray(9)
-            b[0] = 'O'.code.toByte(); b[1] = 'R'.code.toByte(); b[2] = 'B'.code.toByte(); b[3] = '1'.code.toByte()
-            b[4] = TYPE_PROBE_ACK
+            val b = Protocol.udpDatagram(Protocol.UDP_TYPE_PROBE_ACK, Protocol.UDP_PROBE_ACK_LEN)
+            b[4] = Protocol.UDP_TYPE_PROBE_ACK
             putLe16(b, 5, id)
             putLe16(b, 7, recv)
             return b

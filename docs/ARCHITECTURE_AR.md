@@ -2,7 +2,7 @@
 
 # مواصفات المعمارية - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.39.6-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.40.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -68,14 +68,29 @@ flowchart TD
 
 | الحزمة | المسؤولية | التبعيات الرئيسية |
 | :--- | :--- | :--- |
-| `orbiscreen-core` | الإعدادات المشتركة وأنواع الأخطاء والتسلسل ومسارات الملفات (الإعداد والتوكن) | `serde`، `toml`، `thiserror` |
+| `orbiscreen-core` | الإعدادات المشتركة، وخطة الجلسة/الالتقاط، وتحويل BGRA، ومسارات XDG والكتابة الذرية، والذاكرة المشتركة، وحساب المنافذ، وتقارير الحالة/التشخيص، وهوية المخارج الافتراضية | `serde`، `toml`، `thiserror`، `libc` |
 | `orbiscreen-display` | شاشة EVDI الافتراضية على مستوى النواة: موصل DRM، وتوليف EDID، ومضخة الإطار من الذاكرة الإطارية إلى BGRA ‏(`EvdiFramePump`) | `evdi`، `drm-fourcc`، `tokio` |
-| `orbiscreen-capture` | إنشاء المخارج الافتراضية (KWin عبر `zkde-screencast`، و wlroots عبر IPC) بالإضافة إلى التقاط الإطارات: portal ‏(ashpd/PipeWire)‏، و wlr-screencopy، و X11 ‏(x11rb)‏، ومضخة الـ damage، وكشف قدرات النظام | `ashpd`، `x11rb`، `wayland-*`، `orbiscreen-core` |
+| `orbiscreen-capture` | إنشاء المخارج الافتراضية (KWin عبر `zkde-screencast`، و wlroots عبر IPC) بالإضافة إلى التقاط الإطارات: portal ‏(ashpd/PipeWire)‏، و wlr-screencopy، و X11 ‏(x11rb)‏، ومضخة الـ damage؛ يفتح خطة `CaptureStep` صريحة ويشارك حوض PipeWire واحداً | `ashpd`، `x11rb`، `wayland-*`، `orbiscreen-core` |
 | `orbiscreen-encode` | خطوط أنابيب ترميز H.264: ‏NVENC و VA-API و x264 البرمجي، مع ضبط VBV و GOP لزمن استجابة منخفض | `gstreamer`، `gstreamer-app`، `orbiscreen-core` |
 | `orbiscreen-input` | حقن الإدخال العكسي: شاشة لمس وألواح مفاتيح عبر uinput، و XTEST، وأجهزة wlroots الافتراضية (virtual-pointer / virtual-keyboard)، و portal RemoteDesktop | `evdevil`، `ashpd`، `orbiscreen-core` |
-| `orbiscreen-transport` | كل واجهات العملاء: نقاط HTTP ‏(`/stream` و `/input` و `/api/*` و `/health`)‏، و UDP Annex-B مع تصحيح أخطاء Reed-Solomon، و WebTransport Annex-B ‏(`wt_port`)‏، وبث USB عبر AOA، وإعلان mDNS، والاقتران، والمصادقة بالتوكن، وتوجيه جلسات العرض لكل عميل | `axum`، `mdns-sd`، `wtransport`، `gstreamer`، `orbiscreen-core`، `orbiscreen-input` |
-| `orbiscreen-daemon` | الثنائي الرئيسي الذي يربط كل الحزم؛ تكامل systemd؛ خدمة D-Bus ‏(`com.orbiscreen.Daemon`)‏؛ أداة التشخيص `doctor` | `zbus`، `clap`، `tokio` |
+| `orbiscreen-transport` | كل واجهات العملاء: نقاط HTTP ‏(`/stream` و `/input` و `/api/*` و `/health`)‏، و UDP Annex-B مع تصحيح أخطاء Reed-Solomon، و WebTransport Annex-B ‏(`wt_port`)‏، وبث USB عبر AOA، وإعلان mDNS، والاقتران، والمصادقة بالتوكن، وتوجيه جلسات العرض لكل عميل؛ طبقة جلسة موحّدة ووحدة بروتوكول موحّدة | `axum`، `mdns-sd`، `wtransport`، `gstreamer`، `orbiscreen-core`، `orbiscreen-input` |
+| `orbiscreen-daemon` | الثنائي الرئيسي الذي يربط كل الحزم؛ تكامل systemd؛ خدمة D-Bus ‏(`com.orbiscreen.Daemon`)‏؛ أداة التشخيص `doctor`؛ مضخات خط الأنابيب المشتركة وتوزيع الإدخال | `zbus`، `clap`، `tokio` |
 | `orbiscreen-gui` | مركز تحكم سطح المكتب (‏GTK4 + libadwaita أصلي)‏: الحالة، والتشغيل والإيقاف، وخيارات الدقة عبر D-Bus | `gtk4`، `libadwaita`، `zbus`، `ksni` |
+
+</div>
+
+<h3 dir="rtl" align="right">&rlm;الأساسات المشتركة</h3>
+
+<div dir="rtl" align="right">
+
+نقلت إعادة الهيكلة في 0.40.0 كل تعريف مكرر إلى الطبقة الأدنى التي تملكه:
+
+- `orbiscreen-core::{session, frame, paths, shm, ports, report, output}`: خطة الالتقاط وكشف الجلسة، وتحويل BGRA/الـ stride، ومسارات XDG والكتابة الذرية للأسرار، وتعيين الذاكرة المشتركة، وحساب المنافذ، وتقارير `StatusReport`/`DoctorReport`، وأسماء المخارج الافتراضية.
+- `orbiscreen-transport::{protocol, session}`: أنواع الإطارات وأطوال الرؤوس ومسارات النقاط، وسياسة الاتصال والقطع وطلب IDR وانتظار الإطار المفتاحي المشتركة بين HTTP Annex-B و MPEG-TS و WebTransport.
+- `orbiscreen-daemon::pipeline`: مضخة IDR، وتطبيع PTS، وتحجيم إحداثيات الإدخال، وتوزيع `IncomingInput` المشترك بين مساري العرض المشترك ولكل عميل.
+- `clients/web/protocol.js` (يتحقق منه `protocol.golden.json`) و`net/Protocol.kt` في Android هما النظيران في العميل. و`net/HostSpec.kt` هو المرجع الوحيد لتحليل host:port والمخطط وعنوان loopback.
+
+أُزيلت جلسة العرض الثانوي المستقلة في 0.40.0 لأنها كانت تحجز `signaling_port + 2`، وهو نفس منفذ WebTransport، فلم تكن تعمل بجانب النقل العادي. تدعم عدة أجهزة لوحية عبر مركز جلسات KWin لكل عميل، بمخرج `Virtual-Orbi-<key>` لكل جهاز.
 
 </div>
 

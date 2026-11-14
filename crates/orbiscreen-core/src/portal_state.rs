@@ -1,9 +1,5 @@
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
-
 use serde::{Deserialize, Serialize};
-
-static SAVE_NONCE: AtomicU64 = AtomicU64::new(0);
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
@@ -13,21 +9,7 @@ pub struct PortalState {
 }
 
 pub fn portal_state_path() -> Option<PathBuf> {
-    portal_state_path_from(|key| std::env::var_os(key))
-}
-
-fn portal_state_path_from(
-    mut lookup: impl FnMut(&str) -> Option<std::ffi::OsString>,
-) -> Option<PathBuf> {
-    if let Some(xdg) =
-        lookup("XDG_STATE_HOME").filter(|v| !v.is_empty() && Path::new(&v).is_absolute())
-    {
-        return Some(PathBuf::from(xdg).join("orbiscreen/portal.json"));
-    }
-    if let Some(home) = lookup("HOME").filter(|v| !v.is_empty() && Path::new(&v).is_absolute()) {
-        return Some(PathBuf::from(home).join(".local/state/orbiscreen/portal.json"));
-    }
-    None
+    crate::paths::portal_state_path()
 }
 
 pub fn load_portal_state() -> PortalState {
@@ -61,93 +43,18 @@ fn load_portal_state_from(path: &Path) -> PortalState {
 }
 
 fn save_portal_state_to(state: &PortalState, path: &Path) -> std::io::Result<()> {
-    use std::io::Write as _;
-    use std::os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _};
-    let parent = path
-        .parent()
-        .filter(|p| !p.as_os_str().is_empty())
-        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "no parent dir"))?;
-    std::fs::create_dir_all(parent)?;
-    std::fs::set_permissions(parent, std::fs::Permissions::from_mode(0o700))?;
-    let content = serde_json::to_string_pretty(state)
+    let content = serde_json::to_vec_pretty(state)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-    let file_name = path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("portal.json");
-    let nonce = SAVE_NONCE.fetch_add(1, Ordering::Relaxed);
-    let tmp_path = parent.join(format!(".{file_name}.tmp-{}-{nonce}", std::process::id()));
-
-    let open_tmp = || {
-        std::fs::OpenOptions::new()
-            .create_new(true)
-            .write(true)
-            .custom_flags(libc::O_NOFOLLOW)
-            .mode(0o600)
-            .open(&tmp_path)
-    };
-    let result = (|| {
-        let mut file = open_tmp()?;
-        file.write_all(content.as_bytes())?;
-        file.flush()?;
-        file.sync_all()?;
-        file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
-        std::fs::rename(&tmp_path, path)
-    })();
-    if result.is_err() {
-        let _ = std::fs::remove_file(&tmp_path);
-    }
-    result
+    crate::paths::write_secret(path, &content)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
     use std::os::unix::fs::PermissionsExt as _;
 
     fn unique_dir(tag: &str) -> PathBuf {
         std::env::temp_dir().join(format!("orbiscreen-portal-{}-{tag}", std::process::id()))
-    }
-
-    #[test]
-    fn path_prefers_xdg_state_home() {
-        let mut vars: HashMap<&str, std::ffi::OsString> = HashMap::new();
-        vars.insert("XDG_STATE_HOME", "/tmp/orbiscreen-state".into());
-        vars.insert("HOME", "/home/u".into());
-        assert_eq!(
-            portal_state_path_from(|k| vars.get(k).cloned()),
-            Some(PathBuf::from(
-                "/tmp/orbiscreen-state/orbiscreen/portal.json"
-            ))
-        );
-    }
-
-    #[test]
-    fn path_falls_back_to_home_local_state() {
-        let mut vars: HashMap<&str, std::ffi::OsString> = HashMap::new();
-        vars.insert("HOME", "/home/u".into());
-        assert_eq!(
-            portal_state_path_from(|k| vars.get(k).cloned()),
-            Some(PathBuf::from("/home/u/.local/state/orbiscreen/portal.json"))
-        );
-    }
-
-    #[test]
-    fn path_ignores_relative_xdg_state_home() {
-        let mut vars: HashMap<&str, std::ffi::OsString> = HashMap::new();
-        vars.insert("XDG_STATE_HOME", "relative/path".into());
-        vars.insert("HOME", "/home/u".into());
-        assert_eq!(
-            portal_state_path_from(|k| vars.get(k).cloned()),
-            Some(PathBuf::from("/home/u/.local/state/orbiscreen/portal.json"))
-        );
-    }
-
-    #[test]
-    fn path_is_none_without_xdg_state_home_and_home() {
-        let vars: HashMap<&str, std::ffi::OsString> = HashMap::new();
-        assert_eq!(portal_state_path_from(|k| vars.get(k).cloned()), None);
     }
 
     #[test]

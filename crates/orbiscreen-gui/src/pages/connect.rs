@@ -158,7 +158,7 @@ impl ConnectPage {
             num.add_css_class("orbi-num");
             num.set_halign(gtk::Align::Start);
             tile.append(&num);
-            let text = gtk::Label::new(Some(i18n::tr(lang, key).replace("&amp;", "&").as_str()));
+            let text = gtk::Label::new(Some(i18n::tr(lang, key)));
             text.set_halign(gtk::Align::Start);
             text.set_xalign(0.0);
             text.set_wrap(true);
@@ -208,8 +208,7 @@ impl ConnectPage {
 
         let usb_ctx = ctx.clone();
         usb_open_button.connect_clicked(move |_button| {
-            let port = usb_ctx.state.borrow().status.signaling_port;
-            let url = format!("http://127.0.0.1:{port}/client/");
+            let url = crate::app::usb_url(&usb_ctx.state.borrow().status);
             let tx = usb_ctx.tx.clone();
             usb_ctx.rt.spawn(async move {
                 if let Err(e) = DaemonClient::open_browser(&url) {
@@ -298,7 +297,11 @@ impl ConnectPage {
         let clients = match status.active_clients {
             0 => t("noDevices").to_string(),
             1 => t("deviceConnected").to_string(),
-            n => i18n::format(self.lang, "devicesConnected", n),
+            n => i18n::format(
+                self.lang,
+                "devicesConnected",
+                u32::try_from(n).unwrap_or(u32::MAX),
+            ),
         };
         self.clients_value.set_label(&clients);
 

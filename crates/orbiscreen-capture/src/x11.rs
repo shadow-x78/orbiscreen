@@ -1,4 +1,4 @@
-use std::os::fd::{AsRawFd, FromRawFd as _, OwnedFd, RawFd};
+use std::os::fd::AsRawFd;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -94,7 +94,7 @@ struct ShmSegment {
     seg: shm::Seg,
     conn: Arc<XCBConnection>,
     _file: std::fs::File,
-    mapping: Mapping,
+    mapping: orbiscreen_core::shm::MmapRegion,
 }
 
 impl Drop for ShmSegment {
@@ -103,72 +103,8 @@ impl Drop for ShmSegment {
     }
 }
 
-struct Mapping {
-    ptr: *mut u8,
-    len: usize,
-}
-
-impl Mapping {
-    #[allow(unsafe_code)]
-    fn new(fd: RawFd, len: usize) -> Result<Self, CaptureError> {
-        let ptr = unsafe {
-            libc::mmap(
-                std::ptr::null_mut(),
-                len,
-                libc::PROT_READ | libc::PROT_WRITE,
-                libc::MAP_SHARED,
-                fd,
-                0,
-            )
-        };
-        if ptr == libc::MAP_FAILED {
-            return Err(CaptureError::Io(format!(
-                "shm mmap: {}",
-                std::io::Error::last_os_error()
-            )));
-        }
-        Ok(Self {
-            ptr: ptr.cast(),
-            len,
-        })
-    }
-
-    #[allow(unsafe_code)]
-    fn as_slice(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
-    }
-}
-
-impl Drop for Mapping {
-    #[allow(unsafe_code)]
-    fn drop(&mut self) {
-        if !self.ptr.is_null() {
-            unsafe { libc::munmap(self.ptr.cast(), self.len) };
-        }
-    }
-}
-
-#[allow(unsafe_code)]
-unsafe impl Send for Mapping {}
-#[allow(unsafe_code)]
-unsafe impl Send for ShmSegment {}
-
-#[allow(unsafe_code)]
-fn anonymous_memfd(label: &str) -> Result<OwnedFd, CaptureError> {
-    let name =
-        std::ffi::CString::new(label).map_err(|e| CaptureError::Io(format!("shm name: {e}")))?;
-    let fd = unsafe { libc::memfd_create(name.as_ptr(), libc::MFD_CLOEXEC) };
-    if fd < 0 {
-        return Err(CaptureError::Io(format!(
-            "memfd_create: {}",
-            std::io::Error::last_os_error()
-        )));
-    }
-    Ok(unsafe { OwnedFd::from_raw_fd(fd) })
-}
-
 fn open_shm_segment(conn: &Arc<XCBConnection>, width: u32, height: u32) -> Option<ShmSegment> {
-    let len = (width as usize) * (height as usize) * 4;
+    let len = orbiscreen_core::frame::frame_len(width, height)?;
     conn.extension_information(shm::X11_EXTENSION_NAME)
         .ok()
         .flatten()?;
@@ -181,12 +117,13 @@ fn open_shm_segment(conn: &Arc<XCBConnection>, width: u32, height: u32) -> Optio
         );
         return None;
     }
-    let memfd = anonymous_memfd(SHM_LABEL).ok()?;
-    let file = memfd_to_file(memfd);
-    if ftruncate(file.as_raw_fd(), len as i64) != 0 {
-        tracing::warn!("shm ftruncate failed: {}", std::io::Error::last_os_error());
-        return None;
-    }
+    let file = match orbiscreen_core::shm::anonymous_file(SHM_LABEL, len) {
+        Ok(file) => file,
+        Err(e) => {
+            tracing::warn!("shm memfd failed: {e}");
+            return None;
+        }
+    };
     let seg = conn.generate_id().ok()?;
     let fd_for_server = file.try_clone().ok()?;
     if shm::attach_fd(conn, seg, fd_for_server, false)
@@ -197,7 +134,7 @@ fn open_shm_segment(conn: &Arc<XCBConnection>, width: u32, height: u32) -> Optio
         tracing::warn!("MIT-SHM attach_fd was rejected; using plain GetImage");
         return None;
     }
-    let mapping = match Mapping::new(file.as_raw_fd(), len) {
+    let mapping = match orbiscreen_core::shm::MmapRegion::new(file.as_raw_fd(), len) {
         Ok(m) => m,
         Err(e) => {
             tracing::warn!("shm mmap failed: {e}; using plain GetImage");
@@ -211,15 +148,6 @@ fn open_shm_segment(conn: &Arc<XCBConnection>, width: u32, height: u32) -> Optio
         _file: file,
         mapping,
     })
-}
-
-fn memfd_to_file(fd: OwnedFd) -> std::fs::File {
-    std::fs::File::from(fd)
-}
-
-#[allow(unsafe_code)]
-fn ftruncate(fd: RawFd, len: i64) -> i32 {
-    unsafe { libc::ftruncate(fd, len as libc::off_t) }
 }
 
 fn capture_changed_frame(

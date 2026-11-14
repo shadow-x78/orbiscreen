@@ -28,6 +28,15 @@ impl EncoderKind {
         }
     }
 
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Nvenc => "nvenc",
+            Self::Vaapi => "vaapi",
+            Self::X264 => "x264",
+        }
+    }
+
     pub fn gst_element(self) -> &'static str {
         match self {
             Self::Auto => "nvh264enc",
@@ -45,6 +54,12 @@ impl EncoderKind {
     }
 }
 
+impl std::fmt::Display for EncoderKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct EncodeParams {
     pub kind: EncoderKind,
@@ -52,7 +67,7 @@ pub struct EncodeParams {
     pub width: u32,
     pub height: u32,
     pub framerate: u32,
-    pub vbv_frames: u32,
+    pub gop_on_demand: bool,
 }
 
 impl Default for EncodeParams {
@@ -63,7 +78,7 @@ impl Default for EncodeParams {
             width: 1920,
             height: 1080,
             framerate: 60,
-            vbv_frames: 1,
+            gop_on_demand: false,
         }
     }
 }
@@ -205,41 +220,64 @@ const VBV_RAW_FRAME_MULTIPLE: u32 = 2;
 
 const MAX_VBV_LATENCY_MS: u32 = 50;
 
-pub fn scaled_vbv_ms(frames: u32, framerate: u32) -> u32 {
-    let fps = framerate.max(1);
-    let frames = frames.clamp(1, 8);
-    if frames == 1 {
-        return one_frame_vbv_ms(framerate);
-    }
-    (1000u32 / fps * frames).clamp(50, 200)
+#[derive(Clone, Copy)]
+enum EncoderProp {
+    Str(&'static str),
+    U32(u32),
 }
 
-pub fn scaled_vbv_kb(
-    frames: u32,
-    bitrate_kbps: u32,
-    framerate: u32,
-    width: u32,
-    height: u32,
-) -> u32 {
-    let frames = frames.clamp(1, 8);
-    if frames == 1 {
-        return one_frame_vbv_kb(bitrate_kbps, framerate, width, height);
+const NVENC_PROPS: &[(&str, EncoderProp)] = &[
+    ("tune", EncoderProp::Str("ultra-low-latency")),
+    ("zerolatency", EncoderProp::Str("true")),
+    ("preset", EncoderProp::Str("p1")),
+    ("rc-mode", EncoderProp::Str("cbr")),
+    ("repeat-sequence-header", EncoderProp::Str("true")),
+    ("b-frames", EncoderProp::Str("0")),
+    ("qp-max-i", EncoderProp::U32(35)),
+    ("qp-max-p", EncoderProp::U32(38)),
+];
+
+const VAAPI_PROPS: &[(&str, EncoderProp)] = &[
+    ("rate-control", EncoderProp::Str("cbr")),
+    ("b-frames", EncoderProp::Str("0")),
+    ("target-usage", EncoderProp::Str("7")),
+    ("ref-frames", EncoderProp::Str("1")),
+];
+
+const X264_PROPS: &[(&str, EncoderProp)] = &[
+    ("tune", EncoderProp::Str("zerolatency")),
+    ("speed-preset", EncoderProp::Str("ultrafast")),
+    ("sliced-threads", EncoderProp::Str("true")),
+    ("threads", EncoderProp::Str("4")),
+    ("repeat-headers", EncoderProp::Str("true")),
+    ("b-adapt", EncoderProp::Str("0")),
+    ("bframes", EncoderProp::Str("0")),
+];
+
+fn apply_encoder_properties(encoder: &gstreamer::Element, kind: EncoderKind) {
+    let props = match kind {
+        EncoderKind::Nvenc => NVENC_PROPS,
+        EncoderKind::Vaapi => VAAPI_PROPS,
+        EncoderKind::X264 => X264_PROPS,
+        EncoderKind::Auto => &[],
+    };
+    for (name, value) in props {
+        match value {
+            EncoderProp::Str(value) => set_str_if_present(encoder, name, value),
+            EncoderProp::U32(value) => set_u32_if_present(encoder, name, *value),
+        }
     }
-    let one_frame = one_frame_vbv_kb(bitrate_kbps, framerate, width, height);
-    one_frame.saturating_mul(frames).max(200)
 }
 
 fn configure_one_frame_vbv(
     encoder: &gstreamer::Element,
     bitrate_kbps: u32,
     framerate: u32,
-    frames: u32,
     width: u32,
     height: u32,
 ) {
-    let frames = frames.clamp(1, 8);
-    let vbv_ms = scaled_vbv_ms(frames, framerate);
-    let vbv_kb = scaled_vbv_kb(frames, bitrate_kbps, framerate, width, height);
+    let vbv_ms = one_frame_vbv_ms(framerate);
+    let vbv_kb = one_frame_vbv_kb(bitrate_kbps, framerate, width, height);
     set_u32_if_present(encoder, "vbv-buf-capacity", vbv_ms);
     set_u32_if_present(encoder, "cpb-size", vbv_kb);
     set_u32_if_present(encoder, "vbv-buffer-size", vbv_kb);
@@ -260,14 +298,10 @@ fn max_u32_property(el: &gstreamer::Element, name: &str) -> Option<u32> {
         })
 }
 
-fn infinite_gop_requested() -> bool {
+pub fn gop_on_demand_from_env() -> bool {
     std::env::var("ORBISCREEN_INFINITE_GOP")
         .map(|v| matches!(v.trim(), "1" | "true" | "yes"))
         .unwrap_or(false)
-}
-
-fn configure_infinite_gop(encoder: &gstreamer::Element) {
-    configure_gop(encoder, infinite_gop_requested());
 }
 
 fn configure_gop(encoder: &gstreamer::Element, on_demand: bool) {
@@ -447,70 +481,15 @@ impl Encoder {
         if encoder.find_property("byte-stream").is_some() {
             encoder.set_property_from_str("byte-stream", "true");
         }
-        if kind == EncoderKind::Nvenc {
-            if encoder.find_property("tune").is_some() {
-                encoder.set_property_from_str("tune", "ultra-low-latency");
-            }
-            if encoder.find_property("zerolatency").is_some() {
-                encoder.set_property_from_str("zerolatency", "true");
-            }
-            if encoder.find_property("preset").is_some() {
-                encoder.set_property_from_str("preset", "p1");
-            }
-            if encoder.find_property("rc-mode").is_some() {
-                encoder.set_property_from_str("rc-mode", "cbr");
-            }
-            if encoder.find_property("repeat-sequence-header").is_some() {
-                encoder.set_property_from_str("repeat-sequence-header", "true");
-            }
-            if encoder.find_property("b-frames").is_some() {
-                encoder.set_property_from_str("b-frames", "0");
-            }
-            set_u32_if_present(&encoder, "qp-max-i", 35);
-            set_u32_if_present(&encoder, "qp-max-p", 38);
-        }
-        if kind == EncoderKind::Vaapi {
-            if encoder.find_property("rate-control").is_some() {
-                encoder.set_property_from_str("rate-control", "cbr");
-            }
-            if encoder.find_property("b-frames").is_some() {
-                encoder.set_property_from_str("b-frames", "0");
-            }
-            if encoder.find_property("target-usage").is_some() {
-                encoder.set_property_from_str("target-usage", "7");
-            }
-            if encoder.find_property("ref-frames").is_some() {
-                encoder.set_property_from_str("ref-frames", "1");
-            }
-        }
-        if kind == EncoderKind::X264 {
-            encoder.set_property_from_str("tune", "zerolatency");
-            encoder.set_property_from_str("speed-preset", "ultrafast");
-            if encoder.find_property("sliced-threads").is_some() {
-                encoder.set_property_from_str("sliced-threads", "true");
-            }
-            if encoder.find_property("threads").is_some() {
-                encoder.set_property_from_str("threads", "4");
-            }
-            if encoder.find_property("repeat-headers").is_some() {
-                encoder.set_property_from_str("repeat-headers", "true");
-            }
-            if encoder.find_property("b-adapt").is_some() {
-                encoder.set_property_from_str("b-adapt", "0");
-            }
-            if encoder.find_property("bframes").is_some() {
-                encoder.set_property_from_str("bframes", "0");
-            }
-        }
+        apply_encoder_properties(&encoder, kind);
         configure_one_frame_vbv(
             &encoder,
             params.bitrate_kbps,
             params.framerate,
-            params.vbv_frames,
             params.width,
             params.height,
         );
-        configure_infinite_gop(&encoder);
+        configure_gop(&encoder, params.gop_on_demand);
 
         let h264parse = make_element("h264parse")?;
         h264parse.set_property_from_str("config-interval", "1");
@@ -667,31 +646,28 @@ impl Encoder {
         self.rx.take()
     }
 
-    pub fn push_frame(
-        &self,
-        frame: &[u8],
-        width: u32,
-        height: u32,
-        pts_ns: u64,
-    ) -> Result<(), EncodeError> {
+    fn check_frame(&self, len: usize, width: u32, height: u32) -> Result<(), EncodeError> {
         let expected = self.width as usize * self.height as usize * 4;
-        if frame.len() != expected || width != self.width || height != self.height {
+        if len != expected || width != self.width || height != self.height {
             return Err(EncodeError::FrameSizeMismatch {
-                got: frame.len(),
+                got: len,
                 expected,
                 width: self.width,
                 height: self.height,
             });
         }
-        let mut buffer = gstreamer::Buffer::with_size(frame.len())
-            .map_err(|e| EncodeError::Pipeline(format!("alloc buffer: {e}")))?;
+        Ok(())
+    }
+
+    fn push_owned_buffer(
+        &self,
+        mut buffer: gstreamer::Buffer,
+        pts_ns: u64,
+    ) -> Result<(), EncodeError> {
         {
             let buffer_mut = buffer.get_mut().ok_or_else(|| {
-                EncodeError::Pipeline("buffer not uniquely owned after allocation".into())
+                EncodeError::Pipeline("buffer not uniquely owned before push".into())
             })?;
-            buffer_mut
-                .copy_from_slice(0, frame)
-                .map_err(|e| EncodeError::Pipeline(format!("copy_from_slice: {e}")))?;
             buffer_mut.set_pts(ClockTime::from_nseconds(pts_ns));
         }
         self.appsrc.push_buffer(buffer).map_err(|e| match e {
@@ -702,6 +678,27 @@ impl Encoder {
         Ok(())
     }
 
+    pub fn push_frame(
+        &self,
+        frame: &[u8],
+        width: u32,
+        height: u32,
+        pts_ns: u64,
+    ) -> Result<(), EncodeError> {
+        self.check_frame(frame.len(), width, height)?;
+        let mut buffer = gstreamer::Buffer::with_size(frame.len())
+            .map_err(|e| EncodeError::Pipeline(format!("alloc buffer: {e}")))?;
+        {
+            let buffer_mut = buffer.get_mut().ok_or_else(|| {
+                EncodeError::Pipeline("buffer not uniquely owned after allocation".into())
+            })?;
+            buffer_mut
+                .copy_from_slice(0, frame)
+                .map_err(|e| EncodeError::Pipeline(format!("copy_from_slice: {e}")))?;
+        }
+        self.push_owned_buffer(buffer, pts_ns)
+    }
+
     pub fn push_frame_owned(
         &self,
         frame: PooledFrameBuffer,
@@ -709,28 +706,9 @@ impl Encoder {
         height: u32,
         pts_ns: u64,
     ) -> Result<(), EncodeError> {
-        let expected = self.width as usize * self.height as usize * 4;
-        if frame.len() != expected || width != self.width || height != self.height {
-            return Err(EncodeError::FrameSizeMismatch {
-                got: frame.len(),
-                expected,
-                width: self.width,
-                height: self.height,
-            });
-        }
-        let mut buffer = gstreamer::Buffer::from_mut_slice(frame);
-        {
-            let buffer_mut = buffer.get_mut().ok_or_else(|| {
-                EncodeError::Pipeline("buffer not uniquely owned after wrapping".into())
-            })?;
-            buffer_mut.set_pts(ClockTime::from_nseconds(pts_ns));
-        }
-        self.appsrc.push_buffer(buffer).map_err(|e| match e {
-            gstreamer::FlowError::Flushing => EncodeError::Flushing,
-            gstreamer::FlowError::Eos => EncodeError::Eos,
-            other => EncodeError::Pipeline(format!("push_buffer: {other}")),
-        })?;
-        Ok(())
+        self.check_frame(frame.len(), width, height)?;
+        let buffer = gstreamer::Buffer::from_mut_slice(frame);
+        self.push_owned_buffer(buffer, pts_ns)
     }
 
     pub fn stop(&self) {
@@ -864,9 +842,7 @@ mod tests {
         configure_gop(&encoder, false);
         assert!(
             !encoder.property::<bool>("intra-refresh"),
-            "intra-refresh must stay off unless ORBISCREEN_INFINITE_GOP is set: with it on, \
-             x264enc emits no IDR after the first frame and force-key-unit only marks a \
-             P-frame, so clients can never recover from a lost keyframe"
+            "intra-refresh must stay off by default: with it on, x264enc emits no IDR after the first frame and force-key-unit only marks a P-frame, so clients can never recover from a lost keyframe"
         );
         assert!(encoder.property::<u32>("key-int-max") <= 120);
     }
@@ -878,7 +854,7 @@ mod tests {
             width: 64,
             height: 64,
             framerate: 60,
-            vbv_frames: 1,
+            gop_on_demand: false,
         }) {
             Ok(enc) => Some(enc),
             Err(e) => {
@@ -963,15 +939,10 @@ mod tests {
         let Ok(enc) = make_element("vah264enc") else {
             return;
         };
-        configure_one_frame_vbv(&enc, 8000, 60, 1, 1920, 1080);
+        configure_one_frame_vbv(&enc, 8000, 60, 1920, 1080);
         assert_eq!(
             enc.property::<u32>("cpb-size"),
             one_frame_vbv_kb(8000, 60, 1920, 1080)
-        );
-        assert_ne!(
-            enc.property::<u32>("cpb-size"),
-            scaled_vbv_kb(4, 8000, 60, 1920, 1080),
-            "production is still on the four-frame window"
         );
     }
 
@@ -1019,7 +990,7 @@ mod tests {
             width: 64,
             height: 64,
             framerate: 30,
-            vbv_frames: 1,
+            gop_on_demand: false,
         });
         if let Ok(encoder) = encoder {
             encoder.request_keyframe();
@@ -1064,7 +1035,7 @@ mod tests {
             width: 640,
             height: 360,
             framerate: 60,
-            vbv_frames: 1,
+            gop_on_demand: false,
         }) {
             Ok(e) => e,
             Err(_) => return,
@@ -1117,7 +1088,7 @@ mod tests {
             width: 64,
             height: 64,
             framerate: 30,
-            vbv_frames: 1,
+            gop_on_demand: false,
         }) {
             Ok(e) => e,
             Err(_) => return,

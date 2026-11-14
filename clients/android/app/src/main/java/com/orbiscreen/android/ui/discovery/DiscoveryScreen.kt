@@ -109,7 +109,7 @@ fun DiscoveryScreen(
     val state by viewModel.state.collectAsState()
     var manualExpanded by rememberSaveable { mutableStateOf(false) }
     var manualText by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
-    val valid = remember(manualText.text) { HostSpec.isValid(manualText.text) }
+    val valid = remember(manualText.text) { HostSpec.parse(manualText.text) != null }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -203,7 +203,7 @@ fun DiscoveryScreen(
                 onValueChange = { manualText = it },
                 valid = valid,
                 onConnect = {
-                    HostSpec.parse(manualText.text)?.let { (h, p) -> onConnect(h, p) }
+                    HostSpec.parse(manualText.text)?.let { spec -> onConnect(spec.host, spec.port) }
                 },
             )
 

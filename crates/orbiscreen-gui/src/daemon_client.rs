@@ -1,54 +1,44 @@
-use serde::{Deserialize, Serialize};
+use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
+
+use orbiscreen_core::ports;
+use orbiscreen_core::report::{DoctorReport, StatusReport};
 use tokio::process::Command;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default)]
 pub struct DaemonStatus {
-    pub running: bool,
-    pub frames_forwarded: u64,
-    pub active_clients: u32,
-    pub total_clients: u64,
-    pub auth_failures: u64,
-    pub usb_devices: u32,
-    #[serde(default)]
-    pub usb_connected_devices: Vec<String>,
-    #[serde(default)]
-    pub usb_aoa_ready: bool,
-    pub encoder: String,
-    pub capture_backend: String,
-    pub display_width: u32,
-    pub display_height: u32,
-    pub display_fps: u32,
-    pub signaling_port: u16,
+    pub report: StatusReport,
     pub udp_port: u16,
     pub local_ips: Vec<String>,
-    pub session_token: Option<String>,
-    #[serde(default)]
-    pub version: Option<String>,
 }
 
-impl Default for DaemonStatus {
-    fn default() -> Self {
+impl Deref for DaemonStatus {
+    type Target = StatusReport;
+
+    fn deref(&self) -> &Self::Target {
+        &self.report
+    }
+}
+
+impl DerefMut for DaemonStatus {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.report
+    }
+}
+
+impl DaemonStatus {
+    pub fn new(report: StatusReport) -> Self {
         Self {
-            running: false,
-            frames_forwarded: 0,
-            active_clients: 0,
-            total_clients: 0,
-            auth_failures: 0,
-            usb_devices: 0,
-            usb_connected_devices: Vec::new(),
-            usb_aoa_ready: false,
-            encoder: "Unknown".to_string(),
-            capture_backend: "Unknown".to_string(),
-            display_width: 1920,
-            display_height: 1080,
-            display_fps: 60,
-            signaling_port: 8788,
-            udp_port: 8789,
+            udp_port: ports::udp_port(report.signaling_port),
+            report,
             local_ips: Vec::new(),
-            session_token: None,
-            version: Some(env!("CARGO_PKG_VERSION").to_string()),
         }
+    }
+
+    pub fn token(&self) -> Option<String> {
+        orbiscreen_core::paths::read_trimmed(&orbiscreen_core::default_token_path())
+            .ok()
+            .filter(|token| !token.is_empty())
     }
 }
 
@@ -66,9 +56,9 @@ impl DaemonClient {
             )
             .await?;
             let json_str = proxy.call::<_, _, String>("GetStatus", &()).await?;
-            let mut status = serde_json::from_str::<DaemonStatus>(&json_str)
+            let report = serde_json::from_str::<StatusReport>(&json_str)
                 .map_err(|e| zbus::Error::Failure(e.to_string()))?;
-            status.udp_port = status.signaling_port.saturating_add(1);
+            let mut status = DaemonStatus::new(report);
             status.local_ips = Self::detect_local_ips();
             Ok::<DaemonStatus, zbus::Error>(status)
         })
@@ -93,14 +83,15 @@ impl DaemonClient {
         } else {
             (1920, 1080, 60)
         };
-        DaemonStatus {
+        let mut status = DaemonStatus::new(StatusReport {
             running: is_running,
-            local_ips: Self::detect_local_ips(),
             display_width: cfg_w,
             display_height: cfg_h,
             display_fps: cfg_fps,
-            ..Default::default()
-        }
+            ..StatusReport::new()
+        });
+        status.local_ips = Self::detect_local_ips();
+        status
     }
 
     pub async fn start_service() -> Result<String, String> {
@@ -141,30 +132,44 @@ impl DaemonClient {
             }
         }
 
-        let _ = Command::new("systemctl")
+        let systemctl = Command::new("systemctl")
             .args(["--user", "stop", "orbiscreen"])
             .output()
             .await;
+        if matches!(&systemctl, Ok(out) if out.status.success()) {
+            return Ok("Stopped orbiscreen systemd service".to_string());
+        }
 
-        let _ = Command::new("orbiscreen").arg("stop").output().await;
-
-        Ok("Stop command sent".to_string())
+        let cli = Command::new("orbiscreen").arg("stop").output().await;
+        match cli {
+            Ok(out) if out.status.success() => Ok("Stopped orbiscreen daemon".to_string()),
+            Ok(out) => Err(format!(
+                "stop failed: {}",
+                String::from_utf8_lossy(&out.stderr).trim()
+            )),
+            Err(e) => Err(format!("failed to stop daemon: {e}")),
+        }
     }
 
     pub async fn restart_service() -> Result<String, String> {
-        let _ = Self::stop_service().await;
-        tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
+        Self::stop_service().await?;
         Self::start_service().await
     }
 
-    pub async fn run_doctor_check() -> Result<String, String> {
+    pub async fn run_doctor_check() -> Result<DoctorReport, String> {
         let out = Command::new("orbiscreen")
             .args(["doctor", "--json"])
             .output()
             .await
             .map_err(|e| format!("Failed to run doctor: {e}"))?;
-
-        Ok(String::from_utf8_lossy(&out.stdout).to_string())
+        if !out.status.success() {
+            return Err(format!(
+                "doctor failed: {}",
+                String::from_utf8_lossy(&out.stderr).trim()
+            ));
+        }
+        serde_json::from_slice::<DoctorReport>(&out.stdout)
+            .map_err(|e| format!("invalid doctor report: {e}"))
     }
 
     pub async fn run_doctor_fix() -> Result<String, String> {
@@ -173,6 +178,12 @@ impl DaemonClient {
             .output()
             .await
             .map_err(|e| format!("Failed to run doctor fix: {e}"))?;
+        if !out.status.success() {
+            return Err(format!(
+                "doctor fix failed: {}",
+                String::from_utf8_lossy(&out.stderr).trim()
+            ));
+        }
 
         Ok(String::from_utf8_lossy(&out.stdout).to_string())
     }
@@ -197,50 +208,40 @@ impl DaemonClient {
     }
 
     pub async fn set_display_settings(width: u32, height: u32, fps: u32) -> Result<String, String> {
-        let width = width.clamp(320, 7680);
-        let height = height.clamp(240, 4320);
-        let fps = fps.clamp(30, 240);
+        let width = width.clamp(
+            orbiscreen_core::DisplayConfig::MIN_WIDTH,
+            orbiscreen_core::DisplayConfig::MAX_WIDTH,
+        );
+        let height = height.clamp(
+            orbiscreen_core::DisplayConfig::MIN_HEIGHT,
+            orbiscreen_core::DisplayConfig::MAX_HEIGHT,
+        );
+        let fps = fps.clamp(
+            orbiscreen_core::DisplayConfig::MIN_REFRESH_RATE_HZ,
+            orbiscreen_core::DisplayConfig::MAX_REFRESH_RATE_HZ,
+        );
 
-        let cfg_path = orbiscreen_core::default_config_path();
-        let mut cfg = if let Ok(s) = std::fs::read_to_string(&cfg_path) {
-            orbiscreen_core::load_config(&s).unwrap_or_default()
-        } else {
-            orbiscreen_core::Config::default()
-        };
-        cfg.display.width = width;
-        cfg.display.height = height;
-        cfg.display.refresh_rate_hz = fps;
-        if let Some(parent) = cfg_path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        if let Ok(toml) = orbiscreen_core::dump_config(&cfg) {
-            let _ = std::fs::write(&cfg_path, toml);
-        }
-
-        if let Ok(conn) = zbus::Connection::session().await {
-            if let Ok(proxy) = zbus::Proxy::new(
-                &conn,
-                "com.orbiscreen.Daemon",
-                "/com/orbiscreen/Daemon",
-                "com.orbiscreen.Daemon",
-            )
+        let conn = zbus::Connection::session()
             .await
-            {
-                if let Ok(reply) = proxy
-                    .call::<_, _, String>("SetResolution", &(width, height, fps))
-                    .await
-                {
-                    return Ok(reply);
-                }
-            }
-        }
-
-        Ok(format!("Saved {width}x{height}@{fps}Hz to configuration"))
+            .map_err(|e| format!("D-Bus unavailable: {e}"))?;
+        let proxy = zbus::Proxy::new(
+            &conn,
+            "com.orbiscreen.Daemon",
+            "/com/orbiscreen/Daemon",
+            "com.orbiscreen.Daemon",
+        )
+        .await
+        .map_err(|e| format!("daemon proxy: {e}"))?;
+        proxy
+            .call::<_, _, String>("SetResolution", &(width, height, fps))
+            .await
+            .map_err(|e| format!("SetResolution failed: {e}"))
     }
 
     fn autostart_file_path() -> PathBuf {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-        PathBuf::from(home).join(".config/autostart/orbiscreen.desktop")
+        gtk::glib::user_config_dir()
+            .join("autostart")
+            .join("orbiscreen.desktop")
     }
 
     pub fn open_browser(url: &str) -> Result<(), String> {

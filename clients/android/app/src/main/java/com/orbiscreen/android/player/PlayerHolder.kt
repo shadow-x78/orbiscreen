@@ -1,5 +1,7 @@
 package com.orbiscreen.android.player
 
+import com.orbiscreen.android.net.Protocol
+
 import android.content.Context
 import android.media.MediaCrypto
 import android.media.MediaFormat
@@ -119,10 +121,10 @@ class PlayerHolder(
                 val body = payload.toString().toRequestBody("application/json".toMediaType())
                 val reqBuilder = Request.Builder()
                     .url("http://${target.host}:${target.port}/api/control")
-                    .header("Authorization", "Bearer $token")
+                    .header(Protocol.HEADER_AUTHORIZATION, Protocol.bearer(token))
                     .post(body)
                 if (sid.isNotBlank()) {
-                    reqBuilder.header("X-Orbiscreen-Session", sid)
+                    reqBuilder.header(Protocol.HEADER_SESSION, sid)
                 }
                 httpClient().newCall(reqBuilder.build()).execute().close()
             } catch (_: Exception) {}
@@ -322,14 +324,14 @@ class PlayerHolder(
         val player = try {
             val headers = mutableMapOf<String, String>()
             if (token.isNotBlank()) {
-                headers["Authorization"] = "Bearer $token"
+                headers[Protocol.HEADER_AUTHORIZATION] = Protocol.bearer(token)
             }
             val sid = session?.id.orEmpty()
             if (sid.isNotBlank()) {
-                headers["X-Orbiscreen-Session"] = sid
+                headers[Protocol.HEADER_SESSION] = sid
             }
             if (!identityKey.isNullOrBlank()) {
-                headers["X-Orbiscreen-Client-Key"] = identityKey
+                headers[Protocol.HEADER_CLIENT_KEY] = identityKey
             }
             val httpFactory = OkHttpDataSource.Factory(httpClient())
                 .setUserAgent("Orbiscreen-Android/${com.orbiscreen.android.BuildConfig.VERSION_NAME}")

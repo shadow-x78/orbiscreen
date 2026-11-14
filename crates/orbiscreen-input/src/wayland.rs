@@ -32,6 +32,8 @@ impl From<WaylandInputError> for InputError {
 pub struct WaylandInjector {
     remote: RemoteDesktop,
     session: std::sync::Arc<Session<RemoteDesktop>>,
+    stream: Option<u32>,
+    cursor: std::sync::Mutex<(f64, f64)>,
 }
 
 fn device_options() -> SelectDevicesOptions {
@@ -99,22 +101,57 @@ impl WaylandInjector {
                 Err(e) => warn!("failed to persist portal state: {e}"),
             }
         }
+        let stream = selected
+            .streams()
+            .first()
+            .map(|stream| stream.pipe_wire_node_id());
         info!("RemoteDesktop session established");
         Ok(Self {
             remote,
             session: std::sync::Arc::new(session),
+            stream,
+            cursor: std::sync::Mutex::new((0.0, 0.0)),
         })
+    }
+
+    fn track_absolute(&self, x: f64, y: f64) -> (f64, f64) {
+        let mut cursor = self.cursor.lock().unwrap_or_else(|e| e.into_inner());
+        let dx = x - cursor.0;
+        let dy = y - cursor.1;
+        *cursor = (x, y);
+        (dx, dy)
+    }
+
+    fn track_relative(&self, dx: f64, dy: f64) {
+        let mut cursor = self.cursor.lock().unwrap_or_else(|e| e.into_inner());
+        cursor.0 += dx;
+        cursor.1 += dy;
     }
 
     pub async fn inject_pointer(&self, event: PointerEvent) -> Result<(), InputError> {
         match event {
             PointerEvent::Move { x, y } => {
-                self.remote
-                    .notify_pointer_motion(&self.session, x, y, Default::default())
-                    .await
-                    .map_err(|e| InputError::Uinput(e.to_string()))?;
+                if let Some(stream) = self.stream {
+                    self.remote
+                        .notify_pointer_motion_absolute(
+                            &self.session,
+                            stream,
+                            x,
+                            y,
+                            Default::default(),
+                        )
+                        .await
+                        .map_err(|e| InputError::Uinput(e.to_string()))?;
+                } else {
+                    let (dx, dy) = self.track_absolute(x, y);
+                    self.remote
+                        .notify_pointer_motion(&self.session, dx, dy, Default::default())
+                        .await
+                        .map_err(|e| InputError::Uinput(e.to_string()))?;
+                }
             }
             PointerEvent::RelativeMove { dx, dy } => {
+                self.track_relative(dx, dy);
                 self.remote
                     .notify_pointer_motion(&self.session, dx, dy, Default::default())
                     .await

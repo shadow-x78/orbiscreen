@@ -1,6 +1,6 @@
-pub mod capabilities;
 pub mod damage_pump;
 pub mod kwin_virtual;
+pub mod pipewire;
 pub mod wayland;
 pub mod wlr_screencopy;
 pub mod wlr_virtual_output;
@@ -8,7 +8,10 @@ pub mod x11;
 
 use std::sync::Arc;
 
-use orbiscreen_core::frame_pool::{FramePool, PooledFrameBuffer};
+use orbiscreen_core::frame::frame_len;
+pub use orbiscreen_core::frame::CapturedFrame;
+use orbiscreen_core::frame_pool::FramePool;
+use orbiscreen_core::session::CaptureStep;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,17 +20,6 @@ pub enum CaptureBackend {
     Wayland,
     KwinVirtual,
     WlrScreencopy,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CapturePreference {
-    Auto,
-
-    KwinVirtual,
-
-    Screencopy,
-
-    Portal,
 }
 
 #[derive(Debug, Error)]
@@ -53,31 +45,6 @@ impl From<x11rb::xcb_ffi::ConnectError> for CaptureError {
 impl From<x11rb::xcb_ffi::ConnectionError> for CaptureError {
     fn from(error: x11rb::xcb_ffi::ConnectionError) -> Self {
         Self::X11Connect(format!("{error:?}"))
-    }
-}
-
-pub struct CapturedFrame {
-    pub width: u32,
-    pub height: u32,
-    pub data: PooledFrameBuffer,
-}
-
-impl std::fmt::Debug for CapturedFrame {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CapturedFrame")
-            .field("width", &self.width)
-            .field("height", &self.height)
-            .field("data_len", &self.data.len())
-            .finish()
-    }
-}
-
-impl CapturedFrame {
-    pub fn size_in_bytes(width: u32, height: u32) -> usize {
-        (width as usize)
-            .checked_mul(height as usize)
-            .and_then(|v| v.checked_mul(4))
-            .unwrap_or(usize::MAX)
     }
 }
 
@@ -120,10 +87,7 @@ pub(crate) fn sample_to_captured_frame(
         tracing::warn!("buffer not readable; skipping sample");
         return None;
     };
-    let expected = (width as usize)
-        .checked_mul(height as usize)
-        .and_then(|v| v.checked_mul(4));
-    let Some(expected) = expected else {
+    let Some(expected) = frame_len(width as u32, height as u32) else {
         tracing::warn!("skipping sample with overflowing dimensions {width}x{height}");
         return None;
     };
@@ -244,23 +208,22 @@ impl CaptureSession {
         })
     }
 
-    pub async fn open_kwin_named(
+    async fn open_kwin(
         width: u32,
         height: u32,
         output_name: Option<String>,
         refresh_hz: u32,
     ) -> Result<Self, CaptureError> {
-        let name_clone = output_name.clone();
         let capture = tokio::task::spawn_blocking(move || {
-            let spec = match name_clone {
-                Some(name) if !name.is_empty() => kwin_virtual::KwinVirtualSpec {
+            let spec = match output_name {
+                Some(name) => kwin_virtual::KwinVirtualSpec {
                     width,
                     height,
                     names: vec![name],
                     description: "Orbiscreen Virtual Display".into(),
                     refresh_hz,
                 },
-                _ => kwin_virtual::KwinVirtualSpec::unnamed(width, height),
+                None => kwin_virtual::KwinVirtualSpec::unnamed(width, height),
             };
             kwin_virtual::KwinVirtualCapture::open(spec)
         })
@@ -285,11 +248,7 @@ impl CaptureSession {
         })
     }
 
-    pub async fn open_kwin(width: u32, height: u32) -> Result<Self, CaptureError> {
-        Self::open_kwin_named(width, height, None, 60).await
-    }
-
-    pub async fn open_screencopy(output_name: Option<String>) -> Result<Self, CaptureError> {
+    async fn open_screencopy(output_name: Option<String>) -> Result<Self, CaptureError> {
         let capture = tokio::task::spawn_blocking(move || {
             wlr_screencopy::WlrScreencopyCapture::open(wlr_screencopy::WlrScreencopySpec {
                 output_name,
@@ -307,39 +266,28 @@ impl CaptureSession {
         })
     }
 
-    pub async fn open_with_preference(
+    pub async fn open_step(
+        step: CaptureStep,
         width: u32,
         height: u32,
-        preference: CapturePreference,
+        refresh_hz: u32,
+        output_name: Option<&str>,
     ) -> Result<Self, CaptureError> {
-        let on_wayland = std::env::var_os("WAYLAND_DISPLAY").is_some();
-        if !on_wayland {
-            return match preference {
-                CapturePreference::Auto => Self::open_x11(width, height),
-                CapturePreference::KwinVirtual => Err(CaptureError::BackendUnavailable(
-                    "kwin-virtual capture requires a Wayland session",
-                )),
-                CapturePreference::Screencopy => Err(CaptureError::BackendUnavailable(
-                    "screencopy capture requires a Wayland session",
-                )),
-                CapturePreference::Portal => Err(CaptureError::BackendUnavailable(
-                    "portal capture requires a Wayland session",
-                )),
-            };
-        }
-        match preference {
-            CapturePreference::Auto => match Self::open_kwin(width, height).await {
-                Ok(session) => Ok(session),
-                Err(e) => {
-                    tracing::info!(
-                        "KWin virtual display unavailable ({e}); falling back to the portal"
-                    );
-                    Self::open_portal(width, height).await
-                }
-            },
-            CapturePreference::KwinVirtual => Self::open_kwin(width, height).await,
-            CapturePreference::Screencopy => Self::open_screencopy(None).await,
-            CapturePreference::Portal => Self::open_portal(width, height).await,
+        match step {
+            CaptureStep::X11Root => Self::open_x11(width, height),
+            CaptureStep::KwinVirtual => {
+                Self::open_kwin(width, height, output_name.map(str::to_string), refresh_hz).await
+            }
+            CaptureStep::Portal => Self::open_portal(width, height).await,
+            CaptureStep::WlrScreencopy => {
+                Self::open_screencopy(output_name.map(str::to_string)).await
+            }
+            CaptureStep::Evdi => Err(CaptureError::BackendUnavailable(
+                "evdi capture is opened by the display layer",
+            )),
+            CaptureStep::WlrootsVirtual => Err(CaptureError::BackendUnavailable(
+                "wlroots virtual output is opened by the daemon",
+            )),
         }
     }
 
@@ -399,34 +347,9 @@ impl CaptureSession {
     }
 }
 
-pub fn detect_backend() -> CaptureBackend {
-    if std::env::var_os("WAYLAND_DISPLAY").is_some() {
-        CaptureBackend::Wayland
-    } else {
-        CaptureBackend::X11
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn size_in_bytes_is_w_h_4() {
-        assert_eq!(CapturedFrame::size_in_bytes(1920, 1080), 1920 * 1080 * 4);
-        assert_eq!(CapturedFrame::size_in_bytes(0, 0), 0);
-    }
-
-    #[test]
-    fn detect_prefers_wayland_when_present() {
-        let prev = std::env::var_os("WAYLAND_DISPLAY");
-        std::env::set_var("WAYLAND_DISPLAY", "wayland-0");
-        assert_eq!(detect_backend(), CaptureBackend::Wayland);
-        match prev {
-            Some(value) => std::env::set_var("WAYLAND_DISPLAY", value),
-            None => std::env::remove_var("WAYLAND_DISPLAY"),
-        }
-    }
 
     #[test]
     fn empty_frame_is_zeroes() {

@@ -65,7 +65,7 @@ class UsbPlayer(
     private var width: Int = 1920
     private var height: Int = 1080
     private var clockOffsetNs: Long = 0
-    private val lastIdr = AtomicLong(0)
+    private val idrRequester = IdrRequester()
     private val sentQueue = ArrayDeque<Long>()
     private val payloads = ArrayBlockingQueue<ByteArray>(256)
 
@@ -257,10 +257,7 @@ class UsbPlayer(
     }
 
     fun requestIdr() {
-        val now = android.os.SystemClock.elapsedRealtime()
-        if (now - lastIdr.get() < Idr.DEBOUNCE_MS) return
-        lastIdr.set(now)
-        onIdr()
+        idrRequester.request(onIdr)
     }
 
     private fun requestIdrWhileStarved(nowMs: Long = System.currentTimeMillis()): Boolean {

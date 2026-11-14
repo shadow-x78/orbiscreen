@@ -1,16 +1,12 @@
 use super::H264Packet;
 
-pub const TYPE_VIDEO: u8 = 1;
-pub const TYPE_HELLO: u8 = 2;
-pub const TYPE_HELLO_ACK: u8 = 3;
-pub const TYPE_PING: u8 = 4;
-pub const TYPE_PONG: u8 = 5;
-pub const TYPE_IDR: u8 = 6;
-pub const TYPE_BYE: u8 = 10;
-pub const MAX_FRAME: usize = 4 * 1024 * 1024;
-pub const VIDEO_PREFIX: usize = 1 + 1 + 8 + 8;
-pub const DATAGRAM_HEADER: usize = 1 + 1 + 2 + 2 + 2 + 8 + 8;
-pub const DEFAULT_DATAGRAM: usize = 1024;
+pub use crate::protocol::{
+    MAX_FRAME, TYPE_BYE, TYPE_HELLO, TYPE_HELLO_ACK, TYPE_IDR, TYPE_PING, TYPE_PONG, TYPE_VIDEO,
+};
+
+pub const VIDEO_PREFIX: usize = crate::protocol::WT_VIDEO_PREFIX;
+pub const DATAGRAM_HEADER: usize = crate::protocol::WT_DATAGRAM_HEADER;
+pub const DEFAULT_DATAGRAM: usize = crate::protocol::DEFAULT_WT_DATAGRAM;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hello {

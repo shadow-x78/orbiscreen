@@ -6,11 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use gstreamer::prelude::*;
-use gstreamer_app::{AppSink, AppSinkCallbacks};
 use thiserror::Error;
-use tokio::sync::mpsc;
-use tokio::sync::Notify;
 use tracing::instrument;
 use wayland_client::backend::WaylandError;
 use wayland_client::protocol::wl_registry::{self, WlRegistry};
@@ -20,17 +16,50 @@ use wayland_protocols_plasma::screencast::v1::client::zkde_screencast_stream_uns
 };
 use wayland_protocols_plasma::screencast::v1::client::zkde_screencast_unstable_v1::ZkdeScreencastUnstableV1;
 
-use super::{sample_to_captured_frame, CaptureError, CapturedFrame};
+use super::pipewire::{PipewireCapture, PipewireSpec};
+use super::CaptureError;
+use orbiscreen_core::frame::CapturedFrame;
 
 const POINTER_EMBEDDED: u32 = 2;
-
-const FRAME_CHANNEL_CAPACITY: usize = 8;
 
 const HANDSHAKE_DEADLINE: Duration = Duration::from_secs(5);
 const EVENT_POLL_TIMEOUT_MS: i32 = 100;
 
 const KWIN_INTERFACES_KEY: &str = "X-KDE-Wayland-Interfaces=zkde_screencast_unstable_v1";
 const PERMISSION_FILE_NAME: &str = "orbiscreen.kwin.desktop";
+
+pub use orbiscreen_core::output::{
+    client_protocol_names as protocol_names_for, sanitize_client_name, VIRTUAL_OUTPUT_CONNECTOR,
+};
+
+pub async fn ensure_output_enabled(connector: &str) -> bool {
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    let next_x = next_available_output_x(connector);
+    let enable = format!("output.{connector}.enable");
+    let scale = format!("output.{connector}.scale.1");
+    let position = format!("output.{connector}.position.{next_x},0");
+    for attempt in 1..=5 {
+        let status = tokio::process::Command::new("kscreen-doctor")
+            .arg(&enable)
+            .arg(&scale)
+            .arg(&position)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .await;
+        if let Ok(status) = status {
+            if status.success() {
+                tracing::info!(connector, next_x, "enabled and scaled KWin output");
+                return true;
+            }
+        }
+        if attempt < 5 {
+            tokio::time::sleep(Duration::from_millis(300)).await;
+        }
+    }
+    tracing::warn!(connector, "KWin output did not accept enable/position");
+    false
+}
 
 #[derive(Debug, Clone)]
 pub struct KwinVirtualSpec {
@@ -51,50 +80,6 @@ impl KwinVirtualSpec {
             refresh_hz: 60,
         }
     }
-}
-
-pub fn sanitize_client_name(raw: &str) -> String {
-    let mut slug = String::new();
-    let mut dash = false;
-    for ch in raw.chars() {
-        if ch.is_ascii_alphanumeric() {
-            slug.push(ch);
-            dash = false;
-        } else if !dash && !slug.is_empty() {
-            slug.push('-');
-            dash = true;
-        }
-        if slug.len() >= 32 {
-            break;
-        }
-    }
-    let slug = slug.trim_matches('-').to_string();
-    if slug.is_empty() {
-        "client".into()
-    } else {
-        slug
-    }
-}
-
-pub fn protocol_names_for(client_name: &str, device_key: Option<&str>) -> (String, Vec<String>) {
-    let trimmed = client_name.trim();
-    let description = if trimmed.is_empty() {
-        "OrbiScreen".to_string()
-    } else {
-        trimmed.to_string()
-    };
-
-    let slug = device_key
-        .map(sanitize_client_name)
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| sanitize_client_name(trimmed));
-    let base = format!("Orbi-{slug}");
-    let names = vec![
-        base.clone(),
-        format!("{base}-2"),
-        format!("{base}-{}", std::process::id()),
-    ];
-    (description, names)
 }
 
 #[derive(Debug, Error)]
@@ -214,13 +199,8 @@ impl Dispatch<ZkdeScreencastStreamUnstableV1, Arc<StreamShared>> for HandshakeSt
 }
 
 fn is_kde_session() -> bool {
-    std::env::var("XDG_CURRENT_DESKTOP")
-        .map(|v| {
-            v.to_ascii_lowercase()
-                .split(':')
-                .any(|component| component == "kde")
-        })
-        .unwrap_or(false)
+    orbiscreen_core::session::Capabilities::from_env().compositor
+        == orbiscreen_core::session::Compositor::Kde
 }
 
 fn user_applications_dir() -> Option<PathBuf> {
@@ -280,8 +260,6 @@ fn atomic_write(path: &Path, contents: &str) -> std::io::Result<()> {
 
     std::fs::rename(&tmp, path)
 }
-
-pub const VIRTUAL_OUTPUT_CONNECTOR: &str = "Virtual-ORBISCREEN";
 
 pub fn kwin_output_config_path() -> Option<PathBuf> {
     let home = std::env::var_os("HOME")?;
@@ -533,7 +511,7 @@ pub fn select_tablet_output(outputs: &[KscreenOutput], preferred: Option<&str>) 
         .iter()
         .copied()
         .find(|n| {
-            n.starts_with("Virtual-Orbi-")
+            n.starts_with(orbiscreen_core::output::CLIENT_CONNECTOR_PREFIX)
                 || n.starts_with("Virtual-OrbiScreen")
                 || n.starts_with("Virtual-orbi")
         })
@@ -654,15 +632,13 @@ fn ensure_kwin_permission_file() {
 
 #[allow(missing_debug_implementations)]
 pub struct KwinVirtualCapture {
-    _pipeline: gstreamer::Pipeline,
     stream: ZkdeScreencastStreamUnstableV1,
-    rx: tokio::sync::Mutex<mpsc::Receiver<CapturedFrame>>,
+    pipewire: PipewireCapture,
     width: u32,
     height: u32,
     connector: String,
     stop: Arc<AtomicBool>,
     ended: Arc<AtomicBool>,
-    ended_notify: Arc<Notify>,
     event_thread: Option<std::thread::JoinHandle<()>>,
     _damage_pump: super::damage_pump::DamagePumpHandle,
 }
@@ -671,10 +647,7 @@ impl KwinVirtualCapture {
     #[instrument(skip_all, fields(width = spec.width, height = spec.height))]
     pub fn open(spec: KwinVirtualSpec) -> Result<Self, KwinVirtualError> {
         let names = if spec.names.is_empty() {
-            vec![
-                "ORBISCREEN".to_string(),
-                format!("ORBISCREEN-{}", std::process::id()),
-            ]
+            orbiscreen_core::output::default_protocol_names()
         } else {
             spec.names.clone()
         };
@@ -687,7 +660,7 @@ impl KwinVirtualCapture {
         if spec.names.is_empty() {
             if let Some(path) = kwin_output_config_path() {
                 for name in &names {
-                    let connector = format!("Virtual-{name}");
+                    let connector = orbiscreen_core::output::connector_for(name);
                     match forget_saved_virtual_output(&path, &connector) {
                         Ok(true) => tracing::info!(
                             file = %path.display(),
@@ -710,8 +683,6 @@ impl KwinVirtualCapture {
         let Ok(height) = i32::try_from(spec.height) else {
             return Err(KwinVirtualError::UnsupportedSize(spec.width, spec.height));
         };
-        gstreamer::init().map_err(|e| KwinVirtualError::Wayland(format!("gst init: {e}")))?;
-
         let mut session = WaylandSession::connect()?;
         if session.state.screencast_global.is_none() && is_kde_session() {
             ensure_kwin_permission_file();
@@ -756,7 +727,7 @@ impl KwinVirtualCapture {
             .map(|o| o.name)
             .collect();
         for name in names {
-            let connector = format!("Virtual-{name}");
+            let connector = orbiscreen_core::output::connector_for(&name);
             if taken
                 .iter()
                 .any(|existing| existing.eq_ignore_ascii_case(&connector))
@@ -821,7 +792,7 @@ impl KwinVirtualCapture {
                     stream = Some(candidate);
                     node_id = Some(id);
                     shared_ok = Some(shared);
-                    accepted_name = Some(format!("Virtual-{name}"));
+                    accepted_name = Some(orbiscreen_core::output::connector_for(&name));
                     break;
                 }
                 Err(e) => {
@@ -840,72 +811,13 @@ impl KwinVirtualCapture {
             }
         };
 
-        let pipeline_str = format!(
-            "pipewiresrc path={node_id} do-timestamp=true \
-             ! video/x-raw \
-             ! videoconvert n-threads=4 \
-             ! videoscale \
-             ! video/x-raw,format=BGRA,width={},height={} \
-             ! appsink name=sink drop=true sync=false max-buffers=1 emit-signals=false",
-            spec.width, spec.height
-        );
-        let pipeline = gstreamer::parse::launch(&pipeline_str)
-            .map_err(|e| KwinVirtualError::Wayland(format!("gst launch: {e}")))?
-            .downcast::<gstreamer::Pipeline>()
-            .map_err(|_| KwinVirtualError::Wayland("gst pipeline downcast".into()))?;
-
-        let appsink = pipeline
-            .by_name("sink")
-            .ok_or_else(|| KwinVirtualError::Wayland("appsink not found".into()))?
-            .downcast::<AppSink>()
-            .map_err(|_| KwinVirtualError::Wayland("appsink downcast".into()))?;
-
-        let (tx, rx) = mpsc::channel::<CapturedFrame>(FRAME_CHANNEL_CAPACITY);
-        let pool = orbiscreen_core::frame_pool::FramePool::new();
-        appsink.set_callbacks(
-            AppSinkCallbacks::builder()
-                .new_sample(move |sink| {
-                    let sample = match sink.pull_sample() {
-                        Ok(s) => s,
-                        Err(e) => {
-                            tracing::warn!("pull_sample error: {e}");
-                            return Err(gstreamer::FlowError::Eos);
-                        }
-                    };
-                    if let Some(frame) = sample_to_captured_frame(&sample, &pool) {
-                        if tx.try_send(frame).is_err() {
-                            tracing::debug!("capture frame dropped: consumer channel full");
-                        }
-                    }
-                    Ok(gstreamer::FlowSuccess::Ok)
-                })
-                .build(),
-        );
-
-        if let Some(bus) = pipeline.bus() {
-            bus.set_sync_handler(|_bus, msg| {
-                match msg.view() {
-                    gstreamer::MessageView::Error(err) => tracing::error!(
-                        target: "orbiscreen_capture::kwin_virtual",
-                        "gstreamer capture error: {} (debug: {})",
-                        err.error(),
-                        err.debug().unwrap_or_default()
-                    ),
-                    gstreamer::MessageView::Warning(warn) => tracing::warn!(
-                        target: "orbiscreen_capture::kwin_virtual",
-                        "gstreamer capture warning: {} (debug: {})",
-                        warn.error(),
-                        warn.debug().unwrap_or_default()
-                    ),
-                    _ => {}
-                }
-                gstreamer::BusSyncReply::Drop
-            });
-        }
-
-        pipeline
-            .set_state(gstreamer::State::Playing)
-            .map_err(|e| KwinVirtualError::Wayland(format!("State error: {e}")))?;
+        let pipewire = PipewireCapture::open(PipewireSpec {
+            fd: None,
+            node_id,
+            width: spec.width,
+            height: spec.height,
+        })
+        .map_err(KwinVirtualError::Wayland)?;
 
         let pump_interval =
             Duration::from_nanos(1_000_000_000u64 / u64::from(spec.refresh_hz.max(1)));
@@ -915,14 +827,12 @@ impl KwinVirtualCapture {
         let damage_pump = super::damage_pump::spawn(pump_interval, &hint);
 
         let ended = Arc::new(AtomicBool::new(false));
-        let ended_notify = Arc::new(Notify::new());
         let stop = Arc::new(AtomicBool::new(false));
         let event_thread = std::thread::Builder::new()
             .name("orbiscreen-kwin-events".into())
             .spawn({
                 let shared = Arc::clone(&shared);
                 let ended = Arc::clone(&ended);
-                let ended_notify = Arc::clone(&ended_notify);
                 let stop = Arc::clone(&stop);
                 move || {
                     pump_events(
@@ -932,22 +842,19 @@ impl KwinVirtualCapture {
                         shared,
                         stop,
                         ended,
-                        ended_notify,
                     )
                 }
             })
             .map_err(|e| KwinVirtualError::Wayland(format!("spawn event thread: {e}")))?;
 
         Ok(Self {
-            _pipeline: pipeline,
             stream,
-            rx: tokio::sync::Mutex::new(rx),
+            pipewire,
             width: spec.width,
             height: spec.height,
             connector: accepted_name.unwrap_or_else(|| VIRTUAL_OUTPUT_CONNECTOR.to_string()),
             stop,
             ended,
-            ended_notify,
             event_thread: Some(event_thread),
             _damage_pump: damage_pump,
         })
@@ -966,31 +873,23 @@ impl KwinVirtualCapture {
     }
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, CaptureError> {
-        let mut rx = self.rx.lock().await;
-        loop {
-            if self.ended.load(Ordering::Relaxed) {
-                return Err(CaptureError::Io(
-                    "KWin virtual output stream was closed".into(),
-                ));
-            }
-            tokio::select! {
-                frame = rx.recv() => {
-                    return match frame {
-                        Some(frame) => Ok(frame),
-                        None => Err(CaptureError::Io(
-                            "KWin virtual output pipeline closed".into(),
-                        )),
-                    };
-                }
-                _ = self.ended_notify.notified() => continue,
-            }
+        if self.ended.load(Ordering::Relaxed) {
+            return Err(CaptureError::Io(
+                "KWin virtual output stream was closed".into(),
+            ));
+        }
+        match self.pipewire.next_frame().await {
+            Ok(frame) => Ok(frame),
+            Err(_e) if self.ended.load(Ordering::Relaxed) => Err(CaptureError::Io(
+                "KWin virtual output stream was closed".into(),
+            )),
+            Err(e) => Err(CaptureError::Io(e)),
         }
     }
 }
 
 impl Drop for KwinVirtualCapture {
     fn drop(&mut self) {
-        let _ = self._pipeline.set_state(gstreamer::State::Null);
         self.stop.store(true, Ordering::Relaxed);
 
         self.stream.close();
@@ -1008,7 +907,6 @@ fn pump_events(
     shared: Arc<StreamShared>,
     stop: Arc<AtomicBool>,
     ended: Arc<AtomicBool>,
-    ended_notify: Arc<Notify>,
 ) {
     loop {
         if stop.load(Ordering::Relaxed) || shared.closed.load(Ordering::Relaxed) {
@@ -1045,26 +943,11 @@ fn pump_events(
         }
     }
     ended.store(true, Ordering::Relaxed);
-    ended_notify.notify_one();
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn sanitize_client_name_slug() {
-        assert_eq!(sanitize_client_name("Galaxy Tab S5e"), "Galaxy-Tab-S5e");
-        assert_eq!(sanitize_client_name("  "), "client");
-        assert_eq!(sanitize_client_name("SM-T725"), "SM-T725");
-        let (desc, names) = protocol_names_for("Galaxy Tab S5e", None);
-        assert_eq!(desc, "Galaxy Tab S5e");
-        assert_eq!(names[0], "Orbi-Galaxy-Tab-S5e");
-        assert_eq!(names[1], "Orbi-Galaxy-Tab-S5e-2");
-        let (desc, names) = protocol_names_for("Galaxy Tab S5e", Some("a1b2c3d4"));
-        assert_eq!(desc, "Galaxy Tab S5e");
-        assert_eq!(names[0], "Orbi-a1b2c3d4");
-    }
 
     #[test]
     fn forget_saved_virtual_output_drops_connector() {

@@ -9,10 +9,45 @@ use gtk::glib;
 
 use crate::daemon_client::{DaemonClient, DaemonStatus};
 use crate::i18n::{self, Lang};
-use crate::pages::{self, Pages};
+use crate::pages::Pages;
 use crate::tray;
 
 pub const APP_ID: &str = "orbiscreen.gui";
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Tab {
+    Connect,
+    Display,
+    Doctor,
+}
+
+impl Tab {
+    const ALL: [Self; 3] = [Self::Connect, Self::Display, Self::Doctor];
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Connect => "connect",
+            Self::Display => "display",
+            Self::Doctor => "doctor",
+        }
+    }
+
+    fn label_key(self) -> &'static str {
+        match self {
+            Self::Connect => "tabConnect",
+            Self::Display => "tabDisplay",
+            Self::Doctor => "tabDoctor",
+        }
+    }
+
+    fn icon(self) -> &'static str {
+        match self {
+            Self::Connect => "smartphone-symbolic",
+            Self::Display => "video-display-symbolic",
+            Self::Doctor => "system-run-symbolic",
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum Msg {
@@ -21,7 +56,7 @@ pub enum Msg {
     StopDone(Result<String, String>),
     RestartDone(Result<String, String>),
     Autostart(bool),
-    Doctor(Result<pages::doctor::DoctorReport, String>),
+    Doctor(Result<orbiscreen_core::report::DoctorReport, String>),
     DoctorFix(Result<String, String>),
     DisplaySet(Result<(u32, u32, u32), String>),
     Toast(String),
@@ -30,7 +65,7 @@ pub enum Msg {
 #[derive(Clone, Debug, Default)]
 pub struct AppState {
     pub status: DaemonStatus,
-    pub doctor: Option<pages::doctor::DoctorReport>,
+    pub doctor: Option<orbiscreen_core::report::DoctorReport>,
     pub autostart: bool,
     pub lang: Lang,
     pub url: String,
@@ -229,24 +264,14 @@ impl Ui {
         };
         let pages = Rc::new(Pages::new(&ctx));
 
-        stack.add_titled_with_icon(
-            &pages.connect.root,
-            Some("connect"),
-            t("tabConnect"),
-            "smartphone-symbolic",
-        );
-        stack.add_titled_with_icon(
-            &pages.display.root,
-            Some("display"),
-            t("tabDisplay"),
-            "video-display-symbolic",
-        );
-        stack.add_titled_with_icon(
-            &pages.doctor.root,
-            Some("doctor"),
-            t("tabDoctor"),
-            "system-run-symbolic",
-        );
+        for tab in Tab::ALL {
+            let root = match tab {
+                Tab::Connect => &pages.connect.root,
+                Tab::Display => &pages.display.root,
+                Tab::Doctor => &pages.doctor.root,
+            };
+            stack.add_titled_with_icon(root, Some(tab.name()), t(tab.label_key()), tab.icon());
+        }
 
         let initial_tab = self
             .current_tab
@@ -258,22 +283,18 @@ impl Ui {
         let tabs_box = gtk::Box::new(gtk::Orientation::Horizontal, 2);
         tabs_box.set_homogeneous(true);
         let mut tab_buttons = Vec::new();
-        for (name, title, icon) in [
-            ("connect", t("tabConnect"), "smartphone-symbolic"),
-            ("display", t("tabDisplay"), "video-display-symbolic"),
-            ("doctor", t("tabDoctor"), "system-run-symbolic"),
-        ] {
+        for tab in Tab::ALL {
             let button = gtk::ToggleButton::new();
             let content = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-            let image = gtk::Image::from_icon_name(icon);
+            let image = gtk::Image::from_icon_name(tab.icon());
             image.set_pixel_size(16);
-            let label = gtk::Label::new(Some(title));
+            let label = gtk::Label::new(Some(t(tab.label_key())));
             content.append(&image);
             content.append(&label);
             button.set_child(Some(&content));
             button.add_css_class("orbi-tab");
-            button.set_active(name == initial_tab);
-            let tab_name = name.to_string();
+            button.set_active(tab.name() == initial_tab);
+            let tab_name = tab.name().to_string();
             let weak_stack = stack.downgrade();
             let sync = self.tab_sync.clone();
             button.connect_toggled(move |source| {
@@ -302,12 +323,8 @@ impl Ui {
                 if !sync_flag.get() {
                     sync_flag.set(true);
                     for (index, button) in sync_buttons.iter().enumerate() {
-                        let tab = match index {
-                            0 => "connect",
-                            1 => "display",
-                            _ => "doctor",
-                        };
-                        button.set_active(tab == name);
+                        let tab = Tab::ALL.get(index).copied().unwrap_or(Tab::Connect);
+                        button.set_active(tab.name() == name);
                     }
                     sync_flag.set(false);
                 }
@@ -365,10 +382,7 @@ impl Ui {
     }
 
     fn refresh_status(&self) {
-        let tx = self.tx.clone();
-        self.rt.spawn(async move {
-            let _ = tx.send(Msg::Status(DaemonClient::get_status().await)).await;
-        });
+        spawn_status_fetch(&self.rt, &self.tx);
     }
 
     fn fetch_autostart(&self) {
@@ -384,10 +398,7 @@ impl Ui {
         let tx = self.tx.clone();
         let rt = self.rt.clone();
         glib::timeout_add_seconds_local(3, move || {
-            let tx = tx.clone();
-            rt.spawn(async move {
-                let _ = tx.send(Msg::Status(DaemonClient::get_status().await)).await;
-            });
+            spawn_status_fetch(&rt, &tx);
             glib::ControlFlow::Continue
         });
     }
@@ -458,10 +469,13 @@ impl Ui {
             }
             Msg::DisplaySet(result) => match result {
                 Ok((w, h, fps)) => {
-                    let mut state = self.state.borrow_mut();
-                    state.status.display_width = w;
-                    state.status.display_height = h;
-                    state.status.display_fps = fps;
+                    {
+                        let mut state = self.state.borrow_mut();
+                        state.status.display_width = w;
+                        state.status.display_height = h;
+                        state.status.display_fps = fps;
+                    }
+                    self.apply_state();
                 }
                 Err(e) => {
                     tracing::warn!("failed to apply display settings: {e}");
@@ -499,7 +513,19 @@ impl Ui {
     }
 }
 
+fn spawn_status_fetch(rt: &tokio::runtime::Handle, tx: &async_channel::Sender<Msg>) {
+    let tx = tx.clone();
+    rt.spawn(async move {
+        let _ = tx.send(Msg::Status(DaemonClient::get_status().await)).await;
+    });
+}
+
 fn session_url(status: &DaemonStatus) -> String {
+    let token = status.token();
+    session_url_with(status, token.as_deref())
+}
+
+fn session_url_with(status: &DaemonStatus, token: Option<&str>) -> String {
     let ip = status
         .local_ips
         .first()
@@ -511,42 +537,63 @@ fn session_url(status: &DaemonStatus) -> String {
     } else {
         status.signaling_port
     };
-    let token_part = status
-        .session_token
-        .as_ref()
+    let token_part = token
         .map(|token| format!("#token={token}"))
         .unwrap_or_default();
     format!("http://{ip}:{port}/client/{token_part}")
+}
+
+pub fn usb_url(status: &DaemonStatus) -> String {
+    let token = status.token();
+    usb_url_with(status, token.as_deref())
+}
+
+fn usb_url_with(status: &DaemonStatus, token: Option<&str>) -> String {
+    let port = if status.signaling_port == 0 {
+        8788
+    } else {
+        status.signaling_port
+    };
+    let token_part = token
+        .map(|token| format!("#token={token}"))
+        .unwrap_or_default();
+    format!("http://127.0.0.1:{port}/client/{token_part}")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn status(ip: &str, port: u16, token: Option<&str>) -> DaemonStatus {
-        DaemonStatus {
-            local_ips: vec![ip.to_string()],
+    fn status(ip: &str, port: u16) -> DaemonStatus {
+        let mut status = DaemonStatus::new(orbiscreen_core::report::StatusReport {
             signaling_port: port,
-            session_token: token.map(str::to_string),
-            ..DaemonStatus::default()
-        }
+            ..orbiscreen_core::report::StatusReport::new()
+        });
+        status.local_ips = vec![ip.to_string()];
+        status
     }
 
     #[test]
-    fn session_url_joins_ip_port_and_token_fragment() {
-        let url = session_url(&status("192.168.1.5", 8788, Some("abc123")));
+    fn session_url_uses_the_lan_ip_and_signaling_port() {
+        let url = session_url_with(&status("192.168.1.5", 8788), None);
+        assert_eq!(url, "http://192.168.1.5:8788/client/");
+    }
+
+    #[test]
+    fn session_url_carries_the_token_fragment() {
+        let url = session_url_with(&status("192.168.1.5", 8788), Some("abc123"));
         assert_eq!(url, "http://192.168.1.5:8788/client/#token=abc123");
     }
 
     #[test]
-    fn session_url_omits_token_when_absent() {
-        let url = session_url(&status("10.0.0.2", 9000, None));
-        assert_eq!(url, "http://10.0.0.2:9000/client/");
+    fn usb_url_pins_loopback_but_keeps_the_token() {
+        let url = usb_url_with(&status("192.168.1.5", 9000), Some("abc123"));
+        assert_eq!(url, "http://127.0.0.1:9000/client/#token=abc123");
     }
 
     #[test]
     fn session_url_falls_back_to_loopback_and_default_port() {
-        let url = session_url(&status("", 0, None));
+        let url = session_url_with(&status("", 0), None);
         assert_eq!(url, "http://127.0.0.1:8788/client/");
     }
 }

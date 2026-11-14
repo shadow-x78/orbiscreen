@@ -17,6 +17,7 @@ description = "Virtual display creation via DisplayLink evdi"
 workspace = true
 
 [dependencies]
+orbiscreen-core = { path = "../orbiscreen-core" }
 evdi = { workspace = true }
 drm-fourcc = { workspace = true }
 thiserror = { workspace = true }

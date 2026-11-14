@@ -1,7 +1,7 @@
 use std::io::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine as _;
@@ -18,11 +18,12 @@ use wtransport::{Endpoint, ServerConfig as WtServerConfig};
 use x509_parser::prelude::FromDer as _;
 
 use super::annexb;
+use super::session::{now_ns, AnnexBPreparer, KeyframeGate, SessionAttachment, IDR_DEBOUNCE};
 use super::wt_protocol::{
     advance_datagram_seq, decode_message, encode_hello_ack, encode_pong, fragment_video_datagrams,
     video_carrier, Message, VideoCarrier, DEFAULT_DATAGRAM, MAX_FRAME,
 };
-use super::{token_eq, ClientGuard, DisplayCtl, H264Packet, Stats, IDR_DEBOUNCE};
+use super::{token_eq, ClientGuard, DisplayCtl, H264Packet, Stats};
 
 pub fn default_wt_port(signaling_port: u16) -> u16 {
     signaling_port.saturating_add(2)
@@ -51,17 +52,6 @@ pub fn advertised_hosts() -> Vec<String> {
     }
     hosts.push("127.0.0.1".into());
     hosts
-}
-
-fn host_now_ns() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos() as u64)
-        .unwrap_or(0)
-}
-
-fn idr_due(last: Instant, now: Instant) -> bool {
-    now.duration_since(last) >= IDR_DEBOUNCE
 }
 
 const CERT_RENEW_SLACK: Duration = Duration::from_secs(24 * 60 * 60);
@@ -467,40 +457,11 @@ async fn stream_session(
     auth: &StreamAuth,
     session: &str,
 ) -> Result<(), String> {
-    let attached = if let Some(ctl) = &ctx.displays {
-        let id = if session.is_empty() {
-            None
-        } else {
-            Some(session.to_string())
-        };
-        match ctl.attach(id, None).await {
-            Ok(att) => Some(att),
-            Err(e) => {
-                warn!("webtransport attach failed: {e}");
-                return Err(e);
-            }
-        }
-    } else {
+    let session_id = if session.is_empty() {
         None
-    };
-    let session_id = attached.as_ref().map(|a| a.info.id.clone());
-    let mut video_rx = if let Some(att) = attached {
-        att.video
     } else {
-        ctx.video.subscribe()
+        Some(session.to_string())
     };
-
-    ctx.stats.client_started();
-    let _guard = ClientGuard(ctx.stats.clone());
-    struct DetachGuard(Option<(DisplayCtl, String)>);
-    impl Drop for DetachGuard {
-        fn drop(&mut self) {
-            if let Some((ctl, id)) = self.0.take() {
-                tokio::spawn(async move { ctl.detach(&id).await });
-            }
-        }
-    }
-    let _detach = DetachGuard(ctx.displays.clone().zip(session_id.clone()));
     if !auth.valid(ctx.registry.as_deref())
         || session_id
             .as_deref()
@@ -508,6 +469,23 @@ async fn stream_session(
     {
         return Err("unauthorized attachment".into());
     }
+    let attachment = SessionAttachment::open(
+        ctx.displays.as_ref(),
+        &ctx.video,
+        ctx.idr_tx.clone(),
+        session_id,
+        None,
+        IDR_DEBOUNCE,
+    )
+    .await
+    .map_err(|e| {
+        warn!("webtransport attach failed: {e}");
+        e
+    })?;
+    ctx.stats.client_started();
+    let _guard = ClientGuard(ctx.stats.clone());
+    let (mut video_rx, control) = attachment.split();
+
     let ack = encode_hello_ack(
         ctx.width.min(u32::from(u16::MAX)) as u16,
         ctx.height.min(u32::from(u16::MAX)) as u16,
@@ -515,28 +493,11 @@ async fn stream_session(
     .map_err(|e| format!("{e:?}"))?;
     write_all(send, &ack).await?;
 
-    let mut last_idr = Instant::now()
-        .checked_sub(IDR_DEBOUNCE)
-        .unwrap_or_else(Instant::now);
-    let mut request_idr = || {
-        let now = Instant::now();
-        if !idr_due(last_idr, now) {
-            return;
-        }
-        last_idr = now;
-        if let (Some(ctl), Some(id)) = (ctx.displays.as_ref(), session_id.as_ref()) {
-            let ctl = ctl.clone();
-            let id = id.clone();
-            tokio::spawn(async move { ctl.idr(&id).await });
-        } else if let Some(tx) = &ctx.idr_tx {
-            let _ = tx.try_send(());
-        }
-    };
-    request_idr();
+    control.request_idr();
 
-    let mut wait_key = true;
+    let mut gate = KeyframeGate::new();
+    let mut preparer = AnnexBPreparer::default();
     let mut seq: u16 = 0;
-    let mut cached_sps_pps: Option<super::annexb::SpsPps> = None;
     let mut max_datagram = connection
         .max_datagram_size()
         .unwrap_or(0)
@@ -557,9 +518,9 @@ async fn stream_session(
                 incoming?;
                 while let Some(msg) = pop_message(&mut buf)? {
                     match msg {
-                        Message::Idr => request_idr(),
+                        Message::Idr => control.request_idr(),
                         Message::Ping(t0) => {
-                            let pong = encode_pong(t0, host_now_ns()).map_err(|e| format!("{e:?}"))?;
+                            let pong = encode_pong(t0, now_ns()).map_err(|e| format!("{e:?}"))?;
                             write_all(send, &pong).await?;
                         }
                         Message::Bye => return Ok(()),
@@ -571,37 +532,27 @@ async fn stream_session(
                 let pkt = match pkt {
                     Ok(p) => p,
                     Err(broadcast::error::RecvError::Lagged(_)) => {
-                        wait_key = true;
-                        request_idr();
+                        gate.reset();
+                        control.request_idr();
                         continue;
                     }
                     Err(broadcast::error::RecvError::Closed) => return Ok(()),
                 };
-                if wait_key {
-                    if !pkt.is_keyframe {
-                        request_idr();
-                        continue;
-                    }
-                    wait_key = false;
-                }
                 if !annexb::is_annexb(&pkt.bytes) {
                     continue;
                 }
-                let mut pkt = pkt;
-                if pkt.is_keyframe {
-                    let found = annexb::extract_sps_pps(&pkt.bytes);
-                    if !found.sps.is_empty() && !found.pps.is_empty() {
-                        cached_sps_pps = Some(found);
-                    }
-                    pkt.bytes = annexb::with_parameter_sets(&pkt.bytes, cached_sps_pps.as_ref());
+                if !gate.admit(&pkt) {
+                    control.request_idr();
+                    continue;
                 }
+                let pkt = preparer.prepare(pkt);
                 match video_carrier(pkt.is_keyframe, use_datagrams) {
                     VideoCarrier::Reliable => {
-                        let frame = match super::wt_protocol::encode_video(&pkt, host_now_ns()) {
+                        let frame = match super::wt_protocol::encode_video(&pkt, now_ns()) {
                             Ok(f) => f,
                             Err(super::wt_protocol::CodecError::TooLarge(_)) => {
-                                wait_key = true;
-                                request_idr();
+                                gate.reset();
+                                control.request_idr();
                                 continue;
                             }
                             Err(e) => return Err(format!("{e:?}")),
@@ -615,7 +566,7 @@ async fn stream_session(
                             max_datagram = sz.clamp(256, DEFAULT_DATAGRAM);
                         }
                         let dgrams =
-                            fragment_video_datagrams(seq, &pkt, host_now_ns(), max_datagram);
+                            fragment_video_datagrams(seq, &pkt, now_ns(), max_datagram);
                         if advance_datagram_seq(pkt.is_keyframe) {
                             seq = seq.wrapping_add(1);
                         }
@@ -626,8 +577,8 @@ async fn stream_session(
                                 Err(wtransport::error::SendDatagramError::TooLarge) => {
                                     max_datagram = max_datagram.saturating_sub(64).max(256);
                                     drop_rest = true;
-                                    wait_key = true;
-                                    request_idr();
+                                    gate.reset();
+                                    control.request_idr();
                                     break;
                                 }
                                 Err(wtransport::error::SendDatagramError::NotConnected) => {
@@ -644,7 +595,7 @@ async fn stream_session(
                             continue;
                         }
                         if !use_datagrams {
-                            let frame = super::wt_protocol::encode_video(&pkt, host_now_ns())
+                            let frame = super::wt_protocol::encode_video(&pkt, now_ns())
                                 .map_err(|e| format!("{e:?}"))?;
                             if write_all(send, &frame).await.is_err() {
                                 return Ok(());

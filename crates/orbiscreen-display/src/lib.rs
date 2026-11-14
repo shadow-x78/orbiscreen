@@ -226,18 +226,15 @@ fn to_tight_bgra(
     let expected = OwnedFrame::size_in_bytes(width, height);
     match pixel_format {
         Ok(drm_fourcc::DrmFourcc::Xrgb8888) | Ok(drm_fourcc::DrmFourcc::Argb8888) => {
-            let row_bytes = (width * 4) as usize;
-            let mut data = Vec::with_capacity(expected);
-            for row in 0..height as usize {
-                let start = row * stride as usize;
-                if start + row_bytes > bytes.len() {
-                    return Err(DisplayError::NoBuffer(format!(
-                        "framebuffer truncated: need {} B, have {}",
-                        start + row_bytes,
-                        bytes.len()
-                    )));
-                }
-                data.extend_from_slice(&bytes[start..start + row_bytes]);
+            let mut data = vec![0u8; expected];
+            if !orbiscreen_core::frame::assemble_bgra_rows(
+                &mut data, bytes, width, height, stride, false, false,
+            ) {
+                return Err(DisplayError::NoBuffer(format!(
+                    "framebuffer truncated: need {} B, have {}",
+                    stride as usize * height as usize,
+                    bytes.len()
+                )));
             }
             Ok(OwnedFrame {
                 width,
@@ -246,24 +243,8 @@ fn to_tight_bgra(
             })
         }
         Ok(drm_fourcc::DrmFourcc::Rgb565) => {
-            let mut data = Vec::with_capacity(expected);
-            for row in 0..height as usize {
-                let start = row * stride as usize;
-                for col in 0..width as usize {
-                    let off = start + col * 2;
-                    if off + 2 > bytes.len() {
-                        return Err(DisplayError::NoBuffer("framebuffer truncated".into()));
-                    }
-                    let pixel = u16::from_le_bytes([bytes[off], bytes[off + 1]]);
-                    let r = ((pixel >> 11) & 0x1F) as u8;
-                    let g = ((pixel >> 5) & 0x3F) as u8;
-                    let b = (pixel & 0x1F) as u8;
-                    let r8 = (r << 3) | (r >> 2);
-                    let g8 = (g << 2) | (g >> 4);
-                    let b8 = (b << 3) | (b >> 2);
-                    data.extend_from_slice(&[b8, g8, r8, 0xFF]);
-                }
-            }
+            let data = orbiscreen_core::frame::bgra_from_rgb565(bytes, stride, width, height)
+                .ok_or_else(|| DisplayError::NoBuffer("framebuffer truncated".into()))?;
             Ok(OwnedFrame {
                 width,
                 height,

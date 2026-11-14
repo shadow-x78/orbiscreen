@@ -2,6 +2,8 @@
 package com.orbiscreen.android.player
 
 import android.net.Uri
+import com.orbiscreen.android.net.HostSpec
+import com.orbiscreen.android.net.Protocol
 import okhttp3.HttpUrl
 
 object StreamUrl {
@@ -12,23 +14,15 @@ object StreamUrl {
         session: String? = null,
         key: String? = null,
     ): Uri {
-        var cleanHost = host.trim()
-        if (cleanHost.startsWith("http://", ignoreCase = true)) {
-            cleanHost = cleanHost.substring(7)
-        } else if (cleanHost.startsWith("https://", ignoreCase = true)) {
-            cleanHost = cleanHost.substring(8)
-        }
-        cleanHost = cleanHost.substringBefore('/').substringBefore(':').trim()
-        if (cleanHost.isBlank()) {
-            cleanHost = "127.0.0.1"
-        }
-        val safePort = if (port in 1..65535) port else 8788
+        val spec = HostSpec.parse(host) ?: HostSpec("127.0.0.1")
+        val cleanHost = spec.host
+        val safePort = if (port in 1..65535) port else spec.port
 
         val httpUrlBuilder = HttpUrl.Builder()
-            .scheme("http")
+            .scheme(HostSpec.SCHEME_HTTP)
             .host(cleanHost)
             .port(safePort)
-            .addPathSegment("stream")
+            .addPathSegment(Protocol.PATH_STREAM.removePrefix("/"))
 
         val cleanToken = token.trim()
         if (cleanToken.isNotBlank()) {

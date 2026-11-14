@@ -1,9 +1,11 @@
 
 package com.orbiscreen.android.player
 
+import com.orbiscreen.android.net.Protocol
+
 object Fec {
-    const val MAX_DATA_SHARDS = 252
-    const val BLOCK_FLAG = 0x02
+    const val MAX_DATA_SHARDS = Protocol.FEC_MAX_DATA_SHARDS
+    const val BLOCK_FLAG = Protocol.FEC_BLOCK_FLAG
 
     data class Block(
         val index: Int,
@@ -84,12 +86,7 @@ object Fec {
         return parts.toTypedArray() to encode(padded, parityCount(parts.size))
     }
 
-    fun parityCount(k: Int): Int = when {
-        k <= 3 -> 0
-        k <= 16 -> 2
-        k <= 64 -> 3
-        else -> 4
-    }
+    fun parityCount(k: Int): Int = Protocol.fecParityCount(k)
 
     fun recover(data: Array<ByteArray?>, parity: Array<ByteArray?>): Boolean {
         val k = data.size

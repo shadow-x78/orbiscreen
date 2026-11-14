@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.orbiscreen.android.data.PrefsStore
 import com.orbiscreen.android.input.InputDispatcher
 import com.orbiscreen.android.net.HostApi
-import com.orbiscreen.android.player.Idr
+import com.orbiscreen.android.player.IdrRequester
 import com.orbiscreen.android.player.PlayerHolder
 import com.orbiscreen.android.player.StreamEvent
 import kotlinx.coroutines.Dispatchers
@@ -89,8 +89,6 @@ data class StreamState(
     val event: StreamEvent = StreamEvent.Idle,
     val displayWidth: Int = 1920,
     val displayHeight: Int = 1080,
-    val encoder: String = "",
-    val version: String = "",
     val keyboardVisible: Boolean = false,
     val scaleMode: Int = 0,
     val resolutionLabel: String = "1920x1080",
@@ -107,7 +105,7 @@ class StreamViewModel(
 
     private val hostApi = HostApi()
     private val credentialStore = com.orbiscreen.android.data.HostCredentialStore(context)
-    private val isLan = !HostApi.isLoopback(host)
+    private val isLan = !com.orbiscreen.android.net.HostSpec.isLoopback(host)
     private val healthHttp: okhttp3.OkHttpClient = okhttp3.OkHttpClient.Builder()
         .connectTimeout(1000, java.util.concurrent.TimeUnit.MILLISECONDS)
         .readTimeout(1000, java.util.concurrent.TimeUnit.MILLISECONDS)
@@ -126,7 +124,7 @@ class StreamViewModel(
     val inputGeneration: StateFlow<Int> = _inputGeneration.asStateFlow()
     private var sessionToken: String? = null
     private var displaySessionId: String? = null
-    private var lastIdrAtMs = 0L
+    private val idrRequester = IdrRequester()
     private var waitingForKeyframe = false
 
     private fun scaleModeFromPref(pref: String): Int = when (pref) {
@@ -221,7 +219,7 @@ class StreamViewModel(
     }
 
     private suspend fun waitForAoaProxy() {
-        if (!com.orbiscreen.android.net.UsbLoopback.isLoopback(host)) return
+        if (!com.orbiscreen.android.net.HostSpec.isLoopback(host)) return
         if (com.orbiscreen.android.usb.UsbAccessoryManager.isAoaActive) return
         com.orbiscreen.android.usb.UsbAccessoryManager.init(context)
         val deadline = android.os.SystemClock.elapsedRealtime() + 2_000L
@@ -528,8 +526,6 @@ class StreamViewModel(
                 displayWidth = w,
                 displayHeight = h,
                 resolutionLabel = "${w}x${h}",
-                encoder = session?.encoder ?: hostInfo?.encoder.orEmpty(),
-                version = hostInfo?.version.orEmpty(),
             )
             inputDispatcher?.resize(
                 _state.value.displayWidth,
@@ -604,10 +600,7 @@ class StreamViewModel(
             usb.requestIdr()
             return
         }
-        val now = android.os.SystemClock.elapsedRealtime()
-        if (!Idr.due(now, lastIdrAtMs)) return
-        lastIdrAtMs = now
-        ensureInput().control("idr")
+        idrRequester.request { ensureInput().control("idr") }
     }
 
     fun ensureInput(): InputDispatcher {
@@ -686,7 +679,6 @@ class StreamViewModel(
                 displayWidth = session.width,
                 displayHeight = session.height,
                 resolutionLabel = "${session.width}x${session.height}",
-                encoder = session.encoder,
             )
             inputDispatcher?.resize(session.width, session.height)
         }

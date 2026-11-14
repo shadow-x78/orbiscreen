@@ -1,11 +1,13 @@
 
 package com.orbiscreen.android.player
 
-object IdrFrames {
-    const val TYPE_VIDEO: Int = 1
-    const val MAX_FRAME: Int = 4 * 1024 * 1024
+import com.orbiscreen.android.net.Protocol
 
-    const val FRAME_HEADER_LEN: Int = 4
+object IdrFrames {
+    const val TYPE_VIDEO: Int = Protocol.VIDEO_FRAME_TYPE
+    const val MAX_FRAME: Int = Protocol.VIDEO_FRAME_MAX
+
+    const val FRAME_HEADER_LEN: Int = Protocol.VIDEO_FRAME_LENGTH_PREFIX_LEN
 
     data class Video(
         val key: Boolean,
@@ -15,23 +17,23 @@ object IdrFrames {
     )
 
     fun split(buf: ByteArray, offset: Int = 0, length: Int = buf.size - offset): Pair<ByteArray, Int>? {
-        if (length < 4) return null
+        if (length < FRAME_HEADER_LEN) return null
         val n = ((buf[offset].toInt() and 0xff) shl 24) or
             ((buf[offset + 1].toInt() and 0xff) shl 16) or
             ((buf[offset + 2].toInt() and 0xff) shl 8) or
             (buf[offset + 3].toInt() and 0xff)
         if (n < 0 || n > MAX_FRAME) return null
-        if (length < 4 + n) return null
-        return buf.copyOfRange(offset + 4, offset + 4 + n) to (4 + n)
+        if (length < FRAME_HEADER_LEN + n) return null
+        return buf.copyOfRange(offset + FRAME_HEADER_LEN, offset + FRAME_HEADER_LEN + n) to (FRAME_HEADER_LEN + n)
     }
 
     fun decodeVideo(body: ByteArray): Video? {
         if (body.isEmpty() || (body[0].toInt() and 0xff) != TYPE_VIDEO) return null
-        if (body.size < 18) return null
+        if (body.size < Protocol.VIDEO_FRAME_HEADER_LEN) return null
         val key = body[1].toInt() != 0
         val pts = le64(body, 2)
         val sent = le64(body, 10)
-        val au = body.copyOfRange(18, body.size)
+        val au = body.copyOfRange(Protocol.VIDEO_FRAME_HEADER_LEN, body.size)
         return Video(key, pts, sent, au)
     }
 

@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SessionType {
@@ -142,29 +143,47 @@ impl Capabilities {
         )
     }
 
+    pub fn is_kde_wayland(&self) -> bool {
+        self.session == SessionType::Wayland && self.compositor == Compositor::Kde
+    }
+
     pub fn auto_chain(&self) -> Vec<CaptureStep> {
         match self.session {
-            SessionType::Wayland => match self.compositor {
-                Compositor::Kde => vec![CaptureStep::KwinVirtual, CaptureStep::Portal],
-                Compositor::Cosmic => vec![CaptureStep::Evdi, CaptureStep::Portal],
-                Compositor::Sway
-                | Compositor::Hyprland
-                | Compositor::Wayfire
-                | Compositor::Labwc
-                | Compositor::River
-                | Compositor::Gamescope => vec![
-                    CaptureStep::WlrootsVirtual,
-                    CaptureStep::WlrScreencopy,
-                    CaptureStep::Portal,
-                    CaptureStep::Evdi,
-                ],
-                _ => vec![CaptureStep::Portal],
-            },
+            SessionType::Wayland => {
+                if self.is_wlroots() {
+                    vec![
+                        CaptureStep::WlrootsVirtual,
+                        CaptureStep::WlrScreencopy,
+                        CaptureStep::Portal,
+                        CaptureStep::Evdi,
+                    ]
+                } else {
+                    match self.compositor {
+                        Compositor::Kde => vec![CaptureStep::KwinVirtual, CaptureStep::Portal],
+                        Compositor::Cosmic => vec![CaptureStep::Evdi, CaptureStep::Portal],
+                        _ => vec![CaptureStep::Portal],
+                    }
+                }
+            }
             SessionType::X11 => vec![CaptureStep::Evdi, CaptureStep::X11Root],
             SessionType::Unknown => match self.current_desktop {
                 Some(_) => vec![CaptureStep::Portal, CaptureStep::X11Root],
                 None => vec![CaptureStep::Evdi, CaptureStep::X11Root],
             },
+        }
+    }
+
+    pub fn plan(&self, preference: CapturePreference) -> Vec<CaptureStep> {
+        match preference {
+            CapturePreference::Auto => self.auto_chain(),
+            CapturePreference::Evdi => vec![CaptureStep::Evdi],
+            CapturePreference::KwinVirtual => vec![CaptureStep::KwinVirtual],
+            CapturePreference::Screencopy => vec![CaptureStep::WlrScreencopy],
+            CapturePreference::Portal | CapturePreference::Mirror => vec![CaptureStep::Portal],
+            CapturePreference::WlrootsVirtual => {
+                vec![CaptureStep::WlrootsVirtual, CaptureStep::WlrScreencopy]
+            }
+            CapturePreference::X11Root => vec![CaptureStep::X11Root],
         }
     }
 }
@@ -179,16 +198,88 @@ pub enum CaptureStep {
     X11Root,
 }
 
+impl CaptureStep {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::KwinVirtual => "kwin-virtual",
+            Self::WlrootsVirtual => "wlroots-virtual",
+            Self::WlrScreencopy => "wlr-screencopy",
+            Self::Portal => "portal",
+            Self::Evdi => "evdi",
+            Self::X11Root => "x11-root",
+        }
+    }
+}
+
 impl fmt::Display for CaptureStep {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CapturePreference {
+    Auto,
+    Evdi,
+    KwinVirtual,
+    Screencopy,
+    Portal,
+    Mirror,
+    WlrootsVirtual,
+    X11Root,
+}
+
+impl CapturePreference {
+    pub const ALL: &'static [Self] = &[
+        Self::Auto,
+        Self::KwinVirtual,
+        Self::Screencopy,
+        Self::Portal,
+        Self::Mirror,
+        Self::Evdi,
+        Self::WlrootsVirtual,
+        Self::X11Root,
+    ];
+
+    pub fn as_str(self) -> &'static str {
         match self {
-            Self::KwinVirtual => write!(f, "kwin-virtual"),
-            Self::WlrootsVirtual => write!(f, "wlroots-virtual"),
-            Self::WlrScreencopy => write!(f, "wlr-screencopy"),
-            Self::Portal => write!(f, "portal"),
-            Self::Evdi => write!(f, "evdi"),
-            Self::X11Root => write!(f, "x11-root"),
+            Self::Auto => "auto",
+            Self::Evdi => "evdi",
+            Self::KwinVirtual => "kwin-virtual",
+            Self::Screencopy => "screencopy",
+            Self::Portal => "portal",
+            Self::Mirror => "mirror",
+            Self::WlrootsVirtual => "wlroots-virtual",
+            Self::X11Root => "x11",
         }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "auto" => Some(Self::Auto),
+            "evdi" => Some(Self::Evdi),
+            "kwin-virtual" => Some(Self::KwinVirtual),
+            "screencopy" => Some(Self::Screencopy),
+            "portal" => Some(Self::Portal),
+            "mirror" => Some(Self::Mirror),
+            "wlroots-virtual" => Some(Self::WlrootsVirtual),
+            "x11" | "x11-root" => Some(Self::X11Root),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for CapturePreference {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl FromStr for CapturePreference {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::parse(s).ok_or(())
     }
 }
 
@@ -397,6 +488,21 @@ mod tests {
     }
 
     #[test]
+    fn explicit_plan_never_falls_back_to_other_steps() {
+        let c = caps(&[]);
+        assert_eq!(
+            c.plan(CapturePreference::KwinVirtual),
+            vec![CaptureStep::KwinVirtual]
+        );
+        assert_eq!(c.plan(CapturePreference::Evdi), vec![CaptureStep::Evdi]);
+        assert_eq!(
+            c.plan(CapturePreference::WlrootsVirtual),
+            vec![CaptureStep::WlrootsVirtual, CaptureStep::WlrScreencopy]
+        );
+        assert_eq!(c.plan(CapturePreference::Mirror), vec![CaptureStep::Portal]);
+    }
+
+    #[test]
     fn capture_step_display_names_are_stable() {
         assert_eq!(CaptureStep::KwinVirtual.to_string(), "kwin-virtual");
         assert_eq!(CaptureStep::WlrootsVirtual.to_string(), "wlroots-virtual");
@@ -404,6 +510,21 @@ mod tests {
         assert_eq!(CaptureStep::Portal.to_string(), "portal");
         assert_eq!(CaptureStep::Evdi.to_string(), "evdi");
         assert_eq!(CaptureStep::X11Root.to_string(), "x11-root");
+    }
+
+    #[test]
+    fn preference_round_trips_through_its_string_form() {
+        for preference in CapturePreference::ALL {
+            assert_eq!(
+                CapturePreference::parse(preference.as_str()),
+                Some(*preference)
+            );
+        }
+        assert_eq!(
+            CapturePreference::parse("x11-root"),
+            Some(CapturePreference::X11Root)
+        );
+        assert_eq!(CapturePreference::parse("bogus"), None);
     }
 
     #[test]

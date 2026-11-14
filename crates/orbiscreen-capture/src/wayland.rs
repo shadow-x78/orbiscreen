@@ -6,18 +6,13 @@ use ashpd::desktop::screencast::{
 };
 use ashpd::desktop::{PersistMode, ResponseError, Session};
 use enumflags2::BitFlags;
-use orbiscreen_core::frame_pool::FramePool;
 use orbiscreen_core::portal_state;
 use thiserror::Error;
 use tracing::instrument;
 
-use super::{CaptureError, CapturedFrame};
-
-use gstreamer::prelude::*;
-use gstreamer_app::{AppSink, AppSinkCallbacks};
-use tokio::sync::mpsc;
-
-const FRAME_CHANNEL_CAPACITY: usize = 2;
+use super::pipewire::{PipewireCapture, PipewireSpec};
+use super::CaptureError;
+use orbiscreen_core::frame::CapturedFrame;
 
 #[derive(Debug, Clone)]
 pub struct WaylandCaptureSpec {
@@ -120,9 +115,8 @@ async fn negotiate_screencast(
 pub struct WaylandCapture {
     _screencast: Screencast,
     _session: Session<Screencast>,
-    _pipeline: gstreamer::Pipeline,
     _pipe_fd: OwnedFd,
-    rx: tokio::sync::Mutex<mpsc::Receiver<CapturedFrame>>,
+    pipewire: PipewireCapture,
     width: u32,
     height: u32,
 }
@@ -171,81 +165,19 @@ impl WaylandCapture {
         let raw_fd = pipe_fd.as_raw_fd();
         let node_id = first.pipe_wire_node_id();
 
-        gstreamer::init().map_err(|e| WaylandCaptureError::Dbus(format!("gst init: {}", e)))?;
-
-        let pipeline_str = format!(
-            "pipewiresrc fd={} path={} do-timestamp=true \
-             ! video/x-raw \
-             ! videoconvert n-threads=4 \
-             ! videoscale \
-             ! video/x-raw,format=BGRA,width={},height={} \
-             ! appsink name=sink drop=true sync=false max-buffers=1 emit-signals=false",
-            raw_fd, node_id, spec.width, spec.height
-        );
-        let pipeline = gstreamer::parse::launch(&pipeline_str)?
-            .downcast::<gstreamer::Pipeline>()
-            .map_err(|_| WaylandCaptureError::Dbus("Failed to downcast pipeline".into()))?;
-
-        let appsink = pipeline
-            .by_name("sink")
-            .ok_or_else(|| WaylandCaptureError::Dbus("appsink not found".into()))?
-            .downcast::<AppSink>()
-            .map_err(|_| WaylandCaptureError::Dbus("Failed to downcast appsink".into()))?;
-
-        let (tx, rx) = mpsc::channel::<CapturedFrame>(FRAME_CHANNEL_CAPACITY);
-        let pool = FramePool::new();
-
-        appsink.set_callbacks(
-            AppSinkCallbacks::builder()
-                .new_sample(move |sink| {
-                    let sample = match sink.pull_sample() {
-                        Ok(s) => s,
-                        Err(e) => {
-                            tracing::warn!("pull_sample error: {e}");
-                            return Err(gstreamer::FlowError::Eos);
-                        }
-                    };
-                    if let Some(frame) = super::sample_to_captured_frame(&sample, &pool) {
-                        if tx.try_send(frame).is_err() {
-                            tracing::debug!("capture frame dropped: consumer channel full");
-                        }
-                    }
-                    Ok(gstreamer::FlowSuccess::Ok)
-                })
-                .build(),
-        );
-
-        if let Some(bus) = pipeline.bus() {
-            bus.set_sync_handler(|_bus, msg| {
-                match msg.view() {
-                    gstreamer::MessageView::Error(err) => tracing::error!(
-                        target: "orbiscreen_capture::wayland",
-                        "gstreamer capture error: {} (debug: {})",
-                        err.error(),
-                        err.debug().unwrap_or_default()
-                    ),
-                    gstreamer::MessageView::Warning(warn) => tracing::warn!(
-                        target: "orbiscreen_capture::wayland",
-                        "gstreamer capture warning: {} (debug: {})",
-                        warn.error(),
-                        warn.debug().unwrap_or_default()
-                    ),
-                    _ => {}
-                }
-                gstreamer::BusSyncReply::Drop
-            });
-        }
-
-        pipeline
-            .set_state(gstreamer::State::Playing)
-            .map_err(|e| WaylandCaptureError::Dbus(format!("State error: {}", e)))?;
+        let pipewire = PipewireCapture::open(PipewireSpec {
+            fd: Some(raw_fd),
+            node_id,
+            width: spec.width,
+            height: spec.height,
+        })
+        .map_err(WaylandCaptureError::Dbus)?;
 
         Ok(Self {
             _screencast: screencast,
             _session: session,
-            _pipeline: pipeline,
             _pipe_fd: pipe_fd,
-            rx: tokio::sync::Mutex::new(rx),
+            pipewire,
             width: spec.width,
             height: spec.height,
         })
@@ -256,18 +188,7 @@ impl WaylandCapture {
     }
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, CaptureError> {
-        let mut rx = self.rx.lock().await;
-        if let Some(frame) = rx.recv().await {
-            Ok(frame)
-        } else {
-            Err(CaptureError::Io("Wayland GStreamer pipeline closed".into()))
-        }
-    }
-}
-
-impl Drop for WaylandCapture {
-    fn drop(&mut self) {
-        let _ = self._pipeline.set_state(gstreamer::State::Null);
+        self.pipewire.next_frame().await.map_err(CaptureError::Io)
     }
 }
 

@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.39.6
+%global version 0.40.0
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -147,6 +147,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.40.0-1
+- Release 0.40.0: structural refactor around shared core, protocol, and session modules. Capture opens one explicit plan and shares one PipeWire sink; transport shares SessionAttachment/KeyframeGate/AnnexBPreparer across HTTP, MPEG-TS, and WebTransport and owns one protocol module; the daemon shares pipeline pumps and input dispatch; the GUI consumes core StatusReport/DoctorReport and reads the real token; the web client uses protocol.js as its single protocol source; Android uses Protocol/HostSpec/IdrRequester. Removed the separate secondary-display session, which bound the same signaling+2 port as WebTransport; the KWin per-client hub handles multiple tablets. Fixed wlroots/portal relative pointer motion, the IDR first-request debounce, and the 8790 connector guess.
+
 * Wed Nov 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.6-1
 - Release 0.39.6: AOA proxy streams leaked (each maps to a keep-alive daemon connection that never saw EOF) until the 48-entry bound evicted one per connection; streams now carry a last-activity stamp and are reaped after 30 s idle, and the eviction warning is rate-limited. A pulled cable logs a disconnect instead of a bulk read error, a draining endpoint logs one writer warning instead of one per packet, and wayland-backend logs now route through tracing with its log feature instead of eprintln
 

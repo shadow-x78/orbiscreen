@@ -22,20 +22,21 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import com.orbiscreen.android.net.Protocol
 import java.util.concurrent.atomic.AtomicInteger
 
 object UsbAccessoryManager {
     const val ACTION_USB_PERMISSION = "com.orbiscreen.android.USB_PERMISSION"
     private const val TAG = "UsbAccessoryManager"
-    private const val FRAME_FLAG_DATA: Byte = 0x01
-    private const val FRAME_FLAG_OPEN: Byte = 0x02
-    private const val FRAME_FLAG_CLOSE: Byte = 0x04
-    private const val FRAME_FLAG_RESET: Byte = 0x08
-    private const val FRAME_FLAG_VIDEO: Byte = 0x10
-    private const val FRAME_HEADER_LEN = 5
-    private const val MAX_PAYLOAD_LEN = 16384
-    private const val VIDEO_STREAM_ID: Short = 0
-    private const val MAX_STREAM_ID = 32700
+    private const val FRAME_FLAG_DATA: Byte = Protocol.AOA_FLAG_DATA.toByte()
+    private const val FRAME_FLAG_OPEN: Byte = Protocol.AOA_FLAG_OPEN.toByte()
+    private const val FRAME_FLAG_CLOSE: Byte = Protocol.AOA_FLAG_CLOSE.toByte()
+    private const val FRAME_FLAG_RESET: Byte = Protocol.AOA_FLAG_RESET.toByte()
+    private const val FRAME_FLAG_VIDEO: Byte = Protocol.AOA_FLAG_VIDEO.toByte()
+    private const val FRAME_HEADER_LEN = Protocol.AOA_HEADER_LEN
+    private const val MAX_PAYLOAD_LEN = Protocol.AOA_MAX_FRAME
+    private const val VIDEO_STREAM_ID: Short = Protocol.AOA_VIDEO_STREAM_ID
+    private const val MAX_STREAM_ID = Protocol.AOA_MAX_STREAM_ID
 
     private val scope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, error ->

@@ -27,26 +27,26 @@ internal fun withHostCredential(rawHead: ByteArray, credential: String): String 
         append(lines[0]).append("\r\n")
         for (line in lines.drop(1)) {
             if (line.isEmpty()) continue
-            if (line.substringBefore(':').trim().equals("authorization", ignoreCase = true)) continue
+            if (line.substringBefore(':').trim().equals(Protocol.HEADER_AUTHORIZATION, ignoreCase = true)) continue
             append(line).append("\r\n")
         }
-        append("Authorization: Bearer ").append(credential).append("\r\n\r\n")
+        append(Protocol.HEADER_AUTHORIZATION).append(": ").append(Protocol.bearer(credential)).append("\r\n\r\n")
     }
 }
 
 private const val MAX_UPGRADE_HEAD_BYTES = 64 * 1024
 
 private val PINNED_PROXY_PATHS = setOf(
-    "/stream",
-    "/au",
-    "/input",
-    "/input/ws",
-    "/api/control",
-    "/api/session",
-    "/api/info",
-    "/health",
-    "/api/udp-key",
-    "/idr",
+    Protocol.PATH_STREAM,
+    Protocol.PATH_AU,
+    Protocol.PATH_INPUT,
+    Protocol.PATH_INPUT_WS,
+    Protocol.PATH_CONTROL,
+    Protocol.PATH_SESSION,
+    Protocol.PATH_INFO,
+    Protocol.PATH_HEALTH,
+    Protocol.PATH_UDP_KEY,
+    Protocol.PATH_IDR,
 )
 
 class PinnedHostProxy internal constructor(
@@ -56,7 +56,7 @@ class PinnedHostProxy internal constructor(
     private val onUnauthorized: () -> Unit = {},
 ) : Closeable {
     constructor(host: String, port: Int, pin: String, credential: String, onUnauthorized: () -> Unit) :
-        this(HostApi.pairingUrl(host, port), HostApi().pinnedClient(host, port, pin), credential, onUnauthorized)
+        this(HostSpec(host, port).pairingUrl(), HostApi().pinnedClient(host, port, pin), credential, onUnauthorized)
 
     private val server = ServerSocket(0, 16, InetAddress.getByName("127.0.0.1"))
     private val sockets = ConcurrentHashMap.newKeySet<Socket>()
@@ -124,13 +124,14 @@ class PinnedHostProxy internal constructor(
         }
         require(!headers.containsKey("transfer-encoding"))
         val output = socket.getOutputStream()
-        val authorized = headers["authorization"] == "Bearer $localToken" || url.queryParameter("token") == localToken
-        if (!authorized && !(method == "GET" && url.encodedPath in setOf("/api/info", "/health"))) {
+        val authorized = headers[Protocol.HEADER_AUTHORIZATION.lowercase()] == Protocol.bearer(localToken) ||
+            url.queryParameter(Protocol.QUERY_TOKEN) == localToken
+        if (!authorized && !(method == "GET" && url.encodedPath in setOf(Protocol.PATH_INFO, Protocol.PATH_HEALTH))) {
             output.write("HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".toByteArray())
             return
         }
         if (headers["upgrade"]?.equals("websocket", ignoreCase = true) == true) {
-            relayUpgrade(socket, input, rawHead.toByteArray(), url, headers["authorization"])
+            relayUpgrade(socket, input, rawHead.toByteArray(), url, headers[Protocol.HEADER_AUTHORIZATION.lowercase()])
             return
         }
         val length = headers["content-length"]?.toInt() ?: 0
@@ -143,10 +144,10 @@ class PinnedHostProxy internal constructor(
             read += count
         }
         val request = Request.Builder()
-            .url(url.newBuilder().removeAllQueryParameters("token").build())
-            .header("Authorization", "Bearer $credential")
+            .url(url.newBuilder().removeAllQueryParameters(Protocol.QUERY_TOKEN).build())
+            .header(Protocol.HEADER_AUTHORIZATION, Protocol.bearer(credential))
             .method(method, if (method == "POST") bytes.toRequestBody(headers["content-type"]?.toMediaTypeOrNull()) else null)
-        for (name in listOf("x-orbiscreen-session", "range")) {
+        for (name in listOf(Protocol.HEADER_SESSION.lowercase(), "range")) {
             headers[name]?.let { request.header(name, it) }
         }
         client.newCall(request.build()).execute().use { response ->
@@ -179,7 +180,7 @@ class PinnedHostProxy internal constructor(
         authorization: String?,
     ) {
         val output = downstream.getOutputStream()
-        if (authorization != "Bearer $localToken" && url.queryParameter("token") != localToken) {
+        if (authorization != Protocol.bearer(localToken) && url.queryParameter(Protocol.QUERY_TOKEN) != localToken) {
             output.write(
                 "HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
                     .toByteArray()

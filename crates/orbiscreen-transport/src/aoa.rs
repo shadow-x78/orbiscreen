@@ -10,9 +10,9 @@ use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
 use crate::aoa_video::{
-    self, encode_video_close, encode_video_open_ack, host_now_ns, lane_for, pack_h264_packet,
-    parse_aoa_frame, Lane, FRAME_FLAG_CLOSE, FRAME_FLAG_DATA, FRAME_FLAG_OPEN, FRAME_FLAG_RESET,
-    FRAME_FLAG_VIDEO, FRAME_HEADER_LEN, MAX_PAYLOAD_LEN, VIDEO_QUEUE_CAP,
+    self, encode_video_close, encode_video_open_ack, lane_for, pack_h264_packet, parse_aoa_frame,
+    Lane, FRAME_FLAG_CLOSE, FRAME_FLAG_DATA, FRAME_FLAG_OPEN, FRAME_FLAG_RESET, FRAME_FLAG_VIDEO,
+    FRAME_HEADER_LEN, MAX_PAYLOAD_LEN, VIDEO_QUEUE_CAP,
 };
 use crate::display::DisplayCtl;
 
@@ -537,7 +537,7 @@ async fn run_native_video(
     let mut sid = attached.info.id.clone();
     let mut video_rx = attached.video;
     guard.1.push(sid.clone());
-    let _ = send_control(&prio_tx, encode_video_open_ack(host_now_ns()));
+    let _ = send_control(&prio_tx, encode_video_open_ack(crate::session::now_ns()));
     displays.idr(&sid).await;
     info!("AOA native Annex-B video attached session={sid}");
 
@@ -597,7 +597,7 @@ async fn run_native_video(
                                 video_rx = a.video;
                                 wait_key = true;
                                 last_idr = Instant::now();
-                                let _ = send_control(&prio_tx, encode_video_open_ack(host_now_ns()));
+                                let _ = send_control(&prio_tx, encode_video_open_ack(crate::session::now_ns()));
                                 displays.idr(&sid).await;
                                 info!("AOA native video re-attached session={sid}");
                                 reattached = true;
@@ -630,7 +630,7 @@ async fn run_native_video(
             }
             wait_key = false;
         }
-        let Some(packed) = pack_h264_packet(&pkt, host_now_ns(), &mut cached) else {
+        let Some(packed) = pack_h264_packet(&pkt, crate::session::now_ns(), &mut cached) else {
             continue;
         };
         match lane_for(pkt.is_keyframe) {

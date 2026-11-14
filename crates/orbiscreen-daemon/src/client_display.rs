@@ -3,9 +3,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use orbiscreen_capture::kwin_virtual::{protocol_names_for, KwinVirtualCapture, KwinVirtualSpec};
+use orbiscreen_capture::kwin_virtual::{KwinVirtualCapture, KwinVirtualSpec};
+use orbiscreen_core::output::{client_protocol_names, device_label_for, sanitize_client_name};
 use orbiscreen_encode::{EncodeParams, Encoder, EncoderKind};
-use orbiscreen_input::{InputInjector, PointerEvent, VirtualTouchscreenSpec};
+use orbiscreen_input::{InputInjector, VirtualTouchscreenSpec};
 use orbiscreen_transport::{DisplayCommand, DisplayCtl, DisplayInfo, H264Packet, IncomingInput};
 use tokio::sync::{broadcast, mpsc, watch};
 use tracing::{info, warn};
@@ -563,15 +564,6 @@ fn next_id() -> String {
     format!("{n:x}")
 }
 
-fn encoder_label(kind: EncoderKind) -> &'static str {
-    match kind {
-        EncoderKind::Auto => "auto",
-        EncoderKind::Vaapi => "vaapi",
-        EncoderKind::Nvenc => "nvenc",
-        EncoderKind::X264 => "x264",
-    }
-}
-
 async fn open_session(
     cfg: &HubConfig,
     name: String,
@@ -583,7 +575,7 @@ async fn open_session(
 ) -> Result<Session, String> {
     let width = width.clamp(320, 7680);
     let height = height.clamp(240, 4320);
-    let (description, names) = protocol_names_for(&name, key.as_deref());
+    let (description, names) = client_protocol_names(&name, key.as_deref());
     let spec = KwinVirtualSpec {
         width,
         height,
@@ -613,33 +605,12 @@ async fn open_session(
     let (actual_w, actual_h) = capture.dimensions();
     info!(connector = %connector, width = actual_w, height = actual_h, "client virtual output created");
 
-    {
+    tokio::spawn({
         let name = connector.clone();
-        tokio::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
-            let enable_spec = format!("output.{name}.enable");
-            let scale_spec = format!("output.{name}.scale.1");
-            let next_x = orbiscreen_capture::kwin_virtual::next_available_output_x(&name);
-            let pos_spec = format!("output.{name}.position.{next_x},0");
-            for _ in 0..5 {
-                let status = tokio::process::Command::new("kscreen-doctor")
-                    .arg(&enable_spec)
-                    .arg(&scale_spec)
-                    .arg(&pos_spec)
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .status()
-                    .await;
-                if let Ok(s) = status {
-                    if s.success() {
-                        info!("Enabled and scaled KWin output {name} at position {next_x},0");
-                        break;
-                    }
-                }
-                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-            }
-        });
-    }
+        async move {
+            orbiscreen_capture::kwin_virtual::ensure_output_enabled(&name).await;
+        }
+    });
 
     let suggested_bitrate =
         orbiscreen_encode::suggested_bitrate_kbps(actual_w, actual_h, refresh_hz);
@@ -660,10 +631,10 @@ async fn open_session(
         width: actual_w,
         height: actual_h,
         framerate: refresh_hz,
-        vbv_frames: 1,
+        gop_on_demand: orbiscreen_encode::gop_on_demand_from_env(),
     })
     .map_err(|e| e.to_string())?;
-    let encoder_name = encoder_label(encoder.kind());
+    let encoder_name = encoder.kind().as_str();
     if let Ok(mut slot) = cfg.encoder_in_use.write() {
         *slot = Some(encoder_name);
     }
@@ -671,30 +642,20 @@ async fn open_session(
         .subscribe()
         .ok_or_else(|| "encoder returned no rx".to_string())?;
     let encoder = Arc::new(encoder);
-    let (idr_tx, mut idr_rx) = mpsc::channel::<()>(8);
-    let encoder_for_idr = Arc::clone(&encoder);
-    tokio::spawn(async move {
-        while idr_rx.recv().await.is_some() {
-            encoder_for_idr.request_keyframe();
-        }
-    });
+    let (idr_tx, idr_rx) = mpsc::channel::<()>(8);
+    let _idr_pump = crate::pipeline::spawn_idr_pump(idr_rx, Arc::clone(&encoder));
 
     let (video_tx, _) = broadcast::channel::<H264Packet>(64);
     let video_out = video_tx.clone();
     let stats_for_frames = std::sync::Arc::clone(&cfg.stats);
     let video_pump_handle = tokio::spawn(async move {
-        let mut ts_base: Option<u64> = None;
+        let mut timestamps = crate::pipeline::TimestampBase::default();
         while let Some(chunk) = encoded_rx.recv().await {
-            let base = *ts_base.get_or_insert(chunk.pts_ns);
-            let pkt = H264Packet {
-                bytes: chunk.bytes,
-                is_keyframe: chunk.is_keyframe,
-                pts_ns: chunk.pts_ns.saturating_sub(base),
-            };
+            let packet = timestamps.normalize(chunk);
             if video_out.receiver_count() > 0 {
                 stats_for_frames.note_frame();
             }
-            let _ = video_out.send(pkt);
+            let _ = video_out.send(packet);
         }
     });
 
@@ -830,15 +791,11 @@ fn spawn_input_pump(
             .as_deref()
             .filter(|s| !s.is_empty())
             .unwrap_or(client_name.as_str());
-        let prefix = connector
-            .strip_prefix("Virtual-Orbi-")
-            .map(|suffix| format!("OrbiScreen-{suffix}"))
-            .unwrap_or_else(|| {
-                format!(
-                    "OrbiScreen-{}",
-                    orbiscreen_capture::kwin_virtual::sanitize_client_name(label)
-                )
-            });
+        let prefix = if connector.starts_with(orbiscreen_core::output::CLIENT_CONNECTOR_PREFIX) {
+            device_label_for(&connector)
+        } else {
+            format!("OrbiScreen-{}", sanitize_client_name(label))
+        };
         let spec = VirtualTouchscreenSpec {
             width,
             height,
@@ -882,39 +839,24 @@ fn spawn_input_pump(
             let Some(inj) = injector.as_mut() else {
                 continue;
             };
-            match event {
-                IncomingInput::Pointer(p) => {
-                    pointer_active = true;
-                    let _ = inj.inject_pointer(p).await;
-                }
-                IncomingInput::Key(k) => {
-                    pointer_active = true;
-                    let _ = inj.inject_key(k).await;
-                }
-                IncomingInput::Stylus(s) => {
-                    if pointer_active {
-                        inj.park_cursor();
-                        pointer_active = false;
-                    }
-                    let _ = inj.inject_stylus(s).await;
-                }
-                IncomingInput::Touch(t) => {
-                    if pointer_active {
-                        inj.park_cursor();
-                        pointer_active = false;
-                    }
-                    let _ = inj.inject_touch(t).await;
-                }
-                IncomingInput::RawPointer { x, y } => {
-                    pointer_active = true;
-                    let _ = inj.inject_pointer(PointerEvent::Move { x, y }).await;
-                }
-                IncomingInput::Resize { width, height } => {
-                    cur_w = width;
-                    cur_h = height;
-                    inj.resize(width, height);
-                }
+            if matches!(
+                &event,
+                IncomingInput::Pointer(_)
+                    | IncomingInput::Key(_)
+                    | IncomingInput::RawPointer { .. }
+            ) {
+                pointer_active = true;
+            } else if matches!(&event, IncomingInput::Stylus(_) | IncomingInput::Touch(_))
+                && pointer_active
+            {
+                inj.park_cursor();
+                pointer_active = false;
             }
+            if let IncomingInput::Resize { width, height } = &event {
+                cur_w = *width;
+                cur_h = *height;
+            }
+            crate::pipeline::dispatch_input(inj, event, |x, y| (x, y)).await;
         }
     })
 }

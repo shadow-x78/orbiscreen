@@ -1,6 +1,8 @@
 
 package com.orbiscreen.android.player
 
+import com.orbiscreen.android.net.HostSpec
+import com.orbiscreen.android.net.Protocol
 import java.security.GeneralSecurityException
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
@@ -10,8 +12,8 @@ import javax.crypto.spec.SecretKeySpec
 object UdpCrypto {
     const val DIR_CLIENT = 0
     const val DIR_HOST = 1
-    const val HEADER = 32
-    const val OVERHEAD = 48
+    const val HEADER = Protocol.SEAL_HEADER_LEN
+    const val OVERHEAD = Protocol.SEAL_OVERHEAD
 
     fun nonce(direction: Int, counter: Long): ByteArray {
         val out = ByteArray(12)
@@ -36,12 +38,9 @@ object UdpCrypto {
 
     fun seal(keyId: ByteArray, secret: ByteArray, nonce: ByteArray, plain: ByteArray): ByteArray {
         val header = ByteArray(HEADER)
-        header[0] = 'O'.code.toByte()
-        header[1] = 'R'.code.toByte()
-        header[2] = 'B'.code.toByte()
-        header[3] = '2'.code.toByte()
-        System.arraycopy(keyId, 0, header, 4, 16)
-        System.arraycopy(nonce, 0, header, 20, 12)
+        Protocol.SEAL_MAGIC.toByteArray(Charsets.US_ASCII).copyInto(header)
+        System.arraycopy(keyId, 0, header, Protocol.SEAL_KEY_ID_OFFSET, Protocol.SEAL_KEY_ID_LEN)
+        System.arraycopy(nonce, 0, header, Protocol.SEAL_NONCE_OFFSET, Protocol.SEAL_NONCE_LEN)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(
             Cipher.ENCRYPT_MODE,
@@ -53,17 +52,12 @@ object UdpCrypto {
     }
 
     fun open(secret: ByteArray, datagram: ByteArray): ByteArray? {
-        if (datagram.size < OVERHEAD ||
-            datagram[0] != 'O'.code.toByte() ||
-            datagram[1] != 'R'.code.toByte() ||
-            datagram[2] != 'B'.code.toByte() ||
-            datagram[3] != '2'.code.toByte()
-        ) {
+        if (datagram.size < OVERHEAD || !Protocol.hasSealMagic(datagram)) {
             return null
         }
         return try {
             val header = datagram.copyOfRange(0, HEADER)
-            val nonce = datagram.copyOfRange(20, 32)
+            val nonce = datagram.copyOfRange(Protocol.SEAL_NONCE_OFFSET, Protocol.SEAL_HEADER_LEN)
             val body = datagram.copyOfRange(HEADER, datagram.size)
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(
@@ -118,7 +112,7 @@ class UdpSessionCrypto(
     fun openPeer(datagram: ByteArray): ByteArray? {
         val plain = UdpCrypto.open(secret, datagram) ?: return null
         if (datagram.size < UdpCrypto.HEADER) return null
-        val nonce = datagram.copyOfRange(20, 32)
+        val nonce = datagram.copyOfRange(Protocol.SEAL_NONCE_OFFSET, Protocol.SEAL_HEADER_LEN)
         val counter = UdpCrypto.peerCounter(nonce, peerDirection) ?: return null
         if (!replay.accept(counter)) return null
         return plain
@@ -198,5 +192,5 @@ data class UdpVideoTarget(
         keyId.size == 16 &&
             secret.size == 32 &&
             port in 1..65535 &&
-            !com.orbiscreen.android.net.UsbLoopback.isLoopback(host)
+            !HostSpec.isLoopback(host)
 }

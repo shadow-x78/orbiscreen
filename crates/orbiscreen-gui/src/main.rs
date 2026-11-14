@@ -11,23 +11,7 @@ mod tray;
 use adw::prelude::*;
 use gtk::glib::ExitCode;
 
-fn cleanup_legacy_desktop_file() {
-    if let Some(home) = std::env::var_os("HOME") {
-        let legacy_path =
-            std::path::PathBuf::from(home).join(".local/share/applications/orbiscreen.desktop");
-        if legacy_path.exists() {
-            if let Ok(content) = std::fs::read_to_string(&legacy_path) {
-                if content.contains("Exec=orbiscreen start") {
-                    let _ = std::fs::remove_file(&legacy_path);
-                }
-            }
-        }
-    }
-}
-
 fn main() -> ExitCode {
-    cleanup_legacy_desktop_file();
-
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()

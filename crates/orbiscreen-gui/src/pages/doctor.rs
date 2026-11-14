@@ -7,42 +7,6 @@ use crate::daemon_client::DaemonClient;
 use crate::i18n::{self, Lang};
 use crate::pages::{self as ui};
 
-#[derive(serde::Deserialize, Clone, Debug, Default)]
-pub struct UsbReport {
-    #[serde(default)]
-    pub devices: Vec<String>,
-    #[serde(default)]
-    pub aoa_ready: bool,
-    #[serde(default)]
-    pub permission_denied: bool,
-}
-
-#[derive(serde::Deserialize, Clone, Debug, Default)]
-pub struct DoctorReport {
-    #[serde(default)]
-    pub session: String,
-    #[serde(default)]
-    pub compositor: String,
-    #[serde(default)]
-    pub current_desktop: Option<String>,
-    #[serde(default)]
-    pub capture_plan: Vec<String>,
-    #[serde(default)]
-    pub display_backend: String,
-    #[serde(default)]
-    pub input_backend: String,
-    #[serde(default)]
-    pub uinput_writable: bool,
-    #[serde(default)]
-    pub wlroots_virtual_output_ipc: Option<String>,
-    #[serde(default)]
-    pub usb: UsbReport,
-}
-
-pub fn parse_report(raw: &str) -> Result<DoctorReport, String> {
-    serde_json::from_str::<DoctorReport>(raw).map_err(|e| e.to_string())
-}
-
 pub struct DoctorPage {
     pub root: gtk::Widget,
     scan_button: gtk::Button,
@@ -91,13 +55,12 @@ impl DoctorPage {
         header.append(&actions_row);
 
         let results = ui::card();
-        let (compositor_row, compositor_value, _compositor_dot) =
-            ui::status_row(t("docCompositor"));
-        let (backend_row, backend_value, backend_dot) = ui::status_row(t("docBackend"));
-        let (uinput_row, uinput_value, uinput_dot) = ui::status_row(t("docUinput"));
-        let (encoder_row, encoder_value, encoder_dot) = ui::status_row(t("docEncoder"));
-        let (ports_row, ports_value, _ports_dot) = ui::status_row(t("portsTitle"));
-        let (usb_row, usb_value, usb_dot) = ui::status_row(t("docUsb"));
+        let (compositor_row, compositor_value) = ui::status_row(t("docCompositor"));
+        let (backend_row, backend_value, backend_dot) = ui::status_row_with_icon(t("docBackend"));
+        let (uinput_row, uinput_value, uinput_dot) = ui::status_row_with_icon(t("docUinput"));
+        let (encoder_row, encoder_value, encoder_dot) = ui::status_row_with_icon(t("docEncoder"));
+        let (ports_row, ports_value) = ui::status_row(t("portsTitle"));
+        let (usb_row, usb_value, usb_dot) = ui::status_row_with_icon(t("docUsb"));
         results.append(&compositor_row);
         results.append(&backend_row);
         results.append(&uinput_row);
@@ -125,10 +88,7 @@ impl DoctorPage {
             let rt = scan_ctx.rt.clone();
             rt.spawn(async move {
                 let msg = match DaemonClient::run_doctor_check().await {
-                    Ok(raw) => match parse_report(&raw) {
-                        Ok(report) => Msg::Doctor(Ok(report)),
-                        Err(e) => Msg::Doctor(Err(e)),
-                    },
+                    Ok(report) => Msg::Doctor(Ok(report)),
                     Err(e) => Msg::Doctor(Err(e)),
                 };
                 let _ = tx.send(msg).await;
@@ -216,14 +176,13 @@ impl DoctorPage {
         }
         self.backend_value.set_label(&backend);
         self.backend_value.set_tooltip_text(Some(&backend));
-        let backend_ok = report.display_backend.contains("Native")
-            || report.display_backend.contains("Compatible");
+        let backend_ok = report.display_backend_kind.is_healthy();
         ui::set_status_icon(&self.backend_dot, if backend_ok { "ok" } else { "bad" });
 
         let uinput_state = if report.uinput_writable {
-            "Permissions Verified"
+            t("permVerified")
         } else {
-            "No write access to /dev/uinput"
+            t("permDenied")
         };
         let uinput_text = if report.input_backend.is_empty() {
             uinput_state.to_string()
@@ -242,9 +201,9 @@ impl DoctorPage {
             && !encoder.eq_ignore_ascii_case("unknown")
             && !encoder.eq_ignore_ascii_case("none");
         let encoder_text = if encoder_ok {
-            format!("Available ({encoder})")
+            format!("{} ({encoder})", t("available"))
         } else {
-            "Not detected".to_string()
+            t("notDetected").to_string()
         };
         self.encoder_value.set_label(&encoder_text);
         self.encoder_value.set_tooltip_text(Some(&encoder_text));
@@ -273,13 +232,13 @@ impl DoctorPage {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use orbiscreen_core::report::DoctorReport;
 
-    const REAL_REPORT: &str = r#"{"capture_plan":["kwin-virtual","portal"],"compositor":"KDE Plasma","cosmic_comp":false,"cosmic_randr":false,"current_desktop":"KDE","display_backend":"Native (KWin Virtual)","hyprctl":false,"input_backend":"Wayland","portal_on_session_bus":true,"remote_desktop_saved_token":false,"screencast_saved_token":false,"session":"wayland","swaymsg":false,"uinput_writable":true,"usb":{"aoa_ready":false,"devices":[],"permission_denied":false},"wlroots_virtual_output_ipc":null}"#;
+    const REAL_REPORT: &str = r#"{"capture_plan":["kwin-virtual","portal"],"compositor":"KDE Plasma","cosmic_comp":false,"cosmic_randr":false,"current_desktop":"KDE","display_backend":"Native (KWin Virtual)","display_backend_kind":"native_kwin","hyprctl":false,"input_backend":"Wayland","portal_on_session_bus":true,"remote_desktop_saved_token":false,"screencast_saved_token":false,"session":"wayland","swaymsg":false,"uinput_writable":true,"usb":{"aoa_ready":false,"devices":[],"permission_denied":false},"wlroots_virtual_output_ipc":null}"#;
 
     #[test]
     fn parses_real_daemon_report() {
-        let report = parse_report(REAL_REPORT).expect("valid report");
+        let report: DoctorReport = serde_json::from_str(REAL_REPORT).expect("valid report");
         assert_eq!(report.session, "wayland");
         assert_eq!(report.compositor, "KDE Plasma");
         assert_eq!(report.current_desktop.as_deref(), Some("KDE"));
@@ -299,7 +258,7 @@ mod tests {
     #[test]
     fn parses_report_with_usb_devices() {
         let raw = r#"{"session":"x11","compositor":"X11","capture_plan":[],"display_backend":"XSHM","input_backend":"XTest","uinput_writable":false,"usb":{"aoa_ready":true,"devices":["Google Pixel 8 (Ready)"],"permission_denied":false}}"#;
-        let report = parse_report(raw).expect("valid report");
+        let report: DoctorReport = serde_json::from_str(raw).expect("valid report");
         assert_eq!(report.session, "x11");
         assert!(!report.uinput_writable);
         assert!(report.usb.aoa_ready);
@@ -312,6 +271,6 @@ mod tests {
 
     #[test]
     fn rejects_malformed_report() {
-        assert!(parse_report("not json").is_err());
+        assert!(serde_json::from_str::<DoctorReport>("not json").is_err());
     }
 }

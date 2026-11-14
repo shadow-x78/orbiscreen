@@ -6,6 +6,8 @@ pub mod fec;
 pub mod https_identity;
 pub mod mdns;
 pub mod pairing;
+pub mod protocol;
+pub mod session;
 pub mod udp_crypto;
 pub mod udp_stream;
 pub mod wt_protocol;
@@ -17,7 +19,6 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
-use std::time::{Duration, Instant};
 
 use axum::extract::{ConnectInfo, FromRequest, State};
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
@@ -29,6 +30,8 @@ use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 use tower_http::services::ServeDir;
 use tracing::{debug, info, warn};
+
+use crate::session::{now_ns, AnnexBPreparer, KeyframeGate, SessionAttachment, IDR_DEBOUNCE};
 
 #[derive(Debug, Clone)]
 pub struct ServiceDescriptor {
@@ -350,22 +353,18 @@ impl Transport {
         let udp_video = state.video_tx.subscribe();
         let udp_idr = state.idr_tx.clone();
         let udp_stats = state.stats.clone();
-        let udp_token = state.token.clone();
         let udp_shutdown = shutdown_rx.clone();
         let udp_displays = displays.clone();
-        let udp_registry = Arc::clone(&state.pairing);
         let udp_keys = state.udp_keys.clone();
         tokio::spawn(async move {
             udp_stream::run_udp_hub(
                 udp_port,
-                udp_token,
                 udp_video,
                 udp_idr,
                 udp_stats,
                 udp_shutdown,
                 udp_stream::UdpLimits::from_env(),
                 udp_displays,
-                Some(udp_registry),
                 udp_keys,
             )
             .await;
@@ -1284,7 +1283,8 @@ async fn run_command(program: &str, args: &[&str]) -> bool {
 }
 
 fn is_wayland() -> bool {
-    std::env::var_os("WAYLAND_DISPLAY").is_some()
+    orbiscreen_core::session::Capabilities::from_env().session
+        == orbiscreen_core::session::SessionType::Wayland
 }
 
 async fn dpms_force(on: bool) -> bool {
@@ -1333,12 +1333,6 @@ fn inject_ctrl_alt_del(tx: &mpsc::Sender<IncomingInput>) {
     ] {
         let _ = tx.try_send(IncomingInput::Key(KeyEvent { code, pressed }));
     }
-}
-
-pub(crate) const IDR_DEBOUNCE: Duration = Duration::from_millis(250);
-
-fn idr_due(last: Instant, now: Instant) -> bool {
-    now.duration_since(last) >= IDR_DEBOUNCE
 }
 
 fn request_idr(state: &AppState, session: Option<&str>) {
@@ -1503,12 +1497,12 @@ async fn api_control(
                     }
                 }
             }
-            let fallback = if state.config.signaling_port == 8790 {
-                "Virtual-ORBISCREEN-2"
-            } else {
-                "Virtual-ORBISCREEN"
+            let Some(target_output) = state.config.output_connector.as_deref() else {
+                return (
+                    StatusCode::CONFLICT,
+                    Json(serde_json::json!({"ok": false, "error": "no output connector"})),
+                );
             };
-            let target_output = state.config.output_connector.as_deref().unwrap_or(fallback);
             info!("host control: requested resolution change on {target_output} to {width}x{height}@{fps}Hz");
             let mode_str = format!("output.{target_output}.mode.{width}x{height}@{fps}");
             let res = tokio::process::Command::new("kscreen-doctor")
@@ -1702,98 +1696,53 @@ async fn annexb_byte_stream(
     }
     let session_q = query_value(request.uri().query(), "session").map(str::to_string);
     let key_q = query_value(request.uri().query(), "key").map(str::to_string);
-    let attached = if let Some(ctl) = &state.displays {
-        match ctl.attach(session_q.clone(), key_q).await {
-            Ok(att) => Some(att),
-            Err(e) => {
-                warn!("au attach failed: {e}");
-                return StatusCode::SERVICE_UNAVAILABLE.into_response();
-            }
+    let attachment = match SessionAttachment::open(
+        state.displays.as_ref(),
+        &state.video_tx,
+        state.idr_tx.clone(),
+        session_q,
+        key_q,
+        IDR_DEBOUNCE,
+    )
+    .await
+    {
+        Ok(attachment) => attachment,
+        Err(e) => {
+            warn!("au attach failed: {e}");
+            return StatusCode::SERVICE_UNAVAILABLE.into_response();
         }
-    } else {
-        None
-    };
-    let session_id = attached.as_ref().map(|a| a.info.id.clone());
-    let mut video_rx = if let Some(att) = attached {
-        att.video
-    } else {
-        state.video_tx.subscribe()
     };
     state.stats.client_started();
+    let (mut video_rx, control) = attachment.split();
     let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(8);
     let stats = state.stats.clone();
-    let idr_tx = state.idr_tx.clone();
-    let displays = state.displays.clone();
-    let lag_ctl = displays.clone();
-    let lag_session = session_id.clone();
     tokio::spawn(async move {
         let _guard = ClientGuard(stats);
-        struct DetachGuard(Option<(DisplayCtl, String)>);
-        impl Drop for DetachGuard {
-            fn drop(&mut self) {
-                if let Some((ctl, id)) = self.0.take() {
-                    tokio::spawn(async move { ctl.detach(&id).await });
-                }
-            }
-        }
-        let _detach = DetachGuard(displays.zip(session_id));
-        let mut wait_key = true;
-        let mut last_idr = Instant::now()
-            .checked_sub(IDR_DEBOUNCE)
-            .unwrap_or_else(Instant::now);
-        let mut request_idr = || {
-            let now = Instant::now();
-            if now.duration_since(last_idr) < IDR_DEBOUNCE {
-                return;
-            }
-            last_idr = now;
-            if let (Some(ctl), Some(id)) = (lag_ctl.as_ref(), lag_session.as_ref()) {
-                let ctl = ctl.clone();
-                let id = id.clone();
-                tokio::spawn(async move { ctl.idr(&id).await });
-            } else if let Some(tx) = &idr_tx {
-                let _ = tx.try_send(());
-            }
-        };
-        request_idr();
-        let mut cached_sps_pps: Option<annexb::SpsPps> = None;
+        let mut gate = KeyframeGate::new();
+        let mut preparer = AnnexBPreparer::default();
+        control.request_idr();
         loop {
             if tx.is_closed() {
                 break;
             }
-            let pkt = match video_rx.recv().await {
-                Ok(p) => p,
+            let packet = match video_rx.recv().await {
+                Ok(packet) => packet,
                 Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
-                    wait_key = true;
-                    request_idr();
+                    gate.reset();
+                    control.request_idr();
                     continue;
                 }
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
             };
-            if keys_only && !pkt.is_keyframe {
+            if keys_only && !packet.is_keyframe {
                 continue;
             }
-            if wait_key {
-                if !pkt.is_keyframe {
-                    request_idr();
-                    continue;
-                }
-                wait_key = false;
+            if !gate.admit(&packet) {
+                control.request_idr();
+                continue;
             }
-            let mut pkt = pkt;
-            if pkt.is_keyframe {
-                let found = annexb::extract_sps_pps(&pkt.bytes);
-                if !found.sps.is_empty() && !found.pps.is_empty() {
-                    cached_sps_pps = Some(found);
-                }
-                pkt.bytes = annexb::with_parameter_sets(&pkt.bytes, cached_sps_pps.as_ref());
-            }
-            let Ok(frame) = wt_protocol::encode_video(&pkt, {
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_nanos() as u64)
-                    .unwrap_or(0)
-            }) else {
+            let packet = preparer.prepare(packet);
+            let Ok(frame) = wt_protocol::encode_video(&packet, now_ns()) else {
                 continue;
             };
             if tx.send(frame).await.is_err() {
@@ -1952,18 +1901,23 @@ async fn stream_handler(
             .and_then(|v| v.to_str().ok())
             .map(str::to_string)
     });
-    let attached = if let Some(ctl) = &state.displays {
-        match ctl.attach(session_q.clone(), key_q).await {
-            Ok(att) => Some(att),
-            Err(e) => {
-                warn!("stream attach failed: {e}");
-                return StatusCode::SERVICE_UNAVAILABLE.into_response();
-            }
+    let attachment = match SessionAttachment::open(
+        state.displays.as_ref(),
+        &state.video_tx,
+        state.idr_tx.clone(),
+        session_q,
+        key_q,
+        IDR_DEBOUNCE,
+    )
+    .await
+    {
+        Ok(attachment) => attachment,
+        Err(e) => {
+            warn!("stream attach failed: {e}");
+            return StatusCode::SERVICE_UNAVAILABLE.into_response();
         }
-    } else {
-        None
     };
-    let session_id = attached.as_ref().map(|a| a.info.id.clone());
+    let (mut video_rx, control) = attachment.split();
 
     let (p, src, sink) = match build_video_pipeline() {
         Ok(res) => res,
@@ -1983,58 +1937,23 @@ async fn stream_handler(
     state.stats.client_started();
     let appsrc_clone = appsrc.clone();
     let stats = state.stats.clone();
-    let idr_tx = state.idr_tx.clone();
-    let displays = state.displays.clone();
-    let lag_ctl = displays.clone();
-    let lag_session = session_id.clone();
     let Some(pipeline_for_task) = pipeline_guard.0.take() else {
         return StatusCode::INTERNAL_SERVER_ERROR.into_response();
     };
 
     let refresh_hz = state.refresh_hz.max(1);
     let nominal_frame_ns = 1_000_000_000u64 / u64::from(refresh_hz);
-    let mut video_rx = if let Some(att) = attached {
-        att.video
-    } else {
-        state.video_tx.subscribe()
-    };
     let mut client_shutdown_rx = state.client_shutdown_tx.subscribe();
 
     tokio::spawn(async move {
         let mut _pipeline_guard = PipelineGuard(Some(pipeline_for_task));
         let _guard = ClientGuard(stats);
-        struct DetachGuard(Option<(DisplayCtl, String)>);
-        impl Drop for DetachGuard {
-            fn drop(&mut self) {
-                if let Some((ctl, id)) = self.0.take() {
-                    tokio::spawn(async move { ctl.detach(&id).await });
-                }
-            }
-        }
-        let _detach = DetachGuard(displays.zip(session_id));
 
-        let mut wait_keyframe = true;
+        let mut gate = KeyframeGate::new();
         let mut stream_pts_ns: u64 = 0;
         let mut last_pkt_pts_ns: Option<u64> = None;
-        let mut last_idr_at = Instant::now()
-            .checked_sub(IDR_DEBOUNCE)
-            .unwrap_or_else(Instant::now);
-        let mut request_idr = || {
-            let now = Instant::now();
-            if !idr_due(last_idr_at, now) {
-                return;
-            }
-            last_idr_at = now;
-            if let (Some(ctl), Some(id)) = (lag_ctl.as_ref(), lag_session.as_ref()) {
-                let ctl = ctl.clone();
-                let id = id.clone();
-                tokio::spawn(async move { ctl.idr(&id).await });
-            } else if let Some(tx) = &idr_tx {
-                let _ = tx.try_send(());
-            }
-        };
 
-        request_idr();
+        control.request_idr();
         loop {
             if tx_alive.is_closed() {
                 debug!("stream client disconnected");
@@ -2053,20 +1972,17 @@ async fn stream_handler(
                     Ok(pkt) => pkt,
                     Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
                         debug!("stream client lagged {n} packets; waiting for keyframe");
-                        wait_keyframe = true;
+                        gate.reset();
                         last_pkt_pts_ns = None;
-                        request_idr();
+                        control.request_idr();
                         continue;
                     }
                     Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
                 },
             };
-            if wait_keyframe {
-                if !pkt.is_keyframe {
-                    request_idr();
-                    continue;
-                }
-                wait_keyframe = false;
+            if !gate.admit(&pkt) {
+                control.request_idr();
+                continue;
             }
 
             let delta_ns = match last_pkt_pts_ns {
@@ -2095,8 +2011,8 @@ async fn stream_handler(
                 match e {
                     gstreamer::FlowError::Flushing | gstreamer::FlowError::Eos => break,
                     _ => {
-                        wait_keyframe = true;
-                        request_idr();
+                        gate.reset();
+                        control.request_idr();
                     }
                 }
             }
@@ -2122,6 +2038,7 @@ async fn stream_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Instant;
 
     async fn control_with_token(token: &str, action: &str) -> StatusCode {
         let state = config_test_state();
@@ -2638,14 +2555,6 @@ mod tests {
         assert!(token_eq("abc", "abc"));
         assert!(!token_eq("abc", "abd"));
         assert!(!token_eq("abc", "abcd"));
-    }
-
-    #[test]
-    fn idr_debounce_is_250ms() {
-        assert_eq!(IDR_DEBOUNCE, Duration::from_millis(250));
-        let t0 = Instant::now();
-        assert!(!idr_due(t0, t0 + Duration::from_millis(249)));
-        assert!(idr_due(t0, t0 + Duration::from_millis(250)));
     }
 
     fn run_node(args: &[&str]) -> Option<std::process::Output> {

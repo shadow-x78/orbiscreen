@@ -18,7 +18,6 @@
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
-    --radius-xl: 22px;
     --radius-full: 9999px;
     --bg: #11111b;
     --surface: #181825;
@@ -29,9 +28,6 @@
     --primary-on: #11111b;
     --primary-variant: rgba(137, 180, 250, 0.16);
     --secondary: #b4befe;
-    --secondary-container: rgba(180, 190, 254, 0.16);
-    --tertiary: #a6e3a1;
-    --tertiary-container: rgba(166, 227, 161, 0.16);
     --sapphire: #74c7ec;
     --active-green: #a6e3a1;
     --peach: #fab387;
@@ -55,9 +51,6 @@ body.theme-light {
     --primary-on: #ffffff;
     --primary-variant: rgba(30, 102, 245, 0.14);
     --secondary: #7287fd;
-    --secondary-container: rgba(114, 135, 253, 0.14);
-    --tertiary: #40a02b;
-    --tertiary-container: rgba(64, 160, 43, 0.14);
     --sapphire: #04a5e5;
     --active-green: #40a02b;
     --peach: #df8e1d;

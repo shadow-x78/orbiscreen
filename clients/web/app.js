@@ -26,7 +26,6 @@ const I18N = {
         hostActions: "Host Actions",
         actionResync: "Resync",
         statusConnecting: "Connecting",
-        statusConnectingSub: "Connecting...",
         statusConnectingSub: "Connecting to Linux host...",
         statusConnected: "Connected",
         statusDisconnected: "Disconnected",
@@ -101,12 +100,48 @@ const I18N = {
         toastCadSent: "تم إرسال Ctrl+Alt+Del",
         toastResynced: "تمت المزامنة",
         toastDisconnected: "تم قطع الاتصال",
+        statsTitle: "الإحصائيات",
+        statsDelay: "تأخير الشبكة",
+        statsAge: "عمر الإطار الحالي",
+        statsReceived: "المستلَم",
+        statsFrames: "الإطارات",
+        statsWindow: "آخر دقيقة",
         statusUnsupported: "متصفح غير مدعوم",
         statusUnsupportedSub: "يحتاج هذا العميل إلى WebCodecs VideoDecoder. افتح الصفحة في Chrome أو Brave أو Edge أو متصفح Chromium آخر."
     }
 };
 
-let currentLang = localStorage.getItem("orbiscreen_web_lang") || "en";
+const STORAGE = {
+    lang: { key: "orbiscreen_lang", legacy: "orbiscreen_web_lang" },
+    theme: { key: "orbiscreen_theme", legacy: "orbiscreen_web_theme" },
+    statsVisible: { key: "orbiscreen_stats_visible", legacy: "orbiscreen.statsVisible" },
+    deviceKey: { key: "orbiscreen_device_key", legacy: "orbiscreen.deviceKey" },
+};
+
+function readStore(name) {
+    const entry = STORAGE[name];
+    try {
+        const current = localStorage.getItem(entry.key);
+        if (current !== null) return current;
+        if (!entry.legacy) return null;
+        const legacy = localStorage.getItem(entry.legacy);
+        if (legacy !== null) {
+            localStorage.setItem(entry.key, legacy);
+            localStorage.removeItem(entry.legacy);
+        }
+        return legacy;
+    } catch (_) {
+        return null;
+    }
+}
+
+function writeStore(name, value) {
+    try {
+        localStorage.setItem(STORAGE[name].key, value);
+    } catch (_) {  }
+}
+
+let currentLang = readStore("lang") || "en";
 
 function t(key) {
     const dict = I18N[currentLang] || I18N.en;
@@ -146,15 +181,15 @@ function applyTranslations() {
 
 function setLanguage(lang) {
     currentLang = lang;
-    localStorage.setItem("orbiscreen_web_lang", lang);
+    writeStore("lang", lang);
     applyTranslations();
 }
 
-let currentTheme = localStorage.getItem("orbiscreen_web_theme") || "dark";
+let currentTheme = readStore("theme") || "dark";
 
 function applyTheme(theme) {
     currentTheme = theme;
-    localStorage.setItem("orbiscreen_web_theme", theme);
+    writeStore("theme", theme);
 
     if (theme === "light") {
         document.body.classList.add("theme-light");
@@ -267,18 +302,19 @@ let adminController = null;
 let adminBusy = false;
 
 function showPairing(message = "Choose Pair this device, then approve the matching request on the host.") {
+    const secure = OrbiProtocol.isHttps();
     destroyPlayer();
     setOverlayState("unsupported", "Host approval required", "Pair this device to connect.");
     pairingPanel.classList.remove("hidden");
     pairingStatus.textContent = message;
-    btnPair.disabled = window.location.protocol !== "https:" || !!pairingAttempt;
-    if (window.location.protocol !== "https:") {
+    btnPair.disabled = !secure || !!pairingAttempt;
+    if (!secure) {
         pairingStatus.textContent = "Pairing requires HTTPS. Open the host's HTTPS client and verify its certificate first.";
     }
 }
 
 async function pairingFetch(path, options = {}) {
-    if (window.location.protocol !== "https:") throw new Error("Pairing requires HTTPS.");
+    if (!OrbiProtocol.isHttps()) throw new Error("Pairing requires HTTPS.");
     const response = await fetch(path, {
         ...options,
         signal: AbortSignal.any([AbortSignal.timeout(15000), ...(options.signal ? [options.signal] : [])]),
@@ -302,7 +338,7 @@ function stopPairing() {
         pairingAttempt.controller.abort();
         pairingAttempt = null;
     }
-    btnPair.disabled = window.location.protocol !== "https:";
+    btnPair.disabled = !OrbiProtocol.isHttps();
     pairingName.disabled = false;
     btnCancelPair.classList.add("hidden");
     pairingRequestId.textContent = "";
@@ -312,7 +348,7 @@ async function pollPairing(attempt) {
     if (pairingAttempt !== attempt) return;
     try {
         if (Date.now() >= attempt.expiresAt) throw new Error("Approval timed out. Request pairing again.");
-        const data = await pairingFetch(`/api/pair/status?id=${encodeURIComponent(attempt.id)}`, {
+        const data = await pairingFetch(`${OrbiProtocol.ENDPOINTS.pairStatus}?id=${encodeURIComponent(attempt.id)}`, {
             signal: attempt.controller.signal,
         });
         if (pairingAttempt !== attempt) return;
@@ -341,7 +377,7 @@ async function pollPairing(attempt) {
 }
 
 btnPair.addEventListener("click", async () => {
-    if (pairingAttempt || window.location.protocol !== "https:") return;
+    if (pairingAttempt || !OrbiProtocol.isHttps()) return;
     const name = pairingName.value.trim();
     if (!name) {
         pairingStatus.textContent = "Enter a device name to identify this request on the host.";
@@ -356,7 +392,7 @@ btnPair.addEventListener("click", async () => {
     btnCancelPair.classList.remove("hidden");
     pairingStatus.textContent = "Requesting host approval…";
     try {
-        const data = await pairingFetch("/api/pair/request", {
+        const data = await pairingFetch(OrbiProtocol.ENDPOINTS.pairRequest, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name }),
@@ -454,14 +490,14 @@ async function loadHostApprovals(action = null) {
     try {
         const options = { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal };
         if (action) {
-            await pairingFetch("/api/pair", {
+            await pairingFetch(OrbiProtocol.ENDPOINTS.pair, {
                 ...options,
                 method: "POST",
                 headers: { ...options.headers, "Content-Type": "application/json" },
                 body: JSON.stringify(action),
             });
         }
-        const data = await pairingFetch("/api/pair", options);
+        const data = await pairingFetch(OrbiProtocol.ENDPOINTS.pair, options);
         if (adminController !== controller) return;
         if (!Array.isArray(data.requests) || !Array.isArray(data.clients)) throw new Error("Invalid device list.");
         renderPairingList(hostPairingRequests, data.requests, true);
@@ -482,12 +518,13 @@ async function loadHostApprovals(action = null) {
 }
 
 function openHostApprovals() {
+    const secure = OrbiProtocol.isHttps();
     releaseControl();
     settingsModal.classList.add("hidden");
     hostApprovalModal.classList.remove("hidden");
-    hostApprovalStatus.textContent = window.location.protocol === "https:" ? "" : "Host approvals require HTTPS.";
-    btnLoadApprovals.disabled = window.location.protocol !== "https:";
-    hostAdminToken.disabled = window.location.protocol !== "https:";
+    hostApprovalStatus.textContent = secure ? "" : "Host approvals require HTTPS.";
+    btnLoadApprovals.disabled = !secure;
+    hostAdminToken.disabled = !secure;
     hostAdminToken.focus();
 }
 document.getElementById("btnHostApprovals").addEventListener("click", openHostApprovals);
@@ -498,7 +535,7 @@ hostAdminToken.addEventListener("input", () => {
     if (adminController) adminController.abort();
     adminController = null;
     adminBusy = false;
-    btnLoadApprovals.disabled = window.location.protocol !== "https:";
+    btnLoadApprovals.disabled = !OrbiProtocol.isHttps();
     hostPairingRequests.replaceChildren();
     hostPairedClients.replaceChildren();
     hostApprovalStatus.textContent = "";
@@ -534,7 +571,8 @@ let latencyWatchdog = null;
 let holeWatchdog = null;
 let lastDelayMs = null;
 let infoTick = null;
-const streamStats = (typeof OrbiStats !== "undefined") ? new OrbiStats.StreamStats() : null;
+let displaySessionId = "";
+const streamStats = new OrbiStats.StreamStats();
 const pendingPresent = [];
 let statsVisible = false;
 let statsRaf = 0;
@@ -548,6 +586,7 @@ const statsFramesGraph = document.getElementById("statsFramesGraph");
 const statsLegI = document.getElementById("statsLegI");
 const statsLegP = document.getElementById("statsLegP");
 const statsLegD = document.getElementById("statsLegD");
+const statsTitleEl = document.getElementById("statsTitle");
 let controlsVisible = false;
 let controlsLockedHidden = false;
 let controlsHideTimer = null;
@@ -580,12 +619,8 @@ function showToast(text, duration = 2200) {
 window.addEventListener("resize", () => updateInfoDisplay());
 
 function updateInfoDisplay() {
-    const ageMs = (streamStats && typeof streamStats.snapshot === "function")
-        ? streamStats.snapshot().ageMs
-        : lastDelayMs;
-    const delayText = (typeof OrbiStats !== "undefined" && OrbiStats.formatToolbarDelay)
-        ? OrbiStats.formatToolbarDelay(ageMs)
-        : ((ageMs != null && ageMs >= 0) ? `delay ${ageMs}ms` : "delay —");
+    const ageMs = streamStats.snapshot().ageMs;
+    const delayText = OrbiStats.formatToolbarDelay(ageMs);
     const narrow = window.matchMedia("(orientation: portrait), (max-width: 720px)").matches;
     const encoderLabel = videoTransport ? `${encoderName} · ${videoTransport}` : encoderName;
     const infoStr = narrow
@@ -594,9 +629,9 @@ function updateInfoDisplay() {
     if (hostInfoEl) hostInfoEl.textContent = infoStr;
     if (statRes) statRes.textContent = `${displayWidth} × ${displayHeight}`;
     if (statEncoder) statEncoder.textContent = encoderLabel;
-    const statsTitleEl = document.getElementById("statsTitle");
     if (statsTitleEl) {
-        statsTitleEl.textContent = videoTransport ? `Statistics · ${videoTransport}` : "Statistics";
+        const title = t("statsTitle");
+        statsTitleEl.textContent = videoTransport ? `${title} · ${videoTransport}` : title;
     }
     if (statLatency) {
         statLatency.textContent = (lastDelayMs != null && lastDelayMs >= 0)
@@ -925,7 +960,7 @@ if (btnSettings) {
 
 function setStatsVisible(visible) {
     statsVisible = !!visible;
-    try { localStorage.setItem("orbiscreen.statsVisible", statsVisible ? "1" : "0"); } catch (_) {}
+    writeStore("statsVisible", statsVisible ? "1" : "0");
     if (statsWidget) {
         statsWidget.classList.toggle("hidden", !statsVisible || !streamActive);
         statsWidget.setAttribute("aria-hidden", (!statsVisible || !streamActive) ? "true" : "false");
@@ -935,7 +970,7 @@ function setStatsVisible(visible) {
 }
 
 function startStatsPaint() {
-    if (statsRaf || !streamStats || typeof OrbiStats === "undefined") return;
+    if (statsRaf) return;
     const tick = () => {
         statsRaf = 0;
         if (!statsVisible || !streamActive) return;
@@ -962,12 +997,10 @@ if (btnStats) {
     });
 }
 
-try {
-    if (localStorage.getItem("orbiscreen.statsVisible") === "1") {
-        statsVisible = true;
-        if (btnStats) btnStats.classList.add("active");
-    }
-} catch (_) {}
+if (readStore("statsVisible") === "1") {
+    statsVisible = true;
+    if (btnStats) btnStats.classList.add("active");
+}
 
 if (btnCloseSettings) {
     btnCloseSettings.addEventListener("click", () => {
@@ -1054,13 +1087,17 @@ if (btnFullscreen) {
     });
 }
 
+function authHeaders(extra = {}) {
+    const headers = { ...extra };
+    if (authToken) headers.Authorization = `Bearer ${authToken}`;
+    return headers;
+}
+
 async function sendHostAction(action, extra = {}) {
-    const headers = { "content-type": "application/json" };
-    if (authToken) headers.authorization = `Bearer ${authToken}`;
     try {
-        const res = await fetch("/api/control", {
+        const res = await fetch(OrbiProtocol.ENDPOINTS.control, {
             method: "POST",
-            headers,
+            headers: authHeaders({ "content-type": "application/json" }),
             body: JSON.stringify({ action, ...extra }),
         });
         return res.ok;
@@ -1084,7 +1121,7 @@ function requestIdr(opts = {}) {
     lastIdrAt = now;
     if (!opts.keepDecoding) waitingForKeyframe = true;
     if (wtWriter) {
-        try { wtWriter.write(OrbiAnnexB.encodeCtrl(OrbiAnnexB.TYPE_IDR)); } catch (_) {}
+        try { wtWriter.write(OrbiAnnexB.encodeCtrl(OrbiProtocol.TYPE_IDR)); } catch (_) {}
     }
     sendHostAction("idr", displaySessionId ? { session: displaySessionId } : {});
     return true;
@@ -1139,7 +1176,7 @@ if (btnConnect && tokenInput) {
     btnConnect.addEventListener("click", () => {
         const val = tokenInput.value.trim();
         if (val) {
-            if (window.location.protocol !== "https:") return;
+            if (!OrbiProtocol.isHttps()) return;
             stopPairing();
             authToken = val;
             tokenInput.value = "";
@@ -1150,25 +1187,23 @@ if (btnConnect && tokenInput) {
 }
 
 function postInput(payload, session) {
-    const headers = { "content-type": "application/json" };
-    if (authToken) headers.authorization = `Bearer ${authToken}`;
-    if (session) headers["x-orbiscreen-session"] = session;
-    return fetch("/input", {
+    const headers = authHeaders({ "content-type": "application/json" });
+    if (session) headers[OrbiProtocol.SESSION_HEADER] = session;
+    return fetch(OrbiProtocol.ENDPOINTS.input, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
+    }).then((response) => {
+        if (response.status !== 403 || !session) return response;
+        console.info("input rejected for this session; retrying without it");
+        displaySessionId = "";
+        return postInput(payload, null);
     });
 }
 
 function sendInput(payload) {
-    if (!authToken || !displaySessionId || window.location.protocol !== "https:") return;
+    if (!authToken || !displaySessionId || !OrbiProtocol.isHttps()) return;
     postInput(payload, displaySessionId)
-        .then((response) => {
-            if (response.status !== 403) return;
-            console.info("input rejected for this session; retrying without it");
-            displaySessionId = null;
-            return postInput(payload, null);
-        })
         .catch((err) => console.warn("sendInput failed:", err));
 }
 
@@ -1608,7 +1643,7 @@ function drawVideoFrame(frame) {
         }
         const ctx = videoEl.getContext("2d");
         ctx.drawImage(frame, 0, 0);
-        if (streamStats && pendingPresent.length) {
+        if (pendingPresent.length) {
             streamStats.notePresented(pendingPresent.shift());
         }
         markPlaying();
@@ -1666,16 +1701,14 @@ function feedAccessUnit(msg) {
         return;
     }
     if (waitingForKeyframe && !msg.key) {
-        if (streamStats) streamStats.noteDropped(1);
+        streamStats.noteDropped(1);
         requestIdr();
         return;
     }
-    if (streamStats) {
-        streamStats.noteFrame(OrbiAnnexB.classifyAccessUnit(msg.au));
-        pendingPresent.push(msg.sentNs);
-        if (pendingPresent.length > 120) pendingPresent.shift();
-    }
-                const chunk = new EncodedVideoChunk({
+    streamStats.noteFrame(OrbiAnnexB.classifyAccessUnit(msg.au));
+    pendingPresent.push(msg.sentNs);
+    if (pendingPresent.length > 120) pendingPresent.shift();
+    const chunk = new EncodedVideoChunk({
         type: msg.key ? "key" : "delta",
         timestamp: Math.round(performance.now() * 1000),
         data: msg.au,
@@ -1691,7 +1724,7 @@ function feedAccessUnit(msg) {
         const glass = Number((nowNs() + clockOffsetNs - msg.sentNs) / 1000000n);
         if (glass >= 0 && glass <= 5000) {
             lastDelayMs = glass;
-            if (streamStats) streamStats.noteDelay(glass);
+            streamStats.noteDelay(glass);
         }
     }
 }
@@ -1702,11 +1735,11 @@ function setVideoTransport(name) {
 }
 
 async function startAuStream() {
-    setVideoTransport("HTTPS /au");
+    setVideoTransport("HTTPS " + OrbiProtocol.ENDPOINTS.au);
     const params = new URLSearchParams();
     if (displaySessionId) params.set("session", displaySessionId);
     const qs = params.toString();
-    const res = await fetch(qs ? `/au?${qs}` : "/au", {
+    const res = await fetch(qs ? `${OrbiProtocol.ENDPOINTS.au}?${qs}` : OrbiProtocol.ENDPOINTS.au, {
         headers: authToken ? { authorization: `Bearer ${authToken}` } : {},
     });
     if (res.status === 401 || res.status === 403) {
@@ -1728,7 +1761,7 @@ async function startAuStream() {
                 const { value, done } = await reader.read();
                 if (done) break;
                 if (generation !== streamGeneration) break;
-                if (value && streamStats) streamStats.noteBytes(value.byteLength);
+                if (value) streamStats.noteBytes(value.byteLength);
                 frames.push(value);
                 let msg;
                 while ((msg = frames.pop())) {
@@ -1761,7 +1794,7 @@ async function startStream(opts = {}) {
         showPairing();
         return;
     }
-    if (window.location.protocol !== "https:") {
+    if (!OrbiProtocol.isHttps()) {
         const shownHost = (wtConfig && OrbiAnnexB.pickWtHost(wtConfig, window.location.hostname))
             || window.location.hostname
             || "host";
@@ -1789,7 +1822,7 @@ async function startStream(opts = {}) {
     lastDelayMs = null;
     clockOffsetNs = 0n;
     lastFrameAt = 0;
-    if (streamStats) streamStats.reset();
+    streamStats.reset();
     pendingPresent.length = 0;
     if (!opts.quiet) {
         setOverlayState("connecting", "Connecting", "Connecting to Linux virtual display…");
@@ -1852,7 +1885,7 @@ async function startStream(opts = {}) {
                 while (wtTransport === transport) {
                     const { value, done } = await reader.read();
                     if (done) break;
-                    if (value && streamStats) streamStats.noteBytes(value.byteLength);
+                    if (value) streamStats.noteBytes(value.byteLength);
                     frames.push(value);
                     let msg;
                     while ((msg = frames.pop())) {
@@ -1868,7 +1901,7 @@ async function startStream(opts = {}) {
                             const now = nowNs();
                             const rtt = now - msg.t0Ns;
                             clockOffsetNs = msg.hostNs + rtt / 2n - now;
-                            if (streamStats) streamStats.noteClockOffset(clockOffsetNs);
+                            streamStats.noteClockOffset(clockOffsetNs);
                         } else if (msg.type === "bye") {
                             if (wtTransport === transport && !userDisconnected) {
                                 console.info("host closed the stream");
@@ -1890,7 +1923,7 @@ async function startStream(opts = {}) {
             for (const msg of msgs) {
                 if (msg.type === "gap") {
                     waitingForKeyframe = true;
-                    if (streamStats) streamStats.noteDropped(msg.dropped || 1);
+                    streamStats.noteDropped(msg.dropped || 1);
                     requestIdr();
                 } else if (msg.type === "video") {
                     feedAccessUnit(msg);
@@ -1914,7 +1947,7 @@ async function startStream(opts = {}) {
                     while (wtTransport === transport) {
                         const { value, done } = await dgramReader.read();
                         if (done) break;
-                        if (value && streamStats) streamStats.noteBytes(value.byteLength);
+                        if (value) streamStats.noteBytes(value.byteLength);
                         takeAssembler(assembler.push(value));
                     }
                 } catch (err) {
@@ -1958,19 +1991,16 @@ async function startStream(opts = {}) {
     }, 250);
 }
 
-let displaySessionId = "";
-
 function webDeviceKey() {
-    const store = "orbiscreen.deviceKey";
     try {
-        const existing = localStorage.getItem(store);
+        const existing = readStore("deviceKey");
         if (existing && /^[0-9a-f]{8}$/.test(existing)) {
             return existing;
         }
         const bytes = new Uint8Array(4);
         crypto.getRandomValues(bytes);
         const key = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-        localStorage.setItem(store, key);
+        writeStore("deviceKey", key);
         return key;
     } catch (_) {
         return "web";
@@ -1997,7 +2027,7 @@ async function openDisplaySession() {
             key: webDeviceKey(),
             ...nativeScreenSize(),
         };
-        const response = await fetch("/api/session", {
+        const response = await fetch(OrbiProtocol.ENDPOINTS.session, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -2033,7 +2063,7 @@ async function start() {
     applyTheme(currentTheme);
     applyTranslations();
     if (pairingAttempt) return;
-    if (window.location.protocol !== "https:") {
+    if (!OrbiProtocol.isHttps()) {
         showPairing();
         return;
     }
@@ -2053,7 +2083,7 @@ async function start() {
         }
     }
     try {
-        const response = await fetch("/api/info", {
+        const response = await fetch(OrbiProtocol.ENDPOINTS.info, {
             headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
             cache: "no-store",
             redirect: "error",

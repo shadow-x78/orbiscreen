@@ -71,7 +71,7 @@ struct OutputInfo {
 struct PendingFrame {
     buffer: Option<WlBuffer>,
     pool: Option<WlShmPool>,
-    mapping: Mapping,
+    mapping: orbiscreen_core::shm::MmapRegion,
     width: u32,
     height: u32,
     stride: u32,
@@ -80,52 +80,6 @@ struct PendingFrame {
     ready: bool,
     failed: bool,
 }
-
-struct Mapping {
-    ptr: *mut u8,
-    len: usize,
-}
-
-impl Mapping {
-    #[allow(unsafe_code)]
-    fn new(fd: std::os::fd::RawFd, len: usize) -> Result<Self, String> {
-        let ptr = unsafe {
-            libc::mmap(
-                std::ptr::null_mut(),
-                len,
-                libc::PROT_READ | libc::PROT_WRITE,
-                libc::MAP_SHARED,
-                fd,
-                0,
-            )
-        };
-        if ptr == libc::MAP_FAILED {
-            return Err(format!("mmap: {}", std::io::Error::last_os_error()));
-        }
-        Ok(Self {
-            ptr: ptr.cast(),
-            len,
-        })
-    }
-
-    #[allow(unsafe_code)]
-    fn as_slice(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
-    }
-}
-
-impl Drop for Mapping {
-    #[allow(unsafe_code)]
-    fn drop(&mut self) {
-        if self.ptr.is_null() {
-            return;
-        }
-        unsafe { libc::munmap(self.ptr.cast(), self.len) };
-    }
-}
-
-#[allow(unsafe_code)]
-unsafe impl Send for Mapping {}
 
 #[derive(Default)]
 struct CaptureState {
@@ -290,16 +244,16 @@ impl Dispatch<ZwlrScreencopyFrameV1, ()> for CaptureState {
                     state.pending = Some(PendingFrame::failed(width, height, stride));
                     return;
                 };
-                let Ok(file) = anonymous_shm_file("orbiscreen-screencopy") else {
-                    state.pending = Some(PendingFrame::failed(width, height, stride));
-                    return;
+                let file = match orbiscreen_core::shm::anonymous_file("orbiscreen-screencopy", len)
+                {
+                    Ok(file) => file,
+                    Err(e) => {
+                        tracing::warn!("screencopy memfd failed: {e}");
+                        state.pending = Some(PendingFrame::failed(width, height, stride));
+                        return;
+                    }
                 };
-                if unsafe_ftruncate(file.as_raw_fd(), len) != 0 {
-                    tracing::warn!("ftruncate failed: {}", std::io::Error::last_os_error());
-                    state.pending = Some(PendingFrame::failed(width, height, stride));
-                    return;
-                }
-                let mapping = match Mapping::new(file.as_raw_fd(), len) {
+                let mapping = match orbiscreen_core::shm::MmapRegion::new(file.as_raw_fd(), len) {
                     Ok(m) => m,
                     Err(e) => {
                         tracing::warn!("screencopy mmap failed: {e}");
@@ -351,10 +305,7 @@ impl PendingFrame {
         Self {
             buffer: None,
             pool: None,
-            mapping: Mapping {
-                ptr: std::ptr::null_mut(),
-                len: 0,
-            },
+            mapping: orbiscreen_core::shm::MmapRegion::empty(),
             width,
             height,
             stride,
@@ -373,22 +324,6 @@ impl PendingFrame {
             pool.destroy();
         }
     }
-}
-
-#[allow(unsafe_code)]
-fn anonymous_shm_file(label: &str) -> Result<std::fs::File, String> {
-    use std::os::fd::FromRawFd as _;
-    let name = std::ffi::CString::new(label).map_err(|e| format!("shm name: {e}"))?;
-    let fd = unsafe { libc::memfd_create(name.as_ptr(), libc::MFD_CLOEXEC) };
-    if fd < 0 {
-        return Err(format!("memfd_create: {}", std::io::Error::last_os_error()));
-    }
-    Ok(unsafe { std::fs::File::from_raw_fd(fd) })
-}
-
-#[allow(unsafe_code)]
-fn unsafe_ftruncate(fd: std::os::fd::RawFd, len: usize) -> i32 {
-    unsafe { libc::ftruncate(fd, len as libc::off_t) }
 }
 
 #[allow(unsafe_code)]
@@ -620,7 +555,7 @@ fn run_capture_loop(
             pending.release();
             break;
         }
-        if pending.failed || pending.mapping.len == 0 {
+        if pending.failed || pending.mapping.is_empty() {
             pending.release();
             ended.store(true, Ordering::Relaxed);
             ended_notify.notify_waiters();
@@ -652,19 +587,19 @@ fn copy_frame(pending: &PendingFrame, pool: &Arc<FramePool>) -> Option<CapturedF
     let row_bytes = u64::from(pending.width).checked_mul(4)?;
     let len = row_bytes.checked_mul(u64::from(pending.height))?;
     let len = usize::try_from(len).ok()?;
-    if row_bytes > u64::from(pending.stride) || len > pending.mapping.len {
+    if row_bytes > u64::from(pending.stride) || len > pending.mapping.len() {
         tracing::warn!("screencopy frame dimensions inconsistent with buffer; dropping");
         return None;
     }
     let mut data = pool.acquire(len);
-    if !assemble_frame_rows(
+    if !orbiscreen_core::frame::assemble_bgra_rows(
         &mut data,
         pending.mapping.as_slice(),
         pending.width,
         pending.height,
         pending.stride,
-        pending.premultiplied,
         pending.swap_rb,
+        pending.premultiplied,
     ) {
         return None;
     }
@@ -673,142 +608,4 @@ fn copy_frame(pending: &PendingFrame, pool: &Arc<FramePool>) -> Option<CapturedF
         height: pending.height,
         data,
     })
-}
-
-fn assemble_frame_rows(
-    dst: &mut [u8],
-    src: &[u8],
-    width: u32,
-    height: u32,
-    stride: u32,
-    premultiplied: bool,
-    swap_rb: bool,
-) -> bool {
-    let row_bytes = (width as usize) * 4;
-    let expected = row_bytes * height as usize;
-    if dst.len() != expected {
-        tracing::warn!("screencopy destination size mismatch; dropping frame");
-        return false;
-    }
-    let stride = stride as usize;
-    for row in 0..height as usize {
-        let start = row * stride;
-        let end = start + row_bytes;
-        if end > src.len() {
-            tracing::warn!("screencopy buffer shorter than expected; dropping frame");
-            return false;
-        }
-        let dst = &mut dst[row * row_bytes..row * row_bytes + row_bytes];
-        dst.copy_from_slice(&src[start..end]);
-        for px in dst.as_chunks_mut::<4>().0 {
-            if swap_rb {
-                px.swap(0, 2);
-            }
-            if premultiplied {
-                px[3] = 0xFF;
-            }
-        }
-    }
-    true
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn assemble(
-        src: &[u8],
-        width: u32,
-        height: u32,
-        stride: u32,
-        premultiplied: bool,
-    ) -> Option<Vec<u8>> {
-        assemble_with(src, width, height, stride, premultiplied, false)
-    }
-
-    fn assemble_with(
-        src: &[u8],
-        width: u32,
-        height: u32,
-        stride: u32,
-        premultiplied: bool,
-        swap_rb: bool,
-    ) -> Option<Vec<u8>> {
-        let mut dst = vec![0u8; (width as usize) * 4 * height as usize];
-        if assemble_frame_rows(&mut dst, src, width, height, stride, premultiplied, swap_rb) {
-            Some(dst)
-        } else {
-            None
-        }
-    }
-
-    #[test]
-    fn assembly_swaps_red_and_blue_for_xbgr_sources() {
-        let src = [0x11, 0x22, 0x33, 0x44];
-        let data = assemble_with(&src, 1, 1, 4, false, true).expect("assembly");
-        assert_eq!(data, [0x33, 0x22, 0x11, 0x44]);
-    }
-
-    #[test]
-    fn assembly_swaps_and_fills_alpha_for_xbgr_sources() {
-        let src = [0xAA, 0xBB, 0xCC, 0x00];
-        let data = assemble_with(&src, 1, 1, 4, true, true).expect("assembly");
-        assert_eq!(data, [0xCC, 0xBB, 0xAA, 0xFF]);
-    }
-
-    #[test]
-    fn assembly_leaves_bgra_sources_untouched_without_the_flag() {
-        let src = [0x11, 0x22, 0x33, 0xFF, 0x44, 0x55, 0x66, 0xFF];
-        let data = assemble_with(&src, 2, 1, 8, false, false).expect("assembly");
-        assert_eq!(data, src);
-    }
-
-    #[test]
-    fn assembly_copies_contiguous_rows() {
-        let src = vec![7u8; 4 * 3];
-        let data = assemble(&src, 3, 1, 12, false).expect("assembly");
-        assert_eq!(data, src);
-    }
-
-    #[test]
-    fn assembly_strips_stride_padding() {
-        let src = [
-            0xAA, 0xBB, 0xCC, 0xDD, 0x01, 0x02, 0x03, 0x04, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x05, 0x06, 0x07, 0x08,
-        ];
-        let data = assemble(&src, 2, 2, 16, false).expect("assembly");
-        assert_eq!(data.len(), 16);
-        assert_eq!(&data[..8], &src[..8]);
-        assert_eq!(data[8..], src[16..24]);
-    }
-
-    #[test]
-    fn assembly_forces_opaque_alpha_for_premultiplied_xrgb() {
-        let src = [0x10, 0x20, 0x30, 0x00, 0x40, 0x50, 0x60, 0x7F];
-        let data = assemble(&src, 2, 1, 8, true).expect("assembly");
-        assert_eq!(data[3], 0xFF);
-        assert_eq!(data[7], 0xFF);
-        assert_eq!(&data[..3], &src[..3]);
-        assert_eq!(&data[4..7], &src[4..7]);
-    }
-
-    #[test]
-    fn assembly_keeps_alpha_for_argb_source() {
-        let src = [0x10, 0x20, 0x30, 0x7F];
-        let data = assemble(&src, 1, 1, 4, false).expect("assembly");
-        assert_eq!(data[3], 0x7F);
-    }
-
-    #[test]
-    fn assembly_rejects_short_buffers() {
-        let src = vec![0u8; 7];
-        assert!(assemble(&src, 2, 1, 8, false).is_none());
-        assert!(assemble(&src, 1, 2, 4, false).is_none());
-    }
-
-    #[test]
-    fn assembly_handles_zero_sized_frames() {
-        let data = assemble(&[], 0, 0, 0, true).expect("assembly");
-        assert!(data.is_empty());
-    }
 }

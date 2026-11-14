@@ -1,15 +1,17 @@
 
 package com.orbiscreen.android.player
 
+import com.orbiscreen.android.net.Protocol
+
 object AoaFrames {
-    const val FLAG_DATA: Int = 0x01
-    const val FLAG_OPEN: Int = 0x02
-    const val FLAG_CLOSE: Int = 0x04
-    const val FLAG_RESET: Int = 0x08
-    const val FLAG_VIDEO: Int = 0x10
-    const val HEADER_LEN: Int = 5
-    const val MAX_PAYLOAD: Int = 16384 - HEADER_LEN
-    const val VIDEO_STREAM_ID: Short = 0
+    const val FLAG_DATA: Int = Protocol.AOA_FLAG_DATA
+    const val FLAG_OPEN: Int = Protocol.AOA_FLAG_OPEN
+    const val FLAG_CLOSE: Int = Protocol.AOA_FLAG_CLOSE
+    const val FLAG_RESET: Int = Protocol.AOA_FLAG_RESET
+    const val FLAG_VIDEO: Int = Protocol.AOA_FLAG_VIDEO
+    const val HEADER_LEN: Int = Protocol.AOA_HEADER_LEN
+    const val MAX_PAYLOAD: Int = Protocol.AOA_MAX_PAYLOAD
+    const val VIDEO_STREAM_ID: Short = Protocol.AOA_VIDEO_STREAM_ID
 
     data class Frame(
         val streamId: Short,

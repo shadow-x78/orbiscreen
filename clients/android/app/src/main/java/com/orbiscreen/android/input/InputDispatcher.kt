@@ -1,6 +1,8 @@
 
 package com.orbiscreen.android.input
 
+import com.orbiscreen.android.net.Protocol
+
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -206,9 +208,9 @@ class InputDispatcher(
         val t = tokenProvider?.invoke()?.takeIf { it.isNotBlank() } ?: token
         if (t.isBlank()) return
         val builder = Request.Builder().url("ws://$host:$port/input/ws")
-            .header("Authorization", "Bearer $t")
+            .header(Protocol.HEADER_AUTHORIZATION, Protocol.bearer(t))
         val sid = sessionIdProvider?.invoke()?.takeIf { it.isNotBlank() } ?: sessionId
-        sid?.takeIf { it.isNotBlank() }?.let { builder.header("X-Orbiscreen-Session", it) }
+        sid?.takeIf { it.isNotBlank() }?.let { builder.header(Protocol.HEADER_SESSION, it) }
         webSocket = http.newWebSocket(builder.build(), object : okhttp3.WebSocketListener() {
             override fun onOpen(webSocket: okhttp3.WebSocket, response: okhttp3.Response) {
                 Log.i(TAG, "input WebSocket open")
@@ -432,10 +434,10 @@ class InputDispatcher(
                 }
                 val builder = Request.Builder()
                     .url("http://$host:$port/api/control")
-                    .header("Authorization", "Bearer $t")
+                    .header(Protocol.HEADER_AUTHORIZATION, Protocol.bearer(t))
                     .post(body.toString().toRequestBody("application/json".toMediaType()))
                 val sid = sessionIdProvider?.invoke()?.takeIf { it.isNotBlank() } ?: sessionId
-                sid?.takeIf { it.isNotBlank() }?.let { builder.header("X-Orbiscreen-Session", it) }
+                sid?.takeIf { it.isNotBlank() }?.let { builder.header(Protocol.HEADER_SESSION, it) }
                 http.newCall(builder.build()).execute().use { resp ->
                     ok = resp.isSuccessful
                     if (!ok) {
@@ -499,10 +501,10 @@ class InputDispatcher(
             val builder = Request.Builder()
                 .url("http://$host:$port/input")
                 .header("Connection", "keep-alive")
-                .header("Authorization", "Bearer $t")
+                .header(Protocol.HEADER_AUTHORIZATION, Protocol.bearer(t))
                 .post(payload.toString().toRequestBody("application/json".toMediaType()))
             val sid = sessionIdProvider?.invoke()?.takeIf { it.isNotBlank() } ?: sessionId
-            sid?.takeIf { it.isNotBlank() }?.let { builder.header("X-Orbiscreen-Session", it) }
+            sid?.takeIf { it.isNotBlank() }?.let { builder.header(Protocol.HEADER_SESSION, it) }
             val call = http.newCall(builder.build())
             call.timeout().timeout(500, TimeUnit.MILLISECONDS)
             call.execute().use { resp ->

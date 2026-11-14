@@ -1,5 +1,17 @@
+pub mod frame;
 pub mod frame_pool;
+pub mod output;
+pub mod paths;
 pub mod portal_state;
+pub mod ports;
+pub mod report;
+pub mod session;
+pub mod shm;
+
+pub use paths::{
+    default_config_path, default_https_cert_path, default_https_key_path, default_token_path,
+    default_wt_cert_path, default_wt_key_path,
+};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -40,19 +52,15 @@ impl Default for CaptureConfig {
 }
 
 impl CaptureConfig {
-    const PREFERENCES: &'static [&'static str] = &[
-        "auto",
-        "kwin-virtual",
-        "screencopy",
-        "portal",
-        "evdi",
-        "mirror",
-    ];
-
     pub fn sanitize(&mut self) {
-        if !Self::PREFERENCES.contains(&self.preferred.as_str()) {
-            self.preferred = "auto".to_string();
+        if session::CapturePreference::parse(&self.preferred).is_none() {
+            self.preferred = session::CapturePreference::Auto.as_str().to_string();
         }
+    }
+
+    pub fn preference(&self) -> session::CapturePreference {
+        session::CapturePreference::parse(&self.preferred)
+            .unwrap_or(session::CapturePreference::Auto)
     }
 }
 
@@ -62,8 +70,6 @@ pub struct DisplayConfig {
     pub width: u32,
     pub height: u32,
     pub refresh_rate_hz: u32,
-    #[serde(default)]
-    pub pinned: bool,
 }
 
 impl Default for DisplayConfig {
@@ -72,7 +78,6 @@ impl Default for DisplayConfig {
             width: 1920,
             height: 1080,
             refresh_rate_hz: 60,
-            pinned: false,
         }
     }
 }
@@ -171,38 +176,6 @@ pub fn dump_config(config: &Config) -> Result<String, CoreError> {
     Ok(toml::to_string_pretty(config)?)
 }
 
-pub fn default_config_path() -> std::path::PathBuf {
-    if let Some(xdg) = std::env::var_os("XDG_CONFIG_HOME")
-        .filter(|v| !v.is_empty() && std::path::Path::new(v).is_absolute())
-    {
-        return std::path::PathBuf::from(xdg).join("orbiscreen/orbiscreen.toml");
-    }
-    if let Some(home) = std::env::var_os("HOME").filter(|v| !v.is_empty()) {
-        return std::path::PathBuf::from(home).join(".config/orbiscreen/orbiscreen.toml");
-    }
-    std::path::PathBuf::from("orbiscreen.toml")
-}
-
-pub fn default_token_path() -> std::path::PathBuf {
-    default_config_path().with_file_name("token")
-}
-
-pub fn default_wt_cert_path() -> std::path::PathBuf {
-    default_config_path().with_file_name("wt-cert.pem")
-}
-
-pub fn default_wt_key_path() -> std::path::PathBuf {
-    default_config_path().with_file_name("wt-key.pem")
-}
-
-pub fn default_https_cert_path() -> std::path::PathBuf {
-    default_config_path().with_file_name("https-cert.pem")
-}
-
-pub fn default_https_key_path() -> std::path::PathBuf {
-    default_config_path().with_file_name("https-key.pem")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -275,26 +248,6 @@ height = 999999
     }
 
     #[test]
-    fn a_pinned_display_size_survives_a_config_round_trip() {
-        let mut cfg = Config::default();
-        cfg.display.width = 1280;
-        cfg.display.height = 800;
-        cfg.display.pinned = true;
-        let dumped = dump_config(&cfg).expect("dump");
-        let reloaded = load_config(&dumped).expect("reload");
-        assert!(reloaded.display.pinned);
-        assert_eq!(reloaded.display.width, 1280);
-        assert_eq!(reloaded.display.height, 800);
-    }
-
-    #[test]
-    fn an_older_config_without_the_pin_key_parses_as_unpinned() {
-        let cfg = load_config("[display]\nwidth = 1600\nheight = 900\n").expect("legacy config");
-        assert!(!cfg.display.pinned);
-        assert_eq!(cfg.display.width, 1600);
-    }
-
-    #[test]
     fn unknown_capture_preference_falls_back_to_auto() {
         let parsed =
             load_config("[capture]\npreferred = \"magic\"\n").expect("parse capture config");
@@ -303,10 +256,11 @@ height = 999999
 
     #[test]
     fn capture_preference_accepts_known_values() {
-        for value in CaptureConfig::PREFERENCES {
+        for preference in session::CapturePreference::ALL {
+            let value = preference.as_str();
             let parsed =
                 load_config(&format!("[capture]\npreferred = \"{value}\"\n")).expect("parse");
-            assert_eq!(parsed.capture.preferred, *value);
+            assert_eq!(parsed.capture.preferred, value);
         }
     }
 

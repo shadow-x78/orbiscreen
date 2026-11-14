@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import com.orbiscreen.android.net.HostApi
+import com.orbiscreen.android.net.HostSpec
 import org.json.JSONObject
 import java.security.KeyStore
 import javax.crypto.Cipher
@@ -17,7 +18,7 @@ data class HostCredential(val fingerprint: String, val credential: String)
 class HostCredentialStore(context: Context) {
     private val prefs = context.getSharedPreferences("host_credentials", Context.MODE_PRIVATE)
 
-    private fun endpoint(host: String, port: Int) = HostApi.pairingUrl(host, port).toString()
+    private fun endpoint(host: String, port: Int) = HostSpec(host, port).pairingUrl().toString()
 
     @Synchronized
     fun load(host: String, port: Int): HostCredential? {

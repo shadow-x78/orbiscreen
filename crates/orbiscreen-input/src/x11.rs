@@ -29,7 +29,6 @@ pub struct UinputInjector {
     tab_name: String,
     output_name: Option<String>,
     pointer_frame: Option<crate::PointerFrame>,
-    prod_offset: u16,
     width: u32,
     height: u32,
     cursor_x: f64,
@@ -47,12 +46,6 @@ impl UinputInjector {
         let mut mk_keys: Vec<Key> = (1u16..=248).map(Key::from_raw).collect();
         mk_keys.extend((0x110u16..=0x117).map(Key::from_raw));
 
-        let width_axis = AbsInfo::new(0, spec.width.saturating_sub(1) as i32);
-        let height_axis = AbsInfo::new(0, spec.height.saturating_sub(1) as i32);
-        let (mouse_x_axis, mouse_y_axis) = mouse_axes(spec.pointer_frame, spec.width, spec.height);
-
-        let is_secondary = spec.output_name.as_deref().is_some_and(is_secondary_output);
-        let prod_offset = if is_secondary { 0x0010 } else { 0x0000 };
         let (mk_name, ts_name, tab_name) =
             if let Some(label) = spec.device_label.as_deref().filter(|s| !s.is_empty()) {
                 (
@@ -61,88 +54,17 @@ impl UinputInjector {
                     format!("{label} Pen"),
                 )
             } else {
-                let prefix = if is_secondary {
-                    "Orbiscreen 2"
-                } else {
-                    "Orbiscreen"
-                };
                 (
-                    format!("{prefix} Virtual Mouse and Keyboard"),
-                    format!("{prefix} Virtual Touchscreen"),
-                    format!("{prefix} Virtual Tablet"),
+                    "Orbiscreen Virtual Mouse and Keyboard".to_string(),
+                    "Orbiscreen Virtual Touchscreen".to_string(),
+                    "Orbiscreen Virtual Tablet".to_string(),
                 )
             };
 
-        let mouse_keyboard = UinputDevice::builder()?
-            .with_input_id(InputId::new(
-                Bus::VIRTUAL,
-                0x0BEE,
-                0x0001 + prod_offset,
-                0x0001,
-            ))?
-            .with_props([InputProp::POINTER])?
-            .with_abs_axes([
-                AbsSetup::new(Abs::X, mouse_x_axis),
-                AbsSetup::new(Abs::Y, mouse_y_axis),
-            ])?
-            .with_rel_axes([Rel::WHEEL])?
-            .with_keys(mk_keys)?
-            .build(&mk_name)?;
-
-        let slot_axis = AbsInfo::new(0, (crate::MAX_TOUCH_SLOTS as i32) - 1);
-        let tracking_axis = AbsInfo::new(-1, i32::MAX);
-        let touchscreen = UinputDevice::builder()?
-            .with_input_id(InputId::new(
-                Bus::VIRTUAL,
-                0x0BEE,
-                0x0002 + prod_offset,
-                0x0001,
-            ))?
-            .with_props([InputProp::DIRECT])?
-            .with_abs_axes([
-                AbsSetup::new(Abs::X, width_axis),
-                AbsSetup::new(Abs::Y, height_axis),
-                AbsSetup::new(Abs::MT_SLOT, slot_axis),
-                AbsSetup::new(Abs::MT_TRACKING_ID, tracking_axis),
-                AbsSetup::new(Abs::MT_POSITION_X, width_axis),
-                AbsSetup::new(Abs::MT_POSITION_Y, height_axis),
-            ])?
-            .with_keys([Key::BTN_TOUCH])?
-            .with_keys([Key::BTN_TOUCH, Key::BTN_LEFT])?
-            .build(&ts_name)?;
-
-        let res_w_axis = AbsInfo::new(0, spec.width.saturating_sub(1) as i32).with_resolution(10);
-        let res_h_axis = AbsInfo::new(0, spec.height.saturating_sub(1) as i32).with_resolution(10);
-        let pressure_axis = AbsInfo::new(0, PRESSURE_MAX);
-        let tilt_axis = AbsInfo::new(TILT_MIN, TILT_MAX);
-        let tablet_keys = vec![
-            Key::BTN_TOOL_PEN,
-            Key::BTN_TOOL_RUBBER,
-            Key::BTN_TOUCH,
-            Key::BTN_STYLUS,
-            Key::BTN_STYLUS2,
-            Key::BTN_LEFT,
-            Key::BTN_RIGHT,
-            Key::BTN_MIDDLE,
-        ];
-
-        let tablet = UinputDevice::builder()?
-            .with_input_id(InputId::new(
-                Bus::VIRTUAL,
-                0x0BEE,
-                0x0003 + prod_offset,
-                0x0001,
-            ))?
-            .with_props([InputProp::DIRECT])?
-            .with_abs_axes([
-                AbsSetup::new(Abs::X, res_w_axis),
-                AbsSetup::new(Abs::Y, res_h_axis),
-                AbsSetup::new(Abs::PRESSURE, pressure_axis),
-                AbsSetup::new(Abs::TILT_X, tilt_axis),
-                AbsSetup::new(Abs::TILT_Y, tilt_axis),
-            ])?
-            .with_keys(tablet_keys)?
-            .build(&tab_name)?;
+        let mouse_keyboard =
+            build_mouse_keyboard(&mk_name, spec.pointer_frame, spec.width, spec.height)?;
+        let touchscreen = build_touchscreen(&ts_name, spec.width, spec.height)?;
+        let tablet = build_tablet(&tab_name, spec.width, spec.height)?;
 
         info!("opened uinput devices: mouse/keyboard, touchscreen, and tablet");
         let output_name = spec.output_name.clone().filter(|s| !s.is_empty());
@@ -159,7 +81,6 @@ impl UinputInjector {
             tab_name,
             output_name,
             pointer_frame: spec.pointer_frame,
-            prod_offset,
             width: spec.width,
             height: spec.height,
             cursor_x: f64::from(spec.width) / 2.0,
@@ -185,24 +106,7 @@ impl UinputInjector {
     }
 
     fn open_mouse_keyboard(&self, width: u32, height: u32) -> Result<UinputDevice, InputError> {
-        let mut mk_keys: Vec<Key> = (1u16..=248).map(Key::from_raw).collect();
-        mk_keys.extend((0x110u16..=0x117).map(Key::from_raw));
-        let (mouse_x_axis, mouse_y_axis) = mouse_axes(self.pointer_frame, width, height);
-        Ok(UinputDevice::builder()?
-            .with_input_id(InputId::new(
-                Bus::VIRTUAL,
-                0x0BEE,
-                0x0001 + self.prod_offset,
-                0x0001,
-            ))?
-            .with_props([InputProp::POINTER])?
-            .with_abs_axes([
-                AbsSetup::new(Abs::X, mouse_x_axis),
-                AbsSetup::new(Abs::Y, mouse_y_axis),
-            ])?
-            .with_rel_axes([Rel::WHEEL])?
-            .with_keys(mk_keys)?
-            .build(&self.mk_name)?)
+        build_mouse_keyboard(&self.mk_name, self.pointer_frame, width, height)
     }
 
     pub fn apply_pointer_frame(
@@ -246,63 +150,11 @@ impl UinputInjector {
     }
 
     fn open_touchscreen(&self, width: u32, height: u32) -> Result<UinputDevice, InputError> {
-        let width_axis = AbsInfo::new(0, width.saturating_sub(1) as i32);
-        let height_axis = AbsInfo::new(0, height.saturating_sub(1) as i32);
-        let slot_axis = AbsInfo::new(0, (crate::MAX_TOUCH_SLOTS as i32) - 1);
-        let tracking_axis = AbsInfo::new(-1, i32::MAX);
-        Ok(UinputDevice::builder()?
-            .with_input_id(InputId::new(
-                Bus::VIRTUAL,
-                0x0BEE,
-                0x0002 + self.prod_offset,
-                0x0001,
-            ))?
-            .with_props([InputProp::DIRECT])?
-            .with_abs_axes([
-                AbsSetup::new(Abs::X, width_axis),
-                AbsSetup::new(Abs::Y, height_axis),
-                AbsSetup::new(Abs::MT_SLOT, slot_axis),
-                AbsSetup::new(Abs::MT_TRACKING_ID, tracking_axis),
-                AbsSetup::new(Abs::MT_POSITION_X, width_axis),
-                AbsSetup::new(Abs::MT_POSITION_Y, height_axis),
-            ])?
-            .with_keys([Key::BTN_TOUCH])?
-            .with_keys([Key::BTN_TOUCH, Key::BTN_LEFT])?
-            .build(&self.ts_name)?)
+        build_touchscreen(&self.ts_name, width, height)
     }
 
     fn open_tablet(&self, width: u32, height: u32) -> Result<UinputDevice, InputError> {
-        let res_w_axis = AbsInfo::new(0, width.saturating_sub(1) as i32).with_resolution(10);
-        let res_h_axis = AbsInfo::new(0, height.saturating_sub(1) as i32).with_resolution(10);
-        let pressure_axis = AbsInfo::new(0, PRESSURE_MAX);
-        let tilt_axis = AbsInfo::new(TILT_MIN, TILT_MAX);
-        let tablet_keys = vec![
-            Key::BTN_TOOL_PEN,
-            Key::BTN_TOOL_RUBBER,
-            Key::BTN_TOUCH,
-            Key::BTN_STYLUS,
-            Key::BTN_STYLUS2,
-            Key::BTN_LEFT,
-            Key::BTN_RIGHT,
-            Key::BTN_MIDDLE,
-        ];
-        Ok(UinputDevice::builder()?
-            .with_input_id(InputId::new(
-                Bus::VIRTUAL,
-                0x0BEE,
-                0x0003 + self.prod_offset,
-                0x0001,
-            ))?
-            .with_props([InputProp::DIRECT])?
-            .with_abs_axes([
-                AbsSetup::new(Abs::X, res_w_axis),
-                AbsSetup::new(Abs::Y, res_h_axis),
-                AbsSetup::new(Abs::PRESSURE, pressure_axis),
-                AbsSetup::new(Abs::TILT_X, tilt_axis),
-                AbsSetup::new(Abs::TILT_Y, tilt_axis),
-            ])?
-            .with_keys(tablet_keys)?
-            .build(&self.tab_name)?)
+        build_tablet(&self.tab_name, width, height)
     }
 
     pub fn resize(&mut self, width: u32, height: u32) -> Result<(), InputError> {
@@ -626,10 +478,6 @@ impl UinputInjector {
     }
 }
 
-pub(crate) fn is_secondary_output(name: &str) -> bool {
-    name.ends_with("-2")
-}
-
 fn mouse_axes(frame: Option<crate::PointerFrame>, width: u32, height: u32) -> (AbsInfo, AbsInfo) {
     match frame {
         Some(f) => (
@@ -641,6 +489,74 @@ fn mouse_axes(frame: Option<crate::PointerFrame>, width: u32, height: u32) -> (A
             AbsInfo::new(0, height.saturating_sub(1) as i32),
         ),
     }
+}
+
+fn build_mouse_keyboard(
+    name: &str,
+    pointer_frame: Option<crate::PointerFrame>,
+    width: u32,
+    height: u32,
+) -> Result<UinputDevice, InputError> {
+    let mut keys: Vec<Key> = (1u16..=248).map(Key::from_raw).collect();
+    keys.extend((0x110u16..=0x117).map(Key::from_raw));
+    let (x_axis, y_axis) = mouse_axes(pointer_frame, width, height);
+    Ok(UinputDevice::builder()?
+        .with_input_id(InputId::new(Bus::VIRTUAL, 0x0BEE, 0x0001, 0x0001))?
+        .with_props([InputProp::POINTER])?
+        .with_abs_axes([AbsSetup::new(Abs::X, x_axis), AbsSetup::new(Abs::Y, y_axis)])?
+        .with_rel_axes([Rel::WHEEL])?
+        .with_keys(keys)?
+        .build(name)?)
+}
+
+fn build_touchscreen(name: &str, width: u32, height: u32) -> Result<UinputDevice, InputError> {
+    let width_axis = AbsInfo::new(0, width.saturating_sub(1) as i32);
+    let height_axis = AbsInfo::new(0, height.saturating_sub(1) as i32);
+    let slot_axis = AbsInfo::new(0, (crate::MAX_TOUCH_SLOTS as i32) - 1);
+    let tracking_axis = AbsInfo::new(-1, i32::MAX);
+    Ok(UinputDevice::builder()?
+        .with_input_id(InputId::new(Bus::VIRTUAL, 0x0BEE, 0x0002, 0x0001))?
+        .with_props([InputProp::DIRECT])?
+        .with_abs_axes([
+            AbsSetup::new(Abs::X, width_axis),
+            AbsSetup::new(Abs::Y, height_axis),
+            AbsSetup::new(Abs::MT_SLOT, slot_axis),
+            AbsSetup::new(Abs::MT_TRACKING_ID, tracking_axis),
+            AbsSetup::new(Abs::MT_POSITION_X, width_axis),
+            AbsSetup::new(Abs::MT_POSITION_Y, height_axis),
+        ])?
+        .with_keys([Key::BTN_TOUCH])?
+        .with_keys([Key::BTN_TOUCH, Key::BTN_LEFT])?
+        .build(name)?)
+}
+
+fn build_tablet(name: &str, width: u32, height: u32) -> Result<UinputDevice, InputError> {
+    let res_w_axis = AbsInfo::new(0, width.saturating_sub(1) as i32).with_resolution(10);
+    let res_h_axis = AbsInfo::new(0, height.saturating_sub(1) as i32).with_resolution(10);
+    let pressure_axis = AbsInfo::new(0, PRESSURE_MAX);
+    let tilt_axis = AbsInfo::new(TILT_MIN, TILT_MAX);
+    let keys = vec![
+        Key::BTN_TOOL_PEN,
+        Key::BTN_TOOL_RUBBER,
+        Key::BTN_TOUCH,
+        Key::BTN_STYLUS,
+        Key::BTN_STYLUS2,
+        Key::BTN_LEFT,
+        Key::BTN_RIGHT,
+        Key::BTN_MIDDLE,
+    ];
+    Ok(UinputDevice::builder()?
+        .with_input_id(InputId::new(Bus::VIRTUAL, 0x0BEE, 0x0003, 0x0001))?
+        .with_props([InputProp::DIRECT])?
+        .with_abs_axes([
+            AbsSetup::new(Abs::X, res_w_axis),
+            AbsSetup::new(Abs::Y, res_h_axis),
+            AbsSetup::new(Abs::PRESSURE, pressure_axis),
+            AbsSetup::new(Abs::TILT_X, tilt_axis),
+            AbsSetup::new(Abs::TILT_Y, tilt_axis),
+        ])?
+        .with_keys(keys)?
+        .build(name)?)
 }
 
 fn configure_kwin_device(device_names: &[&str], output_name: &str) {
@@ -742,8 +658,7 @@ pub fn clamped_relative(
 #[cfg(test)]
 mod tests {
     use super::{
-        button_code, button_key, clamped_relative, is_secondary_output, mouse_axes,
-        pen_proximity_action, PenProximity,
+        button_code, button_key, clamped_relative, mouse_axes, pen_proximity_action, PenProximity,
     };
 
     #[test]
@@ -824,19 +739,6 @@ mod tests {
         assert_eq!(pos, (1200, 800));
         assert_eq!(delta.1, 0);
         assert!(delta.0.abs() < 2000, "delta still too large: {delta:?}");
-    }
-
-    #[test]
-    fn secondary_output_matches_the_names_capture_actually_produces() {
-        assert!(!is_secondary_output("Virtual-ORBISCREEN"));
-        assert!(is_secondary_output("Virtual-ORBISCREEN-2"));
-
-        assert!(!is_secondary_output("Virtual-ORBISCREEN-12342"));
-        assert!(!is_secondary_output("Virtual-ORBISCREEN-4321"));
-
-        assert!(!is_secondary_output("Virtual-Orbi-9d41ad1e"));
-        assert!(is_secondary_output("Virtual-Orbi-9d41ad1e-2"));
-        assert!(!is_secondary_output("Virtual-Orbi-12345678"));
     }
 
     #[test]

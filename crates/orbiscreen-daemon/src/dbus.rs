@@ -238,7 +238,6 @@ impl OrbiscreenDbusServer {
             cfg.display.width = width;
             cfg.display.height = height;
             cfg.display.refresh_rate_hz = fps;
-            cfg.display.pinned = true;
             let config_path = orbiscreen_core::default_config_path();
             if let Some(parent) = config_path.parent() {
                 let _ = std::fs::create_dir_all(parent);

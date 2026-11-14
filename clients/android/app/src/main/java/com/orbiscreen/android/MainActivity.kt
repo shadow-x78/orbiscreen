@@ -200,8 +200,8 @@ private fun App(prefs: PrefsStore) {
             }
             OrbiNav(
                 prefs,
-                startHost = requested?.first,
-                startPort = requested?.second ?: 8788,
+                startHost = requested?.host,
+                startPort = requested?.port ?: HostSpec.DEFAULT_PORT,
             )
             startupUpdate?.let { release ->
                 UpdateDialog(

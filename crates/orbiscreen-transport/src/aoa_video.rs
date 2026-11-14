@@ -130,13 +130,6 @@ pub fn video_pump_should_release(event: VideoPumpEvent) -> bool {
     matches!(event, VideoPumpEvent::BridgeStopped)
 }
 
-pub fn host_now_ns() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_nanos() as u64)
-        .unwrap_or(0)
-}
-
 pub fn pack_h264_packet(
     pkt: &H264Packet,
     sent_ns: u64,

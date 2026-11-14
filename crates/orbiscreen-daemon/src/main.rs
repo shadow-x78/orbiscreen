@@ -1,16 +1,16 @@
 pub mod client_display;
 pub mod dbus;
+pub mod pipeline;
 pub mod ui;
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
-use orbiscreen_capture::capabilities::{Capabilities, CaptureStep};
 use orbiscreen_capture::wlr_virtual_output::{VirtualOutputSpec, WlrootsVirtualOutput};
-use orbiscreen_capture::{CapturePreference, CaptureSession};
+use orbiscreen_capture::CaptureSession;
+use orbiscreen_core::session::{Capabilities, CapturePreference, CaptureStep};
 use orbiscreen_core::{dump_config, load_config, Config};
 use orbiscreen_display::{DisplayStatus, EvdiFramePump, VirtualDisplaySpec};
 use orbiscreen_encode::{EncodeParams, Encoder, EncoderKind};
@@ -792,7 +792,7 @@ async fn run_display(config_path: &Path, action: Option<DisplayAction>) -> ExitC
                     let caps = Capabilities::from_env();
                     let chain = caps.auto_chain();
                     let display_backend = if caps.compositor
-                        == orbiscreen_capture::capabilities::Compositor::Kde
+                        == orbiscreen_core::session::Compositor::Kde
                         || chain.iter().any(|s| matches!(s, CaptureStep::KwinVirtual))
                     {
                         "KWin Virtual (Native)".to_string()
@@ -1264,13 +1264,10 @@ fn read_active_token() -> String {
 
 type DynError = Box<dyn std::error::Error + Send + Sync>;
 
-fn uses_per_client_kwin(preferred: &str, caps: &Capabilities) -> bool {
-    match preferred {
-        "kwin-virtual" => true,
-        "auto" => {
-            caps.session == orbiscreen_capture::capabilities::SessionType::Wayland
-                && caps.compositor == orbiscreen_capture::capabilities::Compositor::Kde
-        }
+fn uses_per_client_kwin(preference: CapturePreference, caps: &Capabilities) -> bool {
+    match preference {
+        CapturePreference::KwinVirtual => true,
+        CapturePreference::Auto => caps.is_kde_wayland(),
         _ => false,
     }
 }
@@ -1636,10 +1633,12 @@ async fn try_capture_step(
             Ok(FrameSource::Evdi(pump, Arc::clone(frame_pool)))
         }
         CaptureStep::X11Root => {
-            let capture = CaptureSession::open_with_preference(
+            let capture = CaptureSession::open_step(
+                step,
                 spec.width,
                 spec.height,
-                CapturePreference::Auto,
+                spec.refresh_rate_hz,
+                None,
             )
             .await?;
             info!(backend = ?capture.backend(), "Capture backend open");
@@ -1648,10 +1647,12 @@ async fn try_capture_step(
         CaptureStep::KwinVirtual => {
             let mut last_err: Option<DynError> = None;
             for attempt in 1..=3 {
-                match CaptureSession::open_with_preference(
+                match CaptureSession::open_step(
+                    step,
                     spec.width,
                     spec.height,
-                    CapturePreference::KwinVirtual,
+                    spec.refresh_rate_hz,
+                    None,
                 )
                 .await
                 {
@@ -1670,10 +1671,12 @@ async fn try_capture_step(
             Err(last_err.unwrap_or_else(|| "KWin virtual output failed".into()))
         }
         CaptureStep::Portal => {
-            let capture = CaptureSession::open_with_preference(
+            let capture = CaptureSession::open_step(
+                step,
                 spec.width,
                 spec.height,
-                CapturePreference::Portal,
+                spec.refresh_rate_hz,
+                None,
             )
             .await?;
             info!(backend = ?capture.backend(), "Capture backend open");
@@ -1689,15 +1692,24 @@ async fn try_capture_step(
                 .await
                 .map_err(|e| format!("wlroots virtual output task: {e}"))??;
             let output_name = output.name().to_string();
-            let session = CaptureSession::open_screencopy(Some(output_name)).await?;
+            let session = CaptureSession::open_step(
+                CaptureStep::WlrScreencopy,
+                spec.width,
+                spec.height,
+                spec.refresh_rate_hz,
+                Some(&output_name),
+            )
+            .await?;
             info!(backend = ?session.backend(), "Capture backend open");
             Ok(FrameSource::WlrVirtual { session, output })
         }
         CaptureStep::WlrScreencopy => {
-            let capture = CaptureSession::open_with_preference(
+            let capture = CaptureSession::open_step(
+                step,
                 spec.width,
                 spec.height,
-                CapturePreference::Screencopy,
+                spec.refresh_rate_hz,
+                None,
             )
             .await?;
             info!(backend = ?capture.backend(), "Capture backend open");
@@ -1707,24 +1719,17 @@ async fn try_capture_step(
 }
 
 async fn resolve_frame_source(
-    preferred: &str,
+    preference: CapturePreference,
     caps: &Capabilities,
     spec: VirtualDisplaySpec,
     frame_pool: &Arc<orbiscreen_core::frame_pool::FramePool>,
 ) -> Result<FrameSource, DynError> {
-    let chain = match preferred {
-        "auto" => caps.auto_chain(),
-        "evdi" => vec![CaptureStep::Evdi],
-        "kwin-virtual" => vec![CaptureStep::KwinVirtual],
-        "screencopy" => vec![CaptureStep::WlrScreencopy],
-        "portal" | "mirror" => vec![CaptureStep::Portal],
-        _ => vec![CaptureStep::X11Root],
-    };
-    let explicit = preferred != "auto";
+    let chain = caps.plan(preference);
+    let explicit = preference != CapturePreference::Auto;
     info!(
         session = %caps.session,
         compositor = %caps.compositor,
-        preferred = preferred,
+        preferred = %preference,
         chain = ?chain,
         "capture plan resolved from environment capabilities",
     );
@@ -2020,19 +2025,12 @@ async fn bind_kwin_virtual_inputs(preferred_output: String) {
             continue;
         };
         if let Ok(conn) = zbus::Connection::session().await {
-            let is_secondary = orbiscreen_input::is_secondary_output_name(&target_output);
             let bound = crate::client_display::bind_named_kwin_devices(
                 &conn,
                 target_output.as_str(),
                 |name| {
-                    let is_match = if is_secondary {
-                        name.starts_with("Orbiscreen 2")
-                    } else {
-                        name.starts_with("Orbiscreen Virtual")
-                    };
-                    let is_touch_or_tablet =
-                        name.contains("Touchscreen") || name.contains("Tablet");
-                    is_match && is_touch_or_tablet
+                    (name.starts_with("Orbiscreen Virtual") || name.starts_with("OrbiScreen-"))
+                        && (name.contains("Touchscreen") || name.contains("Tablet"))
                 },
             )
             .await;
@@ -2062,23 +2060,43 @@ async fn run_doctor(json: bool) -> ExitCode {
     let screencast_saved = portal_state.screencast_restore_token.is_some();
     let input_saved = portal_state.remote_desktop_restore_token.is_some();
     let portal = match caps.session {
-        orbiscreen_capture::capabilities::SessionType::Wayland => portal_available().await,
+        orbiscreen_core::session::SessionType::Wayland => portal_available().await,
         _ => None,
     };
 
-    let is_kwin_native = caps.compositor == orbiscreen_capture::capabilities::Compositor::Kde
+    let is_kwin_native = caps.compositor == orbiscreen_core::session::Compositor::Kde
         || chain.iter().any(|s| matches!(s, CaptureStep::KwinVirtual));
     let is_wlr_native = wlr_virtual_ipc.is_some()
         || chain
             .iter()
             .any(|s| matches!(s, CaptureStep::WlrootsVirtual));
 
-    let display_backend_name = if is_kwin_native {
-        "Native (KWin Virtual)"
+    let (display_backend_name, display_backend_kind) = if is_kwin_native {
+        (
+            "Native (KWin Virtual)",
+            orbiscreen_core::report::DisplayBackendKind::NativeKwin,
+        )
     } else if is_wlr_native {
-        "Native (wlroots)"
+        (
+            "Native (wlroots)",
+            orbiscreen_core::report::DisplayBackendKind::NativeWlroots,
+        )
     } else {
-        display_status_text(display_status)
+        let kind = match display_status {
+            orbiscreen_display::DisplayStatus::Compatible => {
+                orbiscreen_core::report::DisplayBackendKind::EvdiCompatible
+            }
+            orbiscreen_display::DisplayStatus::Outdated => {
+                orbiscreen_core::report::DisplayBackendKind::EvdiOutdated
+            }
+            orbiscreen_display::DisplayStatus::KernelModuleMissing => {
+                orbiscreen_core::report::DisplayBackendKind::EvdiMissing
+            }
+            orbiscreen_display::DisplayStatus::NoDeviceNode => {
+                orbiscreen_core::report::DisplayBackendKind::EvdiNoDeviceNode
+            }
+        };
+        (display_status_text(display_status), kind)
     };
 
     if json {
@@ -2088,6 +2106,7 @@ async fn run_doctor(json: bool) -> ExitCode {
             "current_desktop": caps.current_desktop,
             "capture_plan": chain.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
             "display_backend": display_backend_name,
+            "display_backend_kind": display_backend_kind,
             "input_backend": format!("{input:?}"),
             "uinput_writable": uinput_writable,
             "portal_on_session_bus": portal,
@@ -2113,9 +2132,9 @@ async fn run_doctor(json: bool) -> ExitCode {
     ui::print_card_header("System Diagnostics & Compatibility");
 
     let session_name = match caps.session {
-        orbiscreen_capture::capabilities::SessionType::Wayland => "Wayland",
-        orbiscreen_capture::capabilities::SessionType::X11 => "X11",
-        orbiscreen_capture::capabilities::SessionType::Unknown => "Unknown",
+        orbiscreen_core::session::SessionType::Wayland => "Wayland",
+        orbiscreen_core::session::SessionType::X11 => "X11",
+        orbiscreen_core::session::SessionType::Unknown => "Unknown",
     };
     let session_str = format!(
         "{}{}",
@@ -2179,7 +2198,7 @@ async fn run_doctor(json: bool) -> ExitCode {
         Some(true) => format!("{} Active (org.freedesktop.portal.Desktop)", ui::badge_ok()),
         Some(false) => format!("{} Missing (Install xdg-desktop-portal)", ui::badge_warn()),
         None => {
-            if caps.session == orbiscreen_capture::capabilities::SessionType::Wayland {
+            if caps.session == orbiscreen_core::session::SessionType::Wayland {
                 format!("{} Unchecked (Session bus not connected)", ui::badge_info())
             } else {
                 format!("{} Not applicable (X11)", ui::badge_info())
@@ -2204,9 +2223,9 @@ async fn run_doctor(json: bool) -> ExitCode {
     ui::print_card_row("Saved Grants", &grants_str);
 
     let tools_str = match caps.compositor {
-        orbiscreen_capture::capabilities::Compositor::Kde => "KWin D-Bus (Native)".to_string(),
-        orbiscreen_capture::capabilities::Compositor::Gnome => "Mutter Portal (Native)".to_string(),
-        orbiscreen_capture::capabilities::Compositor::Cosmic => format!(
+        orbiscreen_core::session::Compositor::Kde => "KWin D-Bus (Native)".to_string(),
+        orbiscreen_core::session::Compositor::Gnome => "Mutter Portal (Native)".to_string(),
+        orbiscreen_core::session::Compositor::Cosmic => format!(
             "cosmic-comp: {} · cosmic-randr: {}",
             if cosmic_comp { "Found" } else { "No" },
             if cosmic_randr { "Found" } else { "No" },
@@ -2459,7 +2478,7 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
 
     let caps = Capabilities::from_env();
     let chain = caps.auto_chain();
-    if caps.compositor == orbiscreen_capture::capabilities::Compositor::Kde
+    if caps.compositor == orbiscreen_core::session::Compositor::Kde
         || chain.iter().any(|s| matches!(s, CaptureStep::KwinVirtual))
     {
         println!("[doctor --fix] KWin Virtual display is native on this system; no kernel module required.");
@@ -2589,420 +2608,6 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
     }
 }
 
-async fn run_secondary_display_session(
-    cfg: Config,
-    client_dir: PathBuf,
-    token: String,
-    mut shutdown_rx: tokio::sync::watch::Receiver<bool>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let secondary_port = cfg.transport.signaling_port + 2;
-    let (sec_w, sec_h) = if cfg.display.width > 1280 {
-        (1280, 720)
-    } else {
-        (cfg.display.width, cfg.display.height)
-    };
-    let spec = VirtualDisplaySpec {
-        width: sec_w,
-        height: sec_h,
-        refresh_rate_hz: cfg.display.refresh_rate_hz.min(60),
-    };
-
-    info!(
-        "Opening secondary virtual display ORBISCREEN-2 ({w}x{h}@{hz}Hz) on port {port}",
-        w = spec.width,
-        h = spec.height,
-        hz = spec.refresh_rate_hz,
-        port = secondary_port,
-    );
-
-    let capture = match CaptureSession::open_kwin_named(
-        spec.width,
-        spec.height,
-        Some("ORBISCREEN-2".to_string()),
-        spec.refresh_rate_hz,
-    )
-    .await
-    {
-        Ok(c) => c,
-        Err(e) => {
-            warn!(
-                "Secondary display KWin virtual output failed: {e}; falling back to auto capture"
-            );
-            CaptureSession::open_with_preference(spec.width, spec.height, CapturePreference::Auto)
-                .await?
-        }
-    };
-    let mut source = FrameSource::Capture(capture);
-    let actual_dims = source.actual_dimensions();
-    let captured_output_name = source.virtual_output_name().await;
-    let target_kwin_output = captured_output_name
-        .clone()
-        .or_else(|| Some("Virtual-ORBISCREEN-2".to_string()));
-
-    if let Some(ref sec_name) = target_kwin_output {
-        let sec_name = sec_name.clone();
-        tokio::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
-            let enable_spec = format!("output.{sec_name}.enable");
-            let scale_spec = format!("output.{sec_name}.scale.1");
-            let next_x = orbiscreen_capture::kwin_virtual::next_available_output_x(&sec_name);
-            let pos_spec = format!("output.{sec_name}.position.{next_x},0");
-            for _ in 0..5 {
-                let status = tokio::process::Command::new("kscreen-doctor")
-                    .arg(&enable_spec)
-                    .arg(&scale_spec)
-                    .arg(&pos_spec)
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .status()
-                    .await;
-                if let Ok(s) = status {
-                    if s.success() {
-                        info!("Enabled and scaled KWin output {sec_name} at position {next_x},0");
-                        break;
-                    }
-                }
-                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-            }
-        });
-    }
-
-    let (injector_tx, injector_rx) = tokio::sync::oneshot::channel::<InputInjector>();
-    let input_spec = VirtualTouchscreenSpec {
-        width: spec.width,
-        height: spec.height,
-        output_name: target_kwin_output.clone(),
-        device_label: None,
-        pointer_frame: pointer_frame_for(target_kwin_output.as_deref(), spec.width, spec.height),
-    };
-    tokio::spawn(async move {
-        match InputInjector::open_async(input_spec).await {
-            Ok(inj) => {
-                info!(backend = ?inj.backend(), "Secondary input injector open");
-                let _ = injector_tx.send(inj);
-                if let Some(name) = target_kwin_output {
-                    bind_kwin_virtual_inputs(name).await;
-                }
-            }
-            Err(e) => {
-                warn!("Secondary input injection unavailable ({e})");
-            }
-        }
-    });
-
-    let encoder_kind = match EncoderKind::parse(&cfg.encode.preferred_encoder) {
-        Some(kind) => kind,
-        None => EncoderKind::Auto,
-    };
-    let sec_bitrate = cfg.encode.bitrate_kbps.min(3500);
-    let mut encoder = Encoder::new(EncodeParams {
-        kind: encoder_kind,
-        bitrate_kbps: sec_bitrate,
-        width: actual_dims.0,
-        height: actual_dims.1,
-        framerate: spec.refresh_rate_hz,
-        vbv_frames: 1,
-    })?;
-    let encoder_name = match encoder.kind() {
-        EncoderKind::Auto => "auto",
-        EncoderKind::Vaapi => "vaapi",
-        EncoderKind::Nvenc => "nvenc",
-        EncoderKind::X264 => "x264",
-    };
-    let mut encoded_rx = encoder.subscribe().ok_or("encoder returned no rx")?;
-    let encoder = Arc::new(encoder);
-    let (idr_tx, mut idr_rx) = mpsc::channel::<()>(8);
-    let encoder_for_idr = Arc::clone(&encoder);
-    tokio::spawn(async move {
-        while idr_rx.recv().await.is_some() {
-            encoder_for_idr.request_keyframe();
-        }
-    });
-
-    let (video_tx, video_rx) = mpsc::channel::<H264Packet>(32);
-    let frame_pump = tokio::spawn(async move {
-        let mut ts_base: Option<u64> = None;
-        while let Some(chunk) = encoded_rx.recv().await {
-            let base = *ts_base.get_or_insert(chunk.pts_ns);
-            let pts_ns = chunk.pts_ns.saturating_sub(base);
-            let pkt = H264Packet {
-                bytes: chunk.bytes,
-                is_keyframe: chunk.is_keyframe,
-                pts_ns,
-            };
-            if video_tx.send(pkt).await.is_err() {
-                break;
-            }
-        }
-    });
-
-    let encoder_for_pump = Arc::clone(&encoder);
-    let cap_pump = tokio::spawn(async move {
-        let encoder = encoder_for_pump;
-        const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(100);
-        let started = std::time::Instant::now();
-        let mut last_pts_ns: u64 = 0;
-        let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = None;
-        loop {
-            let outcome = match tokio::time::timeout(KEEPALIVE, source.next_frame()).await {
-                Ok(outcome) => outcome,
-                Err(_elapsed) => {
-                    let Some((width, height, data)) = &keepalive_frame else {
-                        continue;
-                    };
-                    let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
-                    let pts_ns = now_ns.max(last_pts_ns.saturating_add(1_000));
-                    last_pts_ns = pts_ns;
-                    if let Err(
-                        orbiscreen_encode::EncodeError::Flushing
-                        | orbiscreen_encode::EncodeError::Eos,
-                    ) = encoder.push_frame(data, *width, *height, pts_ns)
-                    {
-                        break;
-                    }
-                    continue;
-                }
-            };
-            match outcome {
-                SourceOutcome::Frame(frame) => {
-                    let (width, height) = (frame.width, frame.height);
-                    match &mut keepalive_frame {
-                        Some((w, h, buf)) if buf.len() == frame.data.len() => {
-                            buf.copy_from_slice(&frame.data[..]);
-                            (*w, *h) = (width, height);
-                        }
-                        _ => keepalive_frame = Some((width, height, frame.data.to_vec())),
-                    }
-                    let now_ns = u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX);
-                    let pts_ns = now_ns.max(last_pts_ns.saturating_add(1_000));
-                    last_pts_ns = pts_ns;
-                    if let Err(
-                        orbiscreen_encode::EncodeError::Flushing
-                        | orbiscreen_encode::EncodeError::Eos,
-                    ) = encoder.push_frame_owned(frame.data, width, height, pts_ns)
-                    {
-                        break;
-                    }
-                }
-                SourceOutcome::Parked => {
-                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                }
-                SourceOutcome::Retryable(_e) => {
-                    if source.is_ended() {
-                        break;
-                    }
-                    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-                }
-                SourceOutcome::Ended => {
-                    break;
-                }
-            }
-        }
-    });
-
-    let (input_tx, mut input_rx) = mpsc::channel::<orbiscreen_transport::IncomingInput>(1024);
-    let cap_dims = actual_dims;
-    let input_pump = tokio::spawn(async move {
-        use orbiscreen_input::PointerEvent;
-        use orbiscreen_transport::IncomingInput;
-        let (cap_w, cap_h) = cap_dims;
-        let scale = |x: f64, y: f64| {
-            if !x.is_finite() || !y.is_finite() {
-                return (0.0, 0.0);
-            }
-            let x = (x * f64::from(spec.width) / f64::from(cap_w.max(1)))
-                .clamp(0.0, f64::from(spec.width));
-            let y = (y * f64::from(spec.height) / f64::from(cap_h.max(1)))
-                .clamp(0.0, f64::from(spec.height));
-            (x, y)
-        };
-        let mut injector: Option<InputInjector> = None;
-        let mut pending_rx = Some(injector_rx);
-        while let Some(event) = input_rx.recv().await {
-            if injector.is_none() {
-                if let Some(rx) = pending_rx.as_mut() {
-                    match rx.try_recv() {
-                        Ok(inj) => {
-                            info!("secondary input injector is now active");
-                            injector = Some(inj);
-                            pending_rx = None;
-                        }
-                        Err(tokio::sync::oneshot::error::TryRecvError::Closed) => {
-                            pending_rx = None;
-                        }
-                        Err(tokio::sync::oneshot::error::TryRecvError::Empty) => {}
-                    }
-                }
-            }
-            let Some(inj) = injector.as_mut() else {
-                continue;
-            };
-            match event {
-                IncomingInput::Pointer(p) => {
-                    let p = match p {
-                        PointerEvent::Move { x, y } => {
-                            let (x, y) = scale(x, y);
-                            PointerEvent::Move { x, y }
-                        }
-                        other => other,
-                    };
-                    let _ = inj.inject_pointer(p).await;
-                }
-                IncomingInput::Key(k) => {
-                    let _ = inj.inject_key(k).await;
-                }
-                IncomingInput::Stylus(s) => {
-                    let s = match s {
-                        orbiscreen_input::StylusEvent::Pressure { x, y, pressure } => {
-                            let (x, y) = scale(x, y);
-                            orbiscreen_input::StylusEvent::Pressure { x, y, pressure }
-                        }
-                        orbiscreen_input::StylusEvent::Tilt {
-                            x,
-                            y,
-                            pressure,
-                            tilt_x_deg,
-                            tilt_y_deg,
-                        } => {
-                            let (x, y) = scale(x, y);
-                            orbiscreen_input::StylusEvent::Tilt {
-                                x,
-                                y,
-                                pressure,
-                                tilt_x_deg,
-                                tilt_y_deg,
-                            }
-                        }
-                        other => other,
-                    };
-                    let _ = inj.inject_stylus(s).await;
-                }
-                IncomingInput::Touch(t) => {
-                    let (x, y) = scale(t.x, t.y);
-                    let t = orbiscreen_input::TouchEvent { x, y, ..t };
-                    let _ = inj.inject_touch(t).await;
-                }
-                IncomingInput::RawPointer { x, y } => {
-                    let (x, y) = scale(x, y);
-                    let _ = inj.inject_pointer(PointerEvent::Move { x, y }).await;
-                }
-                IncomingInput::Resize { width, height } => {
-                    inj.resize(width, height);
-                }
-            }
-        }
-    });
-
-    let transport = Transport::with_token(
-        ServerConfig {
-            signaling_port: secondary_port,
-            client_web_dir: client_dir,
-            enable_usb_supervisors: false,
-            output_connector: Some("Virtual-ORBISCREEN-2".to_string()),
-        },
-        input_tx,
-        Some(token),
-    );
-
-    let stats = Arc::new(Stats::default());
-    let mut serve_fut = std::pin::pin!(transport.serve(
-        video_rx,
-        stats,
-        actual_dims.0,
-        actual_dims.1,
-        spec.refresh_rate_hz,
-        encoder_name,
-        shutdown_rx.clone(),
-        Some(idr_tx),
-        None,
-    ));
-
-    tokio::select! {
-        res = &mut serve_fut => {
-            res.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
-        }
-        _ = shutdown_rx.changed() => {}
-    }
-
-    encoder.stop();
-    cap_pump.abort();
-    frame_pump.abort();
-    input_pump.abort();
-    info!("Secondary display session terminated cleanly");
-    Ok(())
-}
-
-async fn run_secondary_display_supervisor(
-    aoa_active: Arc<AtomicUsize>,
-    cfg: Config,
-    client_dir: PathBuf,
-    token: String,
-    mut shutdown_rx: tokio::sync::watch::Receiver<bool>,
-) {
-    let mut active_session: Option<(
-        tokio::sync::watch::Sender<bool>,
-        tokio::task::JoinHandle<()>,
-    )> = None;
-    let mut disconnect_grace = 0;
-
-    loop {
-        if *shutdown_rx.borrow() {
-            break;
-        }
-
-        let count = aoa_active.load(Ordering::Relaxed);
-
-        if count >= 2 && active_session.is_none() {
-            disconnect_grace = 0;
-            info!(
-                "Secondary tablet detected (AOA devices >= 2); launching secondary virtual display session on port {}",
-                cfg.transport.signaling_port + 2
-            );
-            let (sec_shutdown_tx, sec_shutdown_rx) = tokio::sync::watch::channel(false);
-            let sec_cfg = cfg.clone();
-            let sec_dir = client_dir.clone();
-            let sec_token = token.clone();
-            let handle = tokio::spawn(async move {
-                if let Err(e) =
-                    run_secondary_display_session(sec_cfg, sec_dir, sec_token, sec_shutdown_rx)
-                        .await
-                {
-                    warn!("Secondary display session exited with error: {e}");
-                }
-            });
-            active_session = Some((sec_shutdown_tx, handle));
-        } else if count < 2 && active_session.is_some() {
-            disconnect_grace += 1;
-            if disconnect_grace >= 3 {
-                if let Some((stop_tx, handle)) = active_session.take() {
-                    info!("Secondary tablet disconnected; tearing down secondary display session");
-                    let _ = stop_tx.send(true);
-                    let _ = handle.await;
-                }
-                disconnect_grace = 0;
-            }
-        } else if count >= 2 {
-            disconnect_grace = 0;
-        }
-
-        if let Some((_, ref handle)) = active_session {
-            if handle.is_finished() {
-                active_session = None;
-            }
-        }
-
-        tokio::select! {
-            _ = tokio::time::sleep(std::time::Duration::from_millis(1000)) => {}
-            _ = shutdown_rx.changed() => break,
-        }
-    }
-
-    if let Some((stop_tx, handle)) = active_session.take() {
-        let _ = stop_tx.send(true);
-        let _ = handle.await;
-    }
-}
-
 async fn run_start(
     cfg: Config,
     no_mdns: bool,
@@ -3024,13 +2629,13 @@ async fn run_start(
         enc = cfg.encode.preferred_encoder,
     );
 
-    let preferred = cfg.capture.preferred.as_str();
+    let preference = cfg.capture.preference();
     let caps = Capabilities::from_env();
-    if uses_per_client_kwin(preferred, &caps) {
+    if uses_per_client_kwin(preference, &caps) {
         return run_start_per_client(cfg, no_mdns).await;
     }
     let frame_pool = orbiscreen_core::frame_pool::FramePool::new();
-    let mut source = resolve_frame_source(preferred, &caps, spec, &frame_pool).await?;
+    let mut source = resolve_frame_source(preference, &caps, spec, &frame_pool).await?;
     let virtual_output = source.virtual_output_lease();
 
     let actual_dims = source.actual_dimensions();
@@ -3041,32 +2646,10 @@ async fn run_start(
     );
 
     let captured_output_name = source.virtual_output_name().await;
-    if let Some(name) = captured_output_name.as_deref() {
+    if let Some(name) = captured_output_name.clone() {
         info!(output = %name, "routing tablet input to KWin output");
-        let name_str = name.to_string();
         tokio::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
-            let enable_spec = format!("output.{name_str}.enable");
-            let scale_spec = format!("output.{name_str}.scale.1");
-            let next_x = orbiscreen_capture::kwin_virtual::next_available_output_x(&name_str);
-            let pos_spec = format!("output.{name_str}.position.{next_x},0");
-            for _ in 0..5 {
-                let status = tokio::process::Command::new("kscreen-doctor")
-                    .arg(&enable_spec)
-                    .arg(&scale_spec)
-                    .arg(&pos_spec)
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .status()
-                    .await;
-                if let Ok(s) = status {
-                    if s.success() {
-                        info!("Enabled and scaled KWin output {name_str} at position {next_x},0");
-                        break;
-                    }
-                }
-                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-            }
+            orbiscreen_capture::kwin_virtual::ensure_output_enabled(&name).await;
         });
     } else if virtual_output.is_kwin() {
         warn!("no virtual output to pin tablet input to; touch will land on the laptop screens");
@@ -3107,23 +2690,13 @@ async fn run_start(
         width: actual_dims.0,
         height: actual_dims.1,
         framerate: spec.refresh_rate_hz,
-        vbv_frames: 1,
+        gop_on_demand: orbiscreen_encode::gop_on_demand_from_env(),
     })?;
-    let encoder_name = match encoder.kind() {
-        EncoderKind::Auto => "auto",
-        EncoderKind::Vaapi => "vaapi",
-        EncoderKind::Nvenc => "nvenc",
-        EncoderKind::X264 => "x264",
-    };
+    let encoder_name = encoder.kind().as_str();
     let mut encoded_rx = encoder.subscribe().ok_or("encoder returned no rx")?;
     let encoder = Arc::new(encoder);
-    let (idr_tx, mut idr_rx) = mpsc::channel::<()>(8);
-    let encoder_for_idr = Arc::clone(&encoder);
-    tokio::spawn(async move {
-        while idr_rx.recv().await.is_some() {
-            encoder_for_idr.request_keyframe();
-        }
-    });
+    let (idr_tx, idr_rx) = mpsc::channel::<()>(8);
+    let _idr_pump = pipeline::spawn_idr_pump(idr_rx, Arc::clone(&encoder));
 
     let stats = std::sync::Arc::new(Stats::default());
 
@@ -3168,21 +2741,15 @@ async fn run_start(
         Err(_) => None,
     };
     let frame_pump = tokio::spawn(async move {
-        let mut ts_base: Option<u64> = None;
+        let mut timestamps = pipeline::TimestampBase::default();
         let mut dump_file = encoder_dump;
         while let Some(chunk) = encoded_rx.recv().await {
-            let base = *ts_base.get_or_insert(chunk.pts_ns);
-            let pts_ns = chunk.pts_ns.saturating_sub(base);
-            let pkt = H264Packet {
-                bytes: chunk.bytes,
-                is_keyframe: chunk.is_keyframe,
-                pts_ns,
-            };
+            let packet = timestamps.normalize(chunk);
             if let Some(file) = dump_file.as_mut() {
                 use std::io::Write;
-                let _ = file.write_all(&pkt.bytes);
+                let _ = file.write_all(&packet.bytes);
             }
-            if video_tx.send(pkt).await.is_err() {
+            if video_tx.send(packet).await.is_err() {
                 break;
             }
         }
@@ -3311,19 +2878,7 @@ async fn run_start(
         });
     }
     let input_pump = tokio::spawn(async move {
-        use orbiscreen_input::PointerEvent;
-        use orbiscreen_transport::IncomingInput;
         let (cap_w, cap_h) = cap_dims;
-        let scale = |x: f64, y: f64| {
-            if !x.is_finite() || !y.is_finite() {
-                return (0.0, 0.0);
-            }
-            let x = (x * f64::from(spec.width) / f64::from(cap_w.max(1)))
-                .clamp(0.0, f64::from(spec.width));
-            let y = (y * f64::from(spec.height) / f64::from(cap_h.max(1)))
-                .clamp(0.0, f64::from(spec.height));
-            (x, y)
-        };
         let mut injector: Option<InputInjector> = None;
         let mut pending_rx = Some(injector_rx);
         let mut warned_no_injector = false;
@@ -3351,59 +2906,10 @@ async fn run_start(
                 }
                 continue;
             };
-            match event {
-                IncomingInput::Pointer(p) => {
-                    let p = match p {
-                        PointerEvent::Move { x, y } => {
-                            let (x, y) = scale(x, y);
-                            PointerEvent::Move { x, y }
-                        }
-                        other => other,
-                    };
-                    let _ = inj.inject_pointer(p).await;
-                }
-                IncomingInput::Key(k) => {
-                    let _ = inj.inject_key(k).await;
-                }
-                IncomingInput::Stylus(s) => {
-                    let s = match s {
-                        orbiscreen_input::StylusEvent::Pressure { x, y, pressure } => {
-                            let (x, y) = scale(x, y);
-                            orbiscreen_input::StylusEvent::Pressure { x, y, pressure }
-                        }
-                        orbiscreen_input::StylusEvent::Tilt {
-                            x,
-                            y,
-                            pressure,
-                            tilt_x_deg,
-                            tilt_y_deg,
-                        } => {
-                            let (x, y) = scale(x, y);
-                            orbiscreen_input::StylusEvent::Tilt {
-                                x,
-                                y,
-                                pressure,
-                                tilt_x_deg,
-                                tilt_y_deg,
-                            }
-                        }
-                        other => other,
-                    };
-                    let _ = inj.inject_stylus(s).await;
-                }
-                IncomingInput::Touch(t) => {
-                    let (x, y) = scale(t.x, t.y);
-                    let t = orbiscreen_input::TouchEvent { x, y, ..t };
-                    let _ = inj.inject_touch(t).await;
-                }
-                IncomingInput::RawPointer { x, y } => {
-                    let (x, y) = scale(x, y);
-                    let _ = inj.inject_pointer(PointerEvent::Move { x, y }).await;
-                }
-                IncomingInput::Resize { width, height } => {
-                    inj.resize(width, height);
-                }
-            }
+            crate::pipeline::dispatch_input(inj, event, |x, y| {
+                crate::pipeline::scale_point(x, y, spec.width, spec.height, cap_w, cap_h)
+            })
+            .await;
         }
     });
 
@@ -3486,21 +2992,6 @@ async fn run_start(
     )
     .with_pairing(pairing.clone());
     let token = transport.token().to_owned();
-    let sec_aoa_active = transport.aoa_active();
-    let sec_cfg = cfg.clone();
-    let sec_client_dir = client_dir.clone();
-    let sec_token = token.clone();
-    let sec_shutdown_rx = shutdown_rx.clone();
-    tokio::spawn(async move {
-        run_secondary_display_supervisor(
-            sec_aoa_active,
-            sec_cfg,
-            sec_client_dir,
-            sec_token,
-            sec_shutdown_rx,
-        )
-        .await;
-    });
     info!("stream authentication enabled");
 
     let _mdns = if !no_mdns && cfg.transport.mdns_advertise {

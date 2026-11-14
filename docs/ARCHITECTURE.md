@@ -2,7 +2,7 @@
 
 # Architecture Specification - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.39.6-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.40.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -66,14 +66,25 @@ The daemon process (`orbiscreen-daemon`) wires all crates together and exposes a
 
 | Crate | Responsibility | Key Dependencies |
 |-------|----------------|------------------|
-| `orbiscreen-core` | Shared configuration, error types, serialization, paths (config, token) | `serde`, `toml`, `thiserror` |
+| `orbiscreen-core` | Shared configuration, session/capture plan, BGRA conversion, XDG paths and atomic writes, shared memory, port arithmetic, status/doctor reports, virtual-output identity | `serde`, `toml`, `thiserror`, `libc` |
 | `orbiscreen-display` | EVDI kernel virtual display: DRM connector, EDID synthesis, framebuffer to BGRA pump (`EvdiFramePump`) | `evdi`, `drm-fourcc`, `tokio` |
-| `orbiscreen-capture` | Virtual output creation (KWin via `zkde-screencast`, wlroots headless via IPC) plus frame capture: portal (ashpd/PipeWire), wlr-screencopy, X11 (x11rb), damage pump, capability detection | `ashpd`, `x11rb`, `wayland-*`, `orbiscreen-core` |
+| `orbiscreen-capture` | Virtual output creation (KWin via `zkde-screencast`, wlroots headless via IPC) plus frame capture: portal (ashpd/PipeWire), wlr-screencopy, X11 (x11rb), damage pump; opens one explicit `CaptureStep` plan and shares one PipeWire sink | `ashpd`, `x11rb`, `wayland-*`, `orbiscreen-core` |
 | `orbiscreen-encode` | H.264 pipelines: NVENC, VA-API, x264 software; low-latency VBV and GOP tuning | `gstreamer`, `gstreamer-app`, `orbiscreen-core` |
 | `orbiscreen-input` | Reverse input injection: uinput touchscreen/tablet/keyboard, XTEST, wlroots virtual-pointer/virtual-keyboard, portal RemoteDesktop | `evdevil`, `ashpd`, `orbiscreen-core` |
-| `orbiscreen-transport` | All client-facing protocol surfaces: HTTP `/stream` `/input` `/api/*` `/health`, UDP Annex-B with Reed-Solomon FEC, WebTransport Annex-B (`wt_port`), USB AOA bulk video, mDNS advertising, pairing, token auth, per-client display session routing | `axum`, `mdns-sd`, `wtransport`, `gstreamer`, `orbiscreen-core`, `orbiscreen-input` |
-| `orbiscreen-daemon` | Binary that wires every crate together; systemd integration; D-Bus service (`com.orbiscreen.Daemon`); `doctor` diagnostics | `zbus`, `clap`, `tokio` |
+| `orbiscreen-transport` | All client-facing protocol surfaces: HTTP `/stream` `/input` `/api/*` `/health`, UDP Annex-B with Reed-Solomon FEC, WebTransport Annex-B (`wt_port`), USB AOA bulk video, mDNS advertising, pairing, token auth, per-client display session routing; one session layer and one protocol module | `axum`, `mdns-sd`, `wtransport`, `gstreamer`, `orbiscreen-core`, `orbiscreen-input` |
+| `orbiscreen-daemon` | Binary that wires every crate together; systemd integration; D-Bus service (`com.orbiscreen.Daemon`); `doctor` diagnostics; shared pipeline pumps and input dispatch | `zbus`, `clap`, `tokio` |
 | `orbiscreen-gui` | Desktop control center (native GTK4 + libadwaita): status, start/stop, resolution presets over D-Bus | `gtk4`, `libadwaita`, `zbus`, `ksni` |
+
+### Shared Foundations
+
+The 0.40.0 refactor moved every repeated definition to the lowest layer that owns it:
+
+- `orbiscreen-core::{session, frame, paths, shm, ports, report, output}` defines the capture plan and session detection, BGRA/stride conversion, XDG paths and atomic secret writes, shared-memory mapping, port arithmetic, `StatusReport`/`DoctorReport`, and virtual-output names.
+- `orbiscreen-transport::{protocol, session}` defines frame types and header lengths, endpoint paths, and the shared attach/detach/IDR/keyframe policy used by HTTP Annex-B, HTTP MPEG-TS, and WebTransport.
+- `orbiscreen-daemon::pipeline` defines the IDR pump, PTS normalization, input coordinate scaling, and the `IncomingInput` dispatch shared by the shared-display and per-client paths.
+- `clients/web/protocol.js` (checked by `protocol.golden.json`) and Android `net/Protocol.kt` are the client-side counterparts. Android `net/HostSpec.kt` is the single host:port/scheme/loopback authority.
+
+The separate secondary-display session was removed in 0.40.0. It bound `signaling_port + 2`, the same port as the WebTransport listener, so it could not run beside the normal transport. Multiple tablets are handled by the KWin per-client session hub, one `Virtual-Orbi-<key>` output per device.
 
 ---
 

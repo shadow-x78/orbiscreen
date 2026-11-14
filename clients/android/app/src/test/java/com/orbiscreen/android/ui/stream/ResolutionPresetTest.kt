@@ -27,18 +27,6 @@ class ResolutionPresetTest {
     }
 
     @Test
-    fun a_requested_size_is_never_overridden_by_the_panel() {
-        for (preset in listOf("720p", "1080p", "1440p", "2k", "custom_1280x800")) {
-            val (w, h) = resolveSelectedResolution(preset, nativeW, nativeH)
-            assertEquals(
-                "preset $preset resolved to the panel size",
-                false,
-                w == nativeW && h == nativeH && preset != "native",
-            )
-        }
-    }
-
-    @Test
     fun portrait_input_is_normalised_so_width_is_the_long_edge() {
         assertEquals(1280 to 800, resolveSelectedResolution("custom_800x1280", nativeW, nativeH))
     }

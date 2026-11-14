@@ -343,11 +343,11 @@ pub fn get_lan_ip() -> Option<String> {
 pub fn print_version_card(json: bool) {
     let version = env!("CARGO_PKG_VERSION");
     let target = format!("{}/{}", std::env::consts::OS, std::env::consts::ARCH);
-    let caps = orbiscreen_capture::capabilities::Capabilities::from_env();
+    let caps = orbiscreen_core::session::Capabilities::from_env();
     let desktop_str = match (caps.compositor, caps.session) {
         (
-            orbiscreen_capture::capabilities::Compositor::Unknown,
-            orbiscreen_capture::capabilities::SessionType::Unknown,
+            orbiscreen_core::session::Compositor::Unknown,
+            orbiscreen_core::session::SessionType::Unknown,
         ) => "Linux Session".to_string(),
         (c, s) => format!("{c} ({s})"),
     };

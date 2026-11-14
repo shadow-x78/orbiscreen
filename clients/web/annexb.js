@@ -1,19 +1,15 @@
 (function (root, factory) {
     if (typeof module === "object" && module.exports) {
-        module.exports = factory();
+        module.exports = factory(require("./protocol.js"));
     } else {
-        root.OrbiAnnexB = factory();
+        root.OrbiAnnexB = factory(root.OrbiProtocol);
     }
-}(typeof self !== "undefined" ? self : this, function () {
-    const TYPE_VIDEO = 1;
-    const TYPE_HELLO = 2;
-    const TYPE_HELLO_ACK = 3;
-    const TYPE_PING = 4;
-    const TYPE_PONG = 5;
-    const TYPE_IDR = 6;
-    const TYPE_BYE = 10;
-    const MAX_FRAME = 4 * 1024 * 1024;
-    const DATAGRAM_HEADER = 24;
+}(typeof self !== "undefined" ? self : this, function (protocol) {
+    const {
+        TYPE_VIDEO, TYPE_HELLO, TYPE_HELLO_ACK, TYPE_PING, TYPE_PONG, TYPE_IDR, TYPE_BYE,
+        MAX_FRAME, VIDEO_PREFIX, DATAGRAM_HEADER, FEC_BLOCK_FLAG, PARITY_LADDER,
+    } = protocol;
+    const VIDEO_META_LEN = VIDEO_PREFIX - 1;
 
     function startCodeLen(data, i) {
         if (i + 3 < data.length && data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 1) {
@@ -164,98 +160,6 @@
         return `avc1.${hex(sps[sc + 1])}${hex(sps[sc + 2])}${hex(sps[sc + 3])}`;
     }
 
-    function spsDimensions(sps) {
-        if (!sps) return null;
-        const sc = startCodeLen(sps, 0);
-        const nal = sps.subarray(sc);
-        if (nal.length < 5 || (nal[0] & 0x1f) !== 7) return null;
-        let bit = 32;
-        const getBits = (n) => {
-            let v = 0;
-            for (let i = 0; i < n; i += 1) {
-                const byte = nal[bit >> 3];
-                if (byte === undefined) return 0;
-                v = (v << 1) | ((byte >> (7 - (bit & 7))) & 1);
-                bit += 1;
-            }
-            return v;
-        };
-        const ue = () => {
-            let z = 0;
-            while (getBits(1) === 0) {
-                z += 1;
-                if (z > 31) return 0;
-            }
-            return z === 0 ? 0 : ((1 << z) | getBits(z)) - 1;
-        };
-        const profile = nal[1];
-        ue();
-        if (profile === 100 || profile === 110 || profile === 122 || profile === 244
-            || profile === 44 || profile === 83 || profile === 86 || profile === 118
-            || profile === 128 || profile === 138 || profile === 139 || profile === 134) {
-            const chroma = ue();
-            if (chroma === 3) getBits(1);
-            ue();
-            ue();
-            getBits(1);
-            if (getBits(1)) {
-                const limit = chroma === 3 ? 12 : 8;
-                for (let i = 0; i < limit; i += 1) {
-                    if (getBits(1)) {
-                        const last = i < 6 ? 16 : 64;
-                        let next = 8;
-                        for (let j = 0; j < last; j += 1) {
-                            const delta = (() => {
-                                let z = 0;
-                                while (getBits(1) === 0) {
-                                    z += 1;
-                                    if (z > 31) return 0;
-                                }
-                                const mag = z === 0 ? 0 : ((1 << z) | getBits(z)) - 1;
-                                const signed = (mag % 2 === 0) ? -(mag / 2) : (mag + 1) / 2;
-                                return signed;
-                            })();
-                            next = (next + delta + 256) % 256;
-                            if (next === 0) break;
-                        }
-                    }
-                }
-            }
-        }
-        ue();
-        const poc = ue();
-        if (poc === 0) {
-            ue();
-        } else if (poc === 1) {
-            getBits(1);
-            ue();
-            ue();
-            const n = ue();
-            for (let i = 0; i < n; i += 1) ue();
-        }
-        ue();
-        getBits(1);
-        const wMbs = ue() + 1;
-        const hMap = ue() + 1;
-        const frameMbsOnly = getBits(1);
-        if (!frameMbsOnly) getBits(1);
-        getBits(1);
-        let cropL = 0;
-        let cropR = 0;
-        let cropT = 0;
-        let cropB = 0;
-        if (getBits(1)) {
-            cropL = ue();
-            cropR = ue();
-            cropT = ue();
-            cropB = ue();
-        }
-        const width = wMbs * 16 - (cropL + cropR) * 2;
-        const height = (2 - frameMbsOnly) * hMap * 16 - (cropT + cropB) * 2;
-        if (width < 16 || height < 16 || width > 7680 || height > 4320) return null;
-        return { width, height };
-    }
-
     function concatBytes(parts) {
         let n = 0;
         for (const p of parts) n += p.length;
@@ -343,13 +247,13 @@
             return { type: "helloAck", width: readU16le(rest, 0), height: readU16le(rest, 2) };
         }
         if (kind === TYPE_VIDEO) {
-            if (rest.length < 17) throw new Error("truncated");
+            if (rest.length < VIDEO_META_LEN) throw new Error("truncated");
             return {
                 type: "video",
                 key: rest[0] !== 0,
                 ptsNs: readU64le(rest, 1),
                 sentNs: readU64le(rest, 9),
-                au: rest.subarray(17),
+                au: rest.subarray(VIDEO_META_LEN),
             };
         }
         if (kind === TYPE_PONG) {
@@ -389,7 +293,7 @@
         let payload = buf.subarray(DATAGRAM_HEADER);
         let blockIndex = 0;
         let blockCount = 1;
-        if ((flags & 2) !== 0) {
+        if ((flags & FEC_BLOCK_FLAG) !== 0) {
             if (payload.length < 2) return null;
             blockIndex = payload[0];
             blockCount = payload[1];
@@ -410,86 +314,6 @@
         };
     }
 
-    function encodeBlockedDatagram(seq, frag, frags, key, ptsNs, sentNs, payload, blockIndex, blockCount) {
-        const split = blockCount > 1;
-        let body = payload;
-        if (split) {
-            body = new Uint8Array(2 + payload.length);
-            body[0] = blockIndex;
-            body[1] = blockCount;
-            body.set(payload, 2);
-        }
-        const out = encodeVideoDatagram(seq, frag, frags, key, ptsNs, sentNs, body);
-        if (split) out[1] |= 2;
-        return out;
-    }
-
-    function shardCount(auLen, chunk) {
-        if (auLen <= 0 || chunk <= 0) return 0;
-        const k0 = Math.ceil(auLen / chunk);
-        return parityCount(k0) === 0 ? k0 : Math.ceil((4 + auLen) / chunk);
-    }
-
-    function shardOne(au, chunk) {
-        const k0 = au.length === 0 ? 0 : Math.ceil(au.length / chunk);
-        if (parityCount(k0) === 0) {
-            const data = [];
-            for (let off = 0; off < au.length; off += chunk) data.push(au.subarray(off, Math.min(au.length, off + chunk)));
-            return { data, parity: [] };
-        }
-        const blob = new Uint8Array(4 + au.length);
-        blob[0] = au.length & 255;
-        blob[1] = (au.length >>> 8) & 255;
-        blob[2] = (au.length >>> 16) & 255;
-        blob[3] = (au.length >>> 24) & 255;
-        blob.set(au, 4);
-        const data = [];
-        for (let off = 0; off < blob.length; off += chunk) {
-            data.push(blob.subarray(off, Math.min(blob.length, off + chunk)));
-        }
-        const padded = data.map((part) => {
-            const row = new Uint8Array(chunk);
-            row.set(part);
-            return row;
-        });
-        return { data, parity: encodeFec(padded, parityCount(data.length)) };
-    }
-
-    function shardAuBlocks(au, chunk) {
-        const size = Math.max(1, chunk);
-        if (!au.length) return [];
-        if (shardCount(au.length, size) <= 252) {
-            const one = shardOne(au, size);
-            return [{ index: 0, count: 1, data: one.data, parity: one.parity }];
-        }
-        const inner = Math.max(1, size - 2);
-        const maxSlice = Math.max(1, 252 * inner - 4);
-        const slices = [];
-        for (let off = 0; off < au.length;) {
-            let n = Math.min(maxSlice, au.length - off);
-            while (n > 1 && shardCount(n, inner) > 252) n -= 1;
-            slices.push(au.subarray(off, off + n));
-            off += n;
-        }
-        return slices.map((slice, index) => {
-            const one = shardOne(slice, inner);
-            return { index, count: slices.length, data: one.data, parity: one.parity };
-        });
-    }
-
-    function encodeVideoDatagram(seq, frag, frags, key, ptsNs, sentNs, payload) {
-        const out = new Uint8Array(DATAGRAM_HEADER + payload.length);
-        out[0] = TYPE_VIDEO;
-        out[1] = key ? 1 : 0;
-        out.set(u16le(seq), 2);
-        out.set(u16le(frag), 4);
-        out.set(u16le(frags), 6);
-        out.set(u64le(ptsNs), 8);
-        out.set(u64le(sentNs), 16);
-        out.set(payload, 24);
-        return out;
-    }
-
     function seqDelta(cur, prev) {
         return (cur - prev) & 0xffff;
     }
@@ -499,10 +323,10 @@
     const MAX_PARTIAL = 8;
 
     function parityCount(k) {
-        if (k <= 3) return 0;
-        if (k <= 16) return 2;
-        if (k <= 64) return 3;
-        return 4;
+        if (k <= 3) return PARITY_LADDER[0];
+        if (k <= 16) return PARITY_LADDER[1];
+        if (k <= 64) return PARITY_LADDER[2];
+        return PARITY_LADDER[3];
     }
 
     const GF = (() => {
@@ -619,20 +443,6 @@
         return true;
     }
 
-    function encodeFec(data, m) {
-        const k = data.length;
-        const width = data[0].length;
-        const parity = Array.from({ length: m }, () => new Uint8Array(width));
-        for (let p = 0; p < m; p += 1) {
-            for (let b = 0; b < width; b += 1) {
-                let s = 0;
-                for (let d = 0; d < k; d += 1) s ^= gfMul(cauchy(p, d, m), data[d][b]);
-                parity[p][b] = s;
-            }
-        }
-        return parity;
-    }
-
     function concatFecAu(parts) {
         let n = 0;
         for (const p of parts) n += p.length;
@@ -646,17 +456,6 @@
         const len = (blob[0] | (blob[1] << 8) | (blob[2] << 16) | (blob[3] << 24)) >>> 0;
         if (len > blob.length - 4) return null;
         return blob.subarray(4, 4 + len);
-    }
-
-    function videoFromSlots(seq, slots) {
-        return {
-            type: "video",
-            seq,
-            key: slots.key,
-            ptsNs: slots.ptsNs,
-            sentNs: slots.sentNs,
-            au: concatBytes(slots.parts),
-        };
     }
 
     class DatagramAssembler {
@@ -845,12 +644,11 @@
     return {
         TYPE_VIDEO, TYPE_HELLO, TYPE_HELLO_ACK, TYPE_PING, TYPE_PONG, TYPE_IDR, TYPE_BYE,
         MAX_FRAME,
-        startCodeLen, extractSpsPps, codecStringFromSps, spsDimensions, withStartCode,
+        startCodeLen, extractSpsPps, codecStringFromSps, withStartCode,
         unescapeRbsp, classifyAccessUnit, sliceKind,
         encodeFrame, splitFrame, encodeHello, encodeCtrl, encodePing, decodeMessage,
         hashFromBase64, pickWtHost, FrameReader,
-        parseVideoDatagram, encodeVideoDatagram, encodeBlockedDatagram, shardAuBlocks,
-        DatagramAssembler, seqDelta, DATAGRAM_HEADER,
-        HOLE_WAIT_MS, parityCount, recoverFec, concatFecAu, encodeFec,
+        parseVideoDatagram, DatagramAssembler, seqDelta, DATAGRAM_HEADER,
+        HOLE_WAIT_MS, parityCount, recoverFec, concatFecAu,
     };
 }));

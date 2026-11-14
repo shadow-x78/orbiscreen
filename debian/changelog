@@ -1,3 +1,27 @@
+orbiscreen (0.40.0~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.40.0 for Ubuntu noble.
+  * Refactor: shared core modules for session/capture planning, frame
+    conversion, XDG paths and atomic writes, shared memory, port arithmetic,
+    status/doctor reports, and virtual-output identity. Capture opens an
+    explicit CaptureStep plan and shares one PipeWire sink; transport shares
+    one session layer across HTTP Annex-B, MPEG-TS, and WebTransport and owns
+    one protocol module; the daemon shares pipeline pumps and input dispatch.
+  * Removed the separate secondary-display session, which bound the same
+    signaling+2 port as WebTransport. The KWin per-client hub continues to
+    support multiple tablets; secondary input-device naming is removed.
+  * Fixed wlroots relative pointer motion (relative request instead of an
+    absolute cast), portal absolute/relative motion selection, the Android IDR
+    first-request debounce, and the 8790 connector guess. The GUI now reads the
+    real token, surfaces stop/restart failures, and avoids double-writing the
+    config.
+  * Web uses protocol.js with a golden contract test; Android uses Protocol,
+    HostSpec, StreamDefaults, and IdrRequester. Dead host-side codec/layout
+    code, dead parameters, and mirror tests were removed.
+  * Bump version to 0.40.0 across all packages; Android versionCode 188.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 00:00:00 +0300
+
 orbiscreen (0.39.6~ubuntunoble1) noble; urgency=medium
 
   * Release 0.39.6 for Ubuntu noble.

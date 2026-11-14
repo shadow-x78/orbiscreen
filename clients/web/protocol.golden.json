@@ -1,0 +1,35 @@
+{
+    "constants": {
+        "TYPE_VIDEO": 1,
+        "TYPE_HELLO": 2,
+        "TYPE_HELLO_ACK": 3,
+        "TYPE_PING": 4,
+        "TYPE_PONG": 5,
+        "TYPE_IDR": 6,
+        "TYPE_BYE": 10,
+        "MAX_FRAME": 4194304,
+        "VIDEO_PREFIX": 18,
+        "DATAGRAM_HEADER": 24,
+        "DEFAULT_DATAGRAM": 1024,
+        "FEC_BLOCK_FLAG": 2,
+        "PARITY_LADDER": [0, 2, 3, 4]
+    },
+    "headers": {
+        "session": "x-orbiscreen-session",
+        "clientKey": "x-orbiscreen-client-key"
+    },
+    "endpoints": {
+        "pairStatus": "/api/pair/status",
+        "pairRequest": "/api/pair/request",
+        "pair": "/api/pair",
+        "pairApprove": "/api/pair/approve",
+        "pairDeny": "/api/pair/deny",
+        "control": "/api/control",
+        "input": "/input",
+        "au": "/au",
+        "idr": "/idr",
+        "session": "/api/session",
+        "info": "/api/info",
+        "clientConfig": "/client/config.json"
+    }
+}

@@ -223,9 +223,11 @@ fn run(
         .and_then(|v| v.checked_mul(2))
         .filter(|v| *v <= i32::MAX as i64)
         .ok_or("configured surface too large for the damage pump")? as i32;
-    let mut file = anonymous_shm_file()?;
-    file.set_len(u64::try_from(pool_size).map_err(|e| format!("shm size: {e}"))?)
-        .map_err(|e| format!("shm ftruncate: {e}"))?;
+    let mut file = orbiscreen_core::shm::anonymous_file(
+        "orbiscreen-damage-shm",
+        usize::try_from(pool_size).map_err(|e| format!("shm size: {e}"))?,
+    )
+    .map_err(|e| format!("shm memfd: {e}"))?;
     let offset = (pool_size / 2) as u64;
     if std::io::Seek::seek(&mut file, std::io::SeekFrom::Start(offset)).is_ok() {
         let _ = std::io::Write::write_all(&mut file, &[1, 0, 0, 1]);
@@ -280,18 +282,6 @@ fn run(
         surface.commit();
         flip = !flip;
     }
-}
-
-#[allow(unsafe_code)]
-fn anonymous_shm_file() -> Result<std::fs::File, String> {
-    use std::os::fd::FromRawFd as _;
-    let name =
-        std::ffi::CString::new("orbiscreen-damage-shm").map_err(|e| format!("shm name: {e}"))?;
-    let fd = unsafe { libc::memfd_create(name.as_ptr(), libc::MFD_CLOEXEC) };
-    if fd < 0 {
-        return Err(format!("memfd_create: {}", std::io::Error::last_os_error()));
-    }
-    Ok(unsafe { std::fs::File::from_raw_fd(fd) })
 }
 
 #[derive(Default)]

@@ -147,27 +147,3 @@ test("toolbar delay caps at four digits", () => {
     assert.equal(stats.formatToolbarDelay(2).length, stats.formatToolbarDelay(12345).length);
     assert.match(stats.formatToolbarDelay(12345), /9999/);
 });
-
-test("overlay layout matches the web CSS metrics", () => {
-    assert.equal(stats.STATS_LAYOUT.widthPx, 236);
-    assert.equal(stats.STATS_LAYOUT.padHPx, 12);
-    assert.equal(stats.STATS_LAYOUT.padVPx, 10);
-    assert.equal(stats.STATS_LAYOUT.rowGapPx, 2);
-    assert.equal(stats.STATS_LAYOUT.titleBottomPx, 6);
-    assert.equal(stats.STATS_LAYOUT.graphHeightPx, 40);
-    assert.equal(stats.STATS_LAYOUT.graphMarginTopPx, 4);
-    assert.equal(stats.STATS_LAYOUT.graphMarginBottomPx, 8);
-    assert.equal(stats.STATS_LAYOUT.rowLineHeightPx, 14);
-    assert.equal(stats.STATS_LAYOUT.footerHeightPx, 14);
-});
-
-test("overlay height fits title, rows, graphs, and footer", () => {
-    const L = stats.STATS_LAYOUT;
-    const title = L.rowLineHeightPx + L.titleBottomPx;
-    const row = L.rowLineHeightPx + L.rowGapPx;
-    const graph = L.graphMarginTopPx + L.graphHeightPx + L.graphMarginBottomPx;
-    const content = title + 4 * row + 2 * graph + L.footerHeightPx;
-    assert.equal(L.contentHeightPx, content);
-    assert.equal(L.heightPx, L.padVPx * 2 + content);
-    assert.equal(L.heightPx, 222);
-});

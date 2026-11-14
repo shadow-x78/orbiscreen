@@ -15,7 +15,7 @@ pub enum TrayAction {
 pub struct OrbiscreenTray {
     tx: async_channel::Sender<TrayAction>,
     running: bool,
-    clients: u32,
+    clients: usize,
     pixmap: Vec<Icon>,
 }
 
@@ -100,7 +100,7 @@ impl Tray for OrbiscreenTray {
 
 pub struct TrayUpdate {
     pub running: bool,
-    pub clients: u32,
+    pub clients: usize,
 }
 
 pub fn spawn_tray(

@@ -6,11 +6,6 @@
         root.OrbiStats = factory();
     }
 }(typeof self !== "undefined" ? self : this, function () {
-    const KIND_I = "I";
-    const KIND_P = "P";
-    const KIND_B = "B";
-    const KIND_OTHER = "other";
-
     class StreamStats {
         constructor({ windowMs = 60000, bucketMs = 1000 } = {}) {
             this.windowMs = windowMs;
@@ -43,9 +38,9 @@
 
         noteFrame(kind, nowMs = Date.now()) {
             this._rotate(nowMs);
-            if (kind === KIND_I) this.framesI[this.head] += 1;
-            else if (kind === KIND_P) this.framesP[this.head] += 1;
-            else if (kind === KIND_B) this.framesB[this.head] += 1;
+            if (kind === "I") this.framesI[this.head] += 1;
+            else if (kind === "P") this.framesP[this.head] += 1;
+            else if (kind === "B") this.framesB[this.head] += 1;
             else this.framesOther[this.head] += 1;
         }
 
@@ -252,26 +247,6 @@
         }
     }
 
-    const STATS_LAYOUT = {
-        widthPx: 236,
-        padHPx: 12,
-        padVPx: 10,
-        rowGapPx: 2,
-        titleBottomPx: 6,
-        graphHeightPx: 40,
-        graphMarginTopPx: 4,
-        graphMarginBottomPx: 8,
-        rowLineHeightPx: 14,
-        footerHeightPx: 14,
-    };
-    STATS_LAYOUT.contentHeightPx =
-        (STATS_LAYOUT.rowLineHeightPx + STATS_LAYOUT.titleBottomPx) +
-        4 * (STATS_LAYOUT.rowLineHeightPx + STATS_LAYOUT.rowGapPx) +
-        2 * (STATS_LAYOUT.graphMarginTopPx + STATS_LAYOUT.graphHeightPx +
-            STATS_LAYOUT.graphMarginBottomPx) +
-        STATS_LAYOUT.footerHeightPx;
-    STATS_LAYOUT.heightPx = STATS_LAYOUT.padVPx * 2 + STATS_LAYOUT.contentHeightPx;
-
     const TOOLBAR_DELAY_DIGITS = 4;
 
     function formatToolbarDelay(ageMs) {
@@ -282,8 +257,7 @@
     }
 
     return {
-        KIND_I, KIND_P, KIND_B, KIND_OTHER,
         StreamStats, formatRate, formatMs, formatToolbarDelay,
-        drawBytesGraph, drawFramesGraph, STATS_LAYOUT,
+        drawBytesGraph, drawFramesGraph,
     };
 }));

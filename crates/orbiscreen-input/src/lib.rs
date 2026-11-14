@@ -3,10 +3,6 @@ pub mod wlroots;
 pub mod x11;
 pub mod xtest;
 
-pub fn is_secondary_output_name(name: &str) -> bool {
-    x11::is_secondary_output(name)
-}
-
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::{info, warn};
@@ -58,7 +54,9 @@ pub enum InputBackend {
 }
 
 pub fn detect_backend() -> InputBackend {
-    if std::env::var_os("WAYLAND_DISPLAY").is_some() {
+    if orbiscreen_core::session::Capabilities::from_env().session
+        == orbiscreen_core::session::SessionType::Wayland
+    {
         InputBackend::Wayland
     } else {
         InputBackend::X11

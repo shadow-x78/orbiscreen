@@ -151,7 +151,12 @@ pub fn value_label(text: &str) -> gtk::Label {
     value
 }
 
-pub fn status_row(title: &str) -> (gtk::Box, gtk::Label, gtk::Image) {
+pub fn status_row(title: &str) -> (gtk::Box, gtk::Label) {
+    let (row, value, _icon) = status_row_with_icon(title);
+    (row, value)
+}
+
+pub fn status_row_with_icon(title: &str) -> (gtk::Box, gtk::Label, gtk::Image) {
     let row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     row.add_css_class("orbi-row");
     let name = gtk::Label::new(Some(title));

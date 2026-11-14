@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.40.0] - 2026-11-15
+
+### Changed
+- refactor: untangle the host, web, and Android clients around shared core, protocol, and session modules
+
+This release is a structural refactor. The one intentional behavior change is the removal of the separate secondary-display session, which could not run beside the normal transport: it bound `signaling_port + 2`, the same port as the WebTransport listener. Multiple tablets are handled by the KWin per-client session hub.
+
+- `orbiscreen-core` now owns the session/capture plan (`session`), BGRA conversion (`frame`), XDG paths and atomic secret writes (`paths`), shared-memory mapping (`shm`), port arithmetic (`ports`), `StatusReport`/`DoctorReport` (`report`), and virtual-output identity (`output`). Capture, input, display, transport, daemon, and GUI consume those definitions instead of keeping copies.
+- Capture opens one explicit `CaptureStep` plan through `CaptureSession::open_step`; the duplicate Auto planner and the `capabilities` module are gone. KWin and portal capture share one PipeWire/GStreamer sink (`capture::pipewire`), and X11, wlr-screencopy, and the damage pump share the core mmap/memfd and BGRA helpers.
+- The daemon pipeline helpers (`daemon::pipeline`: IDR pump, PTS normalization, input scaling/dispatch) are shared by the shared-display and per-client paths. KWin output enable/positioning is one `ensure_output_enabled` helper instead of three 5×300 ms loops.
+- Transport has one session layer (`transport::session`: `SessionAttachment`, `SessionControl`, `KeyframeGate`, `AnnexBPreparer`) used by HTTP Annex-B, HTTP MPEG-TS, and WebTransport, and one `transport::protocol` module for frame types, header lengths, ports, and endpoint paths.
+- The GUI consumes the core `StatusReport`/`DoctorReport` types, reads the real token from the token file, and uses one session/USB URL builder, one status fetch, and one tab table. Doctor health is decided by the typed `DisplayBackendKind`, not by matching English prose.
+- The web client has `protocol.js` as its single protocol/endpoint/header source, checked by `protocol.golden.json`. Dead host-side encoder/sharding/layout code and dead UI hooks are removed.
+- Android has `Protocol`, `HostSpec`, `StreamDefaults`, and `IdrRequester`. Players, crypto, frame/FEC/AOA parsing, HTTP headers, and stream URLs consume them instead of local literals.
+- Version bumped to 0.40.0 across the Cargo workspace, Android (`versionCode` 188), PKGBUILD, Debian, COPR, and documentation badges.
+
+### Removed
+- The separate secondary-display session and supervisor (`Virtual-ORBISCREEN-2` on `signaling_port + 2`), which collided with the WebTransport listener. Secondary input-device naming (`Orbiscreen 2 ...`) and the secondary `prod_offset` are gone with it.
+- The `api/control` connector guess based on `signaling_port == 8790`; a missing connector now returns `409` instead of inventing `Virtual-ORBISCREEN-2`.
+- Dead encoder parameters (`vbv_frames`, multi-frame VBV helpers), the unused `DisplayConfig.pinned` field, unused transport parameters, and the `orbiscreen-capture` capability planner.
+
+### Fixed
+- Wlroots relative pointer motion now sends the protocol's relative request instead of casting deltas into absolute coordinates. The portal uses absolute motion when a screencast stream exists and tracks cursor deltas otherwise.
+- The Android `IdrRequester` no longer suppresses the first request at clock zero.
+- The GUI stop/restart path surfaces failures, no longer sleeps 600 ms after stop, writes display settings through the daemon instead of also writing the config file, and resolves autostart through the XDG config root.
+- The client tests that mirrored deleted host-side encoders or asserted a dead layout were removed or rewritten; the IDR debounce, HostSpec, protocol-golden, and assembler tests now exercise behavior.
+
 ## [v0.39.6] - 2026-11-04
 
 ### Fixed

@@ -9,17 +9,10 @@ use tracing::{debug, info, warn};
 
 use super::H264Packet;
 
-pub const MAGIC: &[u8; 4] = b"ORB1";
-pub const TYPE_VIDEO: u8 = 1;
-pub const TYPE_HELLO: u8 = 2;
-pub const TYPE_HELLO_ACK: u8 = 3;
-pub const TYPE_PING: u8 = 4;
-pub const TYPE_PONG: u8 = 5;
-pub const TYPE_IDR: u8 = 6;
-pub const TYPE_PROBE: u8 = 7;
-pub const TYPE_PROBE_ACK: u8 = 8;
-pub const TYPE_PMTU: u8 = 9;
-pub const TYPE_BYE: u8 = 10;
+pub use crate::protocol::{
+    TYPE_BYE, TYPE_HELLO, TYPE_HELLO_ACK, TYPE_IDR, TYPE_PING, TYPE_PMTU, TYPE_PONG, TYPE_PROBE,
+    TYPE_PROBE_ACK, TYPE_VIDEO, UDP_MAGIC as MAGIC,
+};
 pub const VIDEO_HEADER_LEN: usize = 28;
 pub const PROBE_HEADER_LEN: usize = 7;
 pub const MIN_DATAGRAM: usize = 576;
@@ -789,14 +782,12 @@ fn bind_udp_socket(port: u16) -> std::io::Result<UdpSocket> {
 #[allow(clippy::too_many_arguments)]
 pub async fn run_udp_hub(
     port: u16,
-    _token: String,
     mut video_rx: broadcast::Receiver<H264Packet>,
     idr_tx: Option<tokio::sync::mpsc::Sender<()>>,
     stats: std::sync::Arc<super::Stats>,
     mut shutdown: tokio::sync::watch::Receiver<bool>,
     limits: UdpLimits,
     displays: Option<super::DisplayCtl>,
-    _registry: Option<std::sync::Arc<crate::pairing::PairingRegistry>>,
     keys: super::udp_crypto::UdpKeyRing,
 ) {
     let sock = match bind_udp_socket(port) {

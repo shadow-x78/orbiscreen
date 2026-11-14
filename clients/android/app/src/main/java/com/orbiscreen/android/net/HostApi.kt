@@ -19,7 +19,7 @@ import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.X509TrustManager
-import okhttp3.HttpUrl
+import com.orbiscreen.android.StreamDefaults
 
 private const val TAG = "Orbi.Api"
 private val JSON = "application/json".toMediaType()
@@ -39,11 +39,8 @@ class HostApi {
     }
 
     data class HostInfo(
-        val width: Int = 1920,
-        val height: Int = 1080,
-        val refreshHz: Int = 60,
-        val encoder: String = "unknown",
-        val version: String = "?",
+        val width: Int = StreamDefaults.WIDTH,
+        val height: Int = StreamDefaults.HEIGHT,
         val udpPort: Int = 0,
     )
 
@@ -51,9 +48,7 @@ class HostApi {
         val id: String,
         val width: Int,
         val height: Int,
-        val encoder: String,
         val udpPort: Int,
-        val connector: String,
     )
 
     data class UdpKey(
@@ -67,7 +62,7 @@ class HostApi {
     suspend fun certificateFingerprint(host: String, port: Int): String = observeCertificate(host, port).fingerprint
 
     suspend fun observeCertificate(host: String, port: Int): ObservedCertificate = withContext(Dispatchers.IO) {
-        val endpoint = pairingUrl(host, port)
+        val endpoint = HostSpec(host, port).pairingUrl()
         var observed: X509Certificate? = null
         val trust = object : X509TrustManager {
             override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
@@ -98,8 +93,8 @@ class HostApi {
     suspend fun credentialAccepted(host: String, port: Int, pin: String, credential: String): Boolean =
         withContext(Dispatchers.IO) {
             val request = Request.Builder()
-                .url(pairingUrl(host, port).newBuilder().encodedPath("/client/config.json").build())
-                .header("Authorization", "Bearer $credential")
+                .url(HostSpec(host, port).pairingUrl().newBuilder().encodedPath(Protocol.PATH_CLIENT_CONFIG).build())
+                .header(Protocol.HEADER_AUTHORIZATION, Protocol.bearer(credential))
                 .cacheControl(okhttp3.CacheControl.FORCE_NETWORK)
                 .build()
             pinnedClient(host, port, pin).newCall(request).execute().use { response ->
@@ -112,7 +107,7 @@ class HostApi {
         }
 
     fun pinnedClient(host: String, port: Int, pin: String): OkHttpClient {
-        val endpoint = pairingUrl(host, port)
+        val endpoint = HostSpec(host, port).pairingUrl()
         require(pin.matches(Regex("[0-9A-F]{64}")))
         val trust = object : X509TrustManager {
             override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
@@ -143,7 +138,7 @@ class HostApi {
     suspend fun requestPairing(host: String, port: Int, pin: String, name: String): String =
         withContext(Dispatchers.IO) {
             val request = Request.Builder()
-                .url(pairingUrl(host, port).newBuilder().encodedPath("/api/pair/request").build())
+                .url(HostSpec(host, port).pairingUrl().newBuilder().encodedPath(Protocol.PATH_PAIR_REQUEST).build())
                 .post(JSONObject().put("name", name).toString().toRequestBody(JSON)).build()
             val obj = pairingResponse(pinnedClient(host, port, pin), request)
             check(obj.getString("status") == "pending") { "Host did not accept pairing" }
@@ -155,7 +150,7 @@ class HostApi {
     suspend fun pairingStatus(host: String, port: Int, pin: String, requestId: String): PairingStatus =
         withContext(Dispatchers.IO) {
             val request = Request.Builder().url(
-                pairingUrl(host, port).newBuilder().encodedPath("/api/pair/status")
+                HostSpec(host, port).pairingUrl().newBuilder().encodedPath(Protocol.PATH_PAIR_STATUS)
                     .addQueryParameter("id", requestId).build()
             ).build()
             val obj = pairingResponse(pinnedClient(host, port, pin), request)
@@ -173,11 +168,11 @@ class HostApi {
         }
 
     suspend fun token(host: String, port: Int): String? = withContext(Dispatchers.IO) {
-        if (!isLoopback(host)) return@withContext null
+        if (!HostSpec.isLoopback(host)) return@withContext null
         withTimeoutOrNull(3500) {
             try {
                 val req = Request.Builder()
-                    .url("http://$host:$port/client/config.json")
+                    .url(HostSpec.of(host, port).httpUrl(Protocol.PATH_CLIENT_CONFIG))
                     .cacheControl(okhttp3.CacheControl.FORCE_NETWORK)
                     .build()
                 client.newCall(req).execute().use { resp ->
@@ -197,17 +192,14 @@ class HostApi {
     suspend fun info(host: String, port: Int): HostInfo? = withContext(Dispatchers.IO) {
         withTimeoutOrNull(1500) {
             try {
-                val req = Request.Builder().url("http://$host:$port/api/info").build()
+                val req = Request.Builder().url(HostSpec.of(host, port).httpUrl(Protocol.PATH_INFO)).build()
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) return@withTimeoutOrNull null
                     val body = readBoundedBody(resp) ?: return@withTimeoutOrNull null
                     val obj = JSONObject(body)
                     HostInfo(
-                        width = obj.optInt("display_width", 1920),
-                        height = obj.optInt("display_height", 1080),
-                        refreshHz = obj.optInt("refresh_hz", 60),
-                        encoder = obj.optString("encoder", "unknown"),
-                        version = obj.optString("version", "?"),
+                        width = obj.optInt("display_width", StreamDefaults.WIDTH),
+                        height = obj.optInt("display_height", StreamDefaults.HEIGHT),
                         udpPort = obj.optInt("udp_port", 0),
                     )
                 }
@@ -235,8 +227,8 @@ class HostApi {
                     .put("refresh_hz", identity.refreshHz)
                     .toString()
                 val req = Request.Builder()
-                    .url("http://$host:$port/api/session")
-                    .header("Authorization", "Bearer $token")
+                    .url(HostSpec.of(host, port).httpUrl(Protocol.PATH_SESSION))
+                    .header(Protocol.HEADER_AUTHORIZATION, Protocol.bearer(token))
                     .post(body.toRequestBody(JSON))
                     .build()
                 client.newCall(req).execute().use { resp ->
@@ -250,9 +242,7 @@ class HostApi {
                         id = id,
                         width = obj.optInt("width", identity.width),
                         height = obj.optInt("height", identity.height),
-                        encoder = obj.optString("encoder", "unknown"),
                         udpPort = obj.optInt("udp_port", 0),
-                        connector = obj.optString("connector"),
                     )
                 }
             } catch (e: Exception) {
@@ -267,8 +257,8 @@ class HostApi {
             try {
                 val body = JSONObject().put("session", sessionId).toString()
                 val req = Request.Builder()
-                    .url("http://$host:$port/api/udp-key")
-                    .header("Authorization", "Bearer $token")
+                    .url(HostSpec.of(host, port).httpUrl(Protocol.PATH_UDP_KEY))
+                    .header(Protocol.HEADER_AUTHORIZATION, Protocol.bearer(token))
                     .post(body.toRequestBody(JSON))
                     .build()
                 client.newCall(req).execute().use { resp ->
@@ -297,17 +287,12 @@ class HostApi {
     suspend fun closeSession(host: String, port: Int, token: String, id: String) {
         withContext(Dispatchers.IO) {
             try {
-                val url = HttpUrl.Builder()
-                    .scheme("http")
-                    .host(host)
-                    .port(port)
-                    .addPathSegment("api")
-                    .addPathSegment("session")
+                val url = HostSpec.of(host, port).httpUrlBuilder(Protocol.PATH_SESSION)
                     .addQueryParameter("id", id)
                     .build()
                 val req = Request.Builder()
                     .url(url)
-                    .header("Authorization", "Bearer $token")
+                    .header(Protocol.HEADER_AUTHORIZATION, Protocol.bearer(token))
                     .delete()
                     .build()
                 client.newCall(req).execute().use { }
@@ -327,7 +312,9 @@ class HostApi {
             val localPort = com.orbiscreen.android.usb.UsbAccessoryManager.localProxyPort
             val ok = withTimeoutOrNull(350) {
                 try {
-                    val req = Request.Builder().url("http://127.0.0.1:$localPort/health").build()
+                    val req = Request.Builder()
+                        .url(HostSpec("127.0.0.1", localPort).httpUrl(Protocol.PATH_HEALTH))
+                        .build()
                     client.newCall(req).execute().use { resp -> resp.isSuccessful }
                 } catch (_: Exception) {
                     false
@@ -369,7 +356,7 @@ class HostApi {
         for (host in candidates) {
             val ok = withTimeoutOrNull(350) {
                 try {
-                    val req = Request.Builder().url("http://$host:$port/health").build()
+                    val req = Request.Builder().url(HostSpec(host, port).httpUrl(Protocol.PATH_HEALTH)).build()
                     client.newCall(req).execute().use { resp -> resp.isSuccessful }
                 } catch (_: Exception) {
                     false
@@ -396,14 +383,6 @@ class HostApi {
 
     companion object {
         private const val MAX_RESPONSE_BYTES = 64L * 1024L
-
-        fun isLoopback(host: String): Boolean = host == "127.0.0.1" || host == "localhost" || host == "::1"
-
-        fun pairingUrl(host: String, port: Int): HttpUrl {
-            require(!isLoopback(host)) { "LAN pairing requires a network host" }
-            require(port in 1..65533) { "Signaling port must leave room for TLS port + 2" }
-            return HttpUrl.Builder().scheme("https").host(host).port(port + 2).build()
-        }
 
         fun fingerprint(encodedCertificate: ByteArray): String = MessageDigest.getInstance("SHA-256")
             .digest(encodedCertificate).joinToString("") { "%02X".format(it) }

@@ -8,19 +8,18 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     <meta name="theme-color" content="#11111b" />
-    <link rel="icon" href="favicon.svg?v=23" type="image/svg+xml" />
-    <link rel="icon" href="favicon.png?v=23" type="image/png" sizes="32x32" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=23" />
+    <link rel="icon" href="favicon.svg?v=24" type="image/svg+xml" />
+    <link rel="icon" href="favicon.png?v=24" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=24" />
     <meta name="referrer" content="no-referrer" />
     <title>Orbiscreen</title>
-    <link rel="stylesheet" href="style.css?v=23" />
+    <link rel="stylesheet" href="style.css?v=24" />
 </head>
 <body>
     <header id="controlToolbar" class="controlToolbar hidden">
         <div class="toolbarHost">
             <span class="activeDot"></span>
             <div class="hostDetails">
-                <span id="hostName" class="hostName">Orbiscreen</span>
                 <span id="hostInfo" class="hostInfo">1920×1080 · NVENC</span>
             </div>
         </div>
@@ -109,7 +108,7 @@
             <button class="keyBtn" data-code="F5">F5</button>
             <button class="keyBtn" data-code="F11">F11</button>
             <button class="keyBtn" data-code="F12">F12</button>
-            <button class="keyBtn btnBackspace" data-code="Backspace">⌫</button>
+            <button class="keyBtn" data-code="Backspace">⌫</button>
             <button id="btnCloseKeyboard" class="keyBtn btnCloseKey" title="Close" data-i18n-title="btnCloseKeyboard">
                 <svg class="svgIconSmall" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
@@ -118,13 +117,13 @@
         </div>
 
         <div class="keyboardKeysRow">
-            <button class="keyBtn keyToggle" data-latch="ControlLeft" data-raw="29">Ctrl</button>
-            <button class="keyBtn keyToggle" data-latch="AltLeft" data-raw="56">Alt</button>
-            <button class="keyBtn keyToggle" data-latch="ShiftLeft" data-raw="42">Shift</button>
-            <button class="keyBtn keyToggle" data-latch="MetaLeft" data-raw="125">Win</button>
-            <button class="keyBtn keyAction" data-action="undo">Undo</button>
-            <button class="keyBtn keyAction" data-action="copy">Copy</button>
-            <button class="keyBtn keyAction" data-action="paste">Paste</button>
+            <button class="keyBtn" data-latch="ControlLeft" data-raw="29">Ctrl</button>
+            <button class="keyBtn" data-latch="AltLeft" data-raw="56">Alt</button>
+            <button class="keyBtn" data-latch="ShiftLeft" data-raw="42">Shift</button>
+            <button class="keyBtn" data-latch="MetaLeft" data-raw="125">Win</button>
+            <button class="keyBtn" data-action="undo">Undo</button>
+            <button class="keyBtn" data-action="copy">Copy</button>
+            <button class="keyBtn" data-action="paste">Paste</button>
             <button class="keyBtn" data-code="Delete">Del</button>
             <button class="keyBtn keyPrimary" data-code="Enter">↵</button>
         </div>
@@ -226,7 +225,6 @@
                     <circle cx="376" cy="376" r="62" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.5"/>
                 </svg>
                 <div id="statusSpinner" class="streamSpinner"></div>
-                <div id="statusIcon" class="statusIconContainer hidden">
                     <svg class="svgIconLarge" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M22.99 9C21.46 7.54 19.38 6.5 17 6.13L19.88 9h3.11zM12 4c-3.17 0-6.07 1.12-8.36 3l1.45 1.45C6.91 7.08 9.32 6.2 12 6.2c3.15 0 5.99 1.22 8.11 3.22L21.57 8C19.14 5.56 15.77 4 12 4zM1.39 4.22l2.28 2.28C2.12 7.5 1.05 8.7 1 8.75l10.99 13.7 3.32-4.14 4.47 4.47 1.41-1.41L1.39 4.22zM12 18.25L4.47 8.86C5.46 8.14 6.64 7.6 7.9 7.32l8.81 8.81-4.71 5.87v-3.75z"/>
                     </svg>
@@ -312,8 +310,9 @@
         </div>
     </div>
 
-    <script src="annexb.js?v=23"></script>
-    <script src="stats.js?v=23"></script>
-    <script src="app.js?v=23"></script>
+    <script src="protocol.js?v=24"></script>
+    <script src="annexb.js?v=24"></script>
+    <script src="stats.js?v=24"></script>
+    <script src="app.js?v=24"></script>
 </body>
 </html>
