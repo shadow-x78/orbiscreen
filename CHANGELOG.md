@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.42.2] - 2026-11-15
+
+### Fixed
+- fix: make Android 8 devices fall back to software decoding
+
+The Wi-Fi player configured a hardware AVC decoder once and, when that failed
+or produced no frames, kept requesting keyframes forever. The USB path already
+had a fallback; the Wi-Fi path did not. It now tries hardware with low-latency
+hints, then without hints, then with CSD without start codes, then the software
+decoders (`c2.android.avc.decoder`, `OMX.google.h264.decoder`). A 1.5 s
+no-output watchdog switches a hardware decoder to software, and the decoder
+state (`decoding/hw`, `decoding/sw`, `codec-failed`) is shown in stats. This is
+the blank-screen case reported on a Vivo V7 running Android 8.1.
+
+### Changed
+- feat: improve the Qt desktop layout
+
+The main window now has a branded header bar with the app icon, tagline, and
+live state; themed icons on the tabs; a visible update banner with Download and
+Later actions; and an Open Dashboard action in the View menu and toolbar.
+Status polling no longer resets a resolution or autostart choice while the user
+is making it. The update check failure is silent instead of looking like a
+display action failure.
+
 ## [v0.42.1] - 2026-11-15
 
 ### Fixed

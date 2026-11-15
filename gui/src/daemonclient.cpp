@@ -354,9 +354,7 @@ void DaemonClient::checkForUpdates()
                {QStringLiteral("update"), QStringLiteral("--json")},
                [this](bool ok, const QByteArray &output, const QString &error) {
                    if (!ok) {
-                       emit actionFailed(error.isEmpty()
-                                             ? QStringLiteral("Update check failed")
-                                             : error);
+                       emit updateReady(QString(), QString(), QString(), false);
                        return;
                    }
                    const QJsonObject object =

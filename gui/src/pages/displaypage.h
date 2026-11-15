@@ -20,6 +20,7 @@ public:
 
     void update(const DaemonStatus &status, bool autostart);
     void setAutostart(bool enabled);
+    void resolutionApplied();
     void retranslate();
 
 signals:
@@ -45,4 +46,6 @@ private:
     QLabel *m_encoder = nullptr;
     QCheckBox *m_autostart = nullptr;
     bool m_updating = false;
+    bool m_pendingResolution = false;
+    bool m_pendingAutostart = false;
 };

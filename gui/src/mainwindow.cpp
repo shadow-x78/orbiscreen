@@ -15,18 +15,22 @@
 #include <QActionGroup>
 #include <QApplication>
 #include <QCloseEvent>
+#include <QFont>
 #include <QFrame>
+#include <QHBoxLayout>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSizePolicy>
 #include <QStatusBar>
 #include <QStyle>
 #include <QTabWidget>
 #include <QTimer>
 #include <QToolBar>
+#include <QVBoxLayout>
 #include <QWidget>
 
 namespace {
@@ -56,12 +60,70 @@ void MainWindow::buildUi()
     m_display = new DisplayPage(this);
     m_doctor = new DoctorPage(this);
 
+    auto *header = new QFrame(this);
+    header->setFrameShape(QFrame::StyledPanel);
+    auto *headerLayout = new QHBoxLayout(header);
+    headerLayout->setContentsMargins(14, 10, 14, 10);
+    headerLayout->setSpacing(12);
+    m_appIcon = new QLabel(header);
+    m_appIcon->setPixmap(Theme::icon(
+        {QStringLiteral("orbiscreen-gui"), QStringLiteral("orbiscreen"),
+         QStringLiteral("video-display")},
+        QStyle::SP_ComputerIcon).pixmap(40, 40));
+    headerLayout->addWidget(m_appIcon);
+    auto *titleBox = new QVBoxLayout;
+    titleBox->setSpacing(0);
+    m_appTitle = UiKit::label(QStringLiteral("Orbiscreen"));
+    QFont titleFont = m_appTitle->font();
+    titleFont.setBold(true);
+    titleFont.setPointSizeF(titleFont.pointSizeF() * 1.35);
+    m_appTitle->setFont(titleFont);
+    m_appTagline = UiKit::label(t("appTagline"), true, true);
+    titleBox->addWidget(m_appTitle);
+    titleBox->addWidget(m_appTagline);
+    headerLayout->addLayout(titleBox, 1);
+    m_headerState = UiKit::label(QString());
+    QFont stateFont = m_headerState->font();
+    stateFont.setBold(true);
+    m_headerState->setFont(stateFont);
+    headerLayout->addWidget(m_headerState);
+
+    m_updateBar = new QFrame(this);
+    m_updateBar->setFrameShape(QFrame::StyledPanel);
+    m_updateBar->hide();
+    auto *updateLayout = new QHBoxLayout(m_updateBar);
+    updateLayout->setContentsMargins(12, 6, 12, 6);
+    updateLayout->setSpacing(8);
+    updateLayout->addWidget(UiKit::iconLabel(
+        {QStringLiteral("system-software-update"), QStringLiteral("software-update-available")},
+        QStyle::SP_MessageBoxInformation, 20));
+    m_updateText = UiKit::label(QString(), false, true);
+    updateLayout->addWidget(m_updateText, 1);
+    m_updateDownload = UiKit::button(t("download"), true);
+    m_updateDismiss = UiKit::button(t("later"));
+    updateLayout->addWidget(m_updateDownload);
+    updateLayout->addWidget(m_updateDismiss);
+
     m_tabs = new QTabWidget(this);
     m_tabs->setDocumentMode(true);
+    m_tabs->setIconSize(QSize(16, 16));
     m_tabs->addTab(m_connect, QString());
     m_tabs->addTab(m_display, QString());
     m_tabs->addTab(m_doctor, QString());
-    setCentralWidget(m_tabs);
+
+    auto *central = new QWidget(this);
+    auto *centralLayout = new QVBoxLayout(central);
+    centralLayout->setContentsMargins(0, 0, 0, 0);
+    centralLayout->setSpacing(0);
+    centralLayout->addWidget(header);
+    centralLayout->addWidget(m_updateBar);
+    centralLayout->addWidget(m_tabs, 1);
+    setCentralWidget(central);
+
+    connect(m_updateDownload, &QPushButton::clicked, this,
+            [this]() { openUrl(m_updateUrl); });
+    connect(m_updateDismiss, &QPushButton::clicked, this,
+            [this]() { m_updateBar->hide(); });
 
     createActions();
     createMenus();
@@ -109,6 +171,10 @@ void MainWindow::createActions()
     m_viewDoctor = new QAction(this);
     connect(m_viewDoctor, &QAction::triggered, this,
             [this]() { m_tabs->setCurrentIndex(2); });
+    m_openDashboard = new QAction(this);
+    m_openDashboard->setShortcut(QKeySequence(QStringLiteral("Ctrl+D")));
+    connect(m_openDashboard, &QAction::triggered, this,
+            [this]() { openUrl(m_url); });
 
     m_langEn = new QAction(QStringLiteral("English"), this);
     m_langEn->setCheckable(true);
@@ -135,6 +201,7 @@ void MainWindow::createMenus()
     m_viewMenu->addAction(m_viewDisplay);
     m_viewMenu->addAction(m_viewDoctor);
     m_viewMenu->addSeparator();
+    m_viewMenu->addAction(m_openDashboard);
     m_viewMenu->addAction(m_refresh);
 
     m_languageMenu = menuBar()->addMenu(QString());
@@ -155,6 +222,8 @@ void MainWindow::createToolbar()
     toolbar->addAction(m_startStop);
     toolbar->addAction(m_restart);
     toolbar->addAction(m_refresh);
+    toolbar->addSeparator();
+    toolbar->addAction(m_openDashboard);
     auto *spacer = new QWidget(toolbar);
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     toolbar->addWidget(spacer);
@@ -169,10 +238,6 @@ void MainWindow::createStatusBar()
     m_resolutionLabel = new QLabel(this);
     m_portsLabel = new QLabel(this);
     m_clientsLabel = new QLabel(this);
-    m_updateLabel = new QLabel(this);
-    m_updateLabel->setOpenExternalLinks(true);
-    m_updateLabel->hide();
-    statusBar()->addPermanentWidget(m_updateLabel);
     statusBar()->addPermanentWidget(m_stateLabel);
     statusBar()->addPermanentWidget(m_resolutionLabel);
     statusBar()->addPermanentWidget(m_portsLabel);
@@ -240,7 +305,21 @@ void MainWindow::retranslate()
     m_viewConnect->setText(t("tabConnect"));
     m_viewDisplay->setText(t("tabDisplay"));
     m_viewDoctor->setText(t("tabDoctor"));
+    m_openDashboard->setText(t("actionOpenDashboard"));
 
+    m_appTagline->setText(t("appTagline"));
+    m_updateDownload->setText(t("download"));
+    m_updateDismiss->setText(t("later"));
+
+    m_tabs->setTabIcon(0, Theme::icon({QStringLiteral("smartphone"),
+                                       QStringLiteral("phone")},
+                                      QStyle::SP_ComputerIcon));
+    m_tabs->setTabIcon(1, Theme::icon({QStringLiteral("video-display"),
+                                       QStringLiteral("video-display-symbolic")},
+                                      QStyle::SP_DesktopIcon));
+    m_tabs->setTabIcon(2, Theme::icon({QStringLiteral("system-run"),
+                                       QStringLiteral("applications-system")},
+                                      QStyle::SP_MessageBoxInformation));
     m_tabs->setTabText(0, t("tabConnect"));
     m_tabs->setTabText(1, t("tabDisplay"));
     m_tabs->setTabText(2, t("tabDoctor"));
@@ -256,6 +335,7 @@ void MainWindow::retranslate()
     m_display->retranslate();
     m_doctor->retranslate();
     m_tray->retranslate();
+    refreshUpdateBanner();
 }
 
 void MainWindow::applyState()
@@ -273,6 +353,7 @@ void MainWindow::applyState()
         running ? QStyle::SP_MediaStop : QStyle::SP_MediaPlay));
 
     m_toolbarState->setText(stateText());
+    m_headerState->setText(stateText());
     m_stateLabel->setText(stateText());
     m_resolutionLabel->setText(QStringLiteral("%1 × %2 @ %3 Hz")
                                    .arg(m_status.report.displayWidth)
@@ -344,6 +425,7 @@ void MainWindow::applyAutostart(bool enabled)
         return;
     }
     m_autostart = enabled;
+    m_display->setAutostart(enabled);
 }
 
 void MainWindow::scan()
@@ -392,6 +474,7 @@ void MainWindow::handleQr(const QImage &image)
 
 void MainWindow::handleActionFinished(const QString &message)
 {
+    m_display->resolutionApplied();
     m_startStop->setEnabled(true);
     m_restart->setEnabled(true);
     m_doctor->setBusy(false, false);
@@ -401,6 +484,7 @@ void MainWindow::handleActionFinished(const QString &message)
 
 void MainWindow::handleActionFailed(const QString &error)
 {
+    m_display->resolutionApplied();
     m_startStop->setEnabled(true);
     m_restart->setEnabled(true);
     m_doctor->setBusy(false, false);
@@ -450,14 +534,27 @@ void MainWindow::checkForUpdates()
 void MainWindow::handleUpdate(const QString &current, const QString &latest,
                               const QString &url, bool available)
 {
+    Q_UNUSED(current);
     if (!available) {
-        m_updateLabel->hide();
+        m_updateVersion.clear();
+        m_updateUrl.clear();
+        m_updateBar->hide();
         return;
     }
-    const QString text = t("updateAvailable").arg(latest, current);
-    m_updateLabel->setText(
-        QStringLiteral("<a href=\"%1\">%2</a>").arg(url.toHtmlEscaped(), text));
-    m_updateLabel->show();
+    m_updateVersion = latest;
+    m_updateUrl = url;
+    refreshUpdateBanner();
+}
+
+void MainWindow::refreshUpdateBanner()
+{
+    if (m_updateVersion.isEmpty()) {
+        m_updateBar->hide();
+        return;
+    }
+    m_updateText->setText(t("updateAvailable")
+                              .arg(m_updateVersion, QApplication::applicationVersion()));
+    m_updateBar->show();
 }
 
 void MainWindow::showAbout()

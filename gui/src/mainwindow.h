@@ -11,7 +11,9 @@
 
 class QAction;
 class QCloseEvent;
+class QFrame;
 class QLabel;
+class QPushButton;
 class QMenu;
 class QTabWidget;
 class ConnectPage;
@@ -60,6 +62,7 @@ private:
     void checkForUpdates();
     void handleUpdate(const QString &current, const QString &latest, const QString &url,
                       bool available);
+    void refreshUpdateBanner();
 
     DaemonClient *m_client = nullptr;
     TrayIcon *m_tray = nullptr;
@@ -74,6 +77,7 @@ private:
     QAction *m_quit = nullptr;
     QAction *m_about = nullptr;
     QAction *m_checkUpdates = nullptr;
+    QAction *m_openDashboard = nullptr;
     QAction *m_viewConnect = nullptr;
     QAction *m_viewDisplay = nullptr;
     QAction *m_viewDoctor = nullptr;
@@ -90,7 +94,14 @@ private:
     QLabel *m_resolutionLabel = nullptr;
     QLabel *m_portsLabel = nullptr;
     QLabel *m_clientsLabel = nullptr;
-    QLabel *m_updateLabel = nullptr;
+    QLabel *m_appIcon = nullptr;
+    QLabel *m_appTitle = nullptr;
+    QLabel *m_appTagline = nullptr;
+    QLabel *m_headerState = nullptr;
+    QFrame *m_updateBar = nullptr;
+    QLabel *m_updateText = nullptr;
+    QPushButton *m_updateDownload = nullptr;
+    QPushButton *m_updateDismiss = nullptr;
 
     DaemonStatus m_status;
     DoctorReport m_doctorReport;
@@ -100,5 +111,7 @@ private:
     bool m_trayNotice = false;
     QString m_url;
     QString m_qrUrl;
+    QString m_updateVersion;
+    QString m_updateUrl;
     QImage m_qr;
 };

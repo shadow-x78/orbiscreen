@@ -1,3 +1,17 @@
+orbiscreen (0.42.2~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.42.2 for Ubuntu noble.
+  * Android: fall back from hardware to software AVC decoding when Wi-Fi
+    hardware configure fails or produces no frame, with retries without
+    low-latency hints and without start-code CSD. This fixes the blank screen
+    reported on a Vivo V7 (Android 8.1); the decoder state is shown in stats.
+  * Desktop: add a header bar, tab icons, a prominent update banner with
+    Download/Later, and keep status polling from resetting a pending
+    resolution or autostart choice. Add an Open Dashboard action.
+  * Bump version to 0.42.2 across all packages; Android versionCode 195.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 23:00:00 +0300
+
 orbiscreen (0.42.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.42.1 for Ubuntu noble.

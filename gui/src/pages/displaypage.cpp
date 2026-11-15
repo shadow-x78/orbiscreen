@@ -126,10 +126,12 @@ DisplayPage::DisplayPage(QWidget *parent)
     connect(m_apply, &QPushButton::clicked, this, [this]() {
         const QSize size = m_resolution->currentData().toSize();
         const int fps = m_fps->currentData().toInt();
+        m_pendingResolution = true;
         emit resolutionApplyRequested(size.width(), size.height(), fps);
     });
     connect(m_autostart, &QCheckBox::toggled, this, [this](bool enabled) {
         if (!m_updating) {
+            m_pendingAutostart = true;
             emit autostartChanged(enabled);
         }
     });
@@ -140,19 +142,27 @@ DisplayPage::DisplayPage(QWidget *parent)
 void DisplayPage::update(const DaemonStatus &status, bool autostart)
 {
     m_updating = true;
-    const QSize current(status.report.displayWidth, status.report.displayHeight);
-    int resolutionIndex = m_resolution->findData(QVariant::fromValue(current));
-    if (resolutionIndex < 0) {
-        resolutionIndex = 0;
-    }
-    m_resolution->setCurrentIndex(resolutionIndex);
-    const int fpsIndex = m_fps->findData(status.report.displayFps);
-    if (fpsIndex >= 0) {
-        m_fps->setCurrentIndex(fpsIndex);
+    if (!m_pendingResolution && !m_resolution->hasFocus() && !m_fps->hasFocus()) {
+        const QSize current(status.report.displayWidth, status.report.displayHeight);
+        int resolutionIndex = m_resolution->findData(QVariant::fromValue(current));
+        if (resolutionIndex < 0) {
+            m_resolution->addItem(QStringLiteral("%1 × %2")
+                                      .arg(status.report.displayWidth)
+                                      .arg(status.report.displayHeight),
+                                  QVariant::fromValue(current));
+            resolutionIndex = m_resolution->count() - 1;
+        }
+        m_resolution->setCurrentIndex(resolutionIndex);
+        const int fpsIndex = m_fps->findData(status.report.displayFps);
+        if (fpsIndex >= 0) {
+            m_fps->setCurrentIndex(fpsIndex);
+        }
     }
     m_encoder->setText(status.report.encoder.isEmpty() ? QStringLiteral("-")
                                                        : status.report.encoder);
-    m_autostart->setChecked(autostart);
+    if (!m_pendingAutostart) {
+        m_autostart->setChecked(autostart);
+    }
     m_updating = false;
 }
 
@@ -161,6 +171,12 @@ void DisplayPage::setAutostart(bool enabled)
     m_updating = true;
     m_autostart->setChecked(enabled);
     m_updating = false;
+    m_pendingAutostart = false;
+}
+
+void DisplayPage::resolutionApplied()
+{
+    m_pendingResolution = false;
 }
 
 void DisplayPage::retranslate()

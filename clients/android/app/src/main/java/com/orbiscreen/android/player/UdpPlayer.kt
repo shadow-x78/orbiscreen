@@ -69,6 +69,12 @@ class UdpPlayer(
     private var pps: ByteArray? = null
     private var configured = false
     private var waitKey = true
+    private var codecKind = "hw"
+    private var configureFailures = 0
+    private var outputSeen = false
+    private var configuredAtNs = 0L
+    @Volatile var codecState: String = "idle"
+        private set
     private val idrRequester = IdrRequester()
     private val sentQueue = ArrayDeque<Long>()
     private val lastHeardMs = AtomicLong(0)
@@ -79,12 +85,18 @@ class UdpPlayer(
     var width: Int = 1920
     var height: Int = 1080
 
+    init {
+        stats.decoderState = codecState
+    }
+
     override fun attachSurface(s: Surface) {
         val same = surface == s && configured && codec != null
         surface = s
         if (same) return
         configured = false
         waitKey = true
+        codecState = "waiting-key"
+        stats.decoderState = codecState
         requestIdr()
     }
 
@@ -114,6 +126,12 @@ class UdpPlayer(
             socket = sock
             running = true
             stats.reset()
+            codecKind = "hw"
+            configureFailures = 0
+            outputSeen = false
+            configuredAtNs = 0L
+            codecState = "waiting-key"
+            stats.decoderState = codecState
             _event.value = StreamEvent.Connecting(Uri.parse("udp://${target.host}:${target.port}"))
             sendPlain(UdpCrypto.helloPlain(target.keyId, target.sessionId))
             val buf = ByteArray(RECV_BUF)
@@ -201,6 +219,12 @@ class UdpPlayer(
         pps = null
         configured = false
         waitKey = true
+        codecKind = "hw"
+        configureFailures = 0
+        outputSeen = false
+        configuredAtNs = 0L
+        codecState = "idle"
+        stats.decoderState = codecState
         reorder.reset()
         sentQueue.clear()
     }
@@ -222,6 +246,8 @@ class UdpPlayer(
         try { codec?.release() } catch (_: Exception) {}
         codec = null
         configured = false
+        outputSeen = false
+        configuredAtNs = 0L
     }
 
     private suspend fun pingLoop() {
@@ -397,25 +423,22 @@ class UdpPlayer(
             }
             try {
                 releaseCodec()
-                val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height)
-                format.setByteBuffer("csd-0", ByteBuffer.wrap(sps0))
-                format.setByteBuffer("csd-1", ByteBuffer.wrap(pps0))
-                format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 4 * 1024 * 1024)
-                if (Build.VERSION.SDK_INT >= 30) {
-                    format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1)
-                }
-                if (Build.VERSION.SDK_INT >= 23) {
-                    format.setInteger(MediaFormat.KEY_PRIORITY, 0)
-                    format.setInteger(MediaFormat.KEY_OPERATING_RATE, Short.MAX_VALUE.toInt())
-                }
-                val c = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
-                c.configure(format, surf, null, 0)
+                val c = createConfiguredCodec(sps0, pps0, surf)
                 c.start()
                 codec = c
                 configured = true
-                Log.i(TAG, "MediaCodec configured ${width}x${height}")
+                configureFailures = 0
+                outputSeen = false
+                configuredAtNs = System.nanoTime()
+                codecState = "decoding/$codecKind"
+                stats.decoderState = codecState
+                Log.i(TAG, "MediaCodec configured ${width}x${height} kind=$codecKind")
             } catch (e: Exception) {
                 Log.w(TAG, "codec configure: ${e.message}")
+                configureFailures++
+                codecState = "codec-failed(${e.javaClass.simpleName})x$configureFailures"
+                stats.decoderState = codecState
+                codecKind = "sw"
                 requestIdr()
                 return
             }
@@ -465,19 +488,152 @@ class UdpPlayer(
             }
             c.queueInputBuffer(inIx, 0, au.size, ptsUs, flags)
             drainOutputs(c, sentNs)
+            if (configured && !outputSeen && configuredAtNs > 0L) {
+                val timeoutNs = if (codecKind == "sw") 5_000_000_000L else 1_500_000_000L
+                if (System.nanoTime() - configuredAtNs > timeoutNs) {
+                    fallbackToSoftware()
+                }
+            }
         } catch (e: Exception) {
             Log.w(TAG, "codec feed: ${e.message}")
             stats.noteDropped()
             configured = false
             waitKey = true
+            if (codecKind != "sw") {
+                codecKind = "sw"
+            }
             requestIdr()
         }
+    }
+
+    private fun createConfiguredCodec(
+        sps0: ByteArray,
+        pps0: ByteArray,
+        surf: Surface,
+    ): MediaCodec {
+        val spsNo = stripStartCode(sps0)
+        val ppsNo = stripStartCode(pps0)
+        if (codecKind != "sw") {
+            val variants = listOf(
+                Triple("hw", sps0 to pps0, true),
+                Triple("hw-plain", sps0 to pps0, false),
+                Triple("hw-nostart", spsNo to ppsNo, false),
+            )
+            for ((kind, csd, hints) in variants) {
+                tryConfigure(width, height, csd.first, csd.second, surf, hints)?.let {
+                    codecKind = kind
+                    return it
+                }
+            }
+        }
+        for ((sps, pps) in listOf(sps0 to pps0, spsNo to ppsNo)) {
+            tryConfigureSoftware(sps, pps, surf)?.let {
+                codecKind = "sw"
+                return it
+            }
+        }
+        throw IllegalStateException("no AVC decoder available")
+    }
+
+    private fun avcFormat(
+        w: Int,
+        h: Int,
+        sps: ByteArray,
+        pps: ByteArray,
+        hints: Boolean,
+    ): MediaFormat {
+        val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, w, h)
+        format.setByteBuffer("csd-0", ByteBuffer.wrap(sps))
+        format.setByteBuffer("csd-1", ByteBuffer.wrap(pps))
+        format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 4 * 1024 * 1024)
+        if (hints && Build.VERSION.SDK_INT >= 30) {
+            format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1)
+        }
+        if (hints && Build.VERSION.SDK_INT >= 23) {
+            format.setInteger(MediaFormat.KEY_PRIORITY, 0)
+            format.setInteger(MediaFormat.KEY_OPERATING_RATE, Short.MAX_VALUE.toInt())
+        }
+        return format
+    }
+
+    private fun tryConfigure(
+        w: Int,
+        h: Int,
+        sps: ByteArray,
+        pps: ByteArray,
+        surf: Surface,
+        hints: Boolean,
+    ): MediaCodec? {
+        var c: MediaCodec? = null
+        return try {
+            c = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+            c.configure(avcFormat(w, h, sps, pps, hints), surf, null, 0)
+            c
+        } catch (e: Exception) {
+            Log.w(TAG, "hw configure ${w}x$h hints=$hints failed: ${e.javaClass.simpleName}")
+            try {
+                c?.release()
+            } catch (_: Exception) {
+            }
+            null
+        }
+    }
+
+    private fun tryConfigureSoftware(
+        sps: ByteArray,
+        pps: ByteArray,
+        surf: Surface,
+    ): MediaCodec? {
+        for (name in arrayOf("c2.android.avc.decoder", "OMX.google.h264.decoder")) {
+            var c: MediaCodec? = null
+            try {
+                c = MediaCodec.createByCodecName(name)
+                c.configure(avcFormat(width, height, sps, pps, false), surf, null, 0)
+                return c
+            } catch (e: Exception) {
+                Log.w(TAG, "sw configure $name failed: ${e.javaClass.simpleName}")
+                try {
+                    c?.release()
+                } catch (_: Exception) {
+                }
+            }
+        }
+        return null
+    }
+
+    private fun stripStartCode(nal: ByteArray): ByteArray {
+        var i = 0
+        if (nal.size >= 4 &&
+            nal[0] == 0.toByte() && nal[1] == 0.toByte() &&
+            nal[2] == 0.toByte() && nal[3] == 1.toByte()
+        ) {
+            i = 4
+        } else if (nal.size >= 3 &&
+            nal[0] == 0.toByte() && nal[1] == 0.toByte() && nal[2] == 1.toByte()
+        ) {
+            i = 3
+        }
+        return if (i == 0) nal else nal.copyOfRange(i, nal.size)
+    }
+
+    @Synchronized
+    private fun fallbackToSoftware() {
+        if (codecKind == "sw") return
+        Log.w(TAG, "no decoder output from $codecKind; switching to software")
+        releaseCodec()
+        codecKind = "sw"
+        configured = false
+        waitKey = true
+        codecState = "decoding/sw"
+        stats.decoderState = codecState
+        requestIdr()
     }
 
     private fun drainOutputs(c: MediaCodec, sentNs: Long) {
         val info = MediaCodec.BufferInfo()
         var outIx = c.dequeueOutputBuffer(info, 0)
         while (outIx >= 0) {
+            outputSeen = true
             val presentedSent = sentQueue.removeFirstOrNull() ?: sentNs
             stats.notePresented(presentedSent)
             c.releaseOutputBuffer(outIx, System.nanoTime())

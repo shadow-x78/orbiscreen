@@ -13,6 +13,7 @@ class TrayIcon : public QObject {
 
 public:
     explicit TrayIcon(QObject *parent = nullptr);
+    ~TrayIcon() override;
 
     bool isAvailable() const;
     void setState(bool running, int clients);

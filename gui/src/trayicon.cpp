@@ -46,6 +46,11 @@ TrayIcon::TrayIcon(QObject *parent)
     retranslate();
 }
 
+TrayIcon::~TrayIcon()
+{
+    delete m_menu;
+}
+
 bool TrayIcon::isAvailable() const
 {
     return m_tray != nullptr;
