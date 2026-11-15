@@ -36,7 +36,8 @@ jobs:
     project: orbiscreen
 
   - job: copr_build
-    trigger: release
+    trigger: commit
+    branch: main
     targets:
       - fedora-stable
     owner: shadow-x78
