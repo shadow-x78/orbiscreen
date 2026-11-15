@@ -88,7 +88,7 @@ private:
     QLabel *m_clientsLabel = nullptr;
 
     DaemonStatus m_status;
-    DoctorReport m_doctor;
+    DoctorReport m_doctorReport;
     bool m_hasDoctor = false;
     bool m_autostart = false;
     bool m_quitting = false;

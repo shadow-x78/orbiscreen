@@ -25,7 +25,7 @@ private slots:
 
 void GuiTests::parsesStatusReport()
 {
-    const QByteArray json = R"({
+    const QByteArray json = R"json({
         "running": true,
         "frames_forwarded": 42,
         "active_clients": 2,
@@ -41,7 +41,7 @@ void GuiTests::parsesStatusReport()
         "display_fps": 120,
         "signaling_port": 8788,
         "version": "0.41.0"
-    })";
+    })json";
     const QJsonObject object = QJsonDocument::fromJson(json).object();
     bool ok = false;
     const StatusReport report = StatusReport::fromJson(object, &ok);
@@ -60,7 +60,7 @@ void GuiTests::parsesStatusReport()
 
 void GuiTests::parsesDoctorReport()
 {
-    const QByteArray json = R"({
+    const QByteArray json = R"json({
         "session": "wayland",
         "compositor": "KDE Plasma",
         "current_desktop": "KDE",
@@ -78,7 +78,7 @@ void GuiTests::parsesDoctorReport()
         "cosmic_randr": false,
         "wlroots_virtual_output_ipc": null,
         "usb": {"devices": [], "aoa_ready": false, "permission_denied": false}
-    })";
+    })json";
     const QJsonObject object = QJsonDocument::fromJson(json).object();
     bool ok = false;
     const DoctorReport report = DoctorReport::fromJson(object, &ok);

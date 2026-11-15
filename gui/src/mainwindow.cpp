@@ -250,7 +250,7 @@ void MainWindow::applyState()
 {
     m_connect->update(m_status, m_qr, m_url);
     m_display->update(m_status, m_autostart);
-    m_doctor->update(m_status, m_doctor, m_hasDoctor);
+    m_doctor->update(m_status, m_doctorReport, m_hasDoctor);
     m_tray->setState(m_status.report.running, m_status.report.activeClients);
 
     const bool running = m_status.report.running;
@@ -397,10 +397,10 @@ void MainWindow::handleActionFailed(const QString &error)
 
 void MainWindow::handleDoctorReady(const DoctorReport &report)
 {
-    m_doctor = report;
+    m_doctorReport = report;
     m_hasDoctor = true;
     m_doctor->setBusy(false, false);
-    m_doctor->update(m_status, m_doctor, true);
+    m_doctor->update(m_status, m_doctorReport, true);
 }
 
 void MainWindow::handleDoctorFailed(const QString &error)
