@@ -386,15 +386,6 @@ async fn main() -> ExitCode {
         }
     };
 
-    if !matches!(
-        cli.command,
-        Some(Command::Version { .. }) | Some(Command::Update { .. })
-    ) {
-        if let Some(notice) = update::notice() {
-            eprintln!("{notice}");
-        }
-    }
-
     match cli.command {
         Some(Command::Start {
             no_mdns,
@@ -558,6 +549,12 @@ async fn main() -> ExitCode {
         }
         Some(Command::Version { json }) => {
             ui::print_version_card(json);
+            if !json {
+                if let Some(notice) = update::notice() {
+                    println!();
+                    println!("{notice}");
+                }
+            }
             ExitCode::SUCCESS
         }
         Some(Command::Update { json }) => run_update_check(json).await,

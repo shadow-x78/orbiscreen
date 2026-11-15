@@ -20,9 +20,9 @@ build the source archive. The workflow now configures
 ### Added
 - feat: update notifications in the CLI and the Qt desktop app
 
-Every CLI command except `version` and `update` prints a one-line notice when a
-newer GitHub release exists. `orbiscreen update` reports the current and latest
-versions explicitly, and `--json` makes it machine-readable. The Qt GUI checks
+`orbiscreen version` prints a one-line notice when a newer GitHub release
+exists. `orbiscreen update` reports the current and latest versions explicitly,
+and `--json` makes it machine-readable. The Qt GUI checks
 in the background and shows an "Update available" link in the status bar, with
 Help → Check for Updates for an explicit check. Set
 `ORBISCREEN_NO_UPDATE_CHECK=1` to disable the check.

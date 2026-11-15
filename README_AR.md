@@ -194,8 +194,8 @@ orbiscreen update                             # التحقق من توفر إص�
 orbiscreen update --json                      # نفس الفحص بصيغة آلية
 ```
 
-كل أمر عدا `version` و`update` يطبع سطراً عند توفر إصدار أحدث. عيّن
-`ORBISCREEN_NO_UPDATE_CHECK=1` لتعطيل الفحص في البيئات دون اتصال.
+شغّل `orbiscreen version` أو `orbiscreen update` لمعرفة ما إذا توفر إصدار أحدث.
+عيّن `ORBISCREEN_NO_UPDATE_CHECK=1` لتعطيل الفحص في البيئات دون اتصال.
 
 </div>
 

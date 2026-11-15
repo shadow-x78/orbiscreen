@@ -160,9 +160,9 @@ orbiscreen update                             # check for a newer release
 orbiscreen update --json                      # same, machine-readable
 ```
 
-Every command except `version` and `update` prints a one-line notice when a
-newer release exists. Set `ORBISCREEN_NO_UPDATE_CHECK=1` to disable the check,
-for example in offline or metered environments.
+Run `orbiscreen version` or `orbiscreen update` to see whether a newer release
+exists. Set `ORBISCREEN_NO_UPDATE_CHECK=1` to disable the check, for example in
+offline or metered environments.
 
 The encoder is chosen in the config file rather than on the command line:
 
