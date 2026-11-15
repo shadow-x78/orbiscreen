@@ -122,6 +122,22 @@ error: Failed build dependencies:
 
 ---
 
+<a id="publish-missing"></a>
+<h2 dir="rtl" align="right">&rlm;لا يظهر إصدار جديد في COPR أو PPA</h2>
+
+<div dir="rtl" align="right">
+
+**العرض:** ينتهي سير `Publish to COPR` أو `Publish to Launchpad PPA` بنجاح أو فشل، لكن `dnf upgrade` و`apt upgrade` لا يريان الإصدار الجديد.
+
+**السبب:** يحتاج سيرَا النشر إلى سرّين في المستودع:
+
+- `COPR_API_TOKEN`: رمز مشروع `shadow-x78/orbiscreen`. سير Fedora يبني RPM محلياً فقط؛ وسير `Publish to COPR` هو الذي يرسل SRPM عبر `copr-cli`.
+- `PPA_GPG_KEY`: المفتاح الخاص للمفتاح المسجّل في حساب Launchpad. لا يقبل Launchpad مفتاح RPM؛ الرفع به ينجح عبر FTP ثم يُرفض، فتبقى نسخة PPA قديمة.
+
+**الحل:** أضف السرّين بـ `gh secret set COPR_API_TOKEN` و`gh secret set PPA_GPG_KEY` ثم أعد تشغيل سيري الوسم. يوقّع سير PPA الآن بـ `PPA_GPG_KEY` فقط ويستعلم واجهة Launchpad حتى تصبح النسخة `Published`، ويفشل سير COPR بوضوح عند غياب الرمز. راجع [PACKAGING_AR.md](PACKAGING_AR.md#release-publishing-secrets).
+
+</div>
+
 <a id="ci-release"></a>
 ## فشل مسار الإصدار قبل النشر
 

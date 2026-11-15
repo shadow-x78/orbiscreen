@@ -32,13 +32,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure Git safe directory
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
       - name: Install packaging tools
         run: |
           dnf install -y --setopt=install_weak_deps=False \
             git-core cargo rust rpm-build zstd copr-cli pkgconf-pkg-config
+
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Build source RPM
         run: |

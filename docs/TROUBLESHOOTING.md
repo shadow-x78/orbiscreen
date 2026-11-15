@@ -135,6 +135,33 @@ as new as
 
 ---
 
+<a id="publish-missing"></a>
+## COPR or PPA does not show a new version
+
+**Symptom:**
+`Publish to COPR` or `Publish to Launchpad PPA` is green (or fails), but
+`dnf upgrade` and `apt upgrade` do not see the new version.
+
+**Cause:**
+The workflows need two repository secrets. Without them the upload either
+never happens or is rejected asynchronously:
+
+- `COPR_API_TOKEN` — a token for `shadow-x78/orbiscreen`. The Fedora workflow
+  only builds local RPMs; the separate `Publish to COPR` workflow submits an
+  SRPM with `copr-cli`.
+- `PPA_GPG_KEY` — the private key of the GPG key registered on the Launchpad
+  account. The RPM key is **not** accepted by Launchpad; uploads signed with it
+  succeed over FTP and are then rejected, leaving the PPA on an old version.
+
+**Fix:**
+Add both secrets with `gh secret set COPR_API_TOKEN` and
+`gh secret set PPA_GPG_KEY`, then re-run the failed tag workflows. The PPA job
+now signs with `PPA_GPG_KEY` only and polls the Launchpad API until the exact
+version is `Published`; the COPR job fails loudly when its token is missing.
+See [PACKAGING.md](PACKAGING.md#release-publishing-secrets).
+
+---
+
 <a id="ci-release"></a>
 ## Release workflow fails before publishing
 
