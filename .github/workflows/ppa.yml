@@ -80,6 +80,7 @@ jobs:
       - name: Configure GPG key for signing
         env:
           PPA_GPG_KEY: ${{ secrets.PPA_GPG_KEY }}
+          PPA_GPG_PASSPHRASE: ${{ secrets.PPA_GPG_PASSPHRASE }}
         run: |
           GPG_KEY="$PPA_GPG_KEY"
           if [ -z "$GPG_KEY" ]; then
@@ -106,6 +107,14 @@ jobs:
             exit 1
           fi
           echo "GPG_KEY_ID=$GPG_KEY_ID" >> "$GITHUB_ENV"
+          if [ -n "${PPA_GPG_PASSPHRASE:-}" ]; then
+            PASS_FILE="$RUNNER_TEMP/ppa-passphrase"
+            umask 077
+            printf '%s' "$PPA_GPG_PASSPHRASE" > "$PASS_FILE"
+            echo "GPG_OPTS=--batch --pinentry-mode loopback --passphrase-file $PASS_FILE" >> "$GITHUB_ENV"
+          else
+            echo "GPG_OPTS=--batch --pinentry-mode loopback" >> "$GITHUB_ENV"
+          fi
 
       # ── Distribution Metadata ──
       - name: Prepare debian/changelog for target series
@@ -128,7 +137,8 @@ jobs:
       # ── Source Package ──
       - name: Build Debian Source Package
         run: |
-          debuild --no-lintian -S -sa -d -k"${GPG_KEY_ID}" -p"gpg --batch --pinentry-mode loopback"
+          debuild --no-lintian -S -sa -d -k"${GPG_KEY_ID}" -p"gpg ${GPG_OPTS}"
+          rm -f "$RUNNER_TEMP/ppa-passphrase" 2>/dev/null || true
 
       # ── Upload Transport ──
       - name: Configure dput

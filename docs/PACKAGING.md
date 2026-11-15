@@ -153,6 +153,8 @@ RPM key for Launchpad.
 | `COPR_API_TOKEN` | `Publish to COPR` | A COPR API token created at <https://copr.fedorainfracloud.org/api/> for the `shadow-x78/orbiscreen` project. |
 
 `RPM_GPG_KEY` and `RPM_GPG_NAME` remain for signing the RPMs and the AppImage.
+If the PPA key has a passphrase, add `PPA_GPG_PASSPHRASE`; the workflow writes it
+to a private temporary file for `debuild` and removes it afterwards.
 
 After a tag is pushed, the PPA workflow uploads the source package and then
 polls the Launchpad API until the exact version appears as `Published`. If the

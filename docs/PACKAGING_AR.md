@@ -111,7 +111,7 @@ orbiscreen-<version>-linux-x86_64.tar.gz  # ثنائيات جاهزة
 | `PPA_GPG_KEY` | `Publish to Launchpad PPA` | المفتاح الخاص المدرّع (أو بترميز base64) للمفتاح **المسجّل في حساب Launchpad**. يرفض Launchpad أي رفع موقّع بمفتاح آخر، ولهذا لا يصلح مفتاح RPM بديلاً. |
 | `COPR_API_TOKEN` | `Publish to COPR` | رمز COPR API من <https://copr.fedorainfracloud.org/api/> لمشروع `shadow-x78/orbiscreen`. |
 
-يبقى `RPM_GPG_KEY` و`RPM_GPG_NAME` لتوقيع حزم RPM وAppImage.
+يبقى `RPM_GPG_KEY` و`RPM_GPG_NAME` لتوقيع حزم RPM وAppImage. وإذا كان مفتاح PPA محمياً بكلمة مرور فأضف `PPA_GPG_PASSPHRASE`؛ يكتبه السير في ملف مؤقت خاص لـ`debuild` ثم يحذفه.
 
 بعد دفع الوسم، يرفع سير PPA حزمة المصدر ثم يستعلم واجهة Launchpad حتى يظهر الإصدار نفسه بحالة `Published`. وإن لم يظهر، تفشل المهمة برسالة تشير إلى تسجيل المفتاح أو بريد الرفض. ويبني سير COPR حزمة SRPM ويرسلها بـ `copr-cli`، فيفشل عند غياب الرمز بدل إنتاج RPM محلي فقط.
 
