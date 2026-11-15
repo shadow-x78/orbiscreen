@@ -21,7 +21,18 @@ mkdir -p data
 cp -f "${VENDOR_ARCHIVE}" data/
 
 # ── Main Source Archive (Source0) ──
-git archive --format=tar.gz --prefix="orbiscreen-${VERSION}/" -o "${ARCHIVE}" HEAD
+tar -czf "${ARCHIVE}" \
+    --transform "s,^\.,orbiscreen-${VERSION}/," \
+    --exclude=.git \
+    --exclude=target \
+    --exclude=build-gui \
+    --exclude=vendor \
+    --exclude=.gradle \
+    --exclude=clients/android/.gradle \
+    --exclude=clients/android/app/build \
+    --exclude='orbiscreen-*.tar.gz' \
+    --exclude='orbiscreen-vendor-*.tar.zst' \
+    .
 
 # ── Emit Result ──
 echo "${ARCHIVE}"
