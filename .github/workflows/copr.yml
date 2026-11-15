@@ -55,15 +55,17 @@ jobs:
 
       - name: Submit to COPR
         env:
+          COPR_API_LOGIN: ${{ secrets.COPR_API_LOGIN }}
           COPR_API_TOKEN: ${{ secrets.COPR_API_TOKEN }}
         run: |
-          if [ -z "$COPR_API_TOKEN" ]; then
-            echo "::error::COPR_API_TOKEN is not set. Add a COPR API token as a repository secret."
+          if [ -z "$COPR_API_LOGIN" ] || [ -z "$COPR_API_TOKEN" ]; then
+            echo "::error::COPR_API_LOGIN and COPR_API_TOKEN must both be set from the same COPR API configuration."
             exit 1
           fi
           mkdir -p ~/.config
           cat > ~/.config/copr << EOF
           [copr-cli]
+          login = ${COPR_API_LOGIN}
           username = shadow-x78
           token = ${COPR_API_TOKEN}
           copr_url = https://copr.fedorainfracloud.org

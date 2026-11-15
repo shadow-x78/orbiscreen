@@ -109,7 +109,8 @@ orbiscreen-<version>-linux-x86_64.tar.gz  # ثنائيات جاهزة
 | السر | يستخدمه | ما يجب أن يكون |
 |---|---|---|
 | `PPA_GPG_KEY` | `Publish to Launchpad PPA` | المفتاح الخاص المدرّع (أو بترميز base64) للمفتاح **المسجّل في حساب Launchpad**. يرفض Launchpad أي رفع موقّع بمفتاح آخر، ولهذا لا يصلح مفتاح RPM بديلاً. |
-| `COPR_API_TOKEN` | `Publish to COPR` | رمز COPR API من <https://copr.fedorainfracloud.org/api/> لمشروع `shadow-x78/orbiscreen`. |
+| `COPR_API_LOGIN` | `Publish to COPR` | قيمة `login` من إعداد COPR API نفسه (القيمة الطويلة التي تحتوي `##`). |
+| `COPR_API_TOKEN` | `Publish to COPR` | قيمة `token` من <https://copr.fedorainfracloud.org/api/> لمشروع `shadow-x78/orbiscreen`. |
 
 يبقى `RPM_GPG_KEY` و`RPM_GPG_NAME` لتوقيع حزم RPM وAppImage. وإذا كان مفتاح PPA محمياً بكلمة مرور فأضف `PPA_GPG_PASSPHRASE`؛ يكتبه السير في ملف مؤقت خاص لـ`debuild` ثم يحذفه.
 
