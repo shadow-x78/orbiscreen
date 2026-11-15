@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.41.1
+%global version 0.41.2
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -30,7 +30,6 @@ BuildRequires:  pkgconfig(xkbcommon)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  cmake
 BuildRequires:  gcc-c++
-BuildRequires:  chrpath
 BuildRequires:  qt6-qtbase-devel
 BuildRequires:  qt6-qtwayland-devel
 BuildRequires:  git-core
@@ -65,8 +64,6 @@ cmake --build build-gui -j"$(nproc)"
 %install
 install -Dm0755 target/release/orbiscreen %{buildroot}%{_bindir}/orbiscreen
 install -Dm0755 build-gui/orbiscreen-gui %{buildroot}%{_bindir}/orbiscreen-gui
-# Fedora's brp rejects the empty RUNPATH CMake leaves in the Qt binary.
-chrpath -d %{buildroot}%{_bindir}/orbiscreen-gui 2>/dev/null || true
 install -Dm0644 data/orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen.svg
 ln -sf orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen-gui.svg
 for size in 16 24 32 48 64 128 256 512; do
@@ -155,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.41.2-1
+- Release 0.41.2: build the Qt GUI without RPATH so Fedora's brp check passes
+
 * Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.41.1-1
 - Release 0.41.1: strip the empty RUNPATH from the Qt GUI binary for Fedora brp
 

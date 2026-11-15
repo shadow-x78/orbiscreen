@@ -42,7 +42,6 @@ mkdir -p %{buildroot}/usr/lib/udev/rules.d
 install -m 0755 %{_projectroot}/target/release/orbiscreen %{buildroot}/usr/bin/orbiscreen
 if [ -f %{_projectroot}/build-gui/orbiscreen-gui ]; then
     install -m 0755 %{_projectroot}/build-gui/orbiscreen-gui %{buildroot}/usr/bin/orbiscreen-gui
-    chrpath -d %{buildroot}/usr/bin/orbiscreen-gui 2>/dev/null || true
 fi
 install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
 ln -sf orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg

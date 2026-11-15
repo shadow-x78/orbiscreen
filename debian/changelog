@@ -1,3 +1,13 @@
+orbiscreen (0.41.2~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.41.2 for Ubuntu noble.
+  * Configure the Qt GUI with CMAKE_SKIP_RPATH so the binary has no empty
+    RUNPATH; Fedora's brp check rejected it in 0.41.1. Remove the chrpath
+    workaround.
+  * Bump version to 0.41.2 across all packages; Android versionCode 192.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 19:30:00 +0300
+
 orbiscreen (0.41.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.41.1 for Ubuntu noble.
