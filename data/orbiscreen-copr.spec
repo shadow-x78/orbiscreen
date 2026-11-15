@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.42.0
+%global version 0.42.1
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -152,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.42.1-1
+- Release 0.42.1: fix the COPR workflow git safe.directory setup
+
 * Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.42.0-1
 - Release 0.42.0: update notifications in the CLI and Qt GUI, a real COPR upload workflow, and a strict verified PPA publish
 

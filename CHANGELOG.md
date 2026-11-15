@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.42.1] - 2026-11-15
+
+### Fixed
+- fix: let the COPR workflow read its container checkout
+
+The new COPR job failed before submitting because the Fedora container checkout
+was not marked as a safe Git directory, so `scripts/packit-archive.sh` could not
+build the source archive. The workflow now configures
+`safe.directory` like the Fedora job does.
+
 ## [v0.42.0] - 2026-11-15
 
 ### Added

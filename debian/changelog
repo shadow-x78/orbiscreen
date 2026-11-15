@@ -1,3 +1,12 @@
+orbiscreen (0.42.1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.42.1 for Ubuntu noble.
+  * Configure Git safe.directory in the COPR workflow so the archive script can
+    read the container checkout; 0.42.0 failed there before submitting.
+  * Bump version to 0.42.1 across all packages; Android versionCode 194.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 20:20:00 +0300
+
 orbiscreen (0.42.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.42.0 for Ubuntu noble.
