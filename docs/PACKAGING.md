@@ -150,17 +150,16 @@ RPM key for Launchpad.
 | Secret | Used by | What it must be |
 |---|---|---|
 | `PPA_GPG_KEY` | `Publish to Launchpad PPA` | The armored (or base64-encoded) private key of the GPG key **registered on your Launchpad account**. Launchpad rejects uploads signed by any other key, which is why the RPM key cannot be used as a fallback. |
-| `COPR_API_TOKEN` | `Publish to COPR` (manual fallback) | A COPR API token created at <https://copr.fedorainfracloud.org/api/> for the `shadow-x78/orbiscreen` project. Routine COPR builds come from Packit on every push to `main`; the manual workflow is only for a forced re-submit. |
+| `COPR_API_TOKEN` | `Publish to COPR` | A COPR API token created at <https://copr.fedorainfracloud.org/api/> for the `shadow-x78/orbiscreen` project. |
 
 `RPM_GPG_KEY` and `RPM_GPG_NAME` remain for signing the RPMs and the AppImage.
 
 After a tag is pushed, the PPA workflow uploads the source package and then
 polls the Launchpad API until the exact version appears as `Published`. If the
 version never appears, the job fails with a message pointing at the key
-registration or the Launchpad rejection email. Routine COPR builds come from Packit on every push to `main`. The manual
-`Publish to COPR` workflow builds the SRPM and submits it with `copr-cli`; a
-missing token fails that manual job instead of silently producing only local
-RPMs.
+registration or the Launchpad rejection email. The COPR workflow builds the SRPM and submits it with `copr-cli`; a missing
+token fails the job instead of silently producing only local RPMs. Packit is
+kept for pull-request builds only; it does not publish release tags.
 
 ## Fedora / RHEL / CentOS (COPR)
 
