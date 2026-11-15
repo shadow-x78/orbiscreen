@@ -33,7 +33,7 @@ install_fedora() {
         libxkbcommon-devel libevdev-devel \
         wayland-devel libwayland-client \
         libX11-devel libxcb-devel libXrandr-devel \
-        gtk4-devel libadwaita-devel \
+        qt6-qtbase-devel qt6-qtwayland-devel cmake gcc-c++ \
         xorg-x11-server-utils
     echo "[Orbiscreen] note: evdi is not packaged for Fedora; build it with scripts/install-evdi-module.sh"
 }
@@ -48,7 +48,7 @@ install_debian_like() {
         gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
         libevdev-dev libwayland-dev libxkbcommon-dev \
         libx11-dev libxcb1-dev libxrandr-dev \
-        libgtk-4-dev libadwaita-1-dev \
+        qt6-base-dev qt6-wayland cmake g++ \
         x11-xserver-utils
 }
 
@@ -58,7 +58,7 @@ install_arch() {
         gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad \
         libevdev wayland libxkbcommon \
         libx11 libxcb libxrandr \
-        gtk4 libadwaita \
+        qt6-base qt6-wayland cmake \
         xorg-xrandr
     echo "[Orbiscreen] note: evdi is only available from the AUR (package: evdi); install it with an AUR helper"
 }

@@ -46,6 +46,7 @@ check() {
     fi
 }
 
+check "gui/CMakeLists.txt" 'project\(orbiscreen-gui VERSION [0-9.]+' 's/.*VERSION \([0-9.]*\).*/\1/p'
 check "PKGBUILD" '^pkgver=[0-9.]+' 's/^pkgver=//p'
 check "data/orbiscreen-copr.spec" '^%global version [0-9.]+' 's/^%global version *//p'
 check "clients/android/app/build.gradle.kts" 'versionName = "[0-9.]+"' 's/.*"\([0-9.]*\)".*/\1/p'

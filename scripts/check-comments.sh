@@ -57,8 +57,11 @@ done < <(find \
     "$root/crates" \
     "$root/clients/web" \
     "$root/clients/android/app/src" \
+    "$root/gui/src" \
+    "$root/gui/tests" \
     -type f \( -name '*.rs' -o -name '*.kt' -o -name '*.kts' \
-        -o -name '*.js' -o -name '*.ts' -o -name '*.html' \) \
+        -o -name '*.js' -o -name '*.ts' -o -name '*.html' \
+        -o -name '*.cpp' -o -name '*.h' \) \
     ! -path '*/build/*' \
     ! -path '*/gen/*' \
     ! -path '*/target/*' \

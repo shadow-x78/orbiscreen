@@ -73,8 +73,10 @@ jobs:
             libX11-devel \
             libxcb-devel \
             libXrandr-devel \
-            gtk4-devel \
-            libadwaita-devel
+            qt6-qtbase-devel \
+            qt6-qtwayland-devel \
+            cmake \
+            gcc-c++
 
       # ── Checkout ──
       - name: Checkout repository

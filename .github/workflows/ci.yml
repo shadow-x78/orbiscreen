@@ -40,8 +40,7 @@ jobs:
             libx11-dev libxcb1-dev libxrandr-dev \
             libevdev-dev libxkbcommon-dev libwayland-dev \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-            gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
-            libgtk-4-dev libadwaita-1-dev
+            gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
       # ── Frontend Syntax ──
       - name: Check web client syntax
         run: |
@@ -100,6 +99,23 @@ jobs:
             libgl1-mesa-dri libegl1 libpixman-1-0 xkb-data
       - name: Run sway headless integration test
         run: cargo test -p orbiscreen-capture --test sway_headless --locked -- --nocapture
+
+  gui:
+    name: Build Qt desktop GUI
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install Qt and CMake
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-base-dev qt6-wayland cmake g++ libgl1-mesa-dev
+      - name: Configure
+        run: cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build-gui -j"$(nproc)"
+      - name: Test
+        run: ctest --test-dir build-gui --output-on-failure
 
   licenses:
     name: Verify dependency licenses

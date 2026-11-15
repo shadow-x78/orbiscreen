@@ -132,6 +132,10 @@ impl OrbiscreenDbusServer {
         .to_string()
     }
 
+    async fn render_qr(&self, text: String) -> String {
+        render_qr(&text)
+    }
+
     async fn list_clients(&self) -> Vec<String> {
         let active = self.handles.stats.active_clients();
         let total = self.handles.stats.total_clients();
@@ -593,6 +597,27 @@ pub async fn request_pair_revoke(client_id: &str) -> zbus::Result<String> {
     call_pair_revoke(&conn, client_id).await
 }
 
+fn render_qr(text: &str) -> String {
+    use base64::Engine as _;
+    let code =
+        match qrcode::QrCode::with_error_correction_level(text.as_bytes(), qrcode::EcLevel::M) {
+            Ok(code) => code,
+            Err(_) => return String::new(),
+        };
+    let width = code.width();
+    let mut data = Vec::with_capacity(width * width);
+    for color in code.to_colors() {
+        data.push(match color {
+            qrcode::Color::Dark => 0u8,
+            qrcode::Color::Light => 255u8,
+        });
+    }
+    format!(
+        "{width}:{}",
+        base64::engine::general_purpose::STANDARD.encode(data)
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -658,6 +683,26 @@ mod tests {
         let clients = server.list_clients().await;
         assert_eq!(clients.len(), 1);
         assert!(clients[0].contains("1 active"));
+    }
+
+    #[test]
+    fn render_qr_returns_a_square_grayscale_bitmap() {
+        use base64::Engine as _;
+        let encoded = render_qr("http://192.168.1.5:8788/client/");
+        let (width, payload) = encoded.split_once(':').expect("width and payload");
+        let width: usize = width.parse().expect("width");
+        assert!(width >= 21);
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(payload)
+            .expect("base64");
+        assert_eq!(bytes.len(), width * width);
+        assert!(bytes.contains(&0));
+        assert!(bytes.contains(&255));
+    }
+
+    #[test]
+    fn render_qr_rejects_oversized_text() {
+        assert!(render_qr(&"x".repeat(5000)).is_empty());
     }
 
     #[tokio::test]

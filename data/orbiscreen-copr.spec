@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.40.1
+%global version 0.41.0
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -28,12 +28,14 @@ BuildRequires:  pkgconfig(gstreamer-video-1.0)
 BuildRequires:  pkgconfig(libevdev)
 BuildRequires:  pkgconfig(xkbcommon)
 BuildRequires:  pkgconfig(dbus-1)
-BuildRequires:  pkgconfig(gtk4)
-BuildRequires:  pkgconfig(libadwaita-1)
+BuildRequires:  cmake
+BuildRequires:  gcc-c++
+BuildRequires:  qt6-qtbase-devel
+BuildRequires:  qt6-qtwayland-devel
 BuildRequires:  git-core
 
 Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free
-Requires:       libevdev libxkbcommon
+Requires:       libevdev libxkbcommon qt6-qtbase qt6-qtwayland
 Recommends:     gstreamer1-plugins-ugly-free
 
 %description
@@ -56,15 +58,17 @@ EOF
 
 %build
 cargo build --release --workspace --locked
+cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release
+cmake --build build-gui -j"$(nproc)"
 
 %install
 install -Dm0755 target/release/orbiscreen %{buildroot}%{_bindir}/orbiscreen
-install -Dm0755 target/release/orbiscreen-gui %{buildroot}%{_bindir}/orbiscreen-gui
+install -Dm0755 build-gui/orbiscreen-gui %{buildroot}%{_bindir}/orbiscreen-gui
 install -Dm0644 data/orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen.svg
 ln -sf orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen-gui.svg
 for size in 16 24 32 48 64 128 256 512; do
-    if [ -f "crates/orbiscreen-gui/icons/${size}x${size}.png" ]; then
-        install -Dm0644 "crates/orbiscreen-gui/icons/${size}x${size}.png" "%{buildroot}%{_datadir}/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
+    if [ -f "gui/icons/${size}x${size}.png" ]; then
+        install -Dm0644 "gui/icons/${size}x${size}.png" "%{buildroot}%{_datadir}/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
         ln -sf orbiscreen.png "%{buildroot}%{_datadir}/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"
     fi
 done
@@ -72,7 +76,7 @@ install -Dm0644 data/orbiscreen.desktop %{buildroot}%{_datadir}/applications/orb
 install -Dm0755 scripts/install-evdi-module.sh %{buildroot}%{_datadir}/orbiscreen/install-evdi-module.sh
 install -Dm0644 data/99-orbiscreen-usb.rules %{buildroot}%{_udevrulesdir}/99-orbiscreen-usb.rules
 
-for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
+for f in index.html style.css app.js protocol.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     install -Dm0644 "clients/web/$f" "%{buildroot}%{_datadir}/orbiscreen/client/$f"
 done
 install -d "%{buildroot}%{_datadir}/orbiscreen/client/fonts"
@@ -136,6 +140,7 @@ fi
 %{_datadir}/orbiscreen/client/index.html
 %{_datadir}/orbiscreen/client/style.css
 %{_datadir}/orbiscreen/client/app.js
+%{_datadir}/orbiscreen/client/protocol.js
 %{_datadir}/orbiscreen/client/annexb.js
 %dir %{_datadir}/orbiscreen/client/fonts
 %{_datadir}/orbiscreen/client/fonts/*.ttf
@@ -147,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.41.0-1
+- Release 0.41.0: replace the GTK4/libadwaita desktop app with a pure Qt 6 Widgets C++ application built with CMake, move the GUI out of the Cargo workspace, and generate the QR in the daemon over D-Bus
+
 * Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.40.1-1
 - Release 0.40.1: return the pairing deny ExitCode instead of discarding it, upgrade quinn-udp to 0.5.16 for RUSTSEC-2026-0538, and drop stale cargo-deny ignores so the v0.40.0 refactor can pass the release gates
 

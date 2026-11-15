@@ -8,7 +8,7 @@
 
 شاشة ثانية لنظام Linux باستخدام جهاز لوحي أو هاتف Android.
 
-[![الإصدار](https://img.shields.io/badge/version-0.40.1-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.41.0-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge&logo=gnu)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=for-the-badge&logo=rust)
 ![المنصة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
@@ -251,7 +251,7 @@ orbiscreen/
 │   ├── orbiscreen-input/       # uinput tablet and touch, RemoteDesktop portal
 │   ├── orbiscreen-transport/   # axum, UDP/WebTransport, AOA USB, mDNS
 │   ├── orbiscreen-daemon/      # daemon binary, D-Bus service, CLI
-│   └── orbiscreen-gui/         # مركز تحكم أصلي بـ GTK4 + libadwaita
+│   └── ...                     # حزم Rust (الواجهة في gui/)
 ├── clients/
 │   ├── web/                    # browser client (WebTransport + WebCodecs)
 │   └── android/                # Material 3 Compose app
@@ -272,7 +272,7 @@ orbiscreen/
 <li><code dir="ltr">crates/orbiscreen-input</code>: حقن اللمس والقلم ولوحة المفاتيح.</li>
 <li><code dir="ltr">crates/orbiscreen-transport</code>: كل واجهات الشبكة وUSB الخاصة بالعملاء.</li>
 <li><code dir="ltr">crates/orbiscreen-daemon</code>: العملية الرئيسية وخدمة D-Bus وواجهة الأوامر.</li>
-<li><code dir="ltr">crates/orbiscreen-gui</code>: مركز التحكم المكتبي (GTK4 + libadwaita أصلي).</li>
+<li><code dir="ltr">gui/</code>: مركز التحكم المكتبي (Qt 6 Widgets، C++17، CMake).</li>
 </ul>
 
 <a id="faq"></a>

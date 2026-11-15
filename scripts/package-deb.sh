@@ -27,6 +27,10 @@ if [ ! -f target/release/orbiscreen ]; then
     echo "[Orbiscreen] Building release binaries for deb..."
     cargo build --release --workspace
 fi
+if command -v cmake >/dev/null 2>&1 && pkg-config --exists Qt6Widgets 2>/dev/null; then
+    cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release
+    cmake --build build-gui -j"$(nproc)"
+fi
 
 # ── Prepare Staging Layout ──
 rm -rf "${BUILD_DIR}"
@@ -37,22 +41,22 @@ mkdir -p "${BUILD_DIR}/usr/lib/udev/rules.d"
 mkdir -p "${BUILD_DIR}/usr/share/orbiscreen/client"
 
 cp -f target/release/orbiscreen "${BUILD_DIR}/usr/bin/"
-if [ -f target/release/orbiscreen-gui ]; then
-    cp -f target/release/orbiscreen-gui "${BUILD_DIR}/usr/bin/"
+if [ -f build-gui/orbiscreen-gui ]; then
+    cp -f build-gui/orbiscreen-gui "${BUILD_DIR}/usr/bin/"
 fi
 mkdir -p "${BUILD_DIR}/usr/share/applications" "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps"
 cp -f data/orbiscreen.desktop "${BUILD_DIR}/usr/share/applications/orbiscreen.gui.desktop"
 cp -f data/orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/"
 ln -sf orbiscreen.svg "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg"
 for size in 16 24 32 48 64 128 256 512; do
-    if [ -f "crates/orbiscreen-gui/icons/${size}x${size}.png" ]; then
+    if [ -f "gui/icons/${size}x${size}.png" ]; then
         mkdir -p "${BUILD_DIR}/usr/share/icons/hicolor/${size}x${size}/apps"
-        cp -f "crates/orbiscreen-gui/icons/${size}x${size}.png" "${BUILD_DIR}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
+        cp -f "gui/icons/${size}x${size}.png" "${BUILD_DIR}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
         ln -sf orbiscreen.png "${BUILD_DIR}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"
     fi
 done
 
-for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
+for f in index.html style.css app.js protocol.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     cp -f "clients/web/${f}" "${BUILD_DIR}/usr/share/orbiscreen/client/"
 done
 install -d "${BUILD_DIR}/usr/share/orbiscreen/client/fonts"
@@ -84,7 +88,7 @@ Package: orbiscreen
 Version: ${VERSION}
 Architecture: ${ARCH}
 Maintainer: shadow-x78 <shadow-x78@users.noreply.github.com>
-Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, libxkbcommon0, libevdev2
+Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, libxkbcommon0, libevdev2, libqt6widgets6 | libqt6widgets6t64, libqt6network6 | libqt6network6t64, libqt6dbus6 | libqt6dbus6t64, qt6-wayland
 Recommends: android-tools-adb
 Suggests: evdi-dkms
 Section: utils

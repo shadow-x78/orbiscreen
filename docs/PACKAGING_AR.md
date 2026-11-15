@@ -2,7 +2,7 @@
 
 # دليل التغليف متعدد التوزيعات - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.40.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.41.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -12,7 +12,7 @@
 <a id="packaging-matrix"></a>
 ## مصفوفة حزم التوزيعات
 
-مصفوفة الإصدار: `0.40.1` (مساحة العمل)، `versionCode = 189` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع: راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
+مصفوفة الإصدار: `0.41.0` (مساحة العمل)، `versionCode = 190` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع: راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
 
 `versionCode` قيمة تُعدَّل يدوياً ويزيدها واحد مع كل إصدار (وهي عدد صحيح تصاعدي لا يمكن أن يتبع إصداراً دلالياً). `scripts/check-versions.sh` يتحقق من أن كل مواضع الإصدار الـ25 متطابقة مع مساحة عمل Cargo، ويعمل أيضاً ضمن CI.
 
@@ -32,6 +32,8 @@
 ### 1. الأرشيف المستقل والمثبّت بأمر واحد
 ```bash
 cargo build --release --workspace
+cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release
+cmake --build build-gui -j"$(nproc)"
 ./scripts/install.sh
 ```
 
@@ -81,7 +83,7 @@ cd clients/android
 | Linux x86_64 | `PKGBUILD` | Arch Linux, Manjaro, EndeavourOS, Garuda | ✅ آلي |
 | Linux x86_64 | `.AppImage` | أي توزيع يعتمد على glibc | ✅ آلي |
 | Linux x86_64 | `.tar.gz` | أي توزيع (تثبيت يدوي) | ✅ آلي |
-| Android ARM64 | `.apk` | Android 7.0+ (API 24+) | ✅ آلي |
+| Android (universal) | `.apk` | Android 8.0+ (API 26+) | ✅ آلي |
 
 ---
 
@@ -115,7 +117,7 @@ sudo dnf install orbiscreen
 ### ملف Spec
 `data/orbiscreen-copr.spec` يحتوي على تعريف بناء COPR مع:
 - BuildRequires: `cargo`, `rust >= 1.92`, `gstreamer1-devel`, `gstreamer1-plugins-base-devel`, `wayland-devel`, `libdrm-devel`, `kwayland-devel`, `kde-cli-tools`, `libinput-devel`, `libudev-devel`, `systemd-devel`, `openssl-devel`
-- Requires: `gstreamer1`, `gstreamer1-plugins-base`, `gstreamer1-plugins-good`, `gstreamer1-plugins-bad-free`, `gstreamer1-libav`, `kwayland`, `kwin`, `libinput`, `systemd`, `openssl-libs`, `gtk4`, `libadwaita` (GUI)
+- Requires: `gstreamer1`, `gstreamer1-plugins-base`, `gstreamer1-plugins-good`, `gstreamer1-plugins-bad-free`, `gstreamer1-libav`, `kwayland`, `kwin`, `libinput`, `systemd`, `openssl-libs`, `qt6-qtbase`, `qt6-qtwayland` (GUI)
 
 ---
 
@@ -129,7 +131,7 @@ sudo dnf install orbiscreen
 ### ملف Control
 `debian/control` يحدّد:
 - Build-Depends: `cargo (>= 1.92)`, `rustc (>= 1.92)`, `libgstreamer1.0-dev`, `libgstreamer-plugins-base1.0-dev`, `libwayland-dev`, `libdrm-dev`, `libkf5waylandclient-dev`, `libkf5kdelibs4support-dev`, `libinput-dev`, `libudev-dev`, `libsystemd-dev`, `libssl-dev`, `pkg-config`, `debhelper-compat (= 13)`, `cmake`
-- Depends: `${shlibs:Depends}`, `${misc:Depends}`, `gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad`, `gstreamer1.0-libav`, `libwayland-client0`, `libkf5waylandclient5`, `libinput10`, `libudev1`, `libsystemd0`, `libssl3`, `libgtk-4-1`, `libadwaita-1-0` (GUI)
+- Depends: `${shlibs:Depends}`, `${misc:Depends}`, `gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad`, `gstreamer1.0-libav`, `libwayland-client0`, `libkf5waylandclient5`, `libinput10`, `libudev1`, `libsystemd0`, `libssl3`, `qt6-wayland` (GUI platform plugin)
 
 ### التثبيت
 ```bash
@@ -174,7 +176,7 @@ ORBISCREEN_KEY_PASSWORD=**** \
 
 ### المخرجات
 - `app/build/outputs/apk/release/app-release.apk` (موقّع، V2/V3)
-- إصدار الكود: `189` (0.40.1)، يُعدَّل يدوياً. يتطلب Android عدداً صحيحاً متزايداً، لذا لا يمكن أن يتبع إصداراً دلالياً؛ زِده واحداً مع كل إصدار.
+- إصدار الكود: `190` (0.41.0)، يُعدَّل يدوياً. يتطلب Android عدداً صحيحاً متزايداً، لذا لا يمكن أن يتبع إصداراً دلالياً؛ زِده واحداً مع كل إصدار.
 
 ### التحقق
 ```bash

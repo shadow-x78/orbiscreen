@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.41.0] - 2026-11-15
+
+### Changed
+- refactor: replace the GTK4 + libadwaita desktop app with Qt 6 Widgets
+
+The desktop control center is now a pure C++17 Qt 6 Widgets application built
+with CMake. It uses the conventional Linux application shape: a native menu bar
+(Service, View, Language, Help), a toolbar, Connect / Display & Input / Doctor
+tabs, a status bar, and `QSystemTrayIcon`. It does not link GTK, libadwaita,
+Kirigami, KDE Frameworks, or Adwaita-Qt.
+
+- The application uses the platform style automatically: Breeze on Plasma, and
+  Fusion with the system palette, fonts, and icon theme elsewhere. It calls
+  `QIcon::fromTheme` and sets the fallback theme to `hicolor`; it never installs
+  a stylesheet or a custom palette.
+- The tray is a real `QSystemTrayIcon`. When the desktop has no StatusNotifier
+  host (notably GNOME/Wayland without an AppIndicator extension), closing the
+  window quits instead of leaving an invisible process.
+- The GUI leaves the Cargo workspace. `gui/` owns the CMake project, sources,
+  icons, and QtTest suite; the Rust workspace no longer depends on GTK.
+- The daemon generates the connection QR over D-Bus (`RenderQr`, returning
+  `width:base64`), so the Qt client needs only `qt6-base` and no QR package.
+- The binary name (`orbiscreen-gui`), desktop entry (`orbiscreen.gui.desktop`),
+  config path (`~/.config/orbiscreen/`), translations, and start/stop,
+  resolution, doctor, USB, and copy/open behavior are unchanged.
+- Packaging uses Qt 6 and CMake: Debian `qt6-base-dev`/`qt6-wayland`,
+  Fedora `qt6-qtbase-devel`/`qt6-qtwayland-devel`, Arch `qt6-base`/`qt6-wayland`.
+  CI builds and tests the GUI in a dedicated job.
+- Version bumped to 0.41.0 across Cargo, Android (`versionCode` 190), PKGBUILD,
+  Debian, COPR, and documentation badges; web assets are `?v=26`.
+
+### Fixed
+- The GUI reads the real token file, surfaces stop/restart/doctor failures, and
+  writes display settings through the daemon only (no second config writer).
+
 ## [v0.40.1] - 2026-11-15
 
 ### Fixed

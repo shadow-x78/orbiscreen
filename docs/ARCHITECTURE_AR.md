@@ -2,7 +2,7 @@
 
 # مواصفات المعمارية - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.40.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.41.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -58,7 +58,7 @@ flowchart TD
 5. تُرسل العملاء أحداث الإدخال عائِدة عبر `orbiscreen-transport`.
 6. يحقن `orbiscreen-input` تلك الأحداث في سطح المكتب (uinput، أو XTEST، أو أجهزة wlroots الافتراضية، أو portal RemoteDesktop).
 
-تربط عملية `orbiscreen-daemon` جميع الحزم ببعضها وتوفّر خدمة D-Bus؛ واجهة سطح المكتب (`orbiscreen-gui` بتقنية GTK4 + libadwaita الأصلية) وواجهة الأوامر تتحدثان معها عبر D-Bus.
+تربط عملية `orbiscreen-daemon` جميع الحزم ببعضها وتوفّر خدمة D-Bus؛ واجهة سطح المكتب (`orbiscreen-gui` بتقنية Qt 6 Widgets وC++17) وواجهة الأوامر تتحدثان معها عبر D-Bus.
 
 ---
 
@@ -75,7 +75,23 @@ flowchart TD
 | `orbiscreen-input` | حقن الإدخال العكسي: شاشة لمس وألواح مفاتيح عبر uinput، و XTEST، وأجهزة wlroots الافتراضية (virtual-pointer / virtual-keyboard)، و portal RemoteDesktop | `evdevil`، `ashpd`، `orbiscreen-core` |
 | `orbiscreen-transport` | كل واجهات العملاء: نقاط HTTP ‏(`/stream` و `/input` و `/api/*` و `/health`)‏، و UDP Annex-B مع تصحيح أخطاء Reed-Solomon، و WebTransport Annex-B ‏(`wt_port`)‏، وبث USB عبر AOA، وإعلان mDNS، والاقتران، والمصادقة بالتوكن، وتوجيه جلسات العرض لكل عميل؛ طبقة جلسة موحّدة ووحدة بروتوكول موحّدة | `axum`، `mdns-sd`، `wtransport`، `gstreamer`، `orbiscreen-core`، `orbiscreen-input` |
 | `orbiscreen-daemon` | الثنائي الرئيسي الذي يربط كل الحزم؛ تكامل systemd؛ خدمة D-Bus ‏(`com.orbiscreen.Daemon`)‏؛ أداة التشخيص `doctor`؛ مضخات خط الأنابيب المشتركة وتوزيع الإدخال | `zbus`، `clap`، `tokio` |
-| `orbiscreen-gui` | مركز تحكم سطح المكتب (‏GTK4 + libadwaita أصلي)‏: الحالة، والتشغيل والإيقاف، وخيارات الدقة عبر D-Bus | `gtk4`، `libadwaita`، `zbus`، `ksni` |
+| `orbiscreen-gui` (C++/CMake، `gui/`) | مركز تحكم سطح المكتب (Qt 6 Widgets): الحالة، والتشغيل والإيقاف، والدقة، والفحص، وشريط النظام عبر D-Bus | `Qt6::Widgets`، `Qt6::DBus`، `Qt6::Network` |
+
+</div>
+
+<h3 dir="rtl" align="right">&rlm;واجهة سطح المكتب Qt</h3>
+
+<div dir="rtl" align="right">
+
+`gui/` مشروع CMake مستقل وليس حزمة Cargo. تطبيق C++17 خالص بـ Qt 6 Widgets، ولا يرتبط إلا بـ `Qt6::Widgets` و`Qt6::DBus` و`Qt6::Network` من `qt6-base`.
+
+- `DaemonClient` يدير نداءات D-Bus غير المتزامنة (`GetStatus` و`Stop` و`SetResolution` و`RenderQr`)، واستدعاءات `QProcess` لـ `systemctl` وواجهة `orbiscreen`، ومسارات التوكن والإعداد والتشغيل التلقائي، وبناء روابط الجلسة وUSB.
+- `report.{h,cpp}` يحلل `StatusReport` و`DoctorReport` من JSON؛ وتبقى أنواع Rust في النواة مرجع المخطط.
+- `MainWindow` يوفّر شريط القوائم وشريط الأدوات والتبويبات وشريط الحالة وإجراءات شريط النظام. وتحت `pages/` صفحات الاتصال والشاشة والإدخال والفحص.
+- `I18n` يحفظ قاموسي الإنجليزية والعربية وملف `~/.config/orbiscreen/gui.json`، ويحوّل الاتجاه إلى RTL للعربية.
+- `Theme` يطبّق سمة المنصة دون أوراق أنماط أو لوحة ألوان مخصصة: Breeze على Plasma، وFusion مع لوحة النظام وخطوطه وأيقوناته (`QIcon::fromTheme`) كبديل نظيف.
+- يولّد الخادم رمز QR عبر `RenderQr` الذي يعيد `width:base64`، فلا يحتاج العميل أي حزمة QR.
+- يُستخدم `QSystemTrayIcon` عند وجود مضيف StatusNotifier؛ وإلا فإن إغلاق النافذة ينهي التطبيق بدل ترك عملية خفية.
 
 </div>
 
@@ -83,14 +99,14 @@ flowchart TD
 
 <div dir="rtl" align="right">
 
-نقلت إعادة الهيكلة في 0.40.1 كل تعريف مكرر إلى الطبقة الأدنى التي تملكه:
+نقلت إعادة الهيكلة في 0.41.0 كل تعريف مكرر إلى الطبقة الأدنى التي تملكه:
 
 - `orbiscreen-core::{session, frame, paths, shm, ports, report, output}`: خطة الالتقاط وكشف الجلسة، وتحويل BGRA/الـ stride، ومسارات XDG والكتابة الذرية للأسرار، وتعيين الذاكرة المشتركة، وحساب المنافذ، وتقارير `StatusReport`/`DoctorReport`، وأسماء المخارج الافتراضية.
 - `orbiscreen-transport::{protocol, session}`: أنواع الإطارات وأطوال الرؤوس ومسارات النقاط، وسياسة الاتصال والقطع وطلب IDR وانتظار الإطار المفتاحي المشتركة بين HTTP Annex-B و MPEG-TS و WebTransport.
 - `orbiscreen-daemon::pipeline`: مضخة IDR، وتطبيع PTS، وتحجيم إحداثيات الإدخال، وتوزيع `IncomingInput` المشترك بين مساري العرض المشترك ولكل عميل.
 - `clients/web/protocol.js` (يتحقق منه `protocol.golden.json`) و`net/Protocol.kt` في Android هما النظيران في العميل. و`net/HostSpec.kt` هو المرجع الوحيد لتحليل host:port والمخطط وعنوان loopback.
 
-أُزيلت جلسة العرض الثانوي المستقلة في 0.40.1 لأنها كانت تحجز `signaling_port + 2`، وهو نفس منفذ WebTransport، فلم تكن تعمل بجانب النقل العادي. تدعم عدة أجهزة لوحية عبر مركز جلسات KWin لكل عميل، بمخرج `Virtual-Orbi-<key>` لكل جهاز.
+أُزيلت جلسة العرض الثانوي المستقلة في 0.41.0 لأنها كانت تحجز `signaling_port + 2`، وهو نفس منفذ WebTransport، فلم تكن تعمل بجانب النقل العادي. تدعم عدة أجهزة لوحية عبر مركز جلسات KWin لكل عميل، بمخرج `Virtual-Orbi-<key>` لكل جهاز.
 
 </div>
 

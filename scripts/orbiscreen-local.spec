@@ -17,7 +17,7 @@ Summary:        Turn Android devices into high-performance secondary monitors fo
 License:        GPL-3.0-or-later
 URL:            https://github.com/shadow-x78/orbiscreen
 
-Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free libevdev libxkbcommon
+Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free libevdev libxkbcommon qt6-qtbase qt6-qtwayland
 Recommends:     gstreamer1-plugins-ugly-free
 
 %description
@@ -40,14 +40,14 @@ mkdir -p %{buildroot}/usr/share/applications
 mkdir -p %{buildroot}/usr/lib/udev/rules.d
 
 install -m 0755 %{_projectroot}/target/release/orbiscreen %{buildroot}/usr/bin/orbiscreen
-if [ -f %{_projectroot}/target/release/orbiscreen-gui ]; then
-    install -m 0755 %{_projectroot}/target/release/orbiscreen-gui %{buildroot}/usr/bin/orbiscreen-gui
+if [ -f %{_projectroot}/build-gui/orbiscreen-gui ]; then
+    install -m 0755 %{_projectroot}/build-gui/orbiscreen-gui %{buildroot}/usr/bin/orbiscreen-gui
 fi
 install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
 ln -sf orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg
 for size in 16 24 32 48 64 128 256 512; do
-    if [ -f "%{_projectroot}/crates/orbiscreen-gui/icons/${size}x${size}.png" ]; then
-        install -Dm 0644 "%{_projectroot}/crates/orbiscreen-gui/icons/${size}x${size}.png" "%{buildroot}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
+    if [ -f "%{_projectroot}/gui/icons/${size}x${size}.png" ]; then
+        install -Dm 0644 "%{_projectroot}/gui/icons/${size}x${size}.png" "%{buildroot}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
         ln -sf orbiscreen.png "%{buildroot}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"
     fi
 done
@@ -55,7 +55,7 @@ install -m 0644 %{_projectroot}/data/orbiscreen.desktop %{buildroot}/usr/share/a
 install -m 0644 %{_projectroot}/data/99-orbiscreen-usb.rules %{buildroot}/usr/lib/udev/rules.d/99-orbiscreen-usb.rules
 install -m 0755 %{_projectroot}/scripts/install-evdi-module.sh %{buildroot}/usr/share/orbiscreen/install-evdi-module.sh
 
-for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
+for f in index.html style.css app.js protocol.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     install -m 0644 "%{_projectroot}/clients/web/$f" "%{buildroot}/usr/share/orbiscreen/client/$f"
 done
 install -d "%{buildroot}%{_datadir}/orbiscreen/client/fonts"
@@ -124,6 +124,7 @@ fi
 /usr/share/orbiscreen/client/index.html
 /usr/share/orbiscreen/client/style.css
 /usr/share/orbiscreen/client/app.js
+/usr/share/orbiscreen/client/protocol.js
 /usr/share/orbiscreen/client/annexb.js
 /usr/share/orbiscreen/client/fonts
 /usr/share/orbiscreen/client/stats.js

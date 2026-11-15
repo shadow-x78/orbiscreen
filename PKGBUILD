@@ -6,7 +6,7 @@
 # Maintainer: shadow-x78 <107577376+shadow-x78@users.noreply.github.com>
 
 pkgname=orbiscreen
-pkgver=0.40.1
+pkgver=0.41.0
 pkgrel=1
 pkgdesc="Turn Android devices into high-performance secondary monitors for Linux (Wayland & X11)"
 arch=('x86_64')
@@ -20,8 +20,10 @@ depends=(
     'libevdev'
     'libxkbcommon'
     'hicolor-icon-theme'
+    'qt6-base'
+    'qt6-wayland'
 )
-makedepends=('cargo' 'git' 'pkgconf' 'python' 'gtk4' 'libadwaita')
+makedepends=('cargo' 'git' 'pkgconf' 'python' 'cmake' 'qt6-base')
 optdepends=(
     'android-tools: USB transport via adb reverse'
     'evdi-dkms: kernel-level virtual display on X11/GNOME (not needed on KDE Plasma Wayland or wlroots)'
@@ -36,25 +38,26 @@ options=('!lto')
 build() {
     cd "${pkgname}-${pkgver}"
     cargo build --release --workspace --locked
+    cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release
+    cmake --build build-gui -j"$(nproc)"
 }
 
 check() {
     cd "${pkgname}-${pkgver}"
     cargo test --workspace --locked
+    ctest --test-dir build-gui --output-on-failure
 }
 
 package() {
     cd "${pkgname}-${pkgver}"
 
     install -Dm0755 target/release/orbiscreen "${pkgdir}/usr/bin/orbiscreen"
-    if [ -f target/release/orbiscreen-gui ]; then
-        install -Dm0755 target/release/orbiscreen-gui "${pkgdir}/usr/bin/orbiscreen-gui"
-    fi
+    install -Dm0755 build-gui/orbiscreen-gui "${pkgdir}/usr/bin/orbiscreen-gui"
     install -Dm0644 data/orbiscreen.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg"
     ln -sf orbiscreen.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg"
     for size in 16 24 32 48 64 128 256 512; do
-        if [ -f "crates/orbiscreen-gui/icons/${size}x${size}.png" ]; then
-            install -Dm0644 "crates/orbiscreen-gui/icons/${size}x${size}.png" "${pkgdir}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
+        if [ -f "gui/icons/${size}x${size}.png" ]; then
+            install -Dm0644 "gui/icons/${size}x${size}.png" "${pkgdir}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
             ln -sf orbiscreen.png "${pkgdir}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"
         fi
     done
@@ -62,7 +65,7 @@ package() {
     install -Dm0755 scripts/install-evdi-module.sh "${pkgdir}/usr/share/orbiscreen/install-evdi-module.sh"
     install -Dm0644 data/99-orbiscreen-usb.rules "${pkgdir}/usr/lib/udev/rules.d/99-orbiscreen-usb.rules"
 
-    for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
+    for f in index.html style.css app.js protocol.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
         install -Dm0644 "clients/web/${f}" "${pkgdir}/usr/share/orbiscreen/client/${f}"
     done
     mkdir -p "$pkgdir"/usr/share/orbiscreen/client/fonts

@@ -31,11 +31,12 @@ ARCH="$(uname -m)"
 
 # ── Build Binaries ──
 echo "Building release binaries..."
-if pkg-config --atleast-version=4.10 gtk4 2>/dev/null && pkg-config --atleast-version=1.2 libadwaita-1 2>/dev/null; then
-    cargo build --release --workspace
+cargo build --release --workspace
+if command -v cmake >/dev/null 2>&1 && pkg-config --exists Qt6Widgets 2>/dev/null; then
+    cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release
+    cmake --build build-gui -j"$(nproc)"
 else
-    echo "warning: gtk4 or libadwaita not found; building without GUI" >&2
-    cargo build --release -p orbiscreen-daemon
+    echo "warning: Qt 6 Widgets or CMake not found; building without GUI" >&2
 fi
 
 # ── Prepare AppDir Staging ──
@@ -44,10 +45,10 @@ rm -rf "$APP"
 mkdir -p "$APP/usr/bin" "$APP/usr/share/orbiscreen/client" "$APP/usr/share/icons/hicolor/256x256/apps"
 
 install -m755 target/release/orbiscreen "$APP/usr/bin/orbiscreen"
-if [ -f target/release/orbiscreen-gui ]; then
-    install -m755 target/release/orbiscreen-gui "$APP/usr/bin/orbiscreen-gui"
+if [ -f build-gui/orbiscreen-gui ]; then
+    install -m755 build-gui/orbiscreen-gui "$APP/usr/bin/orbiscreen-gui"
 fi
-for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
+for f in index.html style.css app.js protocol.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     install -m644 "clients/web/$f" "$APP/usr/share/orbiscreen/client/$f"
 done
 install -m644 -D clients/web/fonts/noto_kufi_arabic_regular.ttf "$APP/usr/share/orbiscreen/client/fonts/noto_kufi_arabic_regular.ttf"
@@ -82,6 +83,32 @@ if [ -n "${GST_PREFIX:-}" ] && [ -d "$GST_PREFIX/lib" ]; then
 else
     echo "warning: GStreamer pkg-config prefix not found; AppImage will rely on the host GStreamer install" >&2
 fi
+
+# ── Bundle Qt Runtime ──
+bundle_qt() {
+    [ -x "$APP/usr/bin/orbiscreen-gui" ] || return 0
+    local qt_plugins
+    qt_plugins="$(qtpaths6 --query QT_INSTALL_PLUGINS 2>/dev/null || qmake6 -query QT_INSTALL_PLUGINS 2>/dev/null || true)"
+    if [ -n "$qt_plugins" ] && [ -d "$qt_plugins" ]; then
+        for dir in platforms styles imageformats \
+                   wayland-shell-integration wayland-decoration-client \
+                   wayland-graphics-integration-client; do
+            if [ -d "$qt_plugins/$dir" ]; then
+                mkdir -p "$APP/usr/lib/qt6/plugins/$dir"
+                cp -r "$qt_plugins/$dir/." "$APP/usr/lib/qt6/plugins/$dir/"
+            fi
+        done
+    else
+        echo "warning: Qt plugin directory not found; AppImage will rely on the host Qt 6" >&2
+    fi
+    mkdir -p "$APP/usr/lib"
+    ldd "$APP/usr/bin/orbiscreen-gui" 2>/dev/null |
+    awk '/=> \/.*libQt6/ {print $3}' |
+    while IFS= read -r lib; do
+        [ -n "$lib" ] && cp -f "$lib" "$APP/usr/lib/" 2>/dev/null || true
+    done
+}
+bundle_qt
 
 # ── Desktop & Icon Metadata ──
 if [ -f "$APP/usr/bin/orbiscreen-gui" ]; then
@@ -130,6 +157,10 @@ if [ -d "$HERE/usr/lib/gstreamer-1.0" ]; then
     export GST_PLUGIN_PATH="$HERE/usr/lib/gstreamer-1.0${GST_PLUGIN_PATH:+:$GST_PLUGIN_PATH}"
     export GST_PLUGIN_SCANNER="$HERE/usr/lib/gstreamer-1.0/gst-plugin-scanner"
     export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+if [ -d "$HERE/usr/lib/qt6/plugins" ]; then
+    export QT_PLUGIN_PATH="$HERE/usr/lib/qt6/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
+    export QT_QPA_PLATFORM_PLUGIN_PATH="$HERE/usr/lib/qt6/plugins/platforms"
 fi
 exec "$HERE/usr/bin/orbiscreen" "$@"
 EOF

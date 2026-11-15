@@ -27,16 +27,20 @@ mv -f "${INSTALL_DIR}/orbiscreen.new" "${INSTALL_DIR}/orbiscreen"
 
 # ── Build & Install Desktop GUI (optional) ──
 GUI_INSTALLED=0
-if cargo build --release -p orbiscreen-gui; then
-    install -m755 target/release/orbiscreen-gui "${INSTALL_DIR}/orbiscreen-gui"
-    GUI_INSTALLED=1
-else
-    echo "[Orbiscreen] Skipping the desktop GUI: its GTK4/libadwaita build dependencies are missing."
+if command -v cmake >/dev/null 2>&1 && pkg-config --exists Qt6Widgets 2>/dev/null; then
+    if cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1 \
+        && cmake --build build-gui -j"$(nproc)" >/dev/null 2>&1; then
+        install -m755 build-gui/orbiscreen-gui "${INSTALL_DIR}/orbiscreen-gui"
+        GUI_INSTALLED=1
+    fi
+fi
+if [ "${GUI_INSTALLED}" -eq 0 ]; then
+    echo "[Orbiscreen] Skipping the desktop GUI: install Qt 6 base and CMake to build it."
 fi
 
 # ── Install Web Client Assets ──
 echo "[Orbiscreen] Installing web client files..."
-for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
+for f in index.html style.css app.js protocol.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
     cp "clients/web/${f}" "${CLIENT_DIR}/"
 done
 mkdir -p "${CLIENT_DIR}/fonts"
@@ -73,9 +77,9 @@ fi
 cp -f data/orbiscreen.svg "${HOME}/.local/share/icons/hicolor/scalable/apps/"
 ln -sf orbiscreen.svg "${HOME}/.local/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg"
 for size in 16 24 32 48 64 128 256 512; do
-    if [ -f "crates/orbiscreen-gui/icons/${size}x${size}.png" ]; then
+    if [ -f "gui/icons/${size}x${size}.png" ]; then
         mkdir -p "${HOME}/.local/share/icons/hicolor/${size}x${size}/apps"
-        cp -f "crates/orbiscreen-gui/icons/${size}x${size}.png" "${HOME}/.local/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
+        cp -f "gui/icons/${size}x${size}.png" "${HOME}/.local/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
         ln -sf orbiscreen.png "${HOME}/.local/share/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"
     fi
 done

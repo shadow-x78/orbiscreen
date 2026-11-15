@@ -1,3 +1,22 @@
+orbiscreen (0.41.0~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.41.0 for Ubuntu noble.
+  * Replace the GTK4 + libadwaita desktop app with a pure C++17 Qt 6
+    Widgets application built with CMake. The new UI uses a native menu bar,
+    toolbar, tabs, status bar, and QSystemTrayIcon, and follows the platform
+    style automatically (Breeze on Plasma; Fusion plus system palette, fonts,
+    and icons elsewhere). It does not link libadwaita or Adwaita-Qt.
+  * Move the GUI out of the Cargo workspace; the Rust workspace no longer
+    depends on GTK. Packaging now uses qt6-base-dev/qt6-qtbase-devel and
+    cmake instead of gtk4/libadwaita.
+  * Generate the connection QR in the daemon over D-Bus (RenderQr) so the Qt
+    client needs only qt6-base and no extra QR package.
+  * Keep the binary name, desktop entry, config path, translations, and
+    start/stop/resolution/doctor behavior compatible.
+  * Bump version to 0.41.0 across all packages; Android versionCode 190.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 12:00:00 +0300
+
 orbiscreen (0.40.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.40.1 for Ubuntu noble.

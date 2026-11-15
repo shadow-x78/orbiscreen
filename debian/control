@@ -11,8 +11,10 @@ Build-Depends: debhelper-compat (= 13),
                libgstreamer-plugins-base1.0-dev,
                libevdev-dev,
                libxkbcommon-dev,
-               libgtk-4-dev,
-               libadwaita-1-dev
+               qt6-base-dev,
+               qt6-wayland,
+               cmake,
+               g++
 Standards-Version: 4.6.2
 Homepage: https://github.com/shadow-x78/orbiscreen
 
@@ -27,7 +29,8 @@ Depends: ${misc:Depends},
          gstreamer1.0-plugins-ugly,
          gstreamer1.0-libav,
          libxkbcommon0,
-         libevdev2
+         libevdev2,
+         qt6-wayland
 Recommends: android-tools-adb
 Suggests: evdi-dkms
 Description: High-performance virtual secondary displays for Linux

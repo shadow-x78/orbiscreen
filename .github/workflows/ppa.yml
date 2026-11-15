@@ -52,13 +52,16 @@ jobs:
             libglib2.0-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
             libevdev-dev libxkbcommon-dev \
-            libgtk-4-dev libadwaita-1-dev
+            qt6-base-dev qt6-wayland cmake g++
 
       # ── Pre-Upload Verification ──
       - name: Verify source build before upload
         run: |
           cargo build --release --workspace --locked
           cargo test --workspace --locked
+          cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-gui -j"$(nproc)"
+          ctest --test-dir build-gui --output-on-failure
 
       # ── Offline Build ──
       - name: Vendor Cargo dependencies

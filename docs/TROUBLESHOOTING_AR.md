@@ -2,7 +2,7 @@
 
 # استكشاف الأخطاء وإصلاحها - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.40.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.41.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -90,18 +90,18 @@
 
 **الأعراض:**
 ```
-dpkg-buildpackage: error: unmet build-dependency: libgtk-4-dev
+dpkg-buildpackage: error: unmet build-dependency: qt6-base-dev
 ```
 أو من مهمة Ubuntu:
 ```
-error: Package 'libadwaita-1-dev' has no installation candidate
+error: Package 'qt6-base-dev' has no installation candidate
 ```
 
 **السبب:**
-يبني `debian/rules` مساحة العمل كاملة، ومنها مركز التحكم الأصلي بـ GTK4. وهي تحتاج حزم GTK4 وlibadwaita للتطوير، وعلى `debian/control` أن يذكرها وإلا لم يبدأ البناء أصلاً.
+يبني `debian/rules` مساحة عمل Rust ثم مركز التحكم المستقل بـ Qt 6 Widgets في `gui/` عبر CMake. ويحتاج ذلك حزم تطوير Qt 6 الأساسية وCMake، وعلى `debian/control` أن يذكرها وإلا لم يبدأ البناء أصلاً.
 
 **الحل:**
-يجب أن يحتوي `Build-Depends` على `libgtk-4-dev` و`libadwaita-1-dev` إلى جانب حزم GStreamer. يثبّتها المسار أيضاً قبل `debuild`؛ فإن كانت صورة PPA تفتقدها فشل البناء داخل المسار لا داخل `debian/rules`.
+يجب أن يحتوي `Build-Depends` على `qt6-base-dev` و`qt6-base-dev` إلى جانب حزم GStreamer. يثبّتها المسار أيضاً قبل `debuild`؛ فإن كانت صورة PPA تفتقدها فشل البناء داخل المسار لا داخل `debian/rules`.
 
 ---
 
@@ -118,7 +118,7 @@ error: Failed build dependencies:
 يصرّف `data/orbiscreen-copr.spec` مساحة العمل نفسها، فيحتاج نظائر Fedora للحزم التي يحتاجها بناء Debian.
 
 **الحل:**
-تأكد أن `BuildRequires` في الملف يذكر `gstreamer1-devel` و`gstreamer1-plugins-base-devel` و`libdrm-devel` و`libxkbcommon-devel` و`gtk4-devel` و`libadwaita-devel`، وأن إصدار Rust المطلوب على الأقل بقدر `rust-version` في `Cargo.toml`. ويلتقط `scripts/check-versions.sh` وسم `Version:` قديماً، لكنه لا يلتقط متطلّب بناء ناقصاً.
+تأكد أن `BuildRequires` في الملف يذكر `gstreamer1-devel` و`gstreamer1-plugins-base-devel` و`libdrm-devel` و`libxkbcommon-devel` و`qt6-qtbase-devel` و`qt6-qtwayland-devel` و`cmake` و`gcc-c++`، وأن إصدار Rust المطلوب على الأقل بقدر `rust-version` في `Cargo.toml`. ويلتقط `scripts/check-versions.sh` وسم `Version:` قديماً، لكنه لا يلتقط متطلّب بناء ناقصاً.
 
 ---
 
@@ -139,7 +139,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
 cargo machete && cargo deny check && cargo audit
 ```
-تعمل البوابة على مساحة العمل بما فيها حزمة الواجهة الرسومية، لذا يحتاج `cargo clippy --workspace` إلى حزم GTK4 وlibadwaita للتطوير التي يثبّتها `ci.yml`.
+الواجهة مشروع CMake مستقل في `gui/`، لذا لم يعد `cargo clippy --workspace` يحتاج GTK أو Qt؛ ومهمة `gui` في `ci.yml` تثبّت Qt 6 وCMake لبناء واختبار C++.
 
 ---
 

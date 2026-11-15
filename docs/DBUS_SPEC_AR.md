@@ -2,7 +2,7 @@
 
 # مواصفات واجهة D-Bus - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.40.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.41.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -138,6 +138,18 @@ mdns_advertise = true
 ```
 
 عند فشل التسلسل تعيد `config serialize error: <تفاصيل>`.
+
+### 6. `RenderQr(String text) -> String` (التوقيع `s`)
+
+يولّد رمز QR للاتصال لصالح عميل سطح المكتب دون إضافة مكتبة QR إلى الواجهة. الرد
+بصيغة `width:base64` حيث `width` هو عرض شبكة الرمز، والبايتات المفكوكة هي
+`width * width` عينة رمادية (`0` داكن، `255` فاتح). الرد الفارغ يعني تعذّر
+ترميز النص.
+
+```bash
+busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon \
+  com.orbiscreen.Daemon RenderQr "http://192.168.1.5:8788/client/"
+```
 
 ### غير منفّذ
 

@@ -2,7 +2,7 @@
 
 # Troubleshooting - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.40.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.41.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -91,21 +91,22 @@ Packaging runs in dedicated workflows rather than in `ci.yml`, so a green
 
 **Symptom:**
 ```
-dpkg-buildpackage: error: unmet build-dependency: libgtk-4-dev
+dpkg-buildpackage: error: unmet build-dependency: qt6-base-dev
 ```
 or, from the Ubuntu job:
 ```
-error: Package 'libadwaita-1-dev' has no installation candidate
+error: Package 'qt6-base-dev' has no installation candidate
 ```
 
 **Cause:**
-`debian/rules` builds the whole workspace, which includes the native GTK4
-control centre. That needs the GTK4 and libadwaita development packages, and
-`debian/control` has to list them or the build cannot start.
+`debian/rules` builds the Rust workspace and then the separate Qt 6 Widgets
+control centre in `gui/` with CMake. That needs the Qt 6 base development
+packages and CMake, and `debian/control` has to list them or the build cannot
+start.
 
 **Fix:**
-`Build-Depends` must carry `libgtk-4-dev` and `libadwaita-1-dev` next to the
-GStreamer packages. The workflow also installs them before `debuild`; if the
+`Build-Depends` must carry `qt6-base-dev`, `qt6-wayland`, `cmake`, and `g++`
+next to the GStreamer packages. The workflow also installs them before `debuild`; if the
 PPA image lacks them, the build fails in the workflow rather than in
 `debian/rules`.
 
@@ -127,7 +128,7 @@ Fedora equivalents of the packages the Debian build needs.
 **Fix:**
 Confirm `BuildRequires` in the spec lists `gstreamer1-devel`,
 `gstreamer1-plugins-base-devel`, `libdrm-devel`, `libxkbcommon-devel`,
-`gtk4-devel` and `libadwaita-devel`, and that the requested Rust is at least
+`qt6-qtbase-devel`, `qt6-qtwayland-devel`, `cmake`, and `gcc-c++`, and that the requested Rust is at least
 as new as
 `rust-version` in `Cargo.toml`. `scripts/check-versions.sh` catches a stale
 `Version:` tag but not a missing build requirement.
@@ -155,9 +156,9 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
 cargo machete && cargo deny check && cargo audit
 ```
-The gate runs on the workspace including the GUI crate, so
-`cargo clippy --workspace` needs the GTK4 and libadwaita development
-packages that `ci.yml` installs.
+The GUI is a separate CMake project in `gui/`, so `cargo clippy --workspace`
+no longer needs GTK or Qt; the dedicated `gui` job in `ci.yml` installs Qt 6
+and CMake for the C++ build and tests.
 
 ---
 

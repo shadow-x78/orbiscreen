@@ -8,7 +8,7 @@
 
 Secondary monitor for Linux, powered by an Android tablet or phone.
 
-[![Version](https://img.shields.io/badge/version-0.40.1-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.41.0-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge&logo=gnu)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=for-the-badge&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
@@ -205,7 +205,7 @@ orbiscreen/
 │   ├── orbiscreen-input/       # uinput tablet and touch, RemoteDesktop portal
 │   ├── orbiscreen-transport/   # axum, UDP/WebTransport, AOA USB, mDNS
 │   ├── orbiscreen-daemon/      # daemon binary, D-Bus service, CLI
-│   └── orbiscreen-gui/         # native GTK4 + libadwaita control center
+│   └── ...                     # Rust crates (GUI lives in gui/)
 ├── clients/
 │   ├── web/                    # browser client (WebTransport + WebCodecs)
 │   └── android/                # Material 3 Compose app

@@ -2,7 +2,7 @@
 
 # D-Bus API Specification - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.40.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.41.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -138,6 +138,18 @@ mdns_advertise = true
 ```
 
 On serialization failure it returns `config serialize error: <detail>`.
+
+### 6. `RenderQr(String text) -> String` (signature `s`)
+
+Renders the connection QR for the desktop client without adding a QR library
+to the GUI. The reply is `width:base64`, where `width` is the QR grid size and
+the decoded bytes are `width * width` grayscale samples (`0` dark, `255`
+light). An empty reply means the text could not be encoded.
+
+```bash
+busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon \
+  com.orbiscreen.Daemon RenderQr "http://192.168.1.5:8788/client/"
+```
 
 ### Not implemented
 

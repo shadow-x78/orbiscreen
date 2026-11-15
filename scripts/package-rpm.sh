@@ -30,10 +30,14 @@ if [ "${ORBISCREEN_FORCE_REBUILD:-0}" = "1" ] || [ ! -f target/release/orbiscree
     echo "[Orbiscreen] Building release binaries for RPM..."
     cargo build --release --workspace --locked
 fi
+if command -v cmake >/dev/null 2>&1 && pkg-config --exists Qt6Widgets 2>/dev/null; then
+    cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release
+    cmake --build build-gui -j"$(nproc)"
+fi
 
 cp -f target/release/orbiscreen "${BUILD_ROOT}/usr/bin/"
-if [ -f target/release/orbiscreen-gui ]; then
-    cp -f target/release/orbiscreen-gui "${BUILD_ROOT}/usr/bin/"
+if [ -f build-gui/orbiscreen-gui ]; then
+    cp -f build-gui/orbiscreen-gui "${BUILD_ROOT}/usr/bin/"
     RPM_DEFINES+=(--define "_orbiscreen_gui 1")
 fi
 

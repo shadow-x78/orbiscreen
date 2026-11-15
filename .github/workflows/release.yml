@@ -45,7 +45,7 @@ jobs:
             libevdev-dev libxkbcommon-dev libwayland-dev \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
-            libgtk-4-dev libadwaita-1-dev
+            qt6-base-dev qt6-wayland cmake g++
 
       # ── Lint ──
       - name: Format check
@@ -95,12 +95,14 @@ jobs:
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
             rpm imagemagick librsvg2-bin \
-            libgtk-4-dev libadwaita-1-dev
+            qt6-base-dev qt6-wayland cmake g++
 
       # ── Build ──
       - name: Build release binaries
         run: |
           cargo build --release --workspace --locked
+          cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-gui -j"$(nproc)"
 
       - name: Package Linux tarball
         run: |
@@ -110,10 +112,10 @@ jobs:
           mkdir -p release-bundle/lib/udev/rules.d
           mkdir -p release-bundle/share/applications
           cp target/release/orbiscreen release-bundle/bin/
-          if [ -f target/release/orbiscreen-gui ]; then
-            cp target/release/orbiscreen-gui release-bundle/bin/
+          if [ -f build-gui/orbiscreen-gui ]; then
+            cp build-gui/orbiscreen-gui release-bundle/bin/
           fi
-          for f in index.html style.css app.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
+          for f in index.html style.css app.js protocol.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
             install -m 644 "clients/web/$f" "release-bundle/share/orbiscreen/client/$f"
           done
           install -d release-bundle/share/orbiscreen/client/fonts
