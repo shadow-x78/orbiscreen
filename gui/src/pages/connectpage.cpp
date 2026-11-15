@@ -8,6 +8,7 @@
 
 #include <QClipboard>
 #include <QFont>
+#include <QFormLayout>
 #include <QFrame>
 #include <QGridLayout>
 #include <QGuiApplication>

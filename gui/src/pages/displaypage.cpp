@@ -7,6 +7,7 @@
 #include "uikit.h"
 
 #include <QCheckBox>
+#include <QFormLayout>
 #include <QComboBox>
 #include <QFormLayout>
 #include <QGroupBox>
