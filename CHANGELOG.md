@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.41.1] - 2026-11-15
+
+### Fixed
+- fix: strip the empty RUNPATH from the Qt GUI binary for Fedora packaging
+
+`v0.41.0` published the source, tarball, AppImage, deb, rpm, and APK, but the
+Fedora job failed while checking the new Qt binary: CMake leaves an empty
+RUNPATH and Fedora's `brp` check rejects it. The spec now removes it with
+`chrpath`, and the build requires `chrpath`. No runtime behavior changed.
+
 ## [v0.41.0] - 2026-11-15
 
 ### Changed
