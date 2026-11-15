@@ -8,7 +8,7 @@
 
 Secondary monitor for Linux, powered by an Android tablet or phone.
 
-[![Version](https://img.shields.io/badge/version-0.41.2-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.42.0-2563eb?style=for-the-badge&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=for-the-badge&logo=gnu)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=for-the-badge&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
@@ -156,7 +156,13 @@ orbiscreen doctor --fix                       # install missing dependencies
 orbiscreen pair list                          # review device pairing requests
 orbiscreen pair approve                       # accept the newest pairing request
 orbiscreen stop                               # stop a running daemon
+orbiscreen update                             # check for a newer release
+orbiscreen update --json                      # same, machine-readable
 ```
+
+Every command except `version` and `update` prints a one-line notice when a
+newer release exists. Set `ORBISCREEN_NO_UPDATE_CHECK=1` to disable the check,
+for example in offline or metered environments.
 
 The encoder is chosen in the config file rather than on the command line:
 

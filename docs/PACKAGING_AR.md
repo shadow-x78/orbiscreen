@@ -2,7 +2,7 @@
 
 # دليل التغليف متعدد التوزيعات - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.41.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.42.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -12,7 +12,7 @@
 <a id="packaging-matrix"></a>
 ## مصفوفة حزم التوزيعات
 
-مصفوفة الإصدار: `0.41.2` (مساحة العمل)، `versionCode = 192` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع: راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
+مصفوفة الإصدار: `0.42.0` (مساحة العمل)، `versionCode = 193` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع: راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
 
 `versionCode` قيمة تُعدَّل يدوياً ويزيدها واحد مع كل إصدار (وهي عدد صحيح تصاعدي لا يمكن أن يتبع إصداراً دلالياً). `scripts/check-versions.sh` يتحقق من أن كل مواضع الإصدار الـ25 متطابقة مع مساحة عمل Cargo، ويعمل أيضاً ضمن CI.
 
@@ -100,6 +100,23 @@ orbiscreen-<version>-linux-x86_64.tar.gz  # ثنائيات جاهزة
 
 ---
 
+<h2 dir="rtl" align="right">&rlm;أسرار نشر الإصدارات</h2>
+
+<div dir="rtl" align="right">
+
+يلزم سرّان في المستودع لقنوات التوزيع. يفشل سير الإصدار بوضوح عند غياب أي منهما، ولم يعد يستخدم مفتاح RPM بديلاً عن Launchpad.
+
+| السر | يستخدمه | ما يجب أن يكون |
+|---|---|---|
+| `PPA_GPG_KEY` | `Publish to Launchpad PPA` | المفتاح الخاص المدرّع (أو بترميز base64) للمفتاح **المسجّل في حساب Launchpad**. يرفض Launchpad أي رفع موقّع بمفتاح آخر، ولهذا لا يصلح مفتاح RPM بديلاً. |
+| `COPR_API_TOKEN` | `Publish to COPR` | رمز COPR API من <https://copr.fedorainfracloud.org/api/> لمشروع `shadow-x78/orbiscreen`. |
+
+يبقى `RPM_GPG_KEY` و`RPM_GPG_NAME` لتوقيع حزم RPM وAppImage.
+
+بعد دفع الوسم، يرفع سير PPA حزمة المصدر ثم يستعلم واجهة Launchpad حتى يظهر الإصدار نفسه بحالة `Published`. وإن لم يظهر، تفشل المهمة برسالة تشير إلى تسجيل المفتاح أو بريد الرفض. ويبني سير COPR حزمة SRPM ويرسلها بـ `copr-cli`، فيفشل عند غياب الرمز بدل إنتاج RPM محلي فقط.
+
+</div>
+
 ## Fedora / RHEL / CentOS (COPR)
 
 ### مستودع COPR
@@ -176,7 +193,7 @@ ORBISCREEN_KEY_PASSWORD=**** \
 
 ### المخرجات
 - `app/build/outputs/apk/release/app-release.apk` (موقّع، V2/V3)
-- إصدار الكود: `192` (0.41.2)، يُعدَّل يدوياً. يتطلب Android عدداً صحيحاً متزايداً، لذا لا يمكن أن يتبع إصداراً دلالياً؛ زِده واحداً مع كل إصدار.
+- إصدار الكود: `193` (0.42.0)، يُعدَّل يدوياً. يتطلب Android عدداً صحيحاً متزايداً، لذا لا يمكن أن يتبع إصداراً دلالياً؛ زِده واحداً مع كل إصدار.
 
 ### التحقق
 ```bash

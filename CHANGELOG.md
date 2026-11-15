@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.42.0] - 2026-11-15
+
+### Added
+- feat: update notifications in the CLI and the Qt desktop app
+
+Every CLI command except `version` and `update` prints a one-line notice when a
+newer GitHub release exists. `orbiscreen update` reports the current and latest
+versions explicitly, and `--json` makes it machine-readable. The Qt GUI checks
+in the background and shows an "Update available" link in the status bar, with
+Help → Check for Updates for an explicit check. Set
+`ORBISCREEN_NO_UPDATE_CHECK=1` to disable the check.
+
+The check is a 3-second `curl` request to the GitHub releases API, uses the
+installed version from the binary, and never blocks the UI or the daemon.
+
+### Fixed
+- fix: actually publish to COPR and make PPA publishing verifiable
+
+The previous workflows built artifacts but did not publish to COPR at all, and
+the PPA job signed with the RPM key when `PPA_GPG_KEY` was absent. Launchpad
+rejects such uploads, so only 0.16.2 was ever published there. The PPA workflow
+now requires `PPA_GPG_KEY`, signs with it, and polls the Launchpad API until the
+exact version is Published. A new `Publish to COPR` workflow builds the SRPM and
+submits it with `copr-cli` using `COPR_API_TOKEN`. Both fail loudly when their
+secret is missing. See docs/PACKAGING.md for the secret setup.
+
 ## [v0.41.2] - 2026-11-15
 
 ### Fixed

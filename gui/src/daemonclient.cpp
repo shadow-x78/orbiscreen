@@ -348,6 +348,26 @@ void DaemonClient::renderQr(const QString &text)
             });
 }
 
+void DaemonClient::checkForUpdates()
+{
+    runProcess(QStringLiteral("orbiscreen"),
+               {QStringLiteral("update"), QStringLiteral("--json")},
+               [this](bool ok, const QByteArray &output, const QString &error) {
+                   if (!ok) {
+                       emit actionFailed(error.isEmpty()
+                                             ? QStringLiteral("Update check failed")
+                                             : error);
+                       return;
+                   }
+                   const QJsonObject object =
+                       QJsonDocument::fromJson(output).object();
+                   emit updateReady(object.value(QStringLiteral("current")).toString(),
+                                    object.value(QStringLiteral("latest")).toString(),
+                                    object.value(QStringLiteral("url")).toString(),
+                                    object.value(QStringLiteral("update_available")).toBool());
+               });
+}
+
 void DaemonClient::runProcess(
     const QString &program, const QStringList &arguments,
     const std::function<void(bool, const QByteArray &, const QString &)> &done)

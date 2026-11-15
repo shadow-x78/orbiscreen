@@ -1,0 +1,69 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - COPR Publish Workflow
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+
+name: Publish to COPR
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: copr-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  copr:
+    name: Build SRPM & Submit to COPR
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: fedora:latest
+      options: --user root
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Install packaging tools
+        run: |
+          dnf install -y --setopt=install_weak_deps=False \
+            git-core cargo rust rpm-build zstd copr-cli pkgconf-pkg-config
+
+      - name: Build source RPM
+        run: |
+          chmod +x scripts/packit-archive.sh
+          ./scripts/packit-archive.sh
+          VERSION="$(grep -m1 -oP '(?<=^version = ")[^"]+' Cargo.toml)"
+          mkdir -p target/rpmbuild/SOURCES
+          cp -f "orbiscreen-${VERSION}.tar.gz" target/rpmbuild/SOURCES/
+          cp -f "orbiscreen-vendor-${VERSION}.tar.zst" target/rpmbuild/SOURCES/
+          rpmbuild -bs \
+            --define "_topdir $(pwd)/target/rpmbuild" \
+            data/orbiscreen-copr.spec
+          ls -la target/rpmbuild/SRPMS/
+
+      - name: Submit to COPR
+        env:
+          COPR_API_TOKEN: ${{ secrets.COPR_API_TOKEN }}
+        run: |
+          if [ -z "$COPR_API_TOKEN" ]; then
+            echo "::error::COPR_API_TOKEN is not set. Add a COPR API token as a repository secret."
+            exit 1
+          fi
+          mkdir -p ~/.config
+          cat > ~/.config/copr << EOF
+          [copr-cli]
+          username = shadow-x78
+          token = ${COPR_API_TOKEN}
+          copr_url = https://copr.fedorainfracloud.org
+          EOF
+          chmod 600 ~/.config/copr
+          copr-cli build shadow-x78/orbiscreen target/rpmbuild/SRPMS/*.src.rpm

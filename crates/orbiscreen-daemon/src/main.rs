@@ -2,6 +2,7 @@ pub mod client_display;
 pub mod dbus;
 pub mod pipeline;
 pub mod ui;
+pub mod update;
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -144,6 +145,11 @@ enum Command {
     #[command(about = "Display version, developer, and system details")]
     Version {
         #[arg(long, help = "Output version details in raw JSON format")]
+        json: bool,
+    },
+    #[command(about = "Check whether a newer Orbiscreen release is available")]
+    Update {
+        #[arg(long, help = "Output update information in raw JSON format")]
         json: bool,
     },
 }
@@ -380,6 +386,15 @@ async fn main() -> ExitCode {
         }
     };
 
+    if !matches!(
+        cli.command,
+        Some(Command::Version { .. }) | Some(Command::Update { .. })
+    ) {
+        if let Some(notice) = update::notice() {
+            eprintln!("{notice}");
+        }
+    }
+
     match cli.command {
         Some(Command::Start {
             no_mdns,
@@ -545,6 +560,7 @@ async fn main() -> ExitCode {
             ui::print_version_card(json);
             ExitCode::SUCCESS
         }
+        Some(Command::Update { json }) => run_update_check(json).await,
         None => match dbus::request_status().await {
             Ok(_) => run_status(false, cfg.transport.signaling_port).await,
             Err(_) => {
@@ -558,6 +574,49 @@ async fn main() -> ExitCode {
                 }
             }
         },
+    }
+}
+
+async fn run_update_check(json: bool) -> ExitCode {
+    let current = env!("CARGO_PKG_VERSION");
+    let latest = update::latest();
+    match latest {
+        Some((tag, url)) => {
+            let newer = update::is_newer(current, &tag);
+            if json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "current": current,
+                        "latest": tag,
+                        "update_available": newer,
+                        "url": url,
+                    })
+                );
+            } else if newer {
+                println!("A newer Orbiscreen is available: {tag} (installed: v{current})");
+                println!("Download: {url}");
+            } else {
+                println!("Orbiscreen v{current} is up to date.");
+            }
+            ExitCode::SUCCESS
+        }
+        None => {
+            if json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "current": current,
+                        "latest": null,
+                        "update_available": false,
+                        "error": "update check unavailable",
+                    })
+                );
+            } else {
+                eprintln!("Could not check for updates (offline or rate limited).");
+            }
+            ExitCode::SUCCESS
+        }
     }
 }
 

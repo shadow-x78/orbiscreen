@@ -28,6 +28,7 @@ public:
     void runDoctor();
     void runDoctorFix();
     void renderQr(const QString &text);
+    void checkForUpdates();
 
     static QString token();
     static QString sessionUrl(const DaemonStatus &status, const QString &token);
@@ -44,6 +45,8 @@ signals:
     void doctorReady(const DoctorReport &report);
     void doctorFailed(const QString &error);
     void qrReady(const QImage &image);
+    void updateReady(const QString &current, const QString &latest, const QString &url,
+                     bool available);
 
 private:
     void fallbackStatus();

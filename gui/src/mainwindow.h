@@ -57,6 +57,9 @@ private:
     void quitApplication();
     void showFromTray();
     void showAbout();
+    void checkForUpdates();
+    void handleUpdate(const QString &current, const QString &latest, const QString &url,
+                      bool available);
 
     DaemonClient *m_client = nullptr;
     TrayIcon *m_tray = nullptr;
@@ -70,6 +73,7 @@ private:
     QAction *m_refresh = nullptr;
     QAction *m_quit = nullptr;
     QAction *m_about = nullptr;
+    QAction *m_checkUpdates = nullptr;
     QAction *m_viewConnect = nullptr;
     QAction *m_viewDisplay = nullptr;
     QAction *m_viewDoctor = nullptr;
@@ -86,6 +90,7 @@ private:
     QLabel *m_resolutionLabel = nullptr;
     QLabel *m_portsLabel = nullptr;
     QLabel *m_clientsLabel = nullptr;
+    QLabel *m_updateLabel = nullptr;
 
     DaemonStatus m_status;
     DoctorReport m_doctorReport;

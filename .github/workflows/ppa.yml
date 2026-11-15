@@ -80,15 +80,10 @@ jobs:
       - name: Configure GPG key for signing
         env:
           PPA_GPG_KEY: ${{ secrets.PPA_GPG_KEY }}
-          RPM_GPG_KEY: ${{ secrets.RPM_GPG_KEY }}
         run: |
           GPG_KEY="$PPA_GPG_KEY"
           if [ -z "$GPG_KEY" ]; then
-            echo "::warning::PPA_GPG_KEY is not set; falling back to RPM_GPG_KEY."
-            GPG_KEY="$RPM_GPG_KEY"
-          fi
-          if [ -z "$GPG_KEY" ]; then
-            echo "::error::No signing key available. Add PPA_GPG_KEY, or RPM_GPG_KEY as a fallback."
+            echo "::error::PPA_GPG_KEY is not set. Launchpad only accepts uploads signed by a key registered to the PPA owner; the RPM key is not accepted."
             exit 1
           fi
           KEYRING_FILE="$(mktemp)"
@@ -165,5 +160,23 @@ jobs:
             sleep 15
           done
           echo "::error::Failed to upload to Launchpad PPA after multiple attempts."
+          exit 1
+
+      - name: Verify Launchpad published the upload
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$VERSION" = "main" ] || [ -z "$VERSION" ]; then
+            VERSION="$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')"
+          fi
+          URL="https://api.launchpad.net/1.0/~shadow-x78/+archive/ubuntu/ppa?ws.op=getPublishedSources&source_name=orbiscreen&exact_match=true"
+          for attempt in $(seq 1 30); do
+            if curl -fsSL "$URL" | grep -q "\"source_package_version\": \"${VERSION}"; then
+              echo "Launchpad published ${VERSION}."
+              exit 0
+            fi
+            echo "Waiting for Launchpad to publish ${VERSION} (attempt ${attempt}/30)..."
+            sleep 20
+          done
+          echo "::error::Launchpad accepted the upload but did not publish ${VERSION}. Check that PPA_GPG_KEY is registered on Launchpad and review the rejection email."
           exit 1
 

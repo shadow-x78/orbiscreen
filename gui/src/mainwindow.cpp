@@ -25,6 +25,7 @@
 #include <QStatusBar>
 #include <QStyle>
 #include <QTabWidget>
+#include <QTimer>
 #include <QToolBar>
 #include <QWidget>
 
@@ -74,6 +75,7 @@ void MainWindow::buildUi()
     retranslate();
     applyState();
     m_client->refreshStatus();
+    QTimer::singleShot(2500, this, &MainWindow::checkForUpdates);
 }
 
 void MainWindow::createActions()
@@ -94,6 +96,9 @@ void MainWindow::createActions()
 
     m_about = new QAction(this);
     connect(m_about, &QAction::triggered, this, &MainWindow::showAbout);
+
+    m_checkUpdates = new QAction(this);
+    connect(m_checkUpdates, &QAction::triggered, this, &MainWindow::checkForUpdates);
 
     m_viewConnect = new QAction(this);
     connect(m_viewConnect, &QAction::triggered, this,
@@ -137,6 +142,7 @@ void MainWindow::createMenus()
     m_languageMenu->addAction(m_langAr);
 
     m_helpMenu = menuBar()->addMenu(QString());
+    m_helpMenu->addAction(m_checkUpdates);
     m_helpMenu->addAction(m_about);
 }
 
@@ -163,6 +169,10 @@ void MainWindow::createStatusBar()
     m_resolutionLabel = new QLabel(this);
     m_portsLabel = new QLabel(this);
     m_clientsLabel = new QLabel(this);
+    m_updateLabel = new QLabel(this);
+    m_updateLabel->setOpenExternalLinks(true);
+    m_updateLabel->hide();
+    statusBar()->addPermanentWidget(m_updateLabel);
     statusBar()->addPermanentWidget(m_stateLabel);
     statusBar()->addPermanentWidget(m_resolutionLabel);
     statusBar()->addPermanentWidget(m_portsLabel);
@@ -180,6 +190,7 @@ void MainWindow::connectSignals()
     connect(m_client, &DaemonClient::doctorReady, this, &MainWindow::handleDoctorReady);
     connect(m_client, &DaemonClient::doctorFailed, this, &MainWindow::handleDoctorFailed);
     connect(m_client, &DaemonClient::qrReady, this, &MainWindow::handleQr);
+    connect(m_client, &DaemonClient::updateReady, this, &MainWindow::handleUpdate);
 
     connect(m_connect, &ConnectPage::startStopRequested, this,
             [this](bool) { toggleService(); });
@@ -225,6 +236,7 @@ void MainWindow::retranslate()
                                    QStyle::SP_BrowserReload));
     m_quit->setText(t("quit"));
     m_about->setText(t("about"));
+    m_checkUpdates->setText(t("actionCheckUpdates"));
     m_viewConnect->setText(t("tabConnect"));
     m_viewDisplay->setText(t("tabDisplay"));
     m_viewDoctor->setText(t("tabDoctor"));
@@ -428,6 +440,24 @@ void MainWindow::showFromTray()
     showNormal();
     raise();
     activateWindow();
+}
+
+void MainWindow::checkForUpdates()
+{
+    m_client->checkForUpdates();
+}
+
+void MainWindow::handleUpdate(const QString &current, const QString &latest,
+                              const QString &url, bool available)
+{
+    if (!available) {
+        m_updateLabel->hide();
+        return;
+    }
+    const QString text = t("updateAvailable").arg(latest, current);
+    m_updateLabel->setText(
+        QStringLiteral("<a href=\"%1\">%2</a>").arg(url.toHtmlEscaped(), text));
+    m_updateLabel->show();
 }
 
 void MainWindow::showAbout()

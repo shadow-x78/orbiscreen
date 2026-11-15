@@ -1,3 +1,18 @@
+orbiscreen (0.42.0~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.42.0 for Ubuntu noble.
+  * Add update notifications: every CLI command except version/update prints a
+    one-line notice when a newer GitHub release exists, `orbiscreen update`
+    reports it explicitly (with --json), and the Qt GUI shows a status-bar link
+    plus Help -> Check for Updates. ORBISCREEN_NO_UPDATE_CHECK disables it.
+  * Fix the distribution publishing paths. COPR now has a dedicated workflow
+    that builds the SRPM and submits it with copr-cli; the PPA workflow no
+    longer falls back to the RPM signing key (Launchpad rejects it) and verifies
+    that the exact version becomes Published before reporting success.
+  * Bump version to 0.42.0 across all packages; Android versionCode 193.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 20:00:00 +0300
+
 orbiscreen (0.41.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.41.2 for Ubuntu noble.

@@ -2,7 +2,7 @@
 
 # Multi-Distro Packaging Guide - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.41.2-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.42.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -31,11 +31,11 @@
 
 When cutting a release, the version must be updated across all packages:
 
-- `Cargo.toml`: `[workspace.package].version = "0.41.2"`
-- `clients/android/app/build.gradle.kts`: `versionName = "0.41.2"`, `versionCode = 192`
-- `PKGBUILD`: `pkgver=0.41.2`
-- `debian/changelog`: new entry for `0.41.2-1`
-- `data/orbiscreen-copr.spec`: `Version: 0.41.2`
+- `Cargo.toml`: `[workspace.package].version = "0.42.0"`
+- `clients/android/app/build.gradle.kts`: `versionName = "0.42.0"`, `versionCode = 193`
+- `PKGBUILD`: `pkgver=0.42.0`
+- `debian/changelog`: new entry for `0.42.0-1`
+- `data/orbiscreen-copr.spec`: `Version: 0.42.0`
 
 Verify with the consistency check, which compares every location above against the Cargo
 workspace and exits non-zero on any mismatch. It runs in CI as well:
@@ -52,7 +52,7 @@ does not detect drift between the packaging files.
 <a id="packaging-matrix"></a>
 ## Packaging Matrix
 
-The release matrix is: `0.41.2` (workspace), `versionCode = 192` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
+The release matrix is: `0.42.0` (workspace), `versionCode = 193` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
 
 Orbiscreen provides build configurations and package definitions for all major Linux distributions and Android:
 
@@ -141,6 +141,26 @@ The source tarball contains the complete workspace with all crates and clients. 
 
 ---
 
+## Release Publishing Secrets
+
+Two repository secrets are required for the distribution channels. The release
+workflow fails loudly when either is missing; it no longer falls back to the
+RPM key for Launchpad.
+
+| Secret | Used by | What it must be |
+|---|---|---|
+| `PPA_GPG_KEY` | `Publish to Launchpad PPA` | The armored (or base64-encoded) private key of the GPG key **registered on your Launchpad account**. Launchpad rejects uploads signed by any other key, which is why the RPM key cannot be used as a fallback. |
+| `COPR_API_TOKEN` | `Publish to COPR` | A COPR API token created at <https://copr.fedorainfracloud.org/api/> for the `shadow-x78/orbiscreen` project. |
+
+`RPM_GPG_KEY` and `RPM_GPG_NAME` remain for signing the RPMs and the AppImage.
+
+After a tag is pushed, the PPA workflow uploads the source package and then
+polls the Launchpad API until the exact version appears as `Published`. If the
+version never appears, the job fails with a message pointing at the key
+registration or the Launchpad rejection email. The COPR workflow builds the
+SRPM and submits it with `copr-cli`, so a missing token fails the job instead of
+silently producing only local RPMs.
+
 ## Fedora / RHEL / CentOS (COPR)
 
 ### COPR Repository
@@ -217,7 +237,7 @@ ORBISCREEN_KEY_PASSWORD=**** \
 
 ### Output
 - `app/build/outputs/apk/release/app-release.apk` (signed, V2/V3)
-- Version code: `192` (0.41.2), edited by hand. Android requires a strictly increasing
+- Version code: `193` (0.42.0), edited by hand. Android requires a strictly increasing
   integer, so it cannot track a semantic version; bump it by one per release.
   `scripts/check-versions.sh` verifies that it still matches the value quoted in this
   document, but it cannot tell you whether the release needs to advance it.
