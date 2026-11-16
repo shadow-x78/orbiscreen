@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.42.4
+%global version 0.43.0
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -152,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Mon Nov 16 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.43.0-1
+- Release 0.43.0: modern Qt desktop redesign with vector icons and a crisp QR code
+
 * Mon Nov 16 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.42.4-1
 - Release 0.42.4: contact address update and reliable PPA publish verification
 

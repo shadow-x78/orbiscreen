@@ -2,7 +2,7 @@
 
 # مواصفات المعمارية - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.42.4-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.43.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -87,10 +87,11 @@ flowchart TD
 
 - `DaemonClient` يدير نداءات D-Bus غير المتزامنة (`GetStatus` و`Stop` و`SetResolution` و`RenderQr`)، واستدعاءات `QProcess` لـ `systemctl` وواجهة `orbiscreen`، ومسارات التوكن والإعداد والتشغيل التلقائي، وبناء روابط الجلسة وUSB.
 - `report.{h,cpp}` يحلل `StatusReport` و`DoctorReport` من JSON؛ وتبقى أنواع Rust في النواة مرجع المخطط.
-- `MainWindow` يوفّر شريط القوائم وشريط الأدوات والتبويبات وشريط الحالة وإجراءات شريط النظام. وتحت `pages/` صفحات الاتصال والشاشة والإدخال والفحص.
+- `MainWindow` يوفّر الترويسة (الشعار، حبّة الحالة، بدء/إيقاف، إعادة التشغيل، التحديث، وقائمة إضافية)، والتبويبات، وشريط الحالة، وإجراءات شريط النظام. وتحت `pages/` صفحات الاتصال والشاشة والإدخال والفحص المبنية على `uikit`.
+- `uikit` يوفّر البطاقة وحبّة الحالة والمفتاح وبلاطة الإحصاء ودوال التسميات المشتركة، و`qrview` يرسم رمز QR.
 - `I18n` يحفظ قاموسي الإنجليزية والعربية وملف `~/.config/orbiscreen/gui.json`، ويحوّل الاتجاه إلى RTL للعربية.
-- `Theme` يطبّق سمة المنصة دون أوراق أنماط أو لوحة ألوان مخصصة: Breeze على Plasma، وFusion مع لوحة النظام وخطوطه وأيقوناته (`QIcon::fromTheme`) كبديل نظيف.
-- يولّد الخادم رمز QR عبر `RenderQr` الذي يعيد `width:base64`، فلا يحتاج العميل أي حزمة QR.
+- `Theme` يبني لوحة الألوان وورقة الأنماط للوضع الفاتح أو الداكن من إعداد النظام (ويمكن فرضه بـ `ORBISCREEN_THEME=dark|light`)، ويفرض Fusion لثبات المظهر، ويرسم مجموعة الأيقونات المتجهية عبر `QIconEngine`، فلا تعتمد الواجهة على سمة أيقونات النظام.
+- يولّد الخادم رمز QR عبر `RenderQr` الذي يعيد `width:base64`. ويرسم `QrView` مصفوفة الوحدات مع هامش هادئ، فلا يحتاج العميل أي حزمة QR.
 - يُستخدم `QSystemTrayIcon` عند وجود مضيف StatusNotifier؛ وإلا فإن إغلاق النافذة ينهي التطبيق بدل ترك عملية خفية.
 
 </div>
@@ -99,14 +100,14 @@ flowchart TD
 
 <div dir="rtl" align="right">
 
-نقلت إعادة الهيكلة في 0.42.4 كل تعريف مكرر إلى الطبقة الأدنى التي تملكه:
+نقلت إعادة الهيكلة في 0.43.0 كل تعريف مكرر إلى الطبقة الأدنى التي تملكه:
 
 - `orbiscreen-core::{session, frame, paths, shm, ports, report, output}`: خطة الالتقاط وكشف الجلسة، وتحويل BGRA/الـ stride، ومسارات XDG والكتابة الذرية للأسرار، وتعيين الذاكرة المشتركة، وحساب المنافذ، وتقارير `StatusReport`/`DoctorReport`، وأسماء المخارج الافتراضية.
 - `orbiscreen-transport::{protocol, session}`: أنواع الإطارات وأطوال الرؤوس ومسارات النقاط، وسياسة الاتصال والقطع وطلب IDR وانتظار الإطار المفتاحي المشتركة بين HTTP Annex-B و MPEG-TS و WebTransport.
 - `orbiscreen-daemon::pipeline`: مضخة IDR، وتطبيع PTS، وتحجيم إحداثيات الإدخال، وتوزيع `IncomingInput` المشترك بين مساري العرض المشترك ولكل عميل.
 - `clients/web/protocol.js` (يتحقق منه `protocol.golden.json`) و`net/Protocol.kt` في Android هما النظيران في العميل. و`net/HostSpec.kt` هو المرجع الوحيد لتحليل host:port والمخطط وعنوان loopback.
 
-أُزيلت جلسة العرض الثانوي المستقلة في 0.42.4 لأنها كانت تحجز `signaling_port + 2`، وهو نفس منفذ WebTransport، فلم تكن تعمل بجانب النقل العادي. تدعم عدة أجهزة لوحية عبر مركز جلسات KWin لكل عميل، بمخرج `Virtual-Orbi-<key>` لكل جهاز.
+أُزيلت جلسة العرض الثانوي المستقلة في 0.43.0 لأنها كانت تحجز `signaling_port + 2`، وهو نفس منفذ WebTransport، فلم تكن تعمل بجانب النقل العادي. تدعم عدة أجهزة لوحية عبر مركز جلسات KWin لكل عميل، بمخرج `Virtual-Orbi-<key>` لكل جهاز.
 
 </div>
 

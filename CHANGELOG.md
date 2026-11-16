@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.43.0] - 2026-11-16
+
+### Changed
+- feat: redesign the Qt desktop interface with a modern theme, runtime vector icons, and a crisp QR code
+
+The desktop client drops the native `QGroupBox` frames and the menu-bar/toolbar
+layout for a card-based interface. `MainWindow` now has a compact header — logo,
+state pill, a primary start/stop action, restart, refresh, and an overflow menu —
+and the pages are built from rounded cards, stat tiles, a custom switch, and
+status rows. Actions, shortcuts, the tray menu, the D-Bus contract, and the
+binary/desktop-entry names are unchanged.
+
+- `Theme` builds one palette and stylesheet from the system light/dark setting
+  (`ORBISCREEN_THEME=dark|light` overrides it) and forces Fusion so the stylesheet
+  renders the same on every desktop; it no longer depends on a complete system
+  icon theme.
+- Icons are drawn by a `QIconEngine` from new vector glyphs in `theme.cpp`, so
+  they stay sharp at any DPI and follow the palette. The window and tray icons use
+  the project logo instead of a themed fallback.
+- `QrView` paints the daemon's module matrix directly with a four-module quiet
+  zone instead of scaling a bitmap, so the QR stays sharp and scannable.
+- Right-to-left layouts mirror end to end — header, values, and pages — and
+  switching language at runtime updates both directions and strings.
+- The header start/stop action replaces the duplicate button that sat at the
+  bottom of the Connect page; Connect, Display & Input, and Doctor were rebuilt
+  with `uikit` (cards, stat tiles, switch, status pill).
+- Version bumped to 0.43.0 across the Cargo workspace, Android (`versionCode` 198), PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.42.4] - 2026-11-16
 
 ### Changed

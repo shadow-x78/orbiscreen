@@ -13,10 +13,8 @@ int main(int argc, char *argv[])
     Theme::apply();
     I18n::instance().load();
 
-    Theme::resolveSystemIconTheme([] {
-        auto *window = new MainWindow;
-        window->setAttribute(Qt::WA_DeleteOnClose);
-        window->show();
-    });
+    auto *window = new MainWindow;
+    window->setAttribute(Qt::WA_DeleteOnClose);
+    window->show();
     return app.exec();
 }

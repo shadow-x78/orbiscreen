@@ -3,16 +3,14 @@
 #include "pages/doctorpage.h"
 
 #include "i18n.h"
+#include "theme.h"
 #include "uikit.h"
 
-#include <QFont>
-#include <QFormLayout>
-#include <QGroupBox>
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
-#include <QStyle>
 #include <QVBoxLayout>
 
 namespace {
@@ -28,37 +26,30 @@ DoctorPage::DoctorPage(QWidget *parent)
     : QWidget(parent)
 {
     auto *outer = new QVBoxLayout(this);
-    outer->setContentsMargins(0, 0, 0, 0);
+    outer->setContentsMargins(20, 12, 20, 16);
     auto *scroll = new QScrollArea(this);
     scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     auto *content = new QWidget(scroll);
     auto *layout = new QVBoxLayout(content);
-    layout->setContentsMargins(12, 12, 12, 12);
-    layout->setSpacing(12);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(14);
 
-    m_headerGroup = UiKit::group(t("doctorTitle"));
-    auto *headerLayout = new QVBoxLayout(m_headerGroup);
-    headerLayout->setContentsMargins(12, 10, 12, 10);
-    headerLayout->setSpacing(8);
-    m_title = UiKit::label(t("doctorTitle"));
-    QFont titleFont = m_title->font();
-    titleFont.setBold(true);
-    titleFont.setPointSizeF(titleFont.pointSizeF() * 1.15);
-    m_title->setFont(titleFont);
-    m_description = UiKit::label(t("doctorDesc"), true, true);
-    auto *actions = new QHBoxLayout;
-    m_scan = UiKit::button(t("scan"), true);
-    m_fix = UiKit::button(t("autoFix"));
-    actions->addWidget(m_scan);
-    actions->addWidget(m_fix);
-    headerLayout->addWidget(m_title);
-    headerLayout->addWidget(m_description);
-    headerLayout->addLayout(actions);
+    m_headerCard = UiKit::card(Theme::Glyph::Doctor, t("doctorTitle"));
+    auto *headerRow = new QHBoxLayout;
+    headerRow->setSpacing(16);
+    m_description = UiKit::label(t("doctorDesc"), QStringLiteral("Muted"), true);
+    headerRow->addWidget(m_description, 1);
+    m_scan = UiKit::button(t("scan"), Theme::Glyph::Refresh, QStringLiteral("primary"));
+    m_fix = UiKit::button(t("autoFix"), Theme::Glyph::CheckMark);
+    headerRow->addWidget(m_scan);
+    headerRow->addWidget(m_fix);
+    m_headerCard->body()->addLayout(headerRow);
 
-    m_resultsGroup = UiKit::group(t("doctorTitle"));
-    auto *form = UiKit::form();
-    m_empty = UiKit::label(t("doctorNoReport"), true, true);
-    form->addRow(m_empty);
+    m_resultsCard = UiKit::card(Theme::Glyph::Chip, t("doctorTitle"));
+    m_empty = UiKit::label(t("doctorNoReport"), QStringLiteral("Muted"), true);
+    m_resultsCard->body()->addWidget(m_empty);
     const char *rowKeys[6] = {"docCompositor", "docBackend", "docUinput",
                               "docEncoder", "portsTitle", "docUsb"};
     QLabel **values[6] = {&m_compositor, &m_backend, &m_uinput,
@@ -66,32 +57,36 @@ DoctorPage::DoctorPage(QWidget *parent)
     QLabel **icons[6] = {nullptr, &m_backendIcon, &m_uinputIcon,
                          &m_encoderIcon, nullptr, &m_usbIcon};
     for (int index = 0; index < 6; ++index) {
-        m_rowTitles[index] = UiKit::label(t(rowKeys[index]), true);
-        auto *row = new QWidget(m_resultsGroup);
+        auto *divider = UiKit::divider();
+        m_dividers[index] = divider;
+        if (index > 0) {
+            m_resultsCard->body()->addWidget(divider);
+        } else {
+            divider->hide();
+        }
+        auto *row = new QWidget(m_resultsCard);
         auto *rowLayout = new QHBoxLayout(row);
         rowLayout->setContentsMargins(0, 0, 0, 0);
-        rowLayout->setSpacing(8);
+        rowLayout->setSpacing(10);
+        m_rowTitles[index] = UiKit::label(t(rowKeys[index]), QStringLiteral("Muted"));
         *values[index] = UiKit::valueLabel();
+        rowLayout->addWidget(m_rowTitles[index], 0, Qt::AlignVCenter);
         rowLayout->addWidget(*values[index], 1);
         if (icons[index]) {
-            *icons[index] = UiKit::statusIcon(QStringLiteral("warn"));
-            rowLayout->addWidget(*icons[index]);
+            *icons[index] = UiKit::statusIcon(QStringLiteral("warn"), 18);
+            rowLayout->addWidget(*icons[index], 0, Qt::AlignVCenter);
         }
-        form->addRow(m_rowTitles[index], row);
+        m_resultsCard->body()->addWidget(row);
+        m_rowWidgets[index] = row;
     }
-    m_resultsGroup->setLayout(form);
 
-    m_notesGroup = UiKit::group(t("docTipTitle"));
-    auto *notesLayout = new QVBoxLayout(m_notesGroup);
-    notesLayout->setContentsMargins(12, 10, 12, 10);
-    m_notesTitle = UiKit::label(t("docTipTitle"));
-    m_notesText = UiKit::label(t("docTipDesc"), true, true);
-    notesLayout->addWidget(m_notesTitle);
-    notesLayout->addWidget(m_notesText);
+    m_notesCard = UiKit::card(Theme::Glyph::Info, t("docTipTitle"));
+    m_notesText = UiKit::label(t("docTipDesc"), QStringLiteral("Muted"), true);
+    m_notesCard->body()->addWidget(m_notesText);
 
-    layout->addWidget(m_headerGroup);
-    layout->addWidget(m_resultsGroup);
-    layout->addWidget(m_notesGroup);
+    layout->addWidget(m_headerCard);
+    layout->addWidget(m_resultsCard);
+    layout->addWidget(m_notesCard);
     layout->addStretch(1);
     scroll->setWidget(content);
     outer->addWidget(scroll);
@@ -110,6 +105,16 @@ void DoctorPage::update(const DaemonStatus &status, const DoctorReport &report,
                          .arg(status.udpPort)
                          .arg(t("docPortsDesc")));
     m_empty->setVisible(!hasReport);
+    for (QWidget *row : m_rowWidgets) {
+        if (row) {
+            row->setVisible(hasReport);
+        }
+    }
+    for (int index = 1; index < 6; ++index) {
+        if (m_dividers[index]) {
+            m_dividers[index]->setVisible(hasReport);
+        }
+    }
     if (!hasReport) {
         return;
     }
@@ -179,13 +184,11 @@ void DoctorPage::setBusy(bool scanning, bool fixing)
 
 void DoctorPage::retranslate()
 {
-    m_headerGroup->setTitle(t("doctorTitle"));
-    m_resultsGroup->setTitle(t("doctorTitle"));
-    m_notesGroup->setTitle(t("docTipTitle"));
-    m_title->setText(t("doctorTitle"));
+    m_headerCard->setTitle(t("doctorTitle"));
+    m_resultsCard->setTitle(t("doctorResults"));
+    m_notesCard->setTitle(t("docTipTitle"));
     m_description->setText(t("doctorDesc"));
     m_empty->setText(t("doctorNoReport"));
-    m_notesTitle->setText(t("docTipTitle"));
     m_notesText->setText(t("docTipDesc"));
     const char *rowKeys[6] = {"docCompositor", "docBackend", "docUinput",
                               "docEncoder", "portsTitle", "docUsb"};

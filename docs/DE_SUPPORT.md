@@ -2,7 +2,7 @@
 
 # Desktop Environment Support - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.42.4-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.43.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -32,11 +32,15 @@ orbiscreen doctor --fix    # install/load the EVDI kernel module where possible
 ## Desktop GUI (Qt 6 Widgets)
 
 The control center is a Qt 6 Widgets application, not a GNOME application. It
-follows the platform style automatically:
+uses the same interface design on every desktop:
 
-- **KDE Plasma:** Breeze style, Breeze icons, and the system palette.
-- **GNOME and other desktops:** Fusion with the system palette, fonts, and icon
-  theme. There is no Adwaita-Qt dependency and no bundled stylesheet.
+- **Look:** a card-based layout with a compact header, a status pill, and an
+  overflow menu. The app draws its own vector icons, so it does not need a
+  complete system icon theme.
+- **Light and dark:** the palette follows the system setting; set
+  `ORBISCREEN_THEME=light` or `ORBISCREEN_THEME=dark` to force one. A bundled
+  stylesheet is applied over the Fusion style so the render is consistent.
+- **No Adwaita-Qt:** it does not link GTK, libadwaita, or Adwaita-Qt.
 - **System tray:** `QSystemTrayIcon` is used when the desktop provides a
   StatusNotifier host. GNOME needs an AppIndicator extension; without one the
   window closes normally instead of hiding invisibly.

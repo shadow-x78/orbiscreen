@@ -17,10 +17,10 @@ TrayIcon::TrayIcon(QObject *parent)
     }
 
     m_menu = new QMenu;
-    m_open = m_menu->addAction(QString());
+    m_open = m_menu->addAction(Theme::glyph(Theme::Glyph::Dashboard), QString());
     m_menu->addSeparator();
-    m_start = m_menu->addAction(QString());
-    m_stop = m_menu->addAction(QString());
+    m_start = m_menu->addAction(Theme::glyph(Theme::Glyph::Play), QString());
+    m_stop = m_menu->addAction(Theme::glyph(Theme::Glyph::Stop), QString());
     m_menu->addSeparator();
     m_quit = m_menu->addAction(QString());
 
@@ -30,10 +30,7 @@ TrayIcon::TrayIcon(QObject *parent)
     connect(m_quit, &QAction::triggered, this, &TrayIcon::quitRequested);
 
     m_tray = new QSystemTrayIcon(this);
-    m_tray->setIcon(Theme::icon(
-        {QStringLiteral("orbiscreen-gui"), QStringLiteral("orbiscreen"),
-         QStringLiteral("video-display")},
-        QStyle::SP_ComputerIcon));
+    m_tray->setIcon(Theme::logoIcon());
     m_tray->setContextMenu(m_menu);
     connect(m_tray, &QSystemTrayIcon::activated, this,
             [this](QSystemTrayIcon::ActivationReason reason) {

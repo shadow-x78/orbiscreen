@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(orbiscreen-gui VERSION 0.42.4 LANGUAGES CXX)
+project(orbiscreen-gui VERSION 0.43.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,6 +20,7 @@ set(ORBISCREEN_GUI_SOURCES
     src/i18n.cpp
     src/theme.cpp
     src/uikit.cpp
+    src/qrview.cpp
     src/trayicon.cpp
     src/pages/connectpage.cpp
     src/pages/displaypage.cpp

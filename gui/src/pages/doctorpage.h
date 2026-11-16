@@ -5,10 +5,11 @@
 #include <QWidget>
 
 #include "report.h"
+#include "uikit.h"
 
-class QGroupBox;
 class QLabel;
 class QPushButton;
+class QFrame;
 
 class DoctorPage : public QWidget {
     Q_OBJECT
@@ -25,15 +26,16 @@ signals:
     void fixRequested();
 
 private:
-    QGroupBox *m_headerGroup = nullptr;
-    QGroupBox *m_resultsGroup = nullptr;
-    QGroupBox *m_notesGroup = nullptr;
-    QLabel *m_title = nullptr;
+    UiKit::Card *m_headerCard = nullptr;
+    UiKit::Card *m_resultsCard = nullptr;
+    UiKit::Card *m_notesCard = nullptr;
+
     QLabel *m_description = nullptr;
-    QLabel *m_notesTitle = nullptr;
     QLabel *m_notesText = nullptr;
     QLabel *m_empty = nullptr;
     QLabel *m_rowTitles[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    QWidget *m_rowWidgets[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    QFrame *m_dividers[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
     QLabel *m_compositor = nullptr;
     QLabel *m_backend = nullptr;
     QLabel *m_uinput = nullptr;

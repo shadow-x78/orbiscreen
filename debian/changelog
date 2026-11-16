@@ -1,3 +1,14 @@
+orbiscreen (0.43.0~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.43.0 for Ubuntu noble.
+  * Redesign the Qt desktop interface: card-based pages, a compact header with
+    a state pill and an overflow menu, runtime vector icons, a light/dark palette
+    detected from the system (ORBISCREEN_THEME overrides it), and a QR renderer
+    that paints modules with a quiet zone instead of scaling a bitmap.
+  * Bump version to 0.43.0 across all packages; Android versionCode 198.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Mon, 16 Nov 2026 12:00:00 +0300
+
 orbiscreen (0.42.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.42.4 for Ubuntu noble.

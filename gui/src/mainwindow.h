@@ -13,14 +13,19 @@ class QAction;
 class QCloseEvent;
 class QFrame;
 class QLabel;
-class QPushButton;
 class QMenu;
+class QPushButton;
 class QTabWidget;
+class QToolButton;
 class ConnectPage;
 class DisplayPage;
 class DoctorPage;
 class DaemonClient;
 class TrayIcon;
+
+namespace UiKit {
+class StatusPill;
+}
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -34,13 +39,15 @@ protected:
 private:
     void buildUi();
     void createActions();
-    void createMenus();
-    void createToolbar();
+    void createMenu();
     void createStatusBar();
     void connectSignals();
     void retranslate();
+    void refreshTabIcons();
+    void syncHeaderAction();
     void applyState();
     QString stateText() const;
+    QString stateKey() const;
     void toggleService();
     void restartService();
     void applyResolution(int width, int height, int fps);
@@ -84,20 +91,23 @@ private:
     QAction *m_langEn = nullptr;
     QAction *m_langAr = nullptr;
 
-    QMenu *m_serviceMenu = nullptr;
+    QMenu *m_overflow = nullptr;
     QMenu *m_viewMenu = nullptr;
     QMenu *m_languageMenu = nullptr;
-    QMenu *m_helpMenu = nullptr;
 
-    QLabel *m_toolbarState = nullptr;
+    QLabel *m_appIcon = nullptr;
+    QLabel *m_appTitle = nullptr;
+    QLabel *m_appTagline = nullptr;
     QLabel *m_stateLabel = nullptr;
     QLabel *m_resolutionLabel = nullptr;
     QLabel *m_portsLabel = nullptr;
     QLabel *m_clientsLabel = nullptr;
-    QLabel *m_appIcon = nullptr;
-    QLabel *m_appTitle = nullptr;
-    QLabel *m_appTagline = nullptr;
-    QLabel *m_headerState = nullptr;
+    UiKit::StatusPill *m_statusPill = nullptr;
+    QToolButton *m_headerAction = nullptr;
+    QToolButton *m_restartButton = nullptr;
+    QToolButton *m_refreshButton = nullptr;
+    QToolButton *m_menuButton = nullptr;
+
     QFrame *m_updateBar = nullptr;
     QLabel *m_updateText = nullptr;
     QPushButton *m_updateDownload = nullptr;
@@ -114,4 +124,6 @@ private:
     QString m_updateVersion;
     QString m_updateUrl;
     QImage m_qr;
+    int m_lastHeaderActionKey = -1;
+    int m_lastTabIconIndex = -1;
 };
