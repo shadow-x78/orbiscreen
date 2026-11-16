@@ -2,7 +2,7 @@
 
 # Security Policy - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.43.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.43.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -28,10 +28,10 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.32.x | ✅ Active development |
-| 0.31.x | ⚠️ Maintenance |
-| 0.30.x | ⚠️ Maintenance |
-| < 0.30  | ❌ Not supported |
+| 0.43.x | ✅ Active development |
+| 0.42.x | ⚠️ Maintenance |
+| 0.41.x | ⚠️ Maintenance |
+| < 0.41  | ❌ Not supported |
 
 Only the latest minor release receives security updates. Ensure you build from `main` before reporting.
 

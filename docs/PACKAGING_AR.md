@@ -2,7 +2,7 @@
 
 # دليل التغليف متعدد التوزيعات - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.43.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.43.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -12,7 +12,7 @@
 <a id="packaging-matrix"></a>
 ## مصفوفة حزم التوزيعات
 
-مصفوفة الإصدار: `0.43.0` (مساحة العمل)، `versionCode = 198` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع: راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
+مصفوفة الإصدار: `0.43.1` (مساحة العمل)، `versionCode = 199` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع: راجع SECURITY.md؛ وفّر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
 
 `versionCode` قيمة تُعدَّل يدوياً ويزيدها واحد مع كل إصدار (وهي عدد صحيح تصاعدي لا يمكن أن يتبع إصداراً دلالياً). `scripts/check-versions.sh` يتحقق من أن كل مواضع الإصدار الـ25 متطابقة مع مساحة عمل Cargo، ويعمل أيضاً ضمن CI.
 
@@ -114,7 +114,7 @@ orbiscreen-<version>-linux-x86_64.tar.gz  # ثنائيات جاهزة
 
 يبقى `RPM_GPG_KEY` و`RPM_GPG_NAME` لتوقيع حزم RPM وAppImage. وإذا كان مفتاح PPA محمياً بكلمة مرور فأضف `PPA_GPG_PASSPHRASE`؛ يكتبه السير في ملف مؤقت خاص لـ`debuild` ثم يحذفه.
 
-بعد دفع الوسم، يرفع سير PPA حزمة المصدر ثم يستعلم واجهة Launchpad حتى يظهر الإصدار نفسه بحالة `Published`. وإن لم يظهر، تفشل المهمة برسالة تشير إلى تسجيل المفتاح أو بريد الرفض. ويبني سير COPR حزمة SRPM ويرسلها بـ `copr-cli`، فيفشل عند غياب الرمز بدل إنتاج RPM محلي فقط.
+بعد دفع الوسم، يرفع سير PPA حزمة المصدر ثم يستعلم واجهة Launchpad عن الإصدار نفسه. يميّز `scripts/check-ppa-published.py` أربع حالات: منشور، أو ما يزال في الانتظار أو قيد البناء، أو مرفوض/مستبدل، أو غير موجود بعد. تنتظر المهمة حتى 30 دقيقة ظهور `Published`؛ وإذا قبِلت Launchpad المصدر وما زال يُبنى تنتهي المهمة بتحذير ورابط صفحة حزم PPA بدل فشل زائف، لأن طابور البناء قد يتجاوز عمر المهمة. أما الرفع المرفوض فيُفشل المهمة برسالة تشير إلى تسجيل المفتاح أو بريد الرفض. ويبني سير COPR حزمة SRPM ويرسلها بـ `copr-cli`، فيفشل عند غياب الرمز بدل إنتاج RPM محلي فقط.
 
 </div>
 
@@ -194,7 +194,7 @@ ORBISCREEN_KEY_PASSWORD=**** \
 
 ### المخرجات
 - `app/build/outputs/apk/release/app-release.apk` (موقّع، V2/V3)
-- إصدار الكود: `198` (0.43.0)، يُعدَّل يدوياً. يتطلب Android عدداً صحيحاً متزايداً، لذا لا يمكن أن يتبع إصداراً دلالياً؛ زِده واحداً مع كل إصدار.
+- إصدار الكود: `199` (0.43.1)، يُعدَّل يدوياً. يتطلب Android عدداً صحيحاً متزايداً، لذا لا يمكن أن يتبع إصداراً دلالياً؛ زِده واحداً مع كل إصدار.
 
 ### التحقق
 ```bash

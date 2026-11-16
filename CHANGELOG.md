@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.43.1] - 2026-11-16
+
+### Changed
+- fix: unblock USB video on Android 8 decoders. The decoder is configured with a
+  4 MiB input buffer (`KEY_MAX_INPUT_SIZE`), so the keyframes older Android 8
+  decoders rejected now fit. If an access unit still exceeds the buffer, two
+  oversized keyframes in a row make the client ask the host for a
+  three-quarter-resolution stream instead of stalling, and a codec feed failure
+  falls back to the software decoder and waits for the next keyframe.
+- fix: keep the PPA release job from failing while Launchpad is still building.
+  `scripts/check-ppa-published.py` now reports published, pending, rejected, and
+  missing separately, and the workflow waits up to 30 minutes before warning
+  instead of failing; a rejected upload still fails the job.
+- fix: `scripts/set-version.sh` escapes the dots in the old version, so a bump no
+  longer rewrites the `7680x4320` resolution in the README.
+- Version bumped to 0.43.1 across the Cargo workspace, Android (`versionCode` 199), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.43.0] - 2026-11-16
 
 ### Changed

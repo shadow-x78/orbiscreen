@@ -138,12 +138,21 @@ jobs:
       - name: Check if Launchpad already published this version
         id: published
         run: |
-          if python3 scripts/check-ppa-published.py "$VERSION"; then
-            echo "already=true" >> "$GITHUB_OUTPUT"
-            echo "Launchpad already has ${VERSION}."
-          else
-            echo "already=false" >> "$GITHUB_OUTPUT"
-          fi
+          rc=0
+          python3 scripts/check-ppa-published.py "$VERSION" || rc=$?
+          case "$rc" in
+            0)
+              echo "already=true" >> "$GITHUB_OUTPUT"
+              echo "Launchpad already published ${VERSION}."
+              ;;
+            3)
+              echo "already=true" >> "$GITHUB_OUTPUT"
+              echo "::notice::Launchpad already accepted ${VERSION} and is still building it; skipping the upload."
+              ;;
+            *)
+              echo "already=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       # ── Source Package ──
       - name: Build Debian Source Package
@@ -188,14 +197,26 @@ jobs:
 
       - name: Verify Launchpad published the upload
         run: |
-          for attempt in $(seq 1 30); do
-            if python3 scripts/check-ppa-published.py "$VERSION"; then
-              echo "Launchpad published ${VERSION}."
-              exit 0
-            fi
-            echo "Waiting for Launchpad to publish ${VERSION} (attempt ${attempt}/30)..."
-            sleep 20
+          for attempt in $(seq 1 60); do
+            rc=0
+            python3 scripts/check-ppa-published.py "$VERSION" || rc=$?
+            case "$rc" in
+              0)
+                echo "Launchpad published ${VERSION}."
+                exit 0
+                ;;
+              4)
+                echo "::error::Launchpad rejected ${VERSION}; review the rejection email for the PPA owner and the signing key."
+                exit 1
+                ;;
+              3)
+                echo "Launchpad is still building ${VERSION} (attempt ${attempt}/60). The build queue can take longer than this job."
+                ;;
+              *)
+                echo "No published source for ${VERSION} yet (attempt ${attempt}/60)."
+                ;;
+            esac
+            sleep 30
           done
-          echo "::error::Launchpad accepted the upload but did not publish ${VERSION}. Check that PPA_GPG_KEY is registered on Launchpad and review the rejection email."
-          exit 1
+          echo "::warning::Launchpad accepted ${VERSION} but it is still building. Check https://launchpad.net/~shadow-x78/+archive/ubuntu/ppa/+packages before announcing the release."
 

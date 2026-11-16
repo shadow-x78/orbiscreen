@@ -1,3 +1,18 @@
+orbiscreen (0.43.1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.43.1 for Ubuntu noble.
+  * Android: give the AVC decoder a 4 MiB input buffer so the keyframes older
+    Android 8 decoders rejected now fit; after two oversized keyframes ask the
+    host for a three-quarter-resolution stream, and drop to the software decoder
+    when the codec refuses a buffer.
+  * PPA: stop failing the release while Launchpad is still building. The check
+    script reports published, pending, rejected, and missing separately and the
+    workflow waits up to 30 minutes before warning; rejected uploads still fail.
+  * Fix the version script so a bump no longer rewrites 7680x4320 in the README.
+  * Bump version to 0.43.1 across all packages; Android versionCode 199.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Mon, 16 Nov 2026 16:30:00 +0300
+
 orbiscreen (0.43.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.43.0 for Ubuntu noble.

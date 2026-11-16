@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.43.0
+%global version 0.43.1
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -152,6 +152,10 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Mon Nov 16 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.43.1-1
+- Release 0.43.1: unblock USB video on Android 8 decoders and keep the PPA
+  release job from failing while Launchpad builds
+
 * Mon Nov 16 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.43.0-1
 - Release 0.43.0: modern Qt desktop redesign with vector icons and a crisp QR code
 

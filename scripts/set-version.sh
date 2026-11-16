@@ -44,7 +44,10 @@ for file in $files; do
         fi
         continue
     fi
-    grep -qF "$previous" "$file" 2>/dev/null && sed -i "s/${previous}/${version}/g" "$file" || true
+    # The dots are escaped so the version only matches itself: an unescaped "0.43.0"
+    # also matches "0x4320" and rewrites the 7680x4320 resolution in the README.
+    grep -qF "$previous" "$file" 2>/dev/null &&
+        sed -i "s/${previous//./\\.}/${version}/g" "$file" || true
 done
 
 # Android versionCode is an independent monotonic integer.
@@ -57,7 +60,7 @@ for file in $files; do
 done
 
 stamp="2026-11-16"
-author_line="-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Mon, 16 Nov 2026 12:00:00 +0300"
+author_line="-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Mon, 16 Nov 2026 16:30:00 +0300"
 
 python3 - "$version" "$code" "$summary" "$stamp" <<'PY'
 import re, sys

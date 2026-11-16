@@ -68,3 +68,7 @@ Thumbs.db
 *.log
 coverage/
 *.lcov
+
+# ── Python bytecode ──
+__pycache__/
+*.pyc

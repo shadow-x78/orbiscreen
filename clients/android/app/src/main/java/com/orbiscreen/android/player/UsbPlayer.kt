@@ -53,6 +53,7 @@ class UsbPlayer(
     private var resolutionFallbackRequested = false
     private var pendingWidth = 0
     private var pendingHeight = 0
+    private var oversizedKeyframes = 0
 
     init {
         stats.decoderState = codecState
@@ -211,6 +212,7 @@ class UsbPlayer(
         stats.decoderState = codecState
         configureFailures = 0
         resolutionFallbackRequested = false
+        oversizedKeyframes = 0
         codecKind = "hw"
         waitKey = true
         idrAskedWhileWaiting = false
@@ -274,6 +276,18 @@ class UsbPlayer(
         requestIdrWhileStarved()
     }
 
+    private fun requestDownscale() {
+        if (resolutionFallbackRequested) return
+        val w = ((width * 3 / 4) / 16) * 16
+        val h = ((height * 3 / 4) / 16) * 16
+        if (w < 64 || h < 64) return
+        resolutionFallbackRequested = true
+        pendingWidth = w
+        pendingHeight = h
+        Log.w(TAG, "keyframes exceed the decoder input buffer at ${width}x$height; requesting ${w}x$h")
+        onResolutionFallback?.invoke(w, h)
+    }
+
     override fun onVideoPayload(payload: ByteArray) {
         if (!running.get()) return
         lastPayloadAtMs = android.os.SystemClock.elapsedRealtime()
@@ -307,6 +321,7 @@ class UsbPlayer(
         idrAskedWhileWaiting = false
         waitKeySinceMs = 0L
         resolutionFallbackRequested = false
+        oversizedKeyframes = 0
         requestIdrWhileStarved()
     }
 
@@ -448,12 +463,22 @@ class UsbPlayer(
             if (inBuf.remaining() < au.size) {
                 c.queueInputBuffer(inIx, 0, 0, 0, 0)
                 stats.noteDropped()
+                Log.w(TAG, "AU ${au.size}B exceeds input buffer ${inBuf.capacity()}B key=$key")
+                if (key) {
+                    oversizedKeyframes++
+                    if (oversizedKeyframes >= 2) {
+                        requestDownscale()
+                    }
+                }
                 enterWaitKey()
                 return
             }
             inBuf.clear()
             inBuf.put(au)
             val flags = if (key) MediaCodec.BUFFER_FLAG_KEY_FRAME else 0
+            if (key) {
+                oversizedKeyframes = 0
+            }
             val ptsUs = System.nanoTime() / 1000L
             if (sentNs > 0L) synchronized(sentQueue) {
                 sentQueue.addLast(sentNs)
@@ -464,6 +489,9 @@ class UsbPlayer(
             Log.w(TAG, "codec feed: ${e.message}")
             stats.noteDropped()
             configured = false
+            if (codecKind != "sw") {
+                codecKind = "sw"
+            }
             enterWaitKey()
         }
     }
@@ -472,14 +500,23 @@ class UsbPlayer(
         logAvcCapabilities()
         val spsNo = stripStartCode(sps0)
         val ppsNo = stripStartCode(pps0)
+        val variants: List<Triple<String, Pair<ByteArray, ByteArray>, Boolean>> = listOf(
+            Triple("hw", sps0 to pps0, true),
+            Triple("hw-plain", sps0 to pps0, false),
+            Triple("hw-nostart", spsNo to ppsNo, false),
+        )
 
-        if (!resolutionFallbackRequested) {
-            val sessionSize = tryConfigure(width, height, sps0, pps0, surf, true)
-                ?: tryConfigure(width, height, sps0, pps0, surf, false)
-            if (sessionSize != null) {
-                codecKind = "hw"
-                return sessionSize
+        if (codecKind != "sw") {
+            for ((kind, csd, hints) in variants) {
+                val c = tryConfigure(width, height, csd.first, csd.second, surf, hints)
+                if (c != null) {
+                    codecKind = kind
+                    return c
+                }
             }
+        }
+
+        if (codecKind != "sw" && !resolutionFallbackRequested) {
             val candidates = listOf(
                 (width * 3 / 4) to (height * 3 / 4),
                 (width * 2 / 3) to (height * 2 / 3),
@@ -495,27 +532,13 @@ class UsbPlayer(
                     resolutionFallbackRequested = true
                     pendingWidth = w
                     pendingHeight = h
-                    Log.w(TAG, "hardware decoder rejected ${width}x$height; requesting ${w}x$h")
+                    Log.w(TAG, "decoder rejected ${width}x$height; requesting ${w}x$h")
                     onResolutionFallback?.invoke(w, h)
                     break
                 }
             }
-            return tryConfigureSoftware(sps0, pps0, surf)
-                ?: throw IllegalStateException("no AVC decoder available")
         }
 
-        val variants: List<Triple<String, Pair<ByteArray, ByteArray>, Boolean>> = listOf(
-            Triple("hw", sps0 to pps0, true),
-            Triple("hw-plain", sps0 to pps0, false),
-            Triple("hw-nostart", spsNo to ppsNo, false),
-        )
-        for ((kind, csd, hints) in variants) {
-            val c = tryConfigure(width, height, csd.first, csd.second, surf, hints)
-            if (c != null) {
-                codecKind = kind
-                return c
-            }
-        }
         return tryConfigureSoftware(sps0, pps0, surf)
             ?: throw IllegalStateException("no AVC decoder available")
     }
@@ -607,6 +630,7 @@ class UsbPlayer(
         val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, w, h)
         format.setByteBuffer("csd-0", ByteBuffer.wrap(sps0))
         format.setByteBuffer("csd-1", ByteBuffer.wrap(pps0))
+        format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, MAX_INPUT_SIZE)
         if (lowLatencyHints) {
             if (Build.VERSION.SDK_INT >= 30) {
                 format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1)
@@ -681,6 +705,7 @@ class UsbPlayer(
         const val STARVED_IDR_RETRY_MS = 500L
         const val STALL_CHECK_MS = 1_000L
         const val STALL_TIMEOUT_MS = 3_000L
+        const val MAX_INPUT_SIZE = 4 * 1024 * 1024
 
         val streamHttp: OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(3, TimeUnit.SECONDS)
