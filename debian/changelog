@@ -1,3 +1,14 @@
+orbiscreen (0.42.3~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.42.3 for Ubuntu noble.
+  * Android: render decoded frames immediately (releaseOutputBuffer with
+    render=true) like the USB path, and refuse to configure a decoder with an
+    invalid Surface. Some Android 8 devices accept a timed render but never
+    present the frame, which leaves a black video surface on Wi-Fi.
+  * Bump version to 0.42.3 across all packages; Android versionCode 196.
+
+-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 16 Nov 2026 10:30:00 +0300
+
 orbiscreen (0.42.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.42.2 for Ubuntu noble.

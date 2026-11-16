@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.42.3] - 2026-11-16
+
+### Fixed
+- fix: present decoded frames immediately on Android 8
+
+The Wi-Fi player released output buffers with a render timestamp, while the USB
+player used `releaseOutputBuffer(index, true)`. Some Android 8 decoders accept
+the timed call but never present the frame, leaving a black Surface. The Wi-Fi
+path now renders immediately like USB. It also refuses to configure a decoder
+when the `Surface` is not valid and waits for `surfaceChanged` instead.
+
 ## [v0.42.2] - 2026-11-15
 
 ### Fixed

@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.42.2
+%global version 0.42.3
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -152,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Mon Nov 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.42.3-1
+- Release 0.42.3: render decoded frames immediately and reject invalid surfaces on Android 8
+
 * Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.42.2-1
 - Release 0.42.2: Android software-decoder fallback for old devices and Qt desktop header/update-banner improvements
 

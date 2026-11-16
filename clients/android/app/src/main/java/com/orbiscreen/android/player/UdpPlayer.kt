@@ -414,6 +414,10 @@ class UdpPlayer(
     @Synchronized
     private fun feedCodec(au: ByteArray, key: Boolean, sentNs: Long) {
         val surf = surface ?: return
+        if (!surf.isValid) {
+            Log.w(TAG, "surface is not valid; waiting for a new one")
+            return
+        }
         val sps0 = sps
         val pps0 = pps
         if (!configured) {
@@ -636,7 +640,7 @@ class UdpPlayer(
             outputSeen = true
             val presentedSent = sentQueue.removeFirstOrNull() ?: sentNs
             stats.notePresented(presentedSent)
-            c.releaseOutputBuffer(outIx, System.nanoTime())
+            c.releaseOutputBuffer(outIx, true)
             outIx = c.dequeueOutputBuffer(info, 0)
         }
     }
