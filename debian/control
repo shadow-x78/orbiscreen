@@ -1,7 +1,7 @@
 Source: orbiscreen
 Section: utils
 Priority: optional
-Maintainer: shadow-x78 <107577376+shadow-x78@users.noreply.github.com>
+Maintainer: shadow-x78 <shadow-x7@red-shadows-rs.com>
 Build-Depends: debhelper-compat (= 13),
                cargo,
                rustc (>= 1.92),

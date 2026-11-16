@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.42.3
+%global version 0.42.4
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -152,441 +152,444 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
-* Mon Nov 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.42.3-1
+* Mon Nov 16 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.42.4-1
+- Release 0.42.4: contact address update and reliable PPA publish verification
+
+* Mon Nov 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.42.3-1
 - Release 0.42.3: render decoded frames immediately and reject invalid surfaces on Android 8
 
-* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.42.2-1
+* Sun Nov 15 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.42.2-1
 - Release 0.42.2: Android software-decoder fallback for old devices and Qt desktop header/update-banner improvements
 
-* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.42.1-1
+* Sun Nov 15 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.42.1-1
 - Release 0.42.1: fix the COPR workflow git safe.directory setup
 
-* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.42.0-1
+* Sun Nov 15 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.42.0-1
 - Release 0.42.0: update notifications in the CLI and Qt GUI, a real COPR upload workflow, and a strict verified PPA publish
 
-* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.41.2-1
+* Sun Nov 15 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.41.2-1
 - Release 0.41.2: build the Qt GUI without RPATH so Fedora's brp check passes
 
-* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.41.1-1
+* Sun Nov 15 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.41.1-1
 - Release 0.41.1: strip the empty RUNPATH from the Qt GUI binary for Fedora brp
 
-* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.41.0-1
+* Sun Nov 15 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.41.0-1
 - Release 0.41.0: replace the GTK4/libadwaita desktop app with a pure Qt 6 Widgets C++ application built with CMake, move the GUI out of the Cargo workspace, and generate the QR in the daemon over D-Bus
 
-* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.40.1-1
+* Sun Nov 15 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.40.1-1
 - Release 0.40.1: return the pairing deny ExitCode instead of discarding it, upgrade quinn-udp to 0.5.16 for RUSTSEC-2026-0538, and drop stale cargo-deny ignores so the v0.40.0 refactor can pass the release gates
 
-* Sun Nov 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.40.0-1
+* Sun Nov 15 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.40.0-1
 - Release 0.40.0: structural refactor around shared core, protocol, and session modules. Capture opens one explicit plan and shares one PipeWire sink; transport shares SessionAttachment/KeyframeGate/AnnexBPreparer across HTTP, MPEG-TS, and WebTransport and owns one protocol module; the daemon shares pipeline pumps and input dispatch; the GUI consumes core StatusReport/DoctorReport and reads the real token; the web client uses protocol.js as its single protocol source; Android uses Protocol/HostSpec/IdrRequester. Removed the separate secondary-display session, which bound the same signaling+2 port as WebTransport; the KWin per-client hub handles multiple tablets. Fixed wlroots/portal relative pointer motion, the IDR first-request debounce, and the 8790 connector guess.
 
-* Wed Nov 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.6-1
+* Wed Nov 04 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.39.6-1
 - Release 0.39.6: AOA proxy streams leaked (each maps to a keep-alive daemon connection that never saw EOF) until the 48-entry bound evicted one per connection; streams now carry a last-activity stamp and are reaped after 30 s idle, and the eviction warning is rate-limited. A pulled cable logs a disconnect instead of a bulk read error, a draining endpoint logs one writer warning instead of one per packet, and wayland-backend logs now route through tracing with its log feature instead of eprintln
 
-* Tue Nov 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.5-1
+* Tue Nov 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.39.5-1
 - Release 0.39.5: intra-refresh was forced on x264enc unconditionally, so after the first frame every forced keyframe was a P-frame flagged as a keyframe; Android cleared its wait-for-keyframe state, MediaCodec could not decode, and the tablet stayed black while the host logged an IDR every ~300 ms. intra-refresh is now opt-in via ORBISCREEN_INFINITE_GOP
 
-* Mon Nov 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.4-1
+* Mon Nov 02 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.39.4-1
 - Release 0.39.4: per-client mode no longer leaves GetStatus.frames_forwarded stuck at 0 (the dropped sender exited the stats pump) and reports the encoder actually in use instead of the configured preference; the software x264 fallback warning no longer reads as an error
 
-* Mon Nov 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.3-1
+* Mon Nov 02 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.39.3-1
 - Release 0.39.3: Plasma 6.8's kscreen-doctor prints "disable unsupported" instead of enabled/disabled for outputs without the Disable capability, which left the parser with no enabled outputs and placed the KWin virtual output at 0,0 on top of the primary screen; treat that line as enabled so the virtual display sits beside the real outputs
 
-* Tue Oct 27 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.2-1
+* Tue Oct 27 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.39.2-1
 - Release 0.39.2: flush the wlroots screencopy request before polling for events so frames are no longer delayed by the poll timeout; reported by @TinusgragLin in #109
 
-* Sun Oct 25 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.1-1
+* Sun Oct 25 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.39.1-1
 - Release 0.39.1: keep paired Android clients working across the host certificate rotation (own long-lived HTTPS identity and one-tap re-confirmation), and bump tokio to 1.53.3; reported and fixed by @Bulrok in #107 (PR #108)
 
-* Wed Oct 21 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.39.0-1
+* Wed Oct 21 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.39.0-1
 - Release 0.39.0: rewrite the desktop GUI as a native GTK4 + libadwaita application carrying the Orbiscreen brand theme
 
-* Tue Oct 20 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.38.0-1
+* Tue Oct 20 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.38.0-1
 - Release 0.38.0: stop the IDR flood when the AOA video lane stalls for hours (raise debounce to 1s, halt after 64 consecutive evictions)
 
-* Sun Oct 18 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.37.9-1
-* Sun Oct 18 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.37.9-1
+* Sun Oct 18 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.37.9-1
+* Sun Oct 18 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.37.9-1
 - Release 0.37.9: detect the panel maximum refresh rate from supportedModes instead of the active display mode
 
-* Sat Oct 17 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.37.8-1
+* Sat Oct 17 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.37.8-1
 - Release 0.37.8: release decoded frames from a dedicated drain thread (PR #105 from @Bulrok) and stop revoked clients from blocking the pairing limit (#106)
 
-* Sat Oct 17 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.37.7-1
+* Sat Oct 17 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.37.7-1
 - Release 0.37.7: opt-in infinite GOP for on-demand IDR on reliable transports (ORBISCREEN_INFINITE_GOP); suggested by @Bulrok in #99
 
-* Sat Oct 17 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.37.6-1
+* Sat Oct 17 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.37.6-1
 - Release 0.37.6: keep the newest frame for the idle keepalive so the cursor no longer snaps back when movement stops; reported and fixed by @Bulrok in #98 (PR #100)
 
-* Fri Oct 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.37.5-1
+* Fri Oct 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.37.5-1
 - Release 0.37.5: stop forwarding the proxy-local token on the input WebSocket upgrade so Wi-Fi touch and pen input reaches the host over WebSocket; reported and fixed by @Bulrok in #97 (PR #101)
 
-* Fri Oct 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.37.4-1
+* Fri Oct 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.37.4-1
 - Release 0.37.4: disable Nagle on the pinned-proxy sockets and the HTTPS listener so Wi-Fi video is not delivered in ~40 ms clumps; reported and fixed by @Bulrok in #96 (PR #102)
 
-* Fri Oct 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.37.3-1
+* Fri Oct 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.37.3-1
 - Release 0.37.3: play Wi-Fi video through the low-latency Annex-B /au path on hosts without per-client sessions; reported and fixed by @Bulrok in #95 (PR #104)
 
-* Thu Oct 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.37.2-1
+* Thu Oct 15 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.37.2-1
 - Release 0.37.2: tear down Android network clients off the main thread to avoid NetworkOnMainThreadException on Wi-Fi teardown; reported and fixed by @Bulrok in #94 (PR #103)
 
-* Thu Oct 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.37.1-1
+* Thu Oct 15 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.37.1-1
 - Release 0.37.1: fall back to the shared display over Wi-Fi on hosts without per-client displays (GNOME 501), and log the real login exception; reported by @Bulrok in #93
 
-* Mon Oct 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.37.0-1
+* Mon Oct 12 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.37.0-1
 - Release 0.37.0: embed the compositor cursor again so the external mouse works, and hide it during touch/pen by parking the host pointer once per switch
 
-* Mon Oct 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.36.9-1
+* Mon Oct 12 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.36.9-1
 - Release 0.36.9: capture the KWin virtual output with the cursor hidden and composite the pointer in the daemon, hidden during touch and pen, without moving the host pointer
 
-* Mon Oct 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.36.8-1
+* Mon Oct 12 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.36.8-1
 - Release 0.36.8: revert parking the host pointer on touch/pen, which regressed the stream (stutter, AOA video-lane congestion, displaced pointer)
 
-* Mon Oct 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.36.7-1
+* Mon Oct 12 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.36.7-1
 - Release 0.36.7: hide the virtual-display cursor while touch or pen is used by parking the host pointer just outside the output
 
-* Mon Oct 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.36.6-1
+* Mon Oct 12 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.36.6-1
 - Release 0.36.6: capture the KWin virtual output with the compositor cursor embedded again so an external mouse behaves like a normal extra monitor, and remove the composited-cursor overlay
 
-* Sun Oct 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.36.5-1
+* Sun Oct 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.36.5-1
 - Release 0.36.5: refresh the absolute-pointer mapping when the display layout changes and sharpen the composited cursor sprite
 
-* Sun Oct 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.36.4-1
+* Sun Oct 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.36.4-1
 - Release 0.36.4: capture the KWin virtual output with the pointer hidden and composite the cursor in the daemon, so the pointer no longer ghosts on the host when it moves to another output
 
-* Sun Oct 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.36.3-1
+* Sun Oct 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.36.3-1
 - Release 0.36.3: honor each client's requested resolution (drop the pin/SetDefaults forcing that caused a resize loop), stop the client resize-after-connect, and raise the AOA proxy stream cap from 16 to 48 to end the eviction storm
 
-* Sun Oct 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.36.2-1
+* Sun Oct 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.36.2-1
 - Release 0.36.2: clamp the Android stream to the tablet panel and apply it after connecting, so a low-end decoder (Allwinner L10) is not pinned to 2560x1600 and overloaded
 
-* Sat Oct 10 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.36.1-1
+* Sat Oct 10 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.36.1-1
 - Release 0.36.1: apply resolution changes after a resize (session alias resolution), floor the bitrate at the resolution suggestion, close evicted AOA streams, respect saved custom resolutions, and drop the encoder badge from the Android toolbar
 
-* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.36.0-1
+* Fri Oct 09 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.36.0-1
 - Release 0.36.0: show the mouse pointer on the streamed second display under GNOME Wayland (Portal CursorMode::Embedded + wlroots overlay_cursor); reported by @sarawer in #91
 
-* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.9-1
+* Fri Oct 09 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.35.9-1
 - Release 0.35.9: confine the trackpad pointer to the virtual display and silence the remaining startup warnings
 
-* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.8-1
+* Fri Oct 09 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.35.8-1
 - Release 0.35.8: pace the KWin virtual-display damage pump at the session refresh rate and widen the capture frame channel
 
-* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.7-1
+* Fri Oct 09 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.35.7-1
 - Release 0.35.7: stall watchdog returns the client to discovery when the host stops, and the reported frame age is capped
 
-* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.6-1
+* Fri Oct 09 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.35.6-1
 - Release 0.35.6: bound the USB client payload buffer, clear it when waiting for a keyframe, and reconfigure the decoder after a resolution-change re-attach
 
-* Fri Oct 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.5-1
+* Fri Oct 09 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.35.5-1
 - Release 0.35.5: size the Android session to a hardware-decodable resolution and release failed codec instances, restoring hardware AVC decode over USB
 
-* Thu Oct 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.4-1
+* Thu Oct 08 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.35.4-1
 - Release 0.35.4: unique uinput device names per session plus awaited input teardown; see https://github.com/shadow-x78/orbiscreen/issues/90
 
-* Thu Oct 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.3-1
+* Thu Oct 08 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.35.3-1
 - Release 0.35.3: Android USB video decoder fallback chain (hw, hw-min, software) and a visible decoder state in the stats overlay
 
-* Wed Oct 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.2-1
+* Wed Oct 07 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.35.2-1
 - Release 0.35.2: portrait toolbar insets and full-width resolution chips, Wi-Fi resolution change re-opens the session, drop the mislabeled 100% scale mode
 
-* Wed Oct 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.1-1
+* Wed Oct 07 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.35.1-1
 - Release 0.35.1: open the client session at the panel refresh, bound USB AOA recovery to one IDR, warn on lane drops, print #token= URLs
 
-* Tue Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.35.0-1
+* Tue Oct 06 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.35.0-1
 - Release 0.35.0: ship Noto Kufi Arabic and the shared radius and colour tokens to the web client and GUI
 
-* Tue Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.34.2-1
+* Tue Oct 06 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.34.2-1
 - Release 0.34.2: accept Xbgr8888/Abgr8888 in screencopy and fix the portal fallback session; see https://github.com/shadow-x78/orbiscreen/issues/89
 
-* Tue Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.34.1-1
+* Tue Oct 06 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.34.1-1
 - Release 0.34.1: raise the GUI window minimum width to 520; see https://github.com/shadow-x78/orbiscreen/issues/86
 
-* Tue Oct 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.34.0-1
+* Tue Oct 06 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.34.0-1
 - Release 0.34.0: hide revoked devices from the pairing list; see https://github.com/shadow-x78/orbiscreen/issues/88
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.10-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.33.10-1
 - Release 0.33.10: fix: hide revoked devices from the pairing list
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.9-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.33.9-1
 - Release 0.33.9: chore: bump version to 0.33.6
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.8-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.33.8-1
 - Release 0.33.8: the 30 troubleshooting sections the contents lists advertised but that were never written
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.7-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.33.7-1
 - Release 0.33.7: troubleshooting contents rebuilt so every link reaches a section that exists
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.6-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.33.6-1
 - Release 0.33.6: chore: comment policy guard, branding and Android stream UI
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.5-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.33.5-1
 - Release 0.33.5: fix: accept the query-string token again; web input retries without a session
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.4-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.33.4-1
 - Release 0.33.4: fix: AOA video starvation, encoder VBV sizing, bounded USB writes
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.3-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.33.3-1
 - Release 0.33.3: fix: the AOA stream bound must evict, not refuse; and loopback peers are not TLS-redirected.
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.2-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.33.2-1
 - Release 0.33.2: fix: restore the RPM_GPG_KEY fallback for the Launchpad upload.
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.1-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.33.1-1
 - Release 0.33.1: fix: ship the web client and system files in the release tarball.
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.33.0-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.33.0-1
 - Release 0.33.0: chore: promote 0.32.10 to the 0.33.0 minor release.
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.10-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.32.10-1
 - Release 0.32.10: chore: add the version synchronization script used by the release train.
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.9-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.32.9-1
 - Release 0.32.9: chore: remove the inline comments added during this series.
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.32.8-1
 - Release 0.32.8: unsafe documentation, TLS-only credential paths, D-Bus authorization.
 
-* Sat Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+* Sat Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.32.8-1
 - Release 0.32.8: enforce display-session ownership on the input channels and on WebTransport; cap the UDP and AOA client tables; repair the dead Tauri control center UI; complete the web client asset set; restore the vendored MIT notice in qrcode.js.
 
-* Fri Oct 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+* Fri Oct 02 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.32.8-1
 - Release 0.32.8: fix duplicate BTN_TOUCH writes and redundant AbsEvent::X/Y writes in touch injection; re-indent hub idle reap branch.
 
-* Thu Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.32.8-1
+* Thu Oct 01 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.32.8-1
 - Release 0.32.8: fix resize switchover latency, fps-aware resize, AOA session alias.
 
-* Thu Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.9-1
+* Thu Oct 01 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.31.9-1
 - Release 0.31.9: fix resize switchover latency and `no display session` error; encoder now honors requested fps on resize.
 
-* Thu Oct 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.8-1
+* Thu Oct 01 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.31.8-1
 - Release 0.31.8: restore stable ExoPlayer buffers and toolbar layout on Android; repair web client template literals broken by the comment-removal pass.
 
-* Wed Sep 30 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.7-1
+* Wed Sep 30 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.31.7-1
 - Release 0.31.7: restore resize stream stall fix and damage pump deadline pacing, Android saved resolution preset priority, toolbar width layout, and low-latency ExoPlayer buffers.
 
-* Wed Sep 30 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.4-1
+* Wed Sep 30 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.31.4-1
 - Release 0.31.4: fix host-side latency and to robustly survive USB/AOA protocol errors and resolution changes; add AppImage update metadata (zsync) and dynamic desktop entry.
 
-* Mon Sep 21 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.2-1
+* Mon Sep 21 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.31.2-1
 - Release 0.31.2: Bump version to 0.31.2 across all packages; Android versionCode 117; performance fixes for buffering, frame dropping, and capture frame pacing.
 
-* Sun Sep 20 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.31.1-1
+* Sun Sep 20 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.31.1-1
 - Release 0.31.0: Add dedicated WebSocket input channel on /input/ws eliminating mouse lag, stutter, and HTTP queue backpressure; bind uinput input devices to KWin virtual output in kwinrc confining touch and touchpad to virtual display; add in-session resolution control with chips and custom input in Android settings; eliminate unwrap panics across production code; purge internal codebase comments.
 
-* Sat Sep 19 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.30.9-1
+* Sat Sep 19 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.30.9-1
 - Release 0.30.9: Prevent GStreamer segmentation fault and CRITICAL disposal warnings on USB disconnect with RAII PipelineGuard and synchronous State::Null teardown; perform display session attach before constructing video pipeline; implement smart multi-client session routing correlating client key and unattached sessions; pass X-Orbiscreen-Session and client key in ExoPlayer headers while preserving session across transient reconnects.
 
-* Sat Sep 19 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.30.8-1
+* Sat Sep 19 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.30.8-1
 - Release 0.30.8: Overhaul direct touch and mouse dragging with BTN_LEFT synchronization on uinput touchscreen device; add graceful UDP BYE disconnect on daemon Ctrl+C shutdown with active Android health watchdog; fix second tablet freeze by decoupling per-client resolution and routing IDR keyframes; harden AOA USB bridges against poisoned mutex panics; purge internal codebase comments.
 
-* Sat Sep 19 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.30.7-1
+* Sat Sep 19 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.30.7-1
 - Release 0.30.7: Eliminate display freezing and deadlock upon mouse entry by reverting multi-threaded nearest-neighbor videoscale; restore safe crisp bilinear videoscale capture; implement smart resolution negotiation auto-detecting client physical native display (2560x1536) by default while honoring explicit user overrides; add tablet-friendly scaling presets (2560x1536, 1920x1152, 1280x768) to GUI dashboard.
 
-* Sat Sep 19 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.30.6-1
+* Sat Sep 19 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.30.6-1
 - Release 0.30.6: Eliminate 125% scaling latency and frame backlog with 4-thread nearest-neighbor videoscale; prioritize host display resolution configuration over client native screen on connect; dynamically update resolution and resize active sessions via D-Bus; restore Direct Touch mode by removing relative mouse movements from uinput touch injector; clean up Android input network dispatch.
 
-* Fri Sep 18 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.30.5-1
+* Fri Sep 18 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.30.5-1
 - Release 0.30.5: Eliminate permanent display freeze by never discarding buffers to keyframe in ExoPlayer; fix non-monotonic backward jumps in PTS timestamps during frame bursts; cut input latency by tuning ExoPlayer buffer durations to 30ms and locking playback speed to 1.0f; relax drop threshold to 150ms to prevent micro frame drops at 90Hz.
 
-* Fri Sep 18 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.30.4-1
+* Fri Sep 18 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.30.4-1
 - Release 0.30.4: Fix frozen display and stuck mouse regression from v0.30.3 caused by appsink back-pressure (duplicate set_drop/set_max_buffers override), ExoPlayer dead code, and shouldDropBuffersToKeyframe not acting on severe lag.
 
-* Fri Sep 18 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.30.3-1
+* Fri Sep 18 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.30.3-1
 - Release 0.30.3: Eliminate micro frame drops by disabling aggressive 30ms ExoPlayer frame drop in Android client, clamp PTS to prevent forward drift during bursts, disable appsink frame dropping in encoder pipeline, and optimize KWin virtual display damage pump for 90Hz.
 
-* Fri Sep 18 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.30.2-1
+* Fri Sep 18 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.30.2-1
 - Release 0.30.2: Fix GUI unresponsiveness and syntax error (Issue #81), add dynamic version detection in GUI and D-Bus daemon, prevent manual disconnect auto-reconnection loop in Android and Web clients, and ensure graceful pipeline shutdown on SIGINT/Ctrl+C.
 
-* Fri Sep 18 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.30.1-1
+* Fri Sep 18 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.30.1-1
 - Release 0.30.1: Fix NVENC VBV buffer cap and dynamic bitrate scaling to eliminate pixelation and macroblocking, unblock UDP video keyframes to prevent decoder freezes and IDR storms, fix KWin pointer output binding to restore fluid mouse motion, synchronize touch input with mouse cursor in X11 injector, and optimize Android input dispatcher with motion event coalescing.
 
-* Thu Sep 17 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.30.0-1
+* Thu Sep 17 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.30.0-1
 - Release 0.30.0: Comprehensive full-project audit, LAN security hardening with loopback pairing tokens and credential store, strict Android input serialization and trackpad click delta flush, zero-inline-comment policy enforcement across all crates, and packaging modernized for Rust 1.92 and Ubuntu Noble.
 
-* Thu Sep 17 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.29.1-1
+* Thu Sep 17 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.29.1-1
 - Release 0.29.1: Fix dual screen AOA supervisor port routing to daemon port; guard Android input against unauthenticated 401 request storms; fix KWin pointer binding for fluid mouse motion; add automatic session reconnection and extend post-viewer idle timeout.
 
-* Wed Sep 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.29.0-1
+* Wed Sep 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.29.0-1
 - Release 0.29.0: WebTransport Annex-B web client with WebCodecs hardware decoding, one-frame VBV rate control for ultra-low latency, reliable IDR stream with Reed-Solomon FEC for P-frame datagrams, and Android AU reordering packet loss recovery (PR #80 by @sentinelt).
 
-* Wed Sep 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.28.9-1
+* Wed Sep 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.28.9-1
 - Release 0.28.9: Merge PR #79 adding per-client KWin virtual outputs and isolated touch scoping for simultaneous multi-tablet streaming; introspect KWin input devices dynamically past event63; add automatic default session creation fallback in client_display for legacy client backwards compatibility; bump workspace release matrix.
 
-* Wed Sep 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.28.8-1
+* Wed Sep 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.28.8-1
 - Release 0.28.8: Enhance daemon shutdown reliability by terminating lingering processes on D-Bus timeout or unowned session bus, optimize Android video rendering for legacy and low-end devices with software decoder fallback documentation, and bump workspace release matrix.
 
-* Wed Sep 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.28.7-1
+* Wed Sep 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.28.7-1
 - Release 0.28.7: Eliminate frozen video stream on low-end and legacy Android tablets; relax ExoPlayer shouldDropOutputBuffer threshold from -50ms to -250ms to absorb decode jitter without dropping frames; configure shouldDropBuffersToKeyframe to request IDR on lag exceeding 300ms without discarding P-frames; parse display geometry from kscreen-doctor to automatically position KWin virtual displays adjacent to active physical monitors; bump version across workspace and documentation.
 
-* Wed Sep 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.28.6-1
+* Wed Sep 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.28.6-1
 - Release 0.28.6: Enable live virtual display resolution and framerate switching from desktop GUI Display settings; wire D-Bus SetResolution method to kscreen-doctor dynamic modes and persistent orbiscreen.toml config; synchronize UI active resolution and framerate chips with daemon status; document Arch Linux PKGBUILD build instructions in README and packaging guides.
 
-* Wed Sep 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.28.5-1
+* Wed Sep 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.28.5-1
 - Release 0.28.5: Send FRAME_FLAG_RESET on host shutdown to trigger immediate AOA accessory teardown in Android client; check host health endpoint before reporting USB ready to eliminate stale connection state after daemon exit; fix fit mode selection by mapping scale modes to engine integer values and applying them in real-time; clarify pointer speed UI controls for trackpad mode; resolve secondary display touch injection drop in uinput injector by tracking MT Type B slot IDs; expand OkHttp client concurrent request limits to prevent touch event queue stalls; configure lightweight default capture profile (720p@60Hz, 3500 kbps) for secondary display to eliminate bus congestion.
 
-* Wed Sep 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.28.4-1
+* Wed Sep 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.28.4-1
 - Release 0.28.4: Fix Android tablet black screen over USB (AOA) by expanding MPEG-TS buffer capacity to 2048 chunks; eliminate video pipeline packet drops in appsrc and appsink; optimize USB bulk transfer framing to prevent packet fragmentation; initialize keepalive frames only after first real frame capture; fix daemon stop deadlock by removing watch channel race condition.
 
-* Wed Sep 16 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.28.3-1
+* Wed Sep 16 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.28.3-1
 - Release 0.28.3: Fix tablet black screen by dynamically scanning and binding asynchronous Wayland outputs in damage pump; pre-seed capture pipeline with initial black frame in cap_pump to prevent encoder and stream starvation; add automatic runtime fallback from failing hardware encoders to software x264; add GStreamer bus sync handler for real-time encoder error reporting; expand AOA video sync_channel buffer capacity to 64 chunks.
 
-* Tue Sep 15 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.28.2-1
+* Tue Sep 15 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.28.2-1
 - Release 0.28.2: Fix broken pipe error on host session lock via client shutdown notification; prevent GStreamer AppSink callback stalls with try_send; expand broadcast video channel capacity from 8 to 64 slots; eliminate UDP hub probe tick mutex contention during network I/O; add 2-second grace period to UDP client TTL prune; request IDR on UDP hub broadcast lag; optimize keepalive frame snapshot memory footprint with Arc slice buffer.
 
-* Mon Sep 14 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.28.1-1
+* Mon Sep 14 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.28.1-1
 - Release 0.28.1: Drop stale frames and eliminate stream latency accumulation (PR #78 by @Yashb404); configure HTTP MPEG-TS pipeline with is-live=true and appsink drop=true max-buffers=1; clamp PTS timeline desync across frame gaps (>250ms) to nominal frame time; reduce AOA USB accessory sync_channel capacity from 64 to 8 chunks; multi-thread software color conversion with n-threads=4 on videoconvert.
 
-* Sat Sep 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.28.0-1
+* Sat Sep 12 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.28.0-1
 - Release 0.28.0: Eliminate USB video frame drops on Screen 1 by expanding socket buffer to 256KB and tuning ExoPlayer buffer pacing; fix secondary display black screen by implementing dynamic wl_output binding and configure retries in damage pump; restore standard relative mouse motion across all displays without boundary confinement; align Android touch and stylus coordinates 1:1 to host display pixels.
 
-* Sat Sep 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.9-1
+* Sat Sep 12 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.27.9-1
 - Release 0.27.9: Eliminate USB video frame drops on Screen 1 by expanding socket buffer to 256KB and tuning ExoPlayer buffer pacing (#77); fix secondary display black screen by implementing dynamic wl_output binding and configure retries in damage pump (#77); restore standard relative mouse motion across all displays without boundary confinement (#77); align Android touch and stylus coordinates 1:1 to host display pixels (#77).
 
-* Sat Sep 12 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.8-1
+* Sat Sep 12 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.27.8-1
 - Release 0.27.8: Fix secondary display damage pump matching to prevent Virtual-ORBISCREEN-2 from attaching to primary display (#77); eliminate USB AOA frame drops, video stutter, and keyframe stalls by increasing sync channel capacity and bounding pts calculation (#77); fix mouse delta speed and cursor bounds in Android PlayerSurface (#77); completely remove USB audio pipeline and preferences across daemon, transport, and Android app (#77).
 
-* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.7-1
+* Fri Sep 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.27.7-1
 - Release 0.27.7: Fix secondary display black screen by pacing independent 60fps damage ticks to Virtual-ORBISCREEN-2 and pushing initial keepalive IDR frame (#77); auto-position secondary screen to the right via kscreen-doctor (#77); eliminate mouse rubberbanding and cursor jitter by routing pointer events strictly as relative motion to mouse_keyboard and isolating stylus pen tools (#77).
 
-* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.6-1
+* Fri Sep 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.27.6-1
 - Release 0.27.6: Support concurrent secondary tablet virtual display on KDE Plasma with dynamic port allocation and uinput isolation (#77); expand AOA candidate detection to Allwinner and all MTP/ADB devices (#77); eliminate mouse cursor stutter by isolating relative mouse events from tablet stylus coordinate injection (#77); optimize Android ExoPlayer buffer pacing to 45-120ms with dynamic live playback speed to eliminate frame drops and audio underrun.
 
-* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.5-1
+* Fri Sep 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.27.5-1
 - Release 0.27.5: Support concurrent multi-device AOA bridges in supervisor to prevent device collisions (#77); fix Android USB accessory permission flow and fallback (#77); convert battery optimization to interactive switch preference with live status and system intent launcher (#77); enable app-wide keepScreenAwake; center USB audio warning and round touch ripple highlights.
 
-* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.4-1
+* Fri Sep 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.27.4-1
 - Release 0.27.4: Fix Android USB AOA connection and auto-connect by using RECEIVER_EXPORTED, adding onResume initialization, and adding replay buffer to autoConnectEvent (#77); fix keepScreenAwake by unwrapping Context to Activity and setting keepScreenOn on View; add battery optimization exemption settings with direct intent launcher (#77).
 
-* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.3-1
+* Fri Sep 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.27.3-1
 - Release 0.27.3: Fix Android client audio playback by configuring AudioAttributes with USAGE_MEDIA, enabling audio focus handling, increasing DefaultLoadControl buffer durations to prevent AudioTrack buffer starvation, bypassing low-latency filters for audio decoders, and enforcing 48 kHz stereo ADTS audio in host GStreamer pipeline (#77).
 
-* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.2-1
+* Fri Sep 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.27.2-1
 - Release 0.27.2: Fix video stream periodic freezing by removing false-positive seekToDefaultPosition loop in Android client (#77), add independent upstream-leaky queues for both video and audio before mpegtsmux to prevent frame stalls and audio dropouts (#77), fix virtual sink device description formatting to cleanly display "Orbiscreen Audio" with space in system sound settings.
 
-* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.27.1-1
+* Fri Sep 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.27.1-1
 - Release 0.27.1: Fix Trackpad cursor jump on finger lift by routing RelativeMove to relative mouse device instead of tablet on host (#77), track cursor position client-side for correct tap-to-click landing, add hard-drop seek when buffered lag exceeds 80 ms and EWMA clock smoothing for Wi-Fi stability, protect keyframes from stale drop, fix toolbar auto-close removed, add virtual audio sink "Orbiscreen Audio" in PipeWire/PulseAudio via pactl module-null-sink.
 
-* Fri Sep 11 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.26.0-1
+* Fri Sep 11 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.26.0-1
 - Release 0.26.0: Fix video stream latency accumulation on Wi-Fi and USB/AOA with stale frame drop at 75 ms (#77), aggressively reduce all pipeline buffers to eliminate rubberbanding (#75), reduce GOP from 600 to 120 frames for fast IDR recovery, wire USB audio to server via audio=1 query parameter with BETA badge, replace Input Mode switch with Segmented Button in settings only (#76 referenced).
 
-* Thu Sep 10 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.9-1
+* Thu Sep 10 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.25.9-1
 - Release 0.25.9: Fix USB AOA black screen and ADB endpoint collision (#76), eliminate rubberbanding on USB reconnect and clock drift (#75), remove auto set_resolution display flash, single-tap floating pill handle, in-session settings overhaul, Android M3 settings rows, full light/dark color contrast audit, and desktop GUI D-Bus timeout protection.
 
-* Wed Sep 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.8-1
+* Wed Sep 09 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.25.8-1
 - Release 0.25.8: USB audio streaming to device speaker/headphones, auto-detection of native screen resolution and high refresh rate, USB latency pipeline optimization, auto-connect and disconnect behavior, full Arabic localization with NotoKufiArabic typography, draggable edge pill toolbar controls, and practical settings redesign.
 
-* Wed Sep 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.7-1
+* Wed Sep 09 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.25.7-1
 - Release 0.25.7: Restore dual USB pipeline with resilient AOA USB permissions and automatic ADB reverse port forwarding, protect D-Bus CLI queries against zombie or suspended process hangs, and update GUI device status display.
 
-* Wed Sep 09 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.6-1
+* Wed Sep 09 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.25.6-1
 - Release 0.25.6: Revert ExoPlayer threshold regression that caused worse rubberbanding in v0.25.5 (#75). Restore shouldDropOutputBuffer to 30ms, revert setMaxPlaybackSpeed to 1.0f, revert shouldDropBuffersToKeyframe to 100ms. Keep proactive IDR request on lag.
 
-* Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.5-1
+* Tue Sep 08 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.25.5-1
 - Release 0.25.5: Fix 30-minute latency drift and rubberbanding on USB AOA, quartz clock drift micro-catchup, on-demand IDR keyframe recovery, and periodic recovery keyframes (#75).
 
-* Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.4-1
+* Tue Sep 08 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.25.4-1
 - Release 0.25.4: Native Linux desktop GUI redesign (560x620), zero-inline-comments code audit, configuration comment standardization, and vector QR code fix.
 
-* Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.3-1
+* Tue Sep 08 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.25.3-1
 - Release 0.25.3: Eliminate USB AOA buffer bloat, lock ExoPlayer playback rate, configure low-latency backpressure, and fix rubberbanding on Android devices (#75).
 
-* Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.2-1
+* Tue Sep 08 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.25.2-1
 - Release 0.25.2: Linux Desktop GUI Control Center redesign, system tray icon integration, Wayland StartupWMClass alignment, automated NVIDIA explicit sync stability, and complete raster PNG icon packaging.
 
-* Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.1-1
+* Tue Sep 08 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.25.1-1
 - Release 0.25.1: UDP PMTU measurement without truncated ACKs or fragments, immediate unsendable reject, and full datagram Android receive buffer (PR #74 by @sentinelt).
 
-* Tue Sep 08 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.25.0-1
+* Tue Sep 08 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.25.0-1
 - Release 0.25.0: Linux Desktop GUI Control Center (orbiscreen-gui) with System Tray, streamlined English interface, and orbiscreen gui CLI integration.
 
-* Mon Sep 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.24.1-1
+* Mon Sep 07 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.24.1-1
 - Release 0.24.1: UDP Annex-B video transport with per-client DPLPMTUD, KWin dynamic virtual display with Direct Touch binding, and send-to-assemble delay metrics.
 
-* Mon Sep 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.24.0-1
+* Mon Sep 07 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.24.0-1
 - Release 0.24.0: Harmonize UI/UX and Catppuccin Mocha colors between Web and Android, remove Blank Display action, strengthen Web CSP, sanitize daemon input coordinates, and enforce clean comment standards.
 
-* Mon Sep 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.9-1
+* Mon Sep 07 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.23.9-1
 - Release 0.23.9: Purge GitHub Deployments and gh-pages branch, streamline distribution via Launchpad PPA and Fedora COPR.
 
-* Mon Sep 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.8-1
+* Mon Sep 07 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.23.8-1
 - Release 0.23.8: GitHub multi-target deployment environments, banner-aligned social preview, standard issue forms, and gh-pages APT repository sync.
 
-* Mon Sep 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.7-1
+* Mon Sep 07 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.23.7-1
 - Release 0.23.7: Infinite GOP length, intra-refresh for x264enc, and on-demand IDR recovery via /api/control (PR #72 by @sentinelt).
 
-* Mon Sep 07 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.6-1
+* Mon Sep 07 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.23.6-1
 - Release 0.23.6: Probe vah264enc hardware encoder, warn on silent software x264 fallback, and tune VA-API low latency (PR #71 by @sentinelt).
 
-* Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.5-1
+* Sun Sep 06 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.23.5-1
 - Release 0.23.5: Shrink HTTP MPEG-TS transport queues, backpressure on full queue, 24ms Android live offset, and MediaCodec low-latency decoding (PR #70 by @sentinelt).
 
-* Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.4-1
+* Sun Sep 06 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.23.4-1
 - Release 0.23.4: Confine trackpad to virtual screen, eliminate duplicated stylus mouse injection, and scale Android motion deltas.
 
-* Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.3-1
+* Sun Sep 06 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.23.3-1
 - Release 0.23.3: Enable Gradle dependency caching in CI workflows to eliminate Cloudflare 403 Forbidden errors; enhance in-page Code of Conduct navigation anchors.
 
-* Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.2-1
+* Sun Sep 06 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.23.2-1
 - Release 0.23.2: Fix video freezing, black screen, and distortion over USB; restore uncorrupted MPEG-TS stream delivery and stabilize ExoPlayer buffer thresholds.
 
-* Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.1-1
+* Sun Sep 06 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.23.1-1
 - Release 0.23.1: Restore direct touch as a virtual multitouch device with evdev type-B multi-touch slots.
 
-* Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.23.0-1
+* Sun Sep 06 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.23.0-1
 - Release 0.23.0: Ultra-low latency USB pipeline tuning, resilient interface claim, and graceful USB detach navigation.
 
-* Sun Sep 06 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.9-1
+* Sun Sep 06 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.22.9-1
 - Release 0.22.9: Fix AOA USB packet truncation causing session token loss and auth=missing rejections; proper TCP shutdown on FRAME_FLAG_CLOSE; session token caching in Android client.
 
-* Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.8-1
+* Sat Sep 05 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.22.8-1
 - Release 0.22.8: Comprehensive multi-vendor udev rules in doctor fix, resilient Android token acquisition, and zero-root USB Tethering guidance.
 
-* Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.7-1
+* Sat Sep 05 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.22.7-1
 - Release 0.22.7: Purge ADB dependencies, add unprivileged AOA udev rules, real-time live doctor diagnostics, and Markdown update dialog.
 
-* Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.6-1
+* Sat Sep 05 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.22.6-1
 - Release 0.22.6: Native direct USB streaming via Android Open Accessory (AOA), polished and unified tool translations across Web, Android, and CLI.
 
-* Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.5-1
+* Sat Sep 05 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.22.5-1
 - Release 0.22.5: Implement native in-app Android updater with live progress bar, SHA-256 checksum verification, and PackageInstaller integration.
 
-* Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.4-1
+* Sat Sep 05 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.22.4-1
 - Release 0.22.4: Fix pure pointer classification for libinput/KWin, USB tethering auto-discovery, and styled stop card.
 
-* Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.3-1
+* Sat Sep 05 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.22.3-1
 - Release 0.22.3: Eliminate video stuttering with 1s GOP interval, pure absolute pointer mapping, zero cursor snapback, and stylus stability.
 
-* Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.2-1
+* Sat Sep 05 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.22.2-1
 - Release 0.22.2: Fix video stuttering and buffer overrun, confine mouse to virtual screen, fix stylus touch and hover.
 
-* Sat Sep 05 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.1-1
+* Sat Sep 05 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.22.1-1
 - Release 0.22.1: Ultra-low latency streaming optimizations, 3 separate uinput devices, direct touch output confinement, and stylus tablet tool resolution support.
 
-* Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.22.0-1
+* Fri Sep 04 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.22.0-1
 - Release 0.22.0: Direct touch pointer confinement, zero-snapback mouse release, green screen MPEG-TS fix, and clean startup branding.
 
-* Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.21.0-1
+* Fri Sep 04 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.21.0-1
 - Release 0.21.0: Rich developer version card, full bilingual i18n support, Arabic architecture diagram, and token security hardening.
 
-* Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.20.0-1
+* Fri Sep 04 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.20.0-1
 - Release 0.20.0: XDG Desktop Portal virtual display API, stylus pressure/tilt/hover overhaul, drag-and-drop gestures, ChromeOS ADB support, token security isolation.
 
-* Fri Sep 04 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.19.0-1
+* Fri Sep 04 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.19.0-1
 - Release 0.19.0: COSMIC desktop support, native Fedora CI RPM packaging, RTL documentation, zero-comment code standards.
 
-* Thu Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.3-1
+* Thu Sep 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.18.3-1
 - Release 0.18.3: Android 1:1 web client parity, direct keyboard typing, refined ASCII logo, and web favicons.
 
-* Thu Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.2-1
+* Thu Sep 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.18.2-1
 - Release 0.18.2: Redesigned CLI interface with brand theme, ASCII logo, status command, and clean code headers.
 
-* Thu Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.1-1
+* Thu Sep 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.18.1-1
 - Release 0.18.1: Pure CLI daemon refactoring, removal of desktop launcher, and package description synchronization.
 
-* Thu Sep 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.18.0-1
+* Thu Sep 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.18.0-1
 - Release 0.18.0: Stylus pressure/tilt digitizer, auto-orientation, SEO-optimized docs and banner.
-* Wed Sep 02 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.17.4-1
+* Wed Sep 02 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.17.4-1
 - Release 0.17.4: Zero-latency NVENC, 60 FPS damage pump, Android UI overhaul, and clean packaging.
 
-* Tue Sep 01 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com> - 0.16.0-1
+* Tue Sep 01 2026 shadow-x78 <shadow-x7@red-shadows-rs.com> - 0.16.0-1
 - Source-build spec for COPR/Fedora: builds from the release tarball with cargo,
   packages the daemon, web client, and systemd user unit. USB transport completed in this release.

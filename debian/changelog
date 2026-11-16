@@ -1,3 +1,16 @@
+orbiscreen (0.42.4~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.42.4 for Ubuntu noble.
+  * Change the project contact address to shadow-x7@red-shadows-rs.com in
+    packaging, documentation, and release metadata.
+  * Fix the PPA publish verification: query the archive without the unreliable
+    source_name filter, parse the JSON, and skip the upload when Launchpad
+    already has the version. This removes the false failure that was reported
+    for 0.42.3 even though the source was published.
+  * Bump version to 0.42.4 across all packages; Android versionCode 197.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Mon, 16 Nov 2026 12:00:00 +0300
+
 orbiscreen (0.42.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.42.3 for Ubuntu noble.
@@ -7,7 +20,7 @@ orbiscreen (0.42.3~ubuntunoble1) noble; urgency=medium
     present the frame, which leaves a black video surface on Wi-Fi.
   * Bump version to 0.42.3 across all packages; Android versionCode 196.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 16 Nov 2026 10:30:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 16 Nov 2026 10:30:00 +0300
 
 orbiscreen (0.42.2~ubuntunoble1) noble; urgency=medium
 
@@ -21,7 +34,7 @@ orbiscreen (0.42.2~ubuntunoble1) noble; urgency=medium
     resolution or autostart choice. Add an Open Dashboard action.
   * Bump version to 0.42.2 across all packages; Android versionCode 195.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 23:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 15 Nov 2026 23:00:00 +0300
 
 orbiscreen (0.42.1~ubuntunoble1) noble; urgency=medium
 
@@ -30,7 +43,7 @@ orbiscreen (0.42.1~ubuntunoble1) noble; urgency=medium
     read the container checkout; 0.42.0 failed there before submitting.
   * Bump version to 0.42.1 across all packages; Android versionCode 194.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 20:20:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 15 Nov 2026 20:20:00 +0300
 
 orbiscreen (0.42.0~ubuntunoble1) noble; urgency=medium
 
@@ -45,7 +58,7 @@ orbiscreen (0.42.0~ubuntunoble1) noble; urgency=medium
     that the exact version becomes Published before reporting success.
   * Bump version to 0.42.0 across all packages; Android versionCode 193.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 20:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 15 Nov 2026 20:00:00 +0300
 
 orbiscreen (0.41.2~ubuntunoble1) noble; urgency=medium
 
@@ -55,7 +68,7 @@ orbiscreen (0.41.2~ubuntunoble1) noble; urgency=medium
     workaround.
   * Bump version to 0.41.2 across all packages; Android versionCode 192.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 19:30:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 15 Nov 2026 19:30:00 +0300
 
 orbiscreen (0.41.1~ubuntunoble1) noble; urgency=medium
 
@@ -64,7 +77,7 @@ orbiscreen (0.41.1~ubuntunoble1) noble; urgency=medium
     brp check accepts the RPM; add chrpath to the build requirements.
   * Bump version to 0.41.1 across all packages; Android versionCode 191.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 19:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 15 Nov 2026 19:00:00 +0300
 
 orbiscreen (0.41.0~ubuntunoble1) noble; urgency=medium
 
@@ -83,7 +96,7 @@ orbiscreen (0.41.0~ubuntunoble1) noble; urgency=medium
     start/stop/resolution/doctor behavior compatible.
   * Bump version to 0.41.0 across all packages; Android versionCode 190.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 12:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 15 Nov 2026 12:00:00 +0300
 
 orbiscreen (0.40.1~ubuntunoble1) noble; urgency=medium
 
@@ -98,7 +111,7 @@ orbiscreen (0.40.1~ubuntunoble1) noble; urgency=medium
     cargo-deny treats them as warnings and the release gate denied warnings.
   * Bump version to 0.40.1 across all packages; Android versionCode 189.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 00:10:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 15 Nov 2026 00:10:00 +0300
 
 orbiscreen (0.40.0~ubuntunoble1) noble; urgency=medium
 
@@ -122,7 +135,7 @@ orbiscreen (0.40.0~ubuntunoble1) noble; urgency=medium
     code, dead parameters, and mirror tests were removed.
   * Bump version to 0.40.0 across all packages; Android versionCode 188.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 15 Nov 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 15 Nov 2026 00:00:00 +0300
 
 orbiscreen (0.39.6~ubuntunoble1) noble; urgency=medium
 
@@ -146,7 +159,7 @@ orbiscreen (0.39.6~ubuntunoble1) noble; urgency=medium
     source.
   * Bump version to 0.39.6 across all packages; Android versionCode 187.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 04 Nov 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 04 Nov 2026 00:00:00 +0300
 
 orbiscreen (0.39.5~ubuntunoble1) noble; urgency=medium
 
@@ -166,7 +179,7 @@ orbiscreen (0.39.5~ubuntunoble1) noble; urgency=medium
   * Adds a regression test that fails if intra-refresh is enabled again.
   * Bump version to 0.39.5 across all packages; Android versionCode 186.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 03 Nov 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 03 Nov 2026 00:00:00 +0300
 
 orbiscreen (0.39.4~ubuntunoble1) noble; urgency=medium
 
@@ -183,7 +196,7 @@ orbiscreen (0.39.4~ubuntunoble1) noble; urgency=medium
     no hardware encoder was available and that x264enc is used.
   * Bump version to 0.39.4 across all packages; Android versionCode 185.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 02 Nov 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 02 Nov 2026 00:00:00 +0300
 
 orbiscreen (0.39.3~ubuntunoble1) noble; urgency=medium
 
@@ -203,7 +216,7 @@ orbiscreen (0.39.3~ubuntunoble1) noble; urgency=medium
     is unchanged for older libkscreen versions.
   * Bump version to 0.39.3 across all packages; Android versionCode 184.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 02 Nov 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 02 Nov 2026 00:00:00 +0300
 
 orbiscreen (0.39.2~ubuntunoble1) noble; urgency=medium
 
@@ -220,7 +233,7 @@ orbiscreen (0.39.2~ubuntunoble1) noble; urgency=medium
     confirmation.
   * Bump version to 0.39.2 across all packages; Android versionCode 183.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 27 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 27 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.39.1~ubuntunoble1) noble; urgency=medium
 
@@ -240,7 +253,7 @@ orbiscreen (0.39.1~ubuntunoble1) noble; urgency=medium
     pending confirmation.
   * Bump version to 0.39.1 across all packages; Android versionCode 182.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 25 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 25 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.39.0~ubuntunoble1) noble; urgency=medium
 
@@ -254,7 +267,7 @@ orbiscreen (0.39.0~ubuntunoble1) noble; urgency=medium
     via ksni. Bilingual Arabic/English UI with RTL.
   * Bump version to 0.39.0 across all packages; Android versionCode 181.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 21 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 21 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.38.0~ubuntunoble1) noble; urgency=medium
 
@@ -267,7 +280,7 @@ orbiscreen (0.38.0~ubuntunoble1) noble; urgency=medium
     admit the IDR requests stop entirely until the lane drains again.
   * Bump version to 0.38.0 across all packages; Android versionCode 180.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 20 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 20 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.37.9~ubuntunoble1) noble; urgency=medium
 
@@ -281,7 +294,7 @@ orbiscreen (0.37.9~ubuntunoble1) noble; urgency=medium
     30 still report 30; nothing is forced.
   * Bump version to 0.37.9 across all packages; Android versionCode 179.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 18 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 18 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.37.8~ubuntunoble1) noble; urgency=medium
 
@@ -295,7 +308,7 @@ orbiscreen (0.37.8~ubuntunoble1) noble; urgency=medium
     and approve() counts only active clients.
   * Bump version to 0.37.8 across all packages; Android versionCode 178.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 17 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 17 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.37.7~ubuntunoble1) noble; urgency=medium
 
@@ -310,7 +323,7 @@ orbiscreen (0.37.7~ubuntunoble1) noble; urgency=medium
     full before/after benchmark.
   * Bump version to 0.37.7 across all packages; Android versionCode 177.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 17 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 17 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.37.6~ubuntunoble1) noble; urgency=medium
 
@@ -324,7 +337,7 @@ orbiscreen (0.37.6~ubuntunoble1) noble; urgency=medium
     pending confirmation.
   * Bump version to 0.37.6 across all packages; Android versionCode 176.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 17 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 17 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.37.5~ubuntunoble1) noble; urgency=medium
 
@@ -341,7 +354,7 @@ orbiscreen (0.37.5~ubuntunoble1) noble; urgency=medium
     pending confirmation.
   * Bump version to 0.37.5 across all packages; Android versionCode 175.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 16 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 16 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.37.4~ubuntunoble1) noble; urgency=medium
 
@@ -355,7 +368,7 @@ orbiscreen (0.37.4~ubuntunoble1) noble; urgency=medium
     pending confirmation.
   * Bump version to 0.37.4 across all packages; Android versionCode 174.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 16 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 16 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.37.3~ubuntunoble1) noble; urgency=medium
 
@@ -370,7 +383,7 @@ orbiscreen (0.37.3~ubuntunoble1) noble; urgency=medium
     pending confirmation.
   * Bump version to 0.37.3 across all packages; Android versionCode 173.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 16 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 16 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.37.2~ubuntunoble1) noble; urgency=medium
 
@@ -386,7 +399,7 @@ orbiscreen (0.37.2~ubuntunoble1) noble; urgency=medium
     left open pending confirmation.
   * Bump version to 0.37.2 across all packages; Android versionCode 172.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 15 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 15 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.37.1~ubuntunoble1) noble; urgency=medium
 
@@ -401,7 +414,7 @@ orbiscreen (0.37.1~ubuntunoble1) noble; urgency=medium
   * Reported and diagnosed by @Bulrok in #93; the issue is left open.
   * Bump version to 0.37.1 across all packages; Android versionCode 171.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 15 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 15 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.37.0~ubuntunoble1) noble; urgency=medium
 
@@ -415,7 +428,7 @@ orbiscreen (0.37.0~ubuntunoble1) noble; urgency=medium
     pen. The composited-cursor overlay is removed again.
   * Bump version to 0.37.0 across all packages; Android versionCode 170.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 12 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 12 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.36.9~ubuntunoble1) noble; urgency=medium
 
@@ -429,7 +442,7 @@ orbiscreen (0.36.9~ubuntunoble1) noble; urgency=medium
   * Restore the composited pointer sprite and its clipping tests.
   * Bump version to 0.36.9 across all packages; Android versionCode 168.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 12 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 12 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.36.8~ubuntunoble1) noble; urgency=medium
 
@@ -443,7 +456,7 @@ orbiscreen (0.36.8~ubuntunoble1) noble; urgency=medium
     while touch and pen drive the confined virtual pointer.
   * Bump version to 0.36.8 across all packages; Android versionCode 167.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 12 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 12 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.36.7~ubuntunoble1) noble; urgency=medium
 
@@ -456,7 +469,7 @@ orbiscreen (0.36.7~ubuntunoble1) noble; urgency=medium
     the virtual display.
   * Bump version to 0.36.7 across all packages; Android versionCode 166.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 12 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 12 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.36.6~ubuntunoble1) noble; urgency=medium
 
@@ -470,7 +483,7 @@ orbiscreen (0.36.6~ubuntunoble1) noble; urgency=medium
     removed.
   * Bump version to 0.36.6 across all packages; Android versionCode 165.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 12 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 12 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.36.5~ubuntunoble1) noble; urgency=medium
 
@@ -484,7 +497,7 @@ orbiscreen (0.36.5~ubuntunoble1) noble; urgency=medium
   * Sharpen the composited pointer sprite.
   * Bump version to 0.36.5 across all packages; Android versionCode 164.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 11 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 11 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.36.4~ubuntunoble1) noble; urgency=medium
 
@@ -498,7 +511,7 @@ orbiscreen (0.36.4~ubuntunoble1) noble; urgency=medium
     app and disappears on touch, pen, or when the session ends.
   * Bump version to 0.36.4 across all packages; Android versionCode 163.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 11 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 11 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.36.3~ubuntunoble1) noble; urgency=medium
 
@@ -514,7 +527,7 @@ orbiscreen (0.36.3~ubuntunoble1) noble; urgency=medium
     once a second and added latency.
   * Bump version to 0.36.3 across all packages; Android versionCode 162.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 11 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 11 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.36.2~ubuntunoble1) noble; urgency=medium
 
@@ -528,7 +541,7 @@ orbiscreen (0.36.2~ubuntunoble1) noble; urgency=medium
     after connecting.
   * Bump version to 0.36.2 across all packages; Android versionCode 161.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 11 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 11 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.36.1~ubuntunoble1) noble; urgency=medium
 
@@ -547,7 +560,7 @@ orbiscreen (0.36.1~ubuntunoble1) noble; urgency=medium
   * Remove the encoder badge from the Android control toolbar.
   * Bump version to 0.36.1 across all packages; Android versionCode 160.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 10 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 10 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.36.0~ubuntunoble1) noble; urgency=medium
 
@@ -561,7 +574,7 @@ orbiscreen (0.36.0~ubuntunoble1) noble; urgency=medium
   * Reported and diagnosed by @sarawer in #91; the issue is left open.
   * Bump version to 0.36.0 across all packages; Android versionCode 159.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 09 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.35.9~ubuntunoble1) noble; urgency=medium
 
@@ -578,7 +591,7 @@ orbiscreen (0.35.9~ubuntunoble1) noble; urgency=medium
   * Put the COPR %changelog in descending order with correct weekdays.
   * Bump version to 0.35.9 across all packages; Android versionCode 158.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 09 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.35.8~ubuntunoble1) noble; urgency=medium
 
@@ -591,7 +604,7 @@ orbiscreen (0.35.8~ubuntunoble1) noble; urgency=medium
     widened from 2 to 8 to stop "consumer channel full" drops on transitions.
   * Bump version to 0.35.8 across all packages; Android versionCode 157.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 09 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.35.7~ubuntunoble1) noble; urgency=medium
 
@@ -603,7 +616,7 @@ orbiscreen (0.35.7~ubuntunoble1) noble; urgency=medium
     reported frame age, and applies the same handling to the HTTP /au path.
   * Bump version to 0.35.7 across all packages; Android versionCode 156.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 09 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.35.6~ubuntunoble1) noble; urgency=medium
 
@@ -617,7 +630,7 @@ orbiscreen (0.35.6~ubuntunoble1) noble; urgency=medium
     51 fps / 52 ms after.
   * Bump version to 0.35.6 across all packages; Android versionCode 155.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 09 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.35.5~ubuntunoble1) noble; urgency=medium
 
@@ -629,7 +642,7 @@ orbiscreen (0.35.5~ubuntunoble1) noble; urgency=medium
     codec instances are released before the next attempt.
   * Bump version to 0.35.5 across all packages; Android versionCode 154.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 09 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 09 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.35.4~ubuntunoble1) noble; urgency=medium
 
@@ -641,7 +654,7 @@ orbiscreen (0.35.4~ubuntunoble1) noble; urgency=medium
     https://github.com/shadow-x78/orbiscreen/issues/90
   * Bump version to 0.35.4 across all packages; Android versionCode 153.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 08 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 08 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.35.3~ubuntunoble1) noble; urgency=medium
 
@@ -653,7 +666,7 @@ orbiscreen (0.35.3~ubuntunoble1) noble; urgency=medium
     the stats overlay shows the decoder state.
   * Bump version to 0.35.3 across all packages; Android versionCode 152.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 08 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 08 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.35.2~ubuntunoble1) noble; urgency=medium
 
@@ -666,7 +679,7 @@ orbiscreen (0.35.2~ubuntunoble1) noble; urgency=medium
     100% scale mode (a crop on ExoPlayer, fit on UDP) is removed.
   * Bump version to 0.35.2 across all packages; Android versionCode 151.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 07 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 07 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.35.1~ubuntunoble1) noble; urgency=medium
 
@@ -678,7 +691,7 @@ orbiscreen (0.35.1~ubuntunoble1) noble; urgency=medium
     so the credential stays out of server logs and Referer headers.
   * Bump version to 0.35.1 across all packages; Android versionCode 150.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 07 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 07 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.35.0~ubuntunoble1) noble; urgency=medium
 
@@ -686,7 +699,7 @@ orbiscreen (0.35.0~ubuntunoble1) noble; urgency=medium
   * feat: unify the web client and GUI on the Android app's design system
   * Bump version to 0.35.0 across all packages; Android versionCode 149.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.34.2~ubuntunoble1) noble; urgency=medium
 
@@ -698,7 +711,7 @@ orbiscreen (0.34.2~ubuntunoble1) noble; urgency=medium
     https://github.com/shadow-x78/orbiscreen/issues/89
   * Bump version to 0.34.2 across all packages; Android versionCode 148.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.34.1~ubuntunoble1) noble; urgency=medium
 
@@ -708,7 +721,7 @@ orbiscreen (0.34.1~ubuntunoble1) noble; urgency=medium
     https://github.com/shadow-x78/orbiscreen/issues/86
   * Bump version to 0.34.1 across all packages; Android versionCode 147.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.34.0~ubuntunoble1) noble; urgency=medium
 
@@ -723,7 +736,7 @@ orbiscreen (0.34.0~ubuntunoble1) noble; urgency=medium
   * fix: hide revoked devices from the pairing list
   * Bump version to 0.34.0 across all packages; Android versionCode 146.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.33.10~ubuntunoble1) noble; urgency=medium
 
@@ -731,7 +744,7 @@ orbiscreen (0.33.10~ubuntunoble1) noble; urgency=medium
   * fix: hide revoked devices from the pairing list
   * Bump version to 0.33.10 across all packages; Android versionCode 146.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.33.9~ubuntunoble1) noble; urgency=medium
 
@@ -739,7 +752,7 @@ orbiscreen (0.33.9~ubuntunoble1) noble; urgency=medium
   * chore: bump version to 0.33.6
   * Bump version to 0.33.9 across all packages; Android versionCode 144.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.33.8~ubuntunoble1) noble; urgency=medium
 
@@ -747,7 +760,7 @@ orbiscreen (0.33.8~ubuntunoble1) noble; urgency=medium
   * docs: write the 30 troubleshooting sections that were listed but missing
   * Bump version to 0.33.8 across all packages; Android versionCode 144.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.33.7~ubuntunoble1) noble; urgency=medium
 
@@ -755,7 +768,7 @@ orbiscreen (0.33.7~ubuntunoble1) noble; urgency=medium
   * docs: rebuild the troubleshooting contents so every link reaches a section
   * Bump version to 0.33.7 across all packages; Android versionCode 143.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.33.6~ubuntunoble1) noble; urgency=medium
 
@@ -763,7 +776,7 @@ orbiscreen (0.33.6~ubuntunoble1) noble; urgency=medium
   * chore: comment policy guard, branding and Android stream UI
   * Bump version to 0.33.6 across all packages; Android versionCode 142.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.33.5~ubuntunoble1) noble; urgency=medium
 
@@ -771,7 +784,7 @@ orbiscreen (0.33.5~ubuntunoble1) noble; urgency=medium
   * fix: accept the query-string token again; web input retries without a session
   * Bump version to 0.33.5 across all packages; Android versionCode 141.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.33.4~ubuntunoble1) noble; urgency=medium
 
@@ -779,7 +792,7 @@ orbiscreen (0.33.4~ubuntunoble1) noble; urgency=medium
   * fix: AOA video starvation, encoder VBV sizing, bounded USB writes
   * Bump version to 0.33.4 across all packages; Android versionCode 140.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.33.3~ubuntunoble1) noble; urgency=medium
 
@@ -787,7 +800,7 @@ orbiscreen (0.33.3~ubuntunoble1) noble; urgency=medium
   * fix: the AOA stream bound must evict, not refuse; and loopback peers are not TLS-redirected.
   * Bump version to 0.33.3 across all packages; Android versionCode 139.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.33.2~ubuntunoble1) noble; urgency=medium
 
@@ -795,7 +808,7 @@ orbiscreen (0.33.2~ubuntunoble1) noble; urgency=medium
   * fix: restore the RPM_GPG_KEY fallback for the Launchpad upload.
   * Bump version to 0.33.2 across all packages; Android versionCode 138.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.33.1~ubuntunoble1) noble; urgency=medium
 
@@ -803,7 +816,7 @@ orbiscreen (0.33.1~ubuntunoble1) noble; urgency=medium
   * fix: ship the web client and system files in the release tarball.
   * Bump version to 0.33.1 across all packages; Android versionCode 137.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.33.0~ubuntunoble1) noble; urgency=medium
 
@@ -811,7 +824,7 @@ orbiscreen (0.33.0~ubuntunoble1) noble; urgency=medium
   * chore: promote 0.32.10 to the 0.33.0 minor release.
   * Bump version to 0.33.0 across all packages; Android versionCode 136.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.32.10~ubuntunoble1) noble; urgency=medium
 
@@ -819,7 +832,7 @@ orbiscreen (0.32.10~ubuntunoble1) noble; urgency=medium
   * chore: add the version synchronization script used by the release train.
   * Bump version to 0.32.10 across all packages; Android versionCode 135.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.32.9~ubuntunoble1) noble; urgency=medium
 
@@ -827,7 +840,7 @@ orbiscreen (0.32.9~ubuntunoble1) noble; urgency=medium
   * chore: remove the inline comments added during this series.
   * Bump version to 0.32.9 across all packages; Android versionCode 134.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.32.8~ubuntunoble1) noble; urgency=medium
 
@@ -835,7 +848,7 @@ orbiscreen (0.32.8~ubuntunoble1) noble; urgency=medium
   * unsafe documentation, TLS-only credential paths, D-Bus authorization.
   * Bump version to 0.32.8 across all packages; Android versionCode 133.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.32.7~ubuntunoble1) noble; urgency=medium
 
@@ -843,7 +856,7 @@ orbiscreen (0.32.7~ubuntunoble1) noble; urgency=medium
   * cross-session input injection, Tauri UI, packaging gaps.
   * Bump version to 0.32.7 across all packages; Android versionCode 132.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.32.6~ubuntunoble1) noble; urgency=medium
 
@@ -851,7 +864,7 @@ orbiscreen (0.32.6~ubuntunoble1) noble; urgency=medium
   * Android resource leaks, data races and request storms.
   * Bump version to 0.32.6 across all packages; Android versionCode 131.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.32.5~ubuntunoble1) noble; urgency=medium
 
@@ -859,7 +872,7 @@ orbiscreen (0.32.5~ubuntunoble1) noble; urgency=medium
   * AOA stream cap, BYE handling, dead discovery chain.
   * Bump version to 0.32.5 across all packages; Android versionCode 130.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.32.4~ubuntunoble1) noble; urgency=medium
 
@@ -867,7 +880,7 @@ orbiscreen (0.32.4~ubuntunoble1) noble; urgency=medium
   * drop unused assets and scripts, add missing unit tests.
   * Bump version to 0.32.4 across all packages; Android versionCode 129.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.32.3~ubuntunoble1) noble; urgency=medium
 
@@ -875,7 +888,7 @@ orbiscreen (0.32.3~ubuntunoble1) noble; urgency=medium
   * standardize banner comments on non-code files.
   * Bump version to 0.32.3 across all packages; Android versionCode 128.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.32.2~ubuntunoble1) noble; urgency=medium
 
@@ -883,7 +896,7 @@ orbiscreen (0.32.2~ubuntunoble1) noble; urgency=medium
   * cross-session input injection, dead Tauri UI, packaging gaps.
   * Bump version to 0.32.2 across all packages; Android versionCode 127.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.32.1~ubuntunoble1) noble; urgency=medium
 
@@ -892,7 +905,7 @@ orbiscreen (0.32.1~ubuntunoble1) noble; urgency=medium
   * Re-indent the run_hub idle reap branch so close_session and idle_at.remove read as nested under the `if reap` guard. Indentation only, no behavior change.
   * Bump version to 0.32.1 across all packages; Android versionCode 126.
 
--- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 02 Oct 2026 00:00:00 +0300
+-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 02 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.32.0~ubuntunoble1) noble; urgency=medium
 
@@ -902,7 +915,7 @@ orbiscreen (0.32.0~ubuntunoble1) noble; urgency=medium
   * AOA re-attach resolves resized sessions automatically without a 100 ms blind delay.
   * Bump version to 0.32.0 across all packages; Android versionCode 125.
 
-  -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 01 Oct 2026 00:00:00 +0300
+  -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 01 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.31.9~ubuntunoble1) noble; urgency=medium
 
@@ -912,7 +925,7 @@ orbiscreen (0.31.9~ubuntunoble1) noble; urgency=medium
   * AOA re-attach resolves resized sessions automatically without a 100 ms blind delay.
   * Bump version to 0.31.9 across all packages; Android versionCode 124.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 01 Oct 2026 00:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 01 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.31.8~ubuntunoble1) noble; urgency=medium
 
@@ -921,7 +934,7 @@ orbiscreen (0.31.8~ubuntunoble1) noble; urgency=medium
   * Web client: repair template literals truncated by the comment-removal pass.
   * Bump version to 0.31.8 across all packages; Android versionCode 123.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 01 Oct 2026 00:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 01 Oct 2026 00:00:00 +0300
 
 orbiscreen (0.31.7~ubuntunoble1) noble; urgency=medium
 
@@ -930,14 +943,14 @@ orbiscreen (0.31.7~ubuntunoble1) noble; urgency=medium
   * Android: saved resolution preset priority, toolbar width, low-latency buffers.
   * Bump version to 0.31.7 across all packages; Android versionCode 122.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 30 Sep 2026 06:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 30 Sep 2026 06:30:00 +0300
 
 orbiscreen (0.31.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.31.3 for Ubuntu noble.
   * Bump version to 0.31.3 across all packages; Android versionCode 118.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 27 Sep 2026 03:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 27 Sep 2026 03:00:00 +0300
 
 orbiscreen (0.31.2~ubuntunoble1) noble; urgency=medium
 
@@ -946,7 +959,7 @@ orbiscreen (0.31.2~ubuntunoble1) noble; urgency=medium
   * Performance: increased HTTP/UDP buffer sizes, relaxed frame dropping thresholds, frame rate limiting in capture pump.
   * Sync release metadata in docs, specs, and badges.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 21 Sep 2026 15:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 21 Sep 2026 15:00:00 +0300
 
 orbiscreen (0.31.1~ubuntunoble1) noble; urgency=medium
 
@@ -957,7 +970,7 @@ orbiscreen (0.31.1~ubuntunoble1) noble; urgency=medium
   * Eliminate unwrap panics across production daemon, transport, and FEC code paths.
   * Purge internal source comments while preserving top license headers and standardized config box comments.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 20 Sep 2026 12:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 20 Sep 2026 12:00:00 +0300
 
 orbiscreen (0.30.9~ubuntunoble1) noble; urgency=medium
 
@@ -968,7 +981,7 @@ orbiscreen (0.30.9~ubuntunoble1) noble; urgency=medium
   * Implement smart multi-client session routing correlating client key and unattached sessions.
   * Pass X-Orbiscreen-Session and client key in ExoPlayer headers while preserving session across transient reconnects.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 19 Sep 2026 22:50:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 19 Sep 2026 22:50:00 +0300
 
 orbiscreen (0.30.8~ubuntunoble1) noble; urgency=medium
 
@@ -979,7 +992,7 @@ orbiscreen (0.30.8~ubuntunoble1) noble; urgency=medium
   * Protect AOA USB bridges against poisoned mutex panics and eliminate WebTransport frame slice panics.
   * Purge internal source comments while preserving credit headers and standardized boxed config comments.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 19 Sep 2026 20:10:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 19 Sep 2026 20:10:00 +0300
 
 orbiscreen (0.30.7~ubuntunoble1) noble; urgency=medium
 
@@ -989,7 +1002,7 @@ orbiscreen (0.30.7~ubuntunoble1) noble; urgency=medium
   * Implement smart resolution negotiation: auto-detect client physical resolution (2560x1536) by default while honoring explicit user overrides.
   * Add tablet-friendly resolution presets (2560x1536, 1920x1152, 1280x768) in GUI dashboard.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 19 Sep 2026 14:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 19 Sep 2026 14:00:00 +0300
 
 orbiscreen (0.30.6~ubuntunoble1) noble; urgency=medium
 
@@ -1000,7 +1013,7 @@ orbiscreen (0.30.6~ubuntunoble1) noble; urgency=medium
   * Restore Direct Touch mode by removing relative mouse movements from uinput touch injector.
   * Clean up and deduplicate Android input networking configuration.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 19 Sep 2026 12:25:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 19 Sep 2026 12:25:00 +0300
 
 orbiscreen (0.30.5~ubuntunoble1) noble; urgency=medium
 
@@ -1012,7 +1025,7 @@ orbiscreen (0.30.5~ubuntunoble1) noble; urgency=medium
   * Relax frame dropping threshold to 150ms to prevent micro frame drops at 90Hz.
   * Restore compositor damage pump interval to 16ms.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 18 Sep 2026 18:35:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 18 Sep 2026 18:35:00 +0300
 
 orbiscreen (0.30.4~ubuntunoble1) noble; urgency=medium
 
@@ -1021,7 +1034,7 @@ orbiscreen (0.30.4~ubuntunoble1) noble; urgency=medium
   * Remove dead code in ExoPlayer shouldDropOutputBuffer that was left behind from v0.30.3.
   * Revert KWin FRAME_CHANNEL_CAPACITY from 4 to 2 for stable low-latency frame delivery.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 18 Sep 2026 16:27:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 18 Sep 2026 16:27:00 +0300
 
 orbiscreen (0.30.3~ubuntunoble1) noble; urgency=medium
 
@@ -1031,7 +1044,7 @@ orbiscreen (0.30.3~ubuntunoble1) noble; urgency=medium
   * Prevent silent GStreamer appsink drops in the H.264 encoder pipeline.
   * Optimize KWin virtual display damage pump interval to 11ms for 90Hz.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 18 Sep 2026 13:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 18 Sep 2026 13:30:00 +0300
 
 orbiscreen (0.30.2~ubuntunoble1) noble; urgency=medium
 
@@ -1041,7 +1054,7 @@ orbiscreen (0.30.2~ubuntunoble1) noble; urgency=medium
   * Prevent automatic reconnection loop after user-initiated disconnect.
   * Ensure graceful daemon shutdown and encoder pipeline cleanup on Ctrl+C.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 18 Sep 2026 02:35:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 18 Sep 2026 02:35:00 +0300
 
 orbiscreen (0.30.1~ubuntunoble1) noble; urgency=medium
 
@@ -1052,7 +1065,7 @@ orbiscreen (0.30.1~ubuntunoble1) noble; urgency=medium
   * Synchronize touch input with mouse cursor in X11 input injector.
   * Optimize Android input dispatcher with motion event coalescing.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 18 Sep 2026 00:25:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 18 Sep 2026 00:25:00 +0300
 
 orbiscreen (0.30.0~ubuntunoble1) noble; urgency=medium
 
@@ -1063,7 +1076,7 @@ orbiscreen (0.30.0~ubuntunoble1) noble; urgency=medium
   * Zero-inline-comment policy enforcement across all crates and clients.
   * Raised MSRV to 1.92 and updated packaging for Ubuntu Noble.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 17 Sep 2026 20:20:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 17 Sep 2026 20:20:00 +0300
 
 orbiscreen (0.29.1~ubuntunoble1) noble; urgency=medium
 
@@ -1074,7 +1087,7 @@ orbiscreen (0.29.1~ubuntunoble1) noble; urgency=medium
   * Add automatic session reconnection and extend post-viewer idle timeout.
   * Bump version across workspace and packaging configurations.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 17 Sep 2026 05:05:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 17 Sep 2026 05:05:00 +0300
 
 orbiscreen (0.29.0~ubuntunoble1) noble; urgency=medium
 
@@ -1085,7 +1098,7 @@ orbiscreen (0.29.0~ubuntunoble1) noble; urgency=medium
   * Android client AU reordering and packet loss recovery.
   * Bump version across workspace and packaging configurations.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 23:25:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 16 Sep 2026 23:25:00 +0300
 
 orbiscreen (0.28.9~ubuntunoble1) noble; urgency=medium
 
@@ -1095,7 +1108,7 @@ orbiscreen (0.28.9~ubuntunoble1) noble; urgency=medium
   * Add automatic fallback session creation in client_display for legacy client backwards compatibility.
   * Bump version across workspace and packaging configurations.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 16:36:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 16 Sep 2026 16:36:00 +0300
 
 orbiscreen (0.28.8~ubuntunoble1) noble; urgency=medium
 
@@ -1105,7 +1118,7 @@ orbiscreen (0.28.8~ubuntunoble1) noble; urgency=medium
   * Document software decoder fallback for low-end SoC hardware decoders.
   * Bump version across workspace and packaging configurations.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 14:18:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 16 Sep 2026 14:18:00 +0300
 
 orbiscreen (0.28.7~ubuntunoble1) noble; urgency=medium
 
@@ -1115,7 +1128,7 @@ orbiscreen (0.28.7~ubuntunoble1) noble; urgency=medium
   * Configure shouldDropBuffersToKeyframe to request IDR on lag exceeding 300ms without dropping frames.
   * Parse display geometry from kscreen-doctor to automatically position KWin virtual displays adjacent to active monitors.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 09:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 16 Sep 2026 09:30:00 +0300
 
 orbiscreen (0.28.6~ubuntunoble1) noble; urgency=medium
 
@@ -1125,7 +1138,7 @@ orbiscreen (0.28.6~ubuntunoble1) noble; urgency=medium
   * Synchronize UI active resolution and framerate chips with daemon status.
   * Add Arch Linux and Manjaro PKGBUILD build instructions to documentation.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 08:05:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 16 Sep 2026 08:05:00 +0300
 
 orbiscreen (0.28.5~ubuntunoble1) noble; urgency=medium
 
@@ -1138,7 +1151,7 @@ orbiscreen (0.28.5~ubuntunoble1) noble; urgency=medium
   * Expand OkHttp client concurrent request limits to prevent touch event queue stalls.
   * Configure lightweight default capture profile (720p@60Hz, 3500 kbps) for secondary display to eliminate bus congestion.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 07:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 16 Sep 2026 07:30:00 +0300
 
 orbiscreen (0.28.4~ubuntunoble1) noble; urgency=medium
 
@@ -1149,7 +1162,7 @@ orbiscreen (0.28.4~ubuntunoble1) noble; urgency=medium
   * Prevent initial black frame injection and cache keepalive only after first real frame capture.
   * Fix daemon stop deadlock by removing watch channel race condition.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 03:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 16 Sep 2026 03:00:00 +0300
 
 orbiscreen (0.28.3~ubuntunoble1) noble; urgency=medium
 
@@ -1160,7 +1173,7 @@ orbiscreen (0.28.3~ubuntunoble1) noble; urgency=medium
   * Add GStreamer pipeline bus sync handler for real-time encoder warning and error reporting.
   * Expand AOA video sync_channel buffer capacity to 64 chunks to prevent frame drops on keyframe bursts.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 16 Sep 2026 01:15:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 16 Sep 2026 01:15:00 +0300
 
 orbiscreen (0.28.2~ubuntunoble1) noble; urgency=medium
 
@@ -1173,7 +1186,7 @@ orbiscreen (0.28.2~ubuntunoble1) noble; urgency=medium
   * Request IDR keyframe on UDP hub broadcast lag recovery.
   * Optimize keepalive frame snapshot memory footprint with Arc slice buffer.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 15 Sep 2026 21:45:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 15 Sep 2026 21:45:00 +0300
 
 orbiscreen (0.28.1~ubuntunoble1) noble; urgency=medium
 
@@ -1185,7 +1198,7 @@ orbiscreen (0.28.1~ubuntunoble1) noble; urgency=medium
   * Multi-thread software color conversion with n-threads=4 on videoconvert.
   * Constrain appsrc max-bytes and appsink max-buffers across capture pipelines.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 14 Sep 2026 19:40:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 14 Sep 2026 19:40:00 +0300
 
 orbiscreen (0.28.0~ubuntunoble1) noble; urgency=medium
 
@@ -1195,7 +1208,7 @@ orbiscreen (0.28.0~ubuntunoble1) noble; urgency=medium
   * Restore standard relative mouse motion across all displays without boundary confinement.
   * Align Android touch and stylus coordinates 1:1 to host display pixels.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 12 Sep 2026 18:15:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 12 Sep 2026 18:15:00 +0300
 
 orbiscreen (0.27.9~ubuntunoble1) noble; urgency=medium
 
@@ -1205,7 +1218,7 @@ orbiscreen (0.27.9~ubuntunoble1) noble; urgency=medium
   * Restore standard relative mouse motion across all displays without boundary confinement (Closes: #77).
   * Align Android touch and stylus coordinates 1:1 to host display pixels (Closes: #77).
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 12 Sep 2026 06:40:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 12 Sep 2026 06:40:00 +0300
 
 orbiscreen (0.27.8~ubuntunoble1) noble; urgency=medium
 
@@ -1215,7 +1228,7 @@ orbiscreen (0.27.8~ubuntunoble1) noble; urgency=medium
   * Fix mouse delta speed and cursor bounds in Android PlayerSurface (Closes: #77).
   * Completely remove USB audio pipeline and preferences across daemon, transport, and Android app (Closes: #77).
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 12 Sep 2026 00:35:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 12 Sep 2026 00:35:00 +0300
 
 orbiscreen (0.27.7~ubuntunoble1) noble; urgency=medium
 
@@ -1224,7 +1237,7 @@ orbiscreen (0.27.7~ubuntunoble1) noble; urgency=medium
   * Auto-position secondary display to the right of primary monitor via kscreen-doctor (Closes: #77).
   * Eliminate mouse rubberbanding and cursor jitter: route pointer motion strictly as relative events to mouse_keyboard and isolate stylus pen tools (Closes: #77).
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 21:15:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 11 Sep 2026 21:15:00 +0300
 
 orbiscreen (0.27.6~ubuntunoble1) noble; urgency=medium
 
@@ -1234,7 +1247,7 @@ orbiscreen (0.27.6~ubuntunoble1) noble; urgency=medium
   * Eliminate mouse cursor stutter by isolating relative pointer events from tablet stylus coordinate injection (Closes: #77).
   * Optimize Android ExoPlayer buffer pacing to 45-120ms with dynamic live speed adjustment to prevent frame drops and audio starvation.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 19:48:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 11 Sep 2026 19:48:00 +0300
 
 orbiscreen (0.27.5~ubuntunoble1) noble; urgency=medium
 
@@ -1245,7 +1258,7 @@ orbiscreen (0.27.5~ubuntunoble1) noble; urgency=medium
   * Enable app-wide keepScreenAwake using FLAG_KEEP_SCREEN_ON at Activity window level (Closes: #77).
   * Polish UI: vertically center USB audio warning container and round ripple selection highlights on all cards and preference rows.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 16:20:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 11 Sep 2026 16:20:00 +0300
 
 orbiscreen (0.27.4~ubuntunoble1) noble; urgency=medium
 
@@ -1255,7 +1268,7 @@ orbiscreen (0.27.4~ubuntunoble1) noble; urgency=medium
   * Add battery optimization exemption setting in Android app with live status tracking and direct intent launcher (Closes: #77).
   * Update USB Hero Card to continuously probe and initialize AOA accessory without requiring app restart.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 13:20:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 11 Sep 2026 13:20:00 +0300
 
 orbiscreen (0.27.3~ubuntunoble1) noble; urgency=medium
 
@@ -1265,7 +1278,7 @@ orbiscreen (0.27.3~ubuntunoble1) noble; urgency=medium
   * Fix audio decoder selection: bypass low-latency hardware filter for audio MIME types to preserve standard software audio decoders.
   * Enforce host audio pipeline standard: specify 48 kHz stereo PCM and standard ADTS stream format framing for AAC in MPEG-TS multiplexer.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 11 Sep 2026 10:25:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 11 Sep 2026 10:25:00 +0300
 
 orbiscreen (0.27.2~ubuntunoble1) noble; urgency=medium
 
@@ -1274,7 +1287,7 @@ orbiscreen (0.27.2~ubuntunoble1) noble; urgency=medium
   * Fix audio pipeline multiplexing: add dedicated upstream-leaky queues for both video and audio before mpegtsmux to prevent frame stalls and audio dropouts (Closes: #77).
   * Fix virtual sink display name: format sink_properties to display cleanly as "Orbiscreen Audio" with space in system sound settings.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 11 Sep 2026 09:11:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 11 Sep 2026 09:11:00 +0300
 
 orbiscreen (0.27.1~ubuntunoble1) noble; urgency=medium
 
@@ -1285,7 +1298,7 @@ orbiscreen (0.27.1~ubuntunoble1) noble; urgency=medium
   * Fix toolbar auto-close: session toolbar no longer closes automatically after 12 s.
   * Add virtual audio sink: "Orbiscreen Audio" now appears as a system audio output device in PipeWire/PulseAudio.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 11 Sep 2026 06:41:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 11 Sep 2026 06:41:00 +0300
 
 orbiscreen (0.26.0~ubuntunoble1) noble; urgency=medium
 
@@ -1298,7 +1311,7 @@ orbiscreen (0.26.0~ubuntunoble1) noble; urgency=medium
   * Add USB audio experimental warning card in settings.
 
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 11 Sep 2026 01:25:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 11 Sep 2026 01:25:00 +0300
 
 orbiscreen (0.25.9~ubuntunoble1) noble; urgency=medium
 
@@ -1313,7 +1326,7 @@ orbiscreen (0.25.9~ubuntunoble1) noble; urgency=medium
   * Desktop GUI 500ms D-Bus timeout protection and dynamic WebKitGTK Tauri invoke.
   * Clean Arabic localization with natural phrasing and typography.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 10 Sep 2026 18:15:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 10 Sep 2026 18:15:00 +0300
 
 orbiscreen (0.25.8~ubuntunoble1) noble; urgency=medium
 
@@ -1326,7 +1339,7 @@ orbiscreen (0.25.8~ubuntunoble1) noble; urgency=medium
   * Draggable floating edge pill toolbar controls.
   * Streamlined practical settings redesign.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 09 Sep 2026 15:45:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 09 Sep 2026 15:45:00 +0300
 
 orbiscreen (0.25.7~ubuntunoble1) noble; urgency=medium
 
@@ -1336,7 +1349,7 @@ orbiscreen (0.25.7~ubuntunoble1) noble; urgency=medium
   * D-Bus query timeout protection against suspended or zombie daemon process hangs.
   * Desktop GUI real-time connected device and model identification.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 09 Sep 2026 03:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 09 Sep 2026 03:00:00 +0300
 
 orbiscreen (0.25.6~ubuntunoble1) noble; urgency=medium
 
@@ -1344,7 +1357,7 @@ orbiscreen (0.25.6~ubuntunoble1) noble; urgency=medium
   * Revert ExoPlayer threshold regression from v0.25.5 that caused worse rubberbanding (#75).
   * Restore shouldDropOutputBuffer threshold to 30ms; revert setMaxPlaybackSpeed to 1.0f.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 09 Sep 2026 00:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 09 Sep 2026 00:00:00 +0300
 
 orbiscreen (0.25.5~ubuntunoble1) noble; urgency=medium
 
@@ -1355,7 +1368,7 @@ orbiscreen (0.25.5~ubuntunoble1) noble; urgency=medium
   * Tighten Android USB proxy socket buffers to 16KB and cap accessory buffer expansion to 128KB.
   * Enable periodic encoder recovery keyframes every 10 seconds (600 frames at 60fps).
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 21:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 08 Sep 2026 21:00:00 +0300
 
 orbiscreen (0.25.4~ubuntunoble1) noble; urgency=medium
 
@@ -1365,7 +1378,7 @@ orbiscreen (0.25.4~ubuntunoble1) noble; urgency=medium
   * Configuration files comment standardization with standard banners and section dividers.
   * Clean up dead code, deduplicate variables, and fix vector QR code generation.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 20:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 08 Sep 2026 20:00:00 +0300
 
 orbiscreen (0.25.3~ubuntunoble1) noble; urgency=medium
 
@@ -1376,7 +1389,7 @@ orbiscreen (0.25.3~ubuntunoble1) noble; urgency=medium
   * Add aggressive late frame dropping in LowLatencyVideoRenderer to stay on live edge.
   * Optimize Android UsbAccessoryManager socket options and buffer bounds.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 19:10:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 08 Sep 2026 19:10:00 +0300
 
 orbiscreen (0.25.2~ubuntunoble1) noble; urgency=medium
 
@@ -1386,7 +1399,7 @@ orbiscreen (0.25.2~ubuntunoble1) noble; urgency=medium
   * Wayland StartupWMClass alignment and full hicolor icon theme set.
   * Automated NVIDIA explicit sync workarounds in GUI and desktop entry.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 18:20:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 08 Sep 2026 18:20:00 +0300
 
 orbiscreen (0.25.1~ubuntunoble1) noble; urgency=medium
 
@@ -1395,7 +1408,7 @@ orbiscreen (0.25.1~ubuntunoble1) noble; urgency=medium
   * Immediate fail on unsendable datagrams (EMSGSIZE, drop_above) instead of timeout.
   * Reset Android DatagramPacket receive cap and expand buffer to 65507 bytes.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 15:20:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 08 Sep 2026 15:20:00 +0300
 
 orbiscreen (0.25.0~ubuntunoble1) noble; urgency=medium
 
@@ -1404,7 +1417,7 @@ orbiscreen (0.25.0~ubuntunoble1) noble; urgency=medium
   * Integration of 'orbiscreen gui' CLI command and desktop entry launcher.
   * Streamlined English user interface across Web, Android, and Desktop.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Tue, 08 Sep 2026 12:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Tue, 08 Sep 2026 12:30:00 +0300
 
 orbiscreen (0.24.1~ubuntunoble1) noble; urgency=medium
 
@@ -1413,7 +1426,7 @@ orbiscreen (0.24.1~ubuntunoble1) noble; urgency=medium
   * KWin dynamic virtual display with Direct Touch binding.
   * Send-to-assemble delay metrics in Android stream menu.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 22:50:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 07 Sep 2026 22:50:00 +0300
 
 orbiscreen (0.24.0~ubuntunoble1) noble; urgency=medium
 
@@ -1425,7 +1438,7 @@ orbiscreen (0.24.0~ubuntunoble1) noble; urgency=medium
   * Sanitize and clamp daemon input coordinates to prevent NaN/out-of-bounds events.
   * Enforce clean comment standards and remove dead code across the workspace.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 15:10:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 07 Sep 2026 15:10:00 +0300
 
 orbiscreen (0.23.9~ubuntunoble1) noble; urgency=medium
 
@@ -1433,7 +1446,7 @@ orbiscreen (0.23.9~ubuntunoble1) noble; urgency=medium
   * Purge GitHub Deployments and gh-pages deployment branch.
   * Streamline packaging workflows via official Launchpad PPA and Fedora COPR.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 12:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 07 Sep 2026 12:30:00 +0300
 
 orbiscreen (0.23.8~ubuntunoble1) noble; urgency=medium
 
@@ -1443,7 +1456,7 @@ orbiscreen (0.23.8~ubuntunoble1) noble; urgency=medium
   * Standard GitHub Markdown issue templates (bug reports & feature requests) and sponsor links.
   * Redesigned social preview branding 100% aligned with official vector banner artwork.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 07:16:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 07 Sep 2026 07:16:00 +0300
 
 orbiscreen (0.23.7~ubuntunoble1) noble; urgency=medium
 
@@ -1452,7 +1465,7 @@ orbiscreen (0.23.7~ubuntunoble1) noble; urgency=medium
   * Enable periodic intra-refresh for software x264enc to keep P-frames small.
   * Implement on-demand IDR recovery via POST /api/control (action=idr), new stream join, and client error handlers (PR #72 by @sentinelt).
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 02:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 07 Sep 2026 02:30:00 +0300
 
 orbiscreen (0.23.6~ubuntunoble1) noble; urgency=medium
 
@@ -1461,7 +1474,7 @@ orbiscreen (0.23.6~ubuntunoble1) noble; urgency=medium
   * Emit warning when falling back to software x264enc to prevent silent high CPU encode on 1440p+.
   * Tune VA-API pipeline for low latency (CBR, target-usage=7, ref-frames=1, no B-frames) (PR #71 by @sentinelt).
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Mon, 07 Sep 2026 02:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Mon, 07 Sep 2026 02:00:00 +0300
 
 orbiscreen (0.23.5~ubuntunoble1) noble; urgency=medium
 
@@ -1471,7 +1484,7 @@ orbiscreen (0.23.5~ubuntunoble1) noble; urgency=medium
   * Cut Android ExoPlayer live offset to 24ms and enable MediaCodec low-latency decoding (PR #70 by @sentinelt).
   * Tighten web mpegts.js live sync target to 30ms.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 14:50:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 06 Sep 2026 14:50:00 +0300
 
 orbiscreen (0.23.4~ubuntunoble1) noble; urgency=medium
 
@@ -1480,7 +1493,7 @@ orbiscreen (0.23.4~ubuntunoble1) noble; urgency=medium
   * Eliminate duplicated mouse click injection during stylus drawing.
   * Scale Android trackpad motion deltas proportionally to stream content dimensions.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 14:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 06 Sep 2026 14:30:00 +0300
 
 orbiscreen (0.23.3~ubuntunoble1) noble; urgency=medium
 
@@ -1489,7 +1502,7 @@ orbiscreen (0.23.3~ubuntunoble1) noble; urgency=medium
   * Add in-page HTML anchor and direct web tab links for Code of Conduct navigation.
   * Refresh community standards badges and documentation links.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 08:35:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 06 Sep 2026 08:35:00 +0300
 
 orbiscreen (0.23.2~ubuntunoble1) noble; urgency=medium
 
@@ -1499,7 +1512,7 @@ orbiscreen (0.23.2~ubuntunoble1) noble; urgency=medium
   * Retain clean IDR keyframe skipping at the H.264 broadcast channel level.
   * Tune Android ExoPlayer buffer thresholds to 40ms to prevent decoder starvation at 60 FPS.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 07:45:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 06 Sep 2026 07:45:00 +0300
 
 orbiscreen (0.23.1~ubuntunoble1) noble; urgency=medium
 
@@ -1509,7 +1522,7 @@ orbiscreen (0.23.1~ubuntunoble1) noble; urgency=medium
   * Send per-finger Touch payload from Android client with 60Hz motion coalescing.
   * Retain dedicated touchpad mode for virtual mouse cursor navigation.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 06:58:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 06 Sep 2026 06:58:00 +0300
 
 orbiscreen (0.23.0~ubuntunoble1) noble; urgency=medium
 
@@ -1521,7 +1534,7 @@ orbiscreen (0.23.0~ubuntunoble1) noble; urgency=medium
   * Tune Android ExoPlayer buffer down to 15-45ms and live target offset to 15ms.
   * Prevent Android app termination on USB accessory detachment and pop gracefully to discovery screen.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sun, 06 Sep 2026 06:50:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sun, 06 Sep 2026 06:50:00 +0300
 
 orbiscreen (0.22.9~ubuntunoble1) noble; urgency=medium
 
@@ -1531,7 +1544,7 @@ orbiscreen (0.22.9~ubuntunoble1) noble; urgency=medium
   * Properly shutdown TcpStream on FRAME_FLAG_CLOSE in Linux AOA bridge to prevent resource leaks.
   * Add forceRefresh flag to freshToken() to avoid redundant HTTP requests during stream setup.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 06 Sep 2026 01:20:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 06 Sep 2026 01:20:00 +0300
 
 orbiscreen (0.22.8~ubuntunoble1) noble; urgency=medium
 
@@ -1541,7 +1554,7 @@ orbiscreen (0.22.8~ubuntunoble1) noble; urgency=medium
   * Eliminate race conditions on AOA stream startup and 401 unauthorized errors.
   * Add non-root diagnostic guidance for direct USB streaming and USB Tethering.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 21:40:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 05 Sep 2026 21:40:00 +0300
 
 orbiscreen (0.22.7~ubuntunoble1) noble; urgency=medium
 
@@ -1551,7 +1564,7 @@ orbiscreen (0.22.7~ubuntunoble1) noble; urgency=medium
   * Add progressive real-time diagnostic output in orbiscreen doctor without freezing.
   * Redesign Android in-app update dialog with Compose Markdown renderer and auto-installation.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 20:10:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 05 Sep 2026 20:10:00 +0300
 
 orbiscreen (0.22.6~ubuntunoble1) noble; urgency=medium
 
@@ -1561,7 +1574,7 @@ orbiscreen (0.22.6~ubuntunoble1) noble; urgency=medium
   * Add automatic AOA intent handling and accessory filter in Android client.
   * Unify and polish tool-oriented translations across Web, Android, and CLI interfaces.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 19:15:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 05 Sep 2026 19:15:00 +0300
 
 orbiscreen (0.22.5~ubuntunoble1) noble; urgency=medium
 
@@ -1570,7 +1583,7 @@ orbiscreen (0.22.5~ubuntunoble1) noble; urgency=medium
   * Add automatic background update check on app launch and manual check in Settings.
   * Configure secure FileProvider and REQUEST_INSTALL_PACKAGES permission in AndroidManifest.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 17:05:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 05 Sep 2026 17:05:00 +0300
 
 orbiscreen (0.22.4~ubuntunoble1) noble; urgency=medium
 
@@ -1580,7 +1593,7 @@ orbiscreen (0.22.4~ubuntunoble1) noble; urgency=medium
   * Add styled ASCII stop card for CLI stop command with Catppuccin accents and D-Bus service status.
   * Register org.shadow-x78.Orbiscreen well-known name on the session bus.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 16:50:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 05 Sep 2026 16:50:00 +0300
 
 orbiscreen (0.22.3~ubuntunoble1) noble; urgency=medium
 
@@ -1591,7 +1604,7 @@ orbiscreen (0.22.3~ubuntunoble1) noble; urgency=medium
   * Fix stylus tablet tool proximity release to prevent cursor jumping to host display on pen lift.
   * Tune Android input dispatcher loop to 16ms (60 Hz) to avoid uplink Wi-Fi network congestion.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 13:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 05 Sep 2026 13:30:00 +0300
 
 orbiscreen (0.22.2~ubuntunoble1) noble; urgency=medium
 
@@ -1601,7 +1614,7 @@ orbiscreen (0.22.2~ubuntunoble1) noble; urgency=medium
   * Fix stylus touch, pressure and hover for drawing and desktop navigation on tablets.
   * Tune ExoPlayer buffer for stutter-free 60 FPS streaming over USB ADB and Wi-Fi.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 12:35:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 05 Sep 2026 12:35:00 +0300
 
 orbiscreen (0.22.1~ubuntunoble1) noble; urgency=medium
 
@@ -1612,7 +1625,7 @@ orbiscreen (0.22.1~ubuntunoble1) noble; urgency=medium
   * Non-zero axis resolution for tablet device to ensure libinput stylus recognition.
   * Low-latency playback buffer tuning and async input dispatch in Android client.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 02:15:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 05 Sep 2026 02:15:00 +0300
 
 orbiscreen (0.22.0~ubuntunoble1) noble; urgency=medium
 
@@ -1622,7 +1635,7 @@ orbiscreen (0.22.0~ubuntunoble1) noble; urgency=medium
   * Fix green screen video artifact by preventing MPEG-TS packet drops.
   * Streamline CLI startup banner and update packaging metadata.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Sat, 05 Sep 2026 00:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Sat, 05 Sep 2026 00:30:00 +0300
 
 orbiscreen (0.21.0~ubuntunoble1) noble; urgency=medium
 
@@ -1632,7 +1645,7 @@ orbiscreen (0.21.0~ubuntunoble1) noble; urgency=medium
   * Translated Arabic architecture diagrams and documentation polishing.
   * Token security hardening and streamline packaging metadata.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 04 Sep 2026 22:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 04 Sep 2026 22:30:00 +0300
 
 orbiscreen (0.20.0~ubuntunoble1) noble; urgency=medium
 
@@ -1643,7 +1656,7 @@ orbiscreen (0.20.0~ubuntunoble1) noble; urgency=medium
   * ChromeOS ARC++ ADB connection support.
   * LAN token security isolation, loopback filtering, and 0o600 token storage.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 04 Sep 2026 18:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 04 Sep 2026 18:00:00 +0300
 
 orbiscreen (0.19.0~ubuntunoble1) noble; urgency=medium
 
@@ -1653,7 +1666,7 @@ orbiscreen (0.19.0~ubuntunoble1) noble; urgency=medium
   * Native Fedora CI and RPM packaging pipeline with RPM Fusion.
   * Comprehensive RTL documentation, zero-comment code standards, and security hardening.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 04 Sep 2026 16:20:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 04 Sep 2026 16:20:00 +0300
 
 orbiscreen (0.18.3~ubuntunoble1) noble; urgency=medium
 
@@ -1662,7 +1675,7 @@ orbiscreen (0.18.3~ubuntunoble1) noble; urgency=medium
   * Streamlined overlay states, VNC cursor isolation, and brand SVG/PNG favicons.
   * Refined CLI ASCII logo geometry and standardized command outputs.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Thu, 04 Sep 2026 03:50:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Thu, 04 Sep 2026 03:50:00 +0300
 
 orbiscreen (0.18.2~ubuntunoble1) noble; urgency=medium
 
@@ -1670,7 +1683,7 @@ orbiscreen (0.18.2~ubuntunoble1) noble; urgency=medium
   * Modernized CLI interface with brand theme, ASCII logo, and status command.
   * Cleaned codebase and standardized credit headers across all source files.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 03 Sep 2026 21:30:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 03 Sep 2026 21:30:00 +0300
 
 orbiscreen (0.18.1~ubuntunoble1) noble; urgency=medium
 
@@ -1678,7 +1691,7 @@ orbiscreen (0.18.1~ubuntunoble1) noble; urgency=medium
   * Pure CLI daemon refactoring: removed desktop application launcher.
   * Synchronized package metadata descriptions across all Linux distributions.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 03 Sep 2026 18:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 03 Sep 2026 18:00:00 +0300
 
 orbiscreen (0.18.0~ubuntunoble1) noble; urgency=medium
 
@@ -1689,35 +1702,35 @@ orbiscreen (0.18.0~ubuntunoble1) noble; urgency=medium
   * Professional SVG banner with crisp vector icons replacing emoji.
   * Packaging: updated .deb, .rpm, and AppImage CLI distributions.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 03 Sep 2026 16:00:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 03 Sep 2026 16:00:00 +0300
 
 orbiscreen (0.17.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.4 for Ubuntu noble.
   * Ultra-low latency KWin virtual capture (framerate-matched damage pump, drop=true max-buffers=1), zero-backlog keyframe delivery, hardware NVENC prioritization, double-tap gesture fix, redesigned Arabic exit modal and settings bottom sheet.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 17:15:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 02 Sep 2026 17:15:00 +0300
 
 orbiscreen (0.17.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.3 for Ubuntu noble.
   * Streaming pitch-black fix, sleek keyboard accessory bar, settings FAB & sheet redesign, exit confirmation modal.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 16:35:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 02 Sep 2026 16:35:00 +0300
 
 orbiscreen (0.17.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.2 for Ubuntu noble.
   * Comprehensive UI/UX overhaul, sub-100ms latency, mouse input fix, background auto-resume.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 15:55:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 02 Sep 2026 15:55:00 +0300
 
 orbiscreen (0.17.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.17.1 for Ubuntu noble.
   * In-app developer credits, GitHub links, update check, zero-buffering playback.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 15:10:00 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 02 Sep 2026 15:10:00 +0300
 
 orbiscreen (0.16.2~ubuntu24.04.3) noble; urgency=medium
 
@@ -1725,4 +1738,4 @@ orbiscreen (0.16.2~ubuntu24.04.3) noble; urgency=medium
   * Fast offline Launchpad PPA packaging with explicit dependencies.
   * Include machine-readable debian/copyright file.
 
- -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Wed, 02 Sep 2026 06:02:26 +0300
+ -- shadow-x78 <shadow-x7@red-shadows-rs.com>  Wed, 02 Sep 2026 06:02:26 +0300

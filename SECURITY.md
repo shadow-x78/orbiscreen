@@ -2,7 +2,7 @@
 
 # Security Policy - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.42.3-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.42.4-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -47,7 +47,7 @@ If you discover a security vulnerability in Orbiscreen, please report it **respo
   [Security Advisories →](https://github.com/shadow-x78/orbiscreen/security/advisories/new)
 
 **Alternative method:**
-- Email the maintainers via the GitHub security contact above.
+- Email `shadow-x7@red-shadows-rs.com`, or use the GitHub security advisory above.
 
 **What to include:**
 

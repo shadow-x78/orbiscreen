@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.42.4] - 2026-11-16
+
+### Changed
+- chore: use shadow-x7@red-shadows-rs.com as the project contact
+
+Packaging, Debian metadata, release notes, security guidance, and the PPA
+changelog now use the new address.
+
+### Fixed
+- fix: verify PPA publication correctly and skip duplicate uploads
+
+The PPA job queried Launchpad with `source_name=orbiscreen&exact_match=true`,
+which did not return the newly published version. It reported "accepted but did
+not publish" even though `0.42.3~ubuntunoble1` was present and its binary was
+building. The job now queries without the `source_name` filter, parses the JSON,
+and checks the exact package/version. It also skips building and uploading when
+Launchpad already has that version, so a failed job can be re-run safely.
+
 ## [v0.42.3] - 2026-11-16
 
 ### Fixed

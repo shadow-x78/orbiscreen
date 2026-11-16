@@ -126,22 +126,35 @@ jobs:
           if [ "$VERSION" = "main" ] || [ -z "$VERSION" ]; then
             VERSION="$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')"
           fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           cat << CHLOG > debian/changelog
           orbiscreen (${VERSION}~ubuntu${SERIES}1) ${SERIES}; urgency=medium
 
             * Release ${VERSION} for Ubuntu ${SERIES}.
 
-           -- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  $(date -R)
+           -- shadow-x7 <shadow-x7@red-shadows-rs.com>  $(date -R)
           CHLOG
+
+      - name: Check if Launchpad already published this version
+        id: published
+        run: |
+          if python3 scripts/check-ppa-published.py "$VERSION"; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "Launchpad already has ${VERSION}."
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+          fi
 
       # ── Source Package ──
       - name: Build Debian Source Package
+        if: steps.published.outputs.already != 'true'
         run: |
           debuild --no-lintian -S -sa -d -k"${GPG_KEY_ID}" -p"gpg ${GPG_OPTS}"
           rm -f "$RUNNER_TEMP/ppa-passphrase" 2>/dev/null || true
 
       # ── Upload Transport ──
       - name: Configure dput
+        if: steps.published.outputs.already != 'true'
         run: |
           cat << 'EOF' > ~/.dput.cf
           [DEFAULT]
@@ -157,6 +170,7 @@ jobs:
 
       # ── Publish ──
       - name: Upload to Launchpad PPA via dput
+        if: steps.published.outputs.already != 'true'
         run: |
           CHANGES_FILE=$(ls ../orbiscreen_*_source.changes | tail -n 1)
           echo "Uploading $CHANGES_FILE to Launchpad PPA..."
@@ -174,13 +188,8 @@ jobs:
 
       - name: Verify Launchpad published the upload
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          if [ "$VERSION" = "main" ] || [ -z "$VERSION" ]; then
-            VERSION="$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')"
-          fi
-          URL="https://api.launchpad.net/1.0/~shadow-x78/+archive/ubuntu/ppa?ws.op=getPublishedSources&source_name=orbiscreen&exact_match=true"
           for attempt in $(seq 1 30); do
-            if curl -fsSL "$URL" | grep -q "\"source_package_version\": \"${VERSION}"; then
+            if python3 scripts/check-ppa-published.py "$VERSION"; then
               echo "Launchpad published ${VERSION}."
               exit 0
             fi

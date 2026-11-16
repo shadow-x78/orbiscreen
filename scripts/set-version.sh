@@ -57,7 +57,7 @@ for file in $files; do
 done
 
 stamp="2026-10-03"
-author_line="-- shadow-x78 <107577376+shadow-x78@users.noreply.github.com>  Fri, 03 Oct 2026 00:00:00 +0300"
+author_line="-- shadow-x78 <shadow-x7@red-shadows-rs.com>  Fri, 03 Oct 2026 00:00:00 +0300"
 
 python3 - "$version" "$code" "$summary" "$stamp" <<'PY'
 import re, sys
@@ -95,7 +95,7 @@ version, summary = sys.argv[1:3]
 path = "data/orbiscreen-copr.spec"
 text = open(path, encoding="utf-8").read()
 head = (
-    f"* Fri Oct 03 2026 shadow-x78 <107577376+shadow-x78@users.noreply.github.com>"
+    f"* Fri Oct 03 2026 shadow-x78 <shadow-x7@red-shadows-rs.com>"
     f" - {version}-1\n- Release {version}: {summary}\n\n"
 )
 text = re.sub(r"^(%changelog\n)", lambda m: m.group(1) + head, text, count=1, flags=re.M)
