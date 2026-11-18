@@ -105,9 +105,9 @@ fn reap_idle_streams(
 }
 
 const ANDROID_VENDORS: &[u16] = &[
-    0x18d1, 0x17ef, 0x2717, 0x04e8, 0x12d1, 0x22b8, 0x22d9, 0x2d95, 0x1004, 0x0fce, 0x0b05, 0x0bb4,
-    0x19d2, 0x2a45, 0x2a70, 0x2833, 0x1949, 0x1f3a, 0x0e8d, 0x1782, 0x2207, 0x05c6, 0x2916, 0x1bbb,
-    0x10a9, 0x2006, 0x2b4c, 0x33f3, 0x2e04,
+    0x18d1, 0x17ef, 0x2717, 0x04e8, 0x12d1, 0x22b8, 0x22d9, 0x2d95, 0x1004, 0x0fce, 0x0bb4, 0x19d2,
+    0x2a45, 0x2a70, 0x2833, 0x1949, 0x1f3a, 0x0e8d, 0x1782, 0x2207, 0x05c6, 0x2916, 0x1bbb, 0x10a9,
+    0x2006, 0x2b4c, 0x33f3, 0x2e04,
 ];
 
 fn enforce_stream_limit(
@@ -224,55 +224,88 @@ pub fn is_google_accessory(vid: u16, pid: u16) -> bool {
     vid == 0x18d1 && matches!(pid, 0x2d00 | 0x2d01 | 0x2d04 | 0x2d05)
 }
 
-pub fn is_android_candidate(dev: &UsbDeviceInfo) -> bool {
-    if is_google_accessory(dev.vendor_id, dev.product_id) {
-        return false;
-    }
-    if ANDROID_VENDORS.contains(&dev.vendor_id) {
-        return true;
-    }
-    let prod = std::fs::read_to_string(dev.sysfs_path.join("product"))
+fn read_trimmed(path: &Path) -> String {
+    std::fs::read_to_string(path)
         .unwrap_or_default()
-        .to_lowercase();
-    let mfg = std::fs::read_to_string(dev.sysfs_path.join("manufacturer"))
-        .unwrap_or_default()
-        .to_lowercase();
-    if prod.contains("android")
-        || prod.contains("phone")
-        || prod.contains("tablet")
-        || prod.contains("pad")
-        || prod.contains("tab")
-        || mfg.contains("android")
+        .trim()
+        .to_owned()
+}
+
+fn interface_classes(sysfs_path: &Path) -> Vec<(String, String)> {
+    let mut found = Vec::new();
+    let Ok(entries) = std::fs::read_dir(sysfs_path) else {
+        return found;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = entry.file_name();
+        let name_str = name.to_string_lossy();
+        if !path.is_dir() || !name_str.contains(':') {
+            continue;
+        }
+        let cls = read_trimmed(&path.join("bInterfaceClass")).to_lowercase();
+        let subcls = read_trimmed(&path.join("bInterfaceSubClass")).to_lowercase();
+        found.push((cls, subcls));
+    }
+    found
+}
+
+fn looks_like_android(dev: &UsbDeviceInfo) -> bool {
+    let product = read_trimmed(&dev.sysfs_path.join("product")).to_lowercase();
+    let manufacturer = read_trimmed(&dev.sysfs_path.join("manufacturer")).to_lowercase();
+    if product.contains("android")
+        || product.contains("phone")
+        || product.contains("tablet")
+        || product.contains("pad")
+        || product.contains("tab")
+        || manufacturer.contains("android")
     {
         return true;
     }
+
     if let Ok(entries) = std::fs::read_dir(&dev.sysfs_path) {
         for entry in entries.flatten() {
             let path = entry.path();
             let name = entry.file_name();
             let name_str = name.to_string_lossy();
             if path.is_dir() && name_str.contains(':') {
-                if let Ok(iface_name) = std::fs::read_to_string(path.join("interface")) {
-                    let iface_lower = iface_name.to_lowercase();
-                    if iface_lower.contains("mtp") || iface_lower.contains("adb") {
-                        return true;
-                    }
-                }
-                let cls = std::fs::read_to_string(path.join("bInterfaceClass"))
-                    .unwrap_or_default()
-                    .trim()
-                    .to_lowercase();
-                let subcls = std::fs::read_to_string(path.join("bInterfaceSubClass"))
-                    .unwrap_or_default()
-                    .trim()
-                    .to_lowercase();
-                if cls == "06" || (cls == "ff" && subcls == "42") {
+                let iface = read_trimmed(&path.join("interface")).to_lowercase();
+                if iface.contains("mtp") || iface.contains("adb") {
                     return true;
                 }
             }
         }
     }
-    false
+
+    let classes = interface_classes(&dev.sysfs_path);
+    let has_mtp = classes
+        .iter()
+        .any(|(cls, subcls)| cls == "06" && subcls == "01");
+    let has_adb = classes
+        .iter()
+        .any(|(cls, subcls)| cls == "ff" && subcls == "42");
+    has_mtp || has_adb
+}
+
+fn is_peripheral_only(dev: &UsbDeviceInfo) -> bool {
+    let classes = interface_classes(&dev.sysfs_path);
+    !classes.is_empty()
+        && classes
+            .iter()
+            .all(|(cls, _)| cls == "03" || cls == "e0" || cls == "01" || cls == "09")
+}
+
+pub fn is_android_candidate(dev: &UsbDeviceInfo) -> bool {
+    if is_google_accessory(dev.vendor_id, dev.product_id) {
+        return false;
+    }
+    if is_peripheral_only(dev) {
+        return false;
+    }
+    if looks_like_android(dev) {
+        return true;
+    }
+    ANDROID_VENDORS.contains(&dev.vendor_id)
 }
 
 #[allow(unsafe_code)]
@@ -322,7 +355,49 @@ pub fn start_aoa(fd: i32) -> bool {
     res >= 0
 }
 
+fn interfaces_bound_to_kernel_driver(sysfs_path: &Path) -> Vec<String> {
+    let mut bound = Vec::new();
+    let Ok(entries) = std::fs::read_dir(sysfs_path) else {
+        return bound;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = entry.file_name();
+        let name_str = name.to_string_lossy();
+        if !path.is_dir() || !name_str.contains(':') {
+            continue;
+        }
+        let driver = path.join("driver");
+        if !driver.exists() {
+            continue;
+        }
+        let resolved = std::fs::read_link(&driver)
+            .ok()
+            .and_then(|target| {
+                target
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+            })
+            .unwrap_or_else(|| "unknown".to_owned());
+        if resolved == "usbfs" {
+            continue;
+        }
+        bound.push(resolved);
+    }
+    bound
+}
+
 pub fn initiate_aoa_handshake(device: &UsbDeviceInfo) -> bool {
+    let bound = interfaces_bound_to_kernel_driver(&device.sysfs_path);
+    if !bound.is_empty() {
+        debug!(
+            vendor = %format!("{:04x}", device.vendor_id),
+            product = %format!("{:04x}", device.product_id),
+            drivers = ?bound,
+            "skipping AOA handshake: the device is in use by a kernel driver"
+        );
+        return false;
+    }
     let f = match OpenOptions::new()
         .read(true)
         .write(true)
@@ -1340,12 +1415,16 @@ mod tests {
         assert!(!prio_slot_free(&Mutex::new(rx)));
     }
 
-    #[test]
-    fn the_udev_rules_cover_every_android_candidate_vendor() {
+    fn udev_rules() -> String {
         let rules_path =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data/99-orbiscreen-usb.rules");
-        let rules = std::fs::read_to_string(&rules_path)
-            .unwrap_or_else(|e| panic!("could not read {}: {e}", rules_path.display()));
+        std::fs::read_to_string(&rules_path)
+            .unwrap_or_else(|e| panic!("could not read {}: {e}", rules_path.display()))
+    }
+
+    #[test]
+    fn the_udev_rules_cover_every_android_candidate_vendor() {
+        let rules = udev_rules();
         for vid in ANDROID_VENDORS {
             let needle = format!("idVendor}}==\"{vid:04x}\"");
             assert!(
@@ -1353,6 +1432,114 @@ mod tests {
                 "udev rules are missing vendor {vid:04x}; sync data/99-orbiscreen-usb.rules"
             );
         }
+    }
+
+    #[test]
+    fn the_udev_rules_do_not_grant_access_to_a_bluetooth_adapter_vendor() {
+        let rules = udev_rules();
+        assert!(
+            !rules.contains("ATTR{idVendor}==\"0b05\""),
+            "0b05 is ASUSTek, which ships Bluetooth adapters; granting uaccess on the \
+             whole vendor lets the AOA probe open an unrelated device"
+        );
+        assert!(
+            !ANDROID_VENDORS.contains(&0x0b05),
+            "0x0b05 must not be treated as an Android vendor"
+        );
+    }
+
+    fn fake_device(dir: &Path, interfaces: &[(&str, &str)]) -> UsbDeviceInfo {
+        for (index, (cls, subcls)) in interfaces.iter().enumerate() {
+            let iface = dir.join(format!("1-1:1.{index}"));
+            std::fs::create_dir_all(&iface).expect("create iface dir");
+            std::fs::write(iface.join("bInterfaceClass"), cls).expect("write class");
+            std::fs::write(iface.join("bInterfaceSubClass"), subcls).expect("write subclass");
+        }
+        UsbDeviceInfo {
+            bus_num: 1,
+            dev_num: 1,
+            vendor_id: 0x0b05,
+            product_id: 0x1bef,
+            sysfs_path: dir.to_path_buf(),
+            dev_node: dir.join("dev"),
+        }
+    }
+
+    fn scratch_dir(tag: &str) -> PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("orbiscreen-aoa-test-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create scratch dir");
+        dir
+    }
+
+    #[test]
+    fn a_bluetooth_adapter_is_not_an_android_candidate() {
+        let dir = scratch_dir("bt");
+        let dev = fake_device(&dir, &[("e0", "01"), ("e0", "01"), ("ff", "ff")]);
+        assert!(
+            !is_android_candidate(&dev),
+            "a Bluetooth adapter must never be probed for AOA"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_hid_keyboard_is_not_an_android_candidate() {
+        let dir = scratch_dir("hid");
+        let dev = fake_device(&dir, &[("03", "01"), ("03", "00")]);
+        assert!(!is_android_candidate(&dev));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn an_mtp_interface_makes_an_android_candidate() {
+        let dir = scratch_dir("mtp");
+        let dev = fake_device(&dir, &[("06", "01"), ("ff", "42")]);
+        assert!(is_android_candidate(&dev));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_vendor_interface_without_mtp_or_adb_is_not_a_candidate() {
+        let dir = scratch_dir("vendorspecific");
+        let dev = fake_device(&dir, &[("ff", "ff")]);
+        assert!(
+            !is_android_candidate(&dev),
+            "a vendor-specific interface without MTP or ADB must not qualify"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_claimed_interface_blocks_the_handshake() {
+        let dir = scratch_dir("claimed");
+        let dev = fake_device(&dir, &[("06", "01")]);
+        let iface = dir.join("1-1:1.0");
+        let driver_dir = dir.join("drivers");
+        let driver_target = driver_dir.join("btusb");
+        std::fs::create_dir_all(&driver_target).expect("driver dir");
+        std::os::unix::fs::symlink(&driver_target, iface.join("driver")).expect("symlink");
+        let bound = interfaces_bound_to_kernel_driver(&dev.sysfs_path);
+        assert_eq!(bound, vec!["btusb".to_string()]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_usbfs_claim_does_not_block_the_handshake() {
+        let dir = scratch_dir("usbfs");
+        let dev = fake_device(&dir, &[("06", "01")]);
+        let iface = dir.join("1-1:1.0");
+        let driver_dir = dir.join("drivers");
+        let driver_target = driver_dir.join("usbfs");
+        std::fs::create_dir_all(&driver_target).expect("driver dir");
+        std::os::unix::fs::symlink(&driver_target, iface.join("driver")).expect("symlink");
+        let bound = interfaces_bound_to_kernel_driver(&dev.sysfs_path);
+        assert!(
+            bound.is_empty(),
+            "usbfs is our own claim, not a kernel driver holding the device"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

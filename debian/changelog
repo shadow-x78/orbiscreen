@@ -1,3 +1,17 @@
+orbiscreen (0.44.2~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.44.2 for Ubuntu noble.
+  * Drop 0x0b05 (ASUSTek) from the Android vendor list; the vendor ships
+    Bluetooth adapters that the AOA probe was opening (issue #115).
+  * Require an MTP or ADB interface before treating a device as an Android host,
+    and reject HID, Bluetooth, audio, and hub-only devices.
+  * Skip the AOA handshake when a kernel driver has claimed an interface, naming
+    the driver in the debug log.
+  * Remove the blanket uaccess grant on the ASUS vendor from the udev rules.
+  * Bump version to 0.44.2 across all packages; Android versionCode 202.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Wed, 18 Nov 2026 22:15:00 +0300
+
 orbiscreen (0.44.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.44.1 for Ubuntu noble.

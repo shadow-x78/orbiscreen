@@ -12,6 +12,10 @@ SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", ATTR{idProduct}=="2d05", MODE="0660", 
 # ── Android Device Vendor IDs ──
 # Keep in sync with ANDROID_VENDORS in crates/orbiscreen-transport/src/aoa.rs;
 # the aoa::tests::the_udev_rules_cover_every_android_candidate_vendor test enforces it.
+# A vendor grant alone does not make a device an Android host: the daemon also
+# requires an MTP or ADB interface and skips anything a kernel driver has claimed.
+# Vendors that ship unrelated peripherals (audio, Bluetooth, storage) are the reason
+# the grant is scoped here and why the probe checks interfaces first.
 SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", TAG+="uaccess"
 SUBSYSTEM=="usb", ATTR{idVendor}=="17ef", TAG+="uaccess"
 SUBSYSTEM=="usb", ATTR{idVendor}=="2717", TAG+="uaccess"
@@ -22,7 +26,6 @@ SUBSYSTEM=="usb", ATTR{idVendor}=="22d9", TAG+="uaccess"
 SUBSYSTEM=="usb", ATTR{idVendor}=="2d95", TAG+="uaccess"
 SUBSYSTEM=="usb", ATTR{idVendor}=="1004", TAG+="uaccess"
 SUBSYSTEM=="usb", ATTR{idVendor}=="0fce", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTR{idVendor}=="0b05", TAG+="uaccess"
 SUBSYSTEM=="usb", ATTR{idVendor}=="0bb4", TAG+="uaccess"
 SUBSYSTEM=="usb", ATTR{idVendor}=="19d2", TAG+="uaccess"
 SUBSYSTEM=="usb", ATTR{idVendor}=="2a45", TAG+="uaccess"

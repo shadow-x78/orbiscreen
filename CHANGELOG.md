@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.44.2] - 2026-11-18
+
+### Fixed
+- **Orbiscreen probed unrelated USB devices and could stall a Bluetooth adapter
+  (issue #115).** `ANDROID_VENDORS` listed `0x0b05` (ASUSTek), and
+  `is_android_candidate` returned `true` for any device whose vendor appeared in
+  that list, without looking at a single interface. The USB supervisor scans every
+  1.2 s and retries each device every 4 s, so a machine with an ASUS Bluetooth
+  adapter saw a repeating `USBDEVFS_CONTROL` probe against that adapter - the
+  kernel logged `usbfs: USBDEVFS_CONTROL failed ... rqt 192 rq 51 len 2 ret -110`
+  every five seconds, which is exactly `AOA_GET_PROTOCOL` timing out. The reporter's
+  keyboard and mouse went dead while the desktop kept rendering, which fits an
+  adapter driven into an error state by a control request it never expected.
+  `0x0b05` is removed from the vendor list, and a vendor match is no longer
+  sufficient on its own: a device must also expose an MTP (`06/01`) or ADB
+  (`ff/42`) interface, and devices whose interfaces are all HID, Bluetooth, audio
+  or hub are rejected outright.
+- **The AOA handshake now refuses any device a kernel driver has claimed.** Before
+  opening the node, the probe reads the driver symlink of every interface and skips
+  the device when one is bound, naming the driver in a debug log. A `usbfs` binding
+  is ignored, because that is our own claim from a previous handshake and not a
+  driver holding the hardware.
+- **The udev rule granted `uaccess` on every product of 29 vendors.** Any of those
+  vendors that also ships audio, Bluetooth or storage peripherals handed the daemon
+  write access to hardware it has no business opening. The ASUS grant is gone, and
+  the rules now state that a vendor grant is not by itself evidence of an Android
+  host.
+
+### Changed
+- Version bumped to 0.44.2 across the Cargo workspace, Android (`versionCode` 202),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.44.1] - 2026-11-18
 
 ### Fixed
