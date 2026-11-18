@@ -1,5 +1,3 @@
-// Orbiscreen - Qt main window (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen
-
 #include "mainwindow.h"
 
 #include "daemonclient.h"
@@ -176,8 +174,6 @@ void MainWindow::buildUi()
     m_client->refreshStatus();
     QTimer::singleShot(2500, this, &MainWindow::checkForUpdates);
 
-
-
 }
 
 void MainWindow::createActions()
@@ -262,8 +258,6 @@ void MainWindow::createStatusBar()
     m_portsLabel->setFont(Theme::tabular(m_portsLabel->font()));
     m_clientsLabel->setFont(Theme::tabular(m_clientsLabel->font()));
 
-    // The status bar uses the same centred content column as the header and the cards, so the
-    // metrics below line up with the card edges instead of hugging the window border.
     auto *row = new UiKit::ContentColumn(this);
     row->setObjectName(QStringLiteral("StatusBarRow"));
     auto *layout = new QHBoxLayout;
@@ -279,8 +273,6 @@ void MainWindow::createStatusBar()
 
     statusBar()->setSizeGripEnabled(false);
     statusBar()->setFixedHeight(Theme::Metrics::statusBarHeight + 8);
-    // QStatusBar adds its own frame margins, which pushed the metrics past the card edge; the
-    // content column already provides the gutter.
     statusBar()->setContentsMargins(0, 0, 0, 0);
     statusBar()->addPermanentWidget(row, 1);
 }

@@ -1,5 +1,3 @@
-// Orbiscreen - Qt GUI theme helpers (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen
-
 #include "theme.h"
 
 #include <QApplication>
@@ -104,10 +102,6 @@ void paintArrowHead(QPainter *painter, const QPointF &tip, const QPointF &direct
     painter->setBrush(Qt::NoBrush);
 }
 
-// The status glyphs are drawn as outlines in the glyph colour rather than as a filled disc with a
-// white knockout. The knockout was hard-coded #FFFFFF, so on the light theme it disappeared
-// entirely, and at 16px the disc plus a 1.3px detail read as a plain dot. An outline keeps the
-// same stroke weight as every other glyph and stays legible down to 16px.
 void paintRingOutline(QPainter *painter, qreal stroke, const QColor &color)
 {
     painter->setPen(QPen(color, stroke, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
@@ -375,8 +369,6 @@ void paintGlyphAt24(QPainter *painter, Theme::Glyph glyph, const QColor &color,
         break;
     }
     case Theme::Glyph::Touch: {
-        // A pointer arrow: the fingertip metaphor collapses into an exclamation mark at 16-18px,
-        // while the arrow stays readable and is distinct from every other glyph here.
         QPainterPath pointer;
         pointer.moveTo(6.4, 3.6);
         pointer.lineTo(6.4, 18.4);
@@ -639,8 +631,6 @@ QMessageBox QLabel { color: @text@; }
     replace("@dangerBorder@", rgba(c.danger, c.dark ? 90 : 70));
     replace("@danger@", c.danger.name());
     replace("@controlRadius@", QString::number(Theme::Radius::control));
-    // A QSS min-height is the content box, so subtract the 1px border on each side to land on
-    // exactly Metrics::controlHeight for the whole widget.
     replace("@controlMinHeight@", QString::number(Theme::Metrics::controlHeight - 2));
     replace("@tabPadding@", QString::number(Theme::Metrics::tabPadding));
     return css;
@@ -815,8 +805,6 @@ void paintGlyph(QPainter *painter, Glyph value, const QRectF &rect, const QColor
                        rect.y() + (rect.height() - side) / 2.0);
     const qreal scale = side / 24.0;
     painter->scale(scale, scale);
-    // A 1.8-unit stroke is 1.2 device pixels at 16px and antialiases into a grey smear. Raise it
-    // until the rendered stroke is at least 1.5px so small icons keep their weight.
     qreal strokeWidth = 1.8;
     const qreal minimumDeviceStroke = 1.5;
     if (strokeWidth * scale < minimumDeviceStroke) {
@@ -840,8 +828,6 @@ void paintLogo(QPainter *painter, const QRectF &rect, const QColor &color, bool 
     painter->translate(rect.x() + (rect.width() - side) / 2.0,
                        rect.y() + (rect.height() - side) / 2.0);
     painter->scale(side / 64.0, side / 64.0);
-    // Geometry mirrors data/orbiscreen.svg (ring r=181 stroke 58, dot r=66 at 384,384 on the 512
-    // grid, i.e. 82% of the canvas) and the heavier small master used at 16-32px.
     if (compact) {
         paintLogoShape(painter, 23.0, 7.875, 48.25, 8.5, color);
     } else {

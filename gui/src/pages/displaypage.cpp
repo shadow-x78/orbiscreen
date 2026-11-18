@@ -1,5 +1,3 @@
-// Orbiscreen - Qt Display page (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen
-
 #include "pages/displaypage.h"
 
 #include "i18n.h"
@@ -83,8 +81,6 @@ DisplayPage::DisplayPage(QWidget *parent)
     }
     geometryRow->addLayout(field(t("resolution"), m_resolution, &m_resolutionCaption), 3);
     geometryRow->addLayout(field(t("framerate"), m_fps, &m_fpsCaption), 2);
-    // Apply sits on the fields' baseline instead of in a second row that left a 60px void under
-    // the combos. The wrapper pins it to the bottom so it lines up with the inputs.
     m_apply = UiKit::button(t("resolutionApply"), Theme::Glyph::CheckMark,
                             QStringLiteral("primary"));
     auto *applyCell = new QVBoxLayout;

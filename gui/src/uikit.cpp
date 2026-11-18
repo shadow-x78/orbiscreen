@@ -1,5 +1,3 @@
-// Orbiscreen - Qt GUI widget helpers (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen
-
 #include "uikit.h"
 
 #include <QAbstractButton>
@@ -93,9 +91,6 @@ protected:
     }
 };
 
-// QGridLayout (used by ResponsiveColumns) does not propagate height-for-width, so a wrapped
-// paragraph inside a card keeps a one-line height and gets clipped. A label that pins its own
-// wrapped height as its minimum fixes every parent layout at once.
 class WrappedLabel : public QLabel {
 public:
     using QLabel::QLabel;
@@ -264,7 +259,6 @@ Card::Card(Theme::Glyph glyph, const QString &title, QWidget *parent)
     m_body->setContentsMargins(0, 0, 0, 0);
     m_body->setSpacing(Theme::Spacing::md);
     root->addLayout(m_body);
-    // Cards in a row share the tallest height; keep their content packed at the top.
     root->addStretch(1);
 }
 
@@ -310,8 +304,6 @@ void StatusPill::setStatus(const QString &state, const QString &text)
     }
     m_dot->setStyleSheet(QStringLiteral("background:%1;border-radius:4px;").arg(dot.name()));
     setProperty("state", state);
-    // The colour rules are scoped to the pill's state property, so the child labels have to be
-    // polished again; repolishing only the frame left them with the previous state's colour.
     repolish(this);
     repolish(m_text);
     repolish(m_dot);
@@ -368,9 +360,6 @@ void PageScroll::updateColumnWidth()
     if (m_layout->contentsMargins() != wanted) {
         m_layout->setContentsMargins(wanted);
     }
-    // A scroll area pins its widget to the viewport height, so the layout would compress cards
-    // below their minimum. The minimum height also has to follow the wrapped text, which only
-    // becomes known once the width is.
     m_layout->invalidate();
     const int needed = m_layout->minimumSize().height();
     if (needed > 0 && m_content->minimumHeight() != needed) {
@@ -514,7 +503,6 @@ QSize TabButton::sizeHint() const
 {
     const QFontMetrics metrics(Theme::font(Theme::FontRole::Label));
     const int textWidth = metrics.horizontalAdvance(m_label);
-    // Matches the padding declared for QToolButton#NavTab: padding + icon + gap + text + padding.
     return QSize(2 * Theme::Metrics::tabPadding + Theme::Metrics::tabIconSize + Theme::Spacing::sm
                      + textWidth,
                  Theme::Metrics::controlHeight);
@@ -838,8 +826,6 @@ void Badge::paintEvent(QPaintEvent *)
     font.setBold(true);
     painter.setFont(font);
     painter.setPen(c.accent);
-    // Draw the glyph on the widget rect with AlignCenter: the same rect the disc used, so the
-    // number is centred on the circle rather than on a font-metric-derived padding box.
     painter.drawText(rect(), Qt::AlignCenter, m_text);
 }
 
@@ -859,8 +845,6 @@ StatTile statTile(const QString &captionText, Theme::Glyph glyph)
                                Theme::Spacing::sm + 2);
     layout->setSpacing(Theme::Spacing::xs - 1);
 
-    // A glyph on the trailing edge marks what the tile measures, so a row of tiles is scannable
-    // without reading every caption. It is decorative, so it is muted and ignores the mouse.
     auto *row = new QHBoxLayout;
     row->setContentsMargins(0, 0, 0, 0);
     row->setSpacing(Theme::Spacing::sm);
@@ -883,9 +867,6 @@ StatTile statTile(const QString &captionText, Theme::Glyph glyph)
         row->addWidget(tile.icon, 0, Qt::AlignVCenter);
     }
     layout->addLayout(row);
-    // A tile is a fixed-height strip: inside a scroll area a word-wrapped sibling makes the
-    // layout's height-for-width estimate drift, which used to squeeze these rows. Polish first so
-    // the fonts (and therefore the line heights) are final before the height is measured.
     tile.caption->ensurePolished();
     tile.value->ensurePolished();
     const int height = layout->contentsMargins().top() + layout->contentsMargins().bottom()

@@ -1,5 +1,3 @@
-// Orbiscreen - Qt Doctor page (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen
-
 #include "pages/doctorpage.h"
 
 #include "i18n.h"
@@ -55,7 +53,6 @@ DoctorPage::DoctorPage(QWidget *parent)
     headerRow->setSpacing(Theme::Spacing::lg);
     m_description = UiKit::label(t("doctorDesc"), QStringLiteral("Muted"), true);
     m_description->setMaximumWidth(measureColumn(58));
-    // The button pair on the trailing edge must not squeeze the copy below a readable measure.
     m_description->setMinimumWidth(measureColumn(34));
     headerRow->addWidget(m_description, 1, Qt::AlignLeading | Qt::AlignVCenter);
     m_scan = UiKit::button(t("scan"), Theme::Glyph::Refresh, QStringLiteral("primary"));
@@ -120,8 +117,6 @@ DoctorPage::DoctorPage(QWidget *parent)
 
     layout->addWidget(m_headerCard);
     layout->addWidget(columns);
-    // Sparse settings pages stay top-aligned: stretching the cards just replaced the void under
-    // them with two tall empty boxes.
     layout->addStretch(1);
     outer->addWidget(scroll);
 

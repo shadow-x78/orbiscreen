@@ -21,17 +21,12 @@ pub(crate) struct PipewireSpec {
 pub(crate) struct PipewireCapture {
     pipeline: gstreamer::Pipeline,
     rx: tokio::sync::Mutex<mpsc::Receiver<CapturedFrame>>,
-    /// First pipeline error, if any. Without this a failed negotiation only reached the log and
-    /// the caller waited on an empty channel forever, which surfaced as a permanent black screen.
     error: Arc<std::sync::Mutex<Option<String>>>,
 }
 
 impl PipewireCapture {
     pub fn open(spec: PipewireSpec) -> Result<Self, String> {
         gstreamer::init().map_err(|e| format!("gst init: {e}"))?;
-        // always-copy keeps pipewiresrc on system memory. Left on its default it can stay on
-        // DMABuf, which videoconvert cannot consume, so the pipeline negotiates but never emits a
-        // sample: the tablet shows black while input still works.
         let source = match spec.fd {
             Some(fd) => format!(
                 "pipewiresrc fd={fd} path={} do-timestamp=true always-copy=true",
@@ -130,8 +125,6 @@ impl PipewireCapture {
         match rx.recv().await {
             Some(frame) => Ok(frame),
             None => {
-                // The channel closes when the appsink stops, so report the pipeline error that
-                // caused it instead of a generic "closed" message.
                 let detail = self.error.lock().unwrap_or_else(|e| e.into_inner()).clone();
                 Err(detail.unwrap_or_else(|| "GStreamer pipeline closed".to_string()))
             }

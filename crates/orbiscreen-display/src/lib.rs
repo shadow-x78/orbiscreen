@@ -224,11 +224,6 @@ fn to_tight_bgra(
     pixel_format: Result<drm_fourcc::DrmFourcc, evdi::UnrecognizedFourcc>,
 ) -> Result<OwnedFrame, DisplayError> {
     let expected = OwnedFrame::size_in_bytes(width, height);
-    // Every 32-bit layout is accepted, not just XRGB/ARGB. Compositors pick their own: COSMIC
-    // publishes ABGR8888 ("AB24"), which used to fail with "unsupported evdi pixel format: AB24"
-    // and left the tablet on a black screen. A DRM fourcc spells its components from the most
-    // significant byte down, so on little-endian memory XRGB8888/ARGB8888 already land as
-    // B,G,R(,A) and need no work, while XBGR8888/ABGR8888 land as R,G,B and must be swapped.
     match pixel_format {
         Ok(drm_fourcc::DrmFourcc::Xrgb8888)
         | Ok(drm_fourcc::DrmFourcc::Argb8888)
@@ -552,8 +547,6 @@ mod tests {
 
     #[test]
     fn to_tight_bgra_accepts_abgr8888() {
-        // COSMIC publishes ABGR8888, which the DRM fourcc spells "AB24". In little-endian memory
-        // the bytes run R,G,B,A, so red and blue swap to reach the BGRA the encoder wants.
         let bytes = [0x11u8, 0x22, 0x33, 0x44];
         let frame =
             to_tight_bgra(&bytes, 4, 1, 1, Ok(drm_fourcc::DrmFourcc::Abgr8888)).expect("convert");
@@ -562,7 +555,6 @@ mod tests {
 
     #[test]
     fn to_tight_bgra_swaps_xbgr8888() {
-        // XBGR8888 is R,G,B,X in memory, so red and blue swap to reach BGRA.
         let bytes = [0x11u8, 0x22, 0x33, 0x00];
         let frame =
             to_tight_bgra(&bytes, 4, 1, 1, Ok(drm_fourcc::DrmFourcc::Xbgr8888)).expect("convert");
@@ -574,7 +566,6 @@ mod tests {
         let bytes = [0x11u8, 0x22, 0x33, 0xFF];
         let frame =
             to_tight_bgra(&bytes, 4, 1, 1, Ok(drm_fourcc::DrmFourcc::Argb8888)).expect("convert");
-        // ARGB8888 is B,G,R,A in little-endian memory, i.e. already the BGRA the encoder wants.
         assert_eq!(&frame.data[0..4], &[0x11, 0x22, 0x33, 0xFF]);
     }
 

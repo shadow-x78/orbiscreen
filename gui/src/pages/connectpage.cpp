@@ -1,5 +1,3 @@
-// Orbiscreen - Qt Connect page (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen
-
 #include "pages/connectpage.h"
 
 #include "i18n.h"
@@ -91,8 +89,6 @@ ConnectPage::ConnectPage(QWidget *parent)
     wifiActions->addStretch(1);
     wifiText->addWidget(m_wifiPrompt);
     wifiText->addLayout(urlRow);
-    // The button sits on the plate's bottom edge so the column fills the QR's height instead of
-    // ending short and leaving a gap under it.
     wifiText->addStretch(1);
     wifiText->addLayout(wifiActions);
     wifiRow->addLayout(wifiText, 1);

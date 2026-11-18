@@ -1,5 +1,3 @@
-// Orbiscreen - Qt GUI widget helpers (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen
-
 #pragma once
 
 #include <QFrame>
@@ -89,10 +87,6 @@ private:
     QVBoxLayout *m_body = nullptr;
 };
 
-// A small circular step marker. Painted rather than styled with QSS: a QLabel with a
-// border-radius background positions its text inside a padding box that Qt sizes from the font
-// metrics, which leaves the digit visibly low and right of centre. Painting the disc and the text
-// on the same rect centres them by construction.
 class Badge : public QWidget {
     Q_OBJECT
 

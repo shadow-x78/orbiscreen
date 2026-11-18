@@ -1,5 +1,3 @@
-// Orbiscreen - Qt theme and icon tests (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen
-
 #include "theme.h"
 #include "uikit.h"
 
@@ -13,8 +11,6 @@
 
 namespace {
 
-// Fraction of the canvas the drawn ink covers, measured on the alpha channel. The mark is a ring
-// plus a dot on the ring's path, so this is the diameter of the outer edge.
 qreal coverage(const QImage &image)
 {
     int minX = image.width();
@@ -86,11 +82,9 @@ void ThemeTest::glyphsRenderAtEveryScaleAndDpr()
     const QPixmap pixmap = Theme::glyphPixmap(Theme::Glyph(glyph), size, Qt::white, dpr);
     QVERIFY2(!pixmap.isNull(), "a glyph must render to a pixmap");
     QCOMPARE(pixmap.devicePixelRatio(), dpr);
-    // The engine allocates size*dpr physical pixels, so a hi-DPI request must not be a 1x bitmap.
     QCOMPARE(pixmap.width(), qRound(size * dpr));
     QCOMPARE(pixmap.height(), qRound(size * dpr));
 
-    // Every glyph except the Count sentinel must draw something visible.
     if (Theme::Glyph(glyph) == Theme::Glyph::Count) {
         return;
     }
@@ -126,18 +120,12 @@ void ThemeTest::paintedLogoKeepsItsOpticalBox()
     }
 
     const qreal box = coverage(image);
-    // The masters are tuned to 82% (normal) and 84% (compact). Small sizes lose a little to
-    // pixel rounding, so the floor is lower there, but the mark must never shrink back to the
-    // old ~74% or spill past the canvas edge.
     QVERIFY2(box >= 0.70, qPrintable(QStringLiteral("logo covers %1%").arg(box * 100.0)));
     QVERIFY2(box <= 0.93, qPrintable(QStringLiteral("logo covers %1%").arg(box * 100.0)));
 }
 
 void ThemeTest::logoIconIsVectorAtEverySize()
 {
-    // The tray icon and the notification icon both come from Theme::logoIcon(), which is a
-    // QIconEngine and must therefore render the mark itself at whatever size the host asks for
-    // (tray panels ask for 16-24, notifications for 32-64).
     const QIcon icon = Theme::logoIcon();
     QVERIFY(!icon.isNull());
 
@@ -149,8 +137,6 @@ void ThemeTest::logoIconIsVectorAtEverySize()
 
         const QImage image = toImage(pixmap);
         const qreal box = coverage(image);
-        // A vector engine must actually draw the mark, not hand back an empty or
-        // placeholder pixmap (which is what a missing icon looks like).
         QVERIFY2(box >= 0.70, qPrintable(QStringLiteral("%1px icon covers %2%")
                                              .arg(size)
                                              .arg(box * 100.0)));
@@ -174,8 +160,6 @@ void ThemeTest::committedIconsAreSquareAndFilled()
         QCOMPARE(image.height(), size);
 
         image = image.convertToFormat(QImage::Format_ARGB32);
-        // A committed icon must be a rendering of the mark: ink present and centred, not a
-        // blank file and not an off-canvas crop.
         const qreal box = coverage(image);
         QVERIFY2(box >= 0.70, qPrintable(QStringLiteral("%1 covers %2%")
                                              .arg(path)

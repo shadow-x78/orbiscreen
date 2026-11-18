@@ -1,5 +1,3 @@
-// Orbiscreen - Qt system tray (GPL-3.0-or-later) https://github.com/shadow-x78/orbiscreen
-
 #include "trayicon.h"
 
 #include "i18n.h"
@@ -93,8 +91,6 @@ void TrayIcon::retranslate()
 void TrayIcon::showMessage(const QString &title, const QString &message)
 {
     if (m_tray) {
-        // Pass the brand mark explicitly: the Information/MessageIcon enums make the notification
-        // daemon show its own generic glyph instead of the application icon.
         m_tray->showMessage(title, message, Theme::logoIcon(), 4000);
     }
 }
