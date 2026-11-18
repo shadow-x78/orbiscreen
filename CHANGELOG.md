@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.44.1] - 2026-11-18
+
+### Fixed
+- **Portal capture reported a black screen with no diagnostic at all (issue #114).**
+  The GStreamer bus handler only inspected `Error` and `Warning`; `Eos` and
+  `StateChanged` fell through to a wildcard arm. The frame channel stays open on
+  EOS, so `next_frame` awaited forever, the daemon's 100 ms keepalive timeout found
+  no stored frame, and the loop continued without logging. A portal that negotiated
+  the stream and then delivered nothing was therefore indistinguishable from a
+  working one from the outside. `Eos` and `StateChanged` are now handled, the cause
+  is recorded and returned by `next_frame`, `is_ended` reports the real state for the
+  portal path instead of a hardcoded `false`, and the daemon stops with a named
+  reason instead of spinning. A shutdown guard suppresses the spurious
+  "left PLAYING" warning during normal teardown.
+- **EVDI stall was buried under a warning flood (issue #114).** The `evdi` crate logs
+  `Timeout awaiting buffer update` on every poll, so a connector the compositor never
+  drew on produced an endless stream of identical warnings while the actual condition
+  stayed unnamed. The poll timeout is now 250 ms, the crate's own warning is muted via
+  the log filter, and a single message after 5 s names the connector and points at
+  enabling the virtual output in the display settings.
+
+### Changed
+- A screencast that negotiates but delivers no frame now warns once after 5 s,
+  naming `xdg-desktop-portal-cosmic` and suggesting `GST_DEBUG=3`.
+- Version bumped to 0.44.1 across the Cargo workspace, Android (`versionCode` 201),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.44.0] - 2026-11-18
 
 ### Fixed

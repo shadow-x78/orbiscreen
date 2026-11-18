@@ -243,7 +243,7 @@ fn init_tracing(verbose: u8) {
         _ => Level::TRACE,
     };
     let filter_str = format!(
-        "{},zbus=error,ashpd=error,wayland_backend=off",
+        "{},zbus=error,ashpd=error,wayland_backend=off,evdi::events=error",
         level.as_str()
     );
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(filter_str));
@@ -2816,6 +2816,14 @@ async fn run_start(
             let outcome = match tokio::time::timeout(KEEPALIVE, source.next_frame()).await {
                 Ok(outcome) => outcome,
                 Err(_elapsed) => {
+                    if source.is_ended() {
+                        error!(
+                            "capture source ended without delivering a frame \
+                             ({}); stopping capture pump",
+                            source.backend_name()
+                        );
+                        break;
+                    }
                     let Some((width, height, data)) = &keepalive_frame else {
                         continue;
                     };

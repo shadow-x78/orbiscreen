@@ -188,7 +188,12 @@ impl WaylandCapture {
     }
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, CaptureError> {
+        self.pipewire.check_stall();
         self.pipewire.next_frame().await.map_err(CaptureError::Io)
+    }
+
+    pub fn is_ended(&self) -> bool {
+        self.pipewire.is_ended()
     }
 }
 

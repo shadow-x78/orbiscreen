@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.44.0
+%global version 0.44.1
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -152,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Wed Nov 18 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.44.1-1
+- Release 0.44.1: surface silent capture failures on COSMIC (issue #114)
+
 * Mon Nov 16 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.44.0-1
 - Release 0.44.0: feat: polish the Qt desktop interface and app icons
 

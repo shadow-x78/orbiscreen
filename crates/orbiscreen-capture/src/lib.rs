@@ -303,7 +303,8 @@ impl CaptureSession {
                 .and_then(|g| g.capture.as_ref().map(|c| c.is_ended()))
                 .unwrap_or(false),
             CaptureInner::WlrScreencopy(capture) => capture.is_ended(),
-            CaptureInner::X11(_) | CaptureInner::Wayland(_) => false,
+            CaptureInner::Wayland(capture) => capture.is_ended(),
+            CaptureInner::X11(_) => false,
         }
     }
 

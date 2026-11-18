@@ -8,7 +8,8 @@ use thiserror::Error;
 use tracing::{info, instrument, warn};
 
 pub const OPEN_MODE_TIMEOUT: Duration = Duration::from_secs(3);
-pub const UPDATE_BUFFER_TIMEOUT: Duration = Duration::from_millis(50);
+pub const UPDATE_BUFFER_TIMEOUT: Duration = Duration::from_millis(250);
+pub const EVDI_STALL_REPORT_AFTER: Duration = Duration::from_secs(5);
 
 #[derive(Debug, Error)]
 pub enum DisplayError {
@@ -109,6 +110,7 @@ pub struct VirtualDisplay {
     buffer_id: BufferId,
     device_index: u32,
     buffer_mode: Mode,
+    timeout_logged: std::sync::atomic::AtomicBool,
 }
 
 impl VirtualDisplay {
@@ -146,6 +148,7 @@ impl VirtualDisplay {
             buffer_id,
             device_index,
             buffer_mode: mode,
+            timeout_logged: std::sync::atomic::AtomicBool::new(false),
         })
     }
 
@@ -184,7 +187,20 @@ impl VirtualDisplay {
             Ok(()) => {}
             Err(evdi::handle::RequestUpdateError::AwaitUpdate(
                 evdi::events::AwaitEventError::Timeout,
-            )) => return Ok(None),
+            )) => {
+                if !self
+                    .timeout_logged
+                    .swap(true, std::sync::atomic::Ordering::Relaxed)
+                {
+                    tracing::debug!(
+                        "evdi buffer update timed out after {:?}; the compositor is not \
+                         drawing on the virtual connector yet. Further timeouts stay silent \
+                         until a frame arrives",
+                        UPDATE_BUFFER_TIMEOUT
+                    );
+                }
+                return Ok(None);
+            }
             Err(evdi::handle::RequestUpdateError::AwaitUpdate(
                 evdi::events::AwaitEventError::ChannelClosed,
             )) => return Err(DisplayError::ChannelClosed),
@@ -208,7 +224,11 @@ impl VirtualDisplay {
             height,
             self.buffer_mode.pixel_format,
         )
-        .map(Some)
+        .map(|frame| {
+            self.timeout_logged
+                .store(false, std::sync::atomic::Ordering::Relaxed);
+            Some(frame)
+        })
     }
 
     pub fn drm_connector_name(&self) -> String {
@@ -326,17 +346,37 @@ impl EvdiFramePump {
                     };
                     let _ = done_tx.send(Ok(info));
 
+                    let opened_at = std::time::Instant::now();
+                    let connector_name = display.drm_connector_name();
+                    let mut frames_seen: u64 = 0;
+                    let mut stall_reported = false;
                     loop {
                         if stop_for_thread.load(std::sync::atomic::Ordering::Relaxed) {
                             break;
                         }
                         match display.next_frame().await {
                             Ok(Some(frame)) => {
+                                frames_seen += 1;
                                 if frames_tx.send(frame).await.is_err() {
                                     break;
                                 }
                             }
-                            Ok(None) => {}
+                            Ok(None) => {
+                                if frames_seen == 0
+                                    && !stall_reported
+                                    && opened_at.elapsed() >= EVDI_STALL_REPORT_AFTER
+                                {
+                                    stall_reported = true;
+                                    warn!(
+                                        connector = %connector_name,
+                                        "the evdi connector exists but the compositor has not \
+                                         drawn on it for {:?}; enable the virtual output in the \
+                                         display settings (COSMIC Settings > Displays, or \
+                                         kscreen-doctor for KDE) so it starts scanning out",
+                                        opened_at.elapsed()
+                                    );
+                                }
+                            }
                             Err(e @ (DisplayError::ChannelClosed | DisplayError::NoBuffer(_))) => {
                                 warn!("evdi frame source ended terminally: {e}");
                                 break;

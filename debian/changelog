@@ -1,3 +1,16 @@
+orbiscreen (0.44.1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.44.1 for Ubuntu noble.
+  * Handle Eos and StateChanged in the portal pipeline so a stalled screencast
+    reports its cause instead of a silent black screen (issue #114).
+  * Report the real ended state for the portal backend and stop the capture pump
+    with a named reason.
+  * Raise the EVDI poll timeout to 250 ms, mute the crate warning flood, and warn
+    once when the compositor never draws on the virtual connector (issue #114).
+  * Bump version to 0.44.1 across all packages; Android versionCode 201.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Wed, 18 Nov 2026 20:58:00 +0300
+
 orbiscreen (0.44.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.44.0 for Ubuntu noble.
