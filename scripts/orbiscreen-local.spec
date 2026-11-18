@@ -45,7 +45,7 @@ if [ -f %{_projectroot}/build-gui/orbiscreen-gui ]; then
 fi
 install -m 0644 %{_projectroot}/data/orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
 ln -sf orbiscreen.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg
-for size in 16 24 32 48 64 128 256 512; do
+for size in 16 22 24 32 48 64 128 256 512; do
     if [ -f "%{_projectroot}/gui/icons/${size}x${size}.png" ]; then
         install -Dm 0644 "%{_projectroot}/gui/icons/${size}x${size}.png" "%{buildroot}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
         ln -sf orbiscreen.png "%{buildroot}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"

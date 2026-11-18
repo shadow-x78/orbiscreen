@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- ─────────────────────────────────────────────
+       Orbiscreen - Project Logo (small sizes)
+       ─────────────────────────────────────────────
+       Same mark as orbiscreen-logo.svg, drawn for
+       16/24/32px: the ring is 3% larger and the
+       stroke a touch heavier so the counter does
+       not fill in and the silhouette keeps its
+       weight once it is only a dozen pixels tall.
+       Render at the target size, never downscale
+       the 512 master into these sizes.
+       ───────────────────────────────────────────── -->
+  <defs>
+    <style>.orbi-f{fill:#89b4fa;}.orbi-s{fill:none;stroke:#89b4fa;}</style>
+  </defs>
+  <circle class="orbi-s" cx="256" cy="256" r="184" stroke-width="63"/>
+  <circle class="orbi-f" cx="386" cy="386" r="68"/>
+</svg>

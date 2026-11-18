@@ -24,7 +24,6 @@
 #include <QPushButton>
 #include <QSize>
 #include <QStatusBar>
-#include <QTabWidget>
 #include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -48,7 +47,8 @@ QLabel *statusLabel(const QString &name)
 {
     auto *label = new QLabel;
     label->setObjectName(name);
-    label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    label->setFont(Theme::font(Theme::FontRole::Caption));
+    label->setAlignment(Qt::AlignLeading | Qt::AlignVCenter);
     return label;
 }
 
@@ -64,7 +64,7 @@ void MainWindow::buildUi()
 {
     setWindowTitle(QStringLiteral("Orbiscreen"));
     resize(1040, 780);
-    setMinimumSize(840, 620);
+    setMinimumSize(800, 600);
 
     m_client = new DaemonClient(this);
     m_tray = new TrayIcon(this);
@@ -77,74 +77,78 @@ void MainWindow::buildUi()
 
     auto *header = new QWidget(this);
     header->setObjectName(QStringLiteral("Header"));
-    auto *headerLayout = new QHBoxLayout(header);
-    headerLayout->setContentsMargins(20, 14, 20, 14);
-    headerLayout->setSpacing(14);
-    m_appIcon = new QLabel(header);
-    m_appIcon->setPixmap(Theme::logo(42));
-    headerLayout->addWidget(m_appIcon);
+    auto *headerOuter = new QVBoxLayout(header);
+    headerOuter->setContentsMargins(0, Theme::Spacing::md, 0, Theme::Spacing::md);
+    headerOuter->setSpacing(0);
+    auto *headerColumn = new UiKit::ContentColumn(header);
+    auto *headerLayout = new QHBoxLayout;
+    headerLayout->setContentsMargins(0, 0, 0, 0);
+    headerLayout->setSpacing(Theme::Spacing::md);
+    m_appIcon = new UiKit::LogoWidget(44, headerColumn);
+    headerLayout->addWidget(m_appIcon, 0, Qt::AlignVCenter);
     auto *titleBox = new QVBoxLayout;
-    titleBox->setSpacing(1);
-    m_appTitle = new QLabel(QStringLiteral("Orbiscreen"), header);
+    titleBox->setContentsMargins(0, 0, 0, 0);
+    titleBox->setSpacing(0);
+    m_appTitle = new QLabel(QStringLiteral("Orbiscreen"), headerColumn);
     m_appTitle->setObjectName(QStringLiteral("AppTitle"));
+    m_appTitle->setFont(Theme::font(Theme::FontRole::AppTitle));
     m_appTagline = UiKit::label(t("appTagline"), QStringLiteral("Muted"));
+    m_appTagline->setFont(Theme::font(Theme::FontRole::Caption));
     titleBox->addWidget(m_appTitle);
     titleBox->addWidget(m_appTagline);
     headerLayout->addLayout(titleBox);
     headerLayout->addStretch(1);
 
-    m_statusPill = new UiKit::StatusPill(header);
+    m_statusPill = new UiKit::StatusPill(headerColumn);
     headerLayout->addWidget(m_statusPill, 0, Qt::AlignVCenter);
 
-    m_headerAction = new QToolButton(header);
+    m_headerAction = new QToolButton(headerColumn);
     m_headerAction->setObjectName(QStringLiteral("HeaderAction"));
     m_headerAction->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    m_headerAction->setIconSize(QSize(18, 18));
-    m_headerAction->setMinimumHeight(38);
+    m_headerAction->setIconSize(QSize(Theme::Metrics::buttonIconSize,
+                                      Theme::Metrics::buttonIconSize));
+    m_headerAction->setFixedHeight(Theme::Metrics::controlHeight);
     m_headerAction->setCursor(Qt::PointingHandCursor);
     headerLayout->addWidget(m_headerAction, 0, Qt::AlignVCenter);
 
-    m_restartButton = UiKit::iconButton(Theme::Glyph::Restart, t("restartTitle"), 20);
-    m_restartButton->setDefaultAction(m_restart);
-    m_restartButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    headerLayout->addWidget(m_restartButton, 0, Qt::AlignVCenter);
-
-    m_refreshButton = UiKit::iconButton(Theme::Glyph::Refresh, t("actionRefresh"), 20);
-    m_refreshButton->setDefaultAction(m_refresh);
-    m_refreshButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    headerLayout->addWidget(m_refreshButton, 0, Qt::AlignVCenter);
-
-    m_menuButton = UiKit::iconButton(Theme::Glyph::More, t("moreOptions"), 20);
+    m_menuButton = UiKit::iconButton(Theme::Glyph::More, t("moreOptions"), 18);
     m_menuButton->setPopupMode(QToolButton::InstantPopup);
     m_menuButton->setMenu(m_overflow);
     headerLayout->addWidget(m_menuButton, 0, Qt::AlignVCenter);
+    headerColumn->body()->addLayout(headerLayout);
+    headerOuter->addWidget(headerColumn);
 
     m_updateBar = new QFrame(this);
     m_updateBar->setObjectName(QStringLiteral("UpdateBar"));
     m_updateBar->hide();
     auto *updateLayout = new QHBoxLayout(m_updateBar);
-    updateLayout->setContentsMargins(14, 10, 14, 10);
-    updateLayout->setSpacing(10);
-    updateLayout->addWidget(UiKit::iconLabel(Theme::Glyph::Download, 20,
-                                             Theme::colors().accent));
+    updateLayout->setContentsMargins(Theme::Spacing::md, Theme::Spacing::sm,
+                                     Theme::Spacing::md, Theme::Spacing::sm);
+    updateLayout->setSpacing(Theme::Spacing::md);
+    auto *updateIcon = new UiKit::GlyphWidget(Theme::Glyph::Download, 20,
+                                              Theme::colors().accent, m_updateBar);
+    updateLayout->addWidget(updateIcon, 0, Qt::AlignVCenter);
     m_updateText = UiKit::label(QString(), QString(), true);
     updateLayout->addWidget(m_updateText, 1);
     m_updateDownload = UiKit::button(t("download"), QStringLiteral("primary"));
     m_updateDismiss = UiKit::button(t("later"), QStringLiteral("ghost"));
-    updateLayout->addWidget(m_updateDownload);
-    updateLayout->addWidget(m_updateDismiss);
-    auto *updateWrap = new QWidget(this);
-    auto *updateWrapLayout = new QHBoxLayout(updateWrap);
-    updateWrapLayout->setContentsMargins(20, 12, 20, 0);
-    updateWrapLayout->setSpacing(0);
-    updateWrapLayout->addWidget(m_updateBar);
+    updateLayout->addWidget(m_updateDownload, 0, Qt::AlignVCenter);
+    updateLayout->addWidget(m_updateDismiss, 0, Qt::AlignVCenter);
 
-    m_tabs = new QTabWidget(this);
-    m_tabs->setDocumentMode(true);
-    m_tabs->setIconSize(QSize(18, 18));
-    m_tabs->addTab(m_connect, QString());
-    m_tabs->addTab(m_display, QString());
-    m_tabs->addTab(m_doctor, QString());
+    auto *updateWrap = new UiKit::ContentColumn(this);
+    m_updateBar->setParent(updateWrap);
+    updateWrap->body()->addWidget(m_updateBar);
+
+    m_nav = new UiKit::NavTabs(this);
+    m_nav->addTab(t("tabConnect"), Theme::Glyph::Phone, m_connect);
+    m_nav->addTab(t("tabDisplay"), Theme::Glyph::Monitor, m_display);
+    m_nav->addTab(t("tabDoctor"), Theme::Glyph::Doctor, m_doctor);
+
+    auto *body = new QWidget(this);
+    auto *bodyOuter = new QVBoxLayout(body);
+    bodyOuter->setContentsMargins(0, Theme::Spacing::md, 0, 0);
+    bodyOuter->setSpacing(0);
+    bodyOuter->addWidget(m_nav, 1);
 
     auto *central = new QWidget(this);
     central->setObjectName(QStringLiteral("Central"));
@@ -153,7 +157,7 @@ void MainWindow::buildUi()
     centralLayout->setSpacing(0);
     centralLayout->addWidget(header);
     centralLayout->addWidget(updateWrap);
-    centralLayout->addWidget(m_tabs, 1);
+    centralLayout->addWidget(body, 1);
     setCentralWidget(central);
 
     connect(m_updateDownload, &QPushButton::clicked, this,
@@ -169,9 +173,11 @@ void MainWindow::buildUi()
 
     retranslate();
     applyState();
-    refreshTabIcons();
     m_client->refreshStatus();
     QTimer::singleShot(2500, this, &MainWindow::checkForUpdates);
+
+
+
 }
 
 void MainWindow::createActions()
@@ -198,13 +204,13 @@ void MainWindow::createActions()
 
     m_viewConnect = new QAction(this);
     connect(m_viewConnect, &QAction::triggered, this,
-            [this]() { m_tabs->setCurrentIndex(0); });
+            [this]() { m_nav->setCurrentIndex(0); });
     m_viewDisplay = new QAction(this);
     connect(m_viewDisplay, &QAction::triggered, this,
-            [this]() { m_tabs->setCurrentIndex(1); });
+            [this]() { m_nav->setCurrentIndex(1); });
     m_viewDoctor = new QAction(this);
     connect(m_viewDoctor, &QAction::triggered, this,
-            [this]() { m_tabs->setCurrentIndex(2); });
+            [this]() { m_nav->setCurrentIndex(2); });
     m_openDashboard = new QAction(this);
     m_openDashboard->setShortcut(QKeySequence(QStringLiteral("Ctrl+D")));
     connect(m_openDashboard, &QAction::triggered, this,
@@ -249,23 +255,34 @@ void MainWindow::createMenu()
 
 void MainWindow::createStatusBar()
 {
-    m_stateLabel = statusLabel(QStringLiteral("StatusState"));
     m_resolutionLabel = statusLabel(QStringLiteral("StatusText"));
     m_portsLabel = statusLabel(QStringLiteral("StatusText"));
     m_clientsLabel = statusLabel(QStringLiteral("StatusText"));
-    const auto addSeparator = []() {
-        auto *label = new QLabel(QStringLiteral("·"));
-        label->setObjectName(QStringLiteral("StatusText"));
-        return label;
-    };
+    m_resolutionLabel->setFont(Theme::tabular(m_resolutionLabel->font()));
+    m_portsLabel->setFont(Theme::tabular(m_portsLabel->font()));
+    m_clientsLabel->setFont(Theme::tabular(m_clientsLabel->font()));
+
+    // The status bar uses the same centred content column as the header and the cards, so the
+    // metrics below line up with the card edges instead of hugging the window border.
+    auto *row = new UiKit::ContentColumn(this);
+    row->setObjectName(QStringLiteral("StatusBarRow"));
+    auto *layout = new QHBoxLayout;
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(Theme::Spacing::md);
+    layout->addStretch(1);
+    layout->addWidget(m_resolutionLabel, 0, Qt::AlignVCenter);
+    layout->addWidget(UiKit::separator(true), 0, Qt::AlignVCenter);
+    layout->addWidget(m_portsLabel, 0, Qt::AlignVCenter);
+    layout->addWidget(UiKit::separator(true), 0, Qt::AlignVCenter);
+    layout->addWidget(m_clientsLabel, 0, Qt::AlignVCenter);
+    row->body()->addLayout(layout);
+
     statusBar()->setSizeGripEnabled(false);
-    statusBar()->addPermanentWidget(m_stateLabel);
-    statusBar()->addPermanentWidget(addSeparator());
-    statusBar()->addPermanentWidget(m_resolutionLabel);
-    statusBar()->addPermanentWidget(addSeparator());
-    statusBar()->addPermanentWidget(m_portsLabel);
-    statusBar()->addPermanentWidget(addSeparator());
-    statusBar()->addPermanentWidget(m_clientsLabel);
+    statusBar()->setFixedHeight(Theme::Metrics::statusBarHeight + 8);
+    // QStatusBar adds its own frame margins, which pushed the metrics past the card edge; the
+    // content column already provides the gutter.
+    statusBar()->setContentsMargins(0, 0, 0, 0);
+    statusBar()->addPermanentWidget(row, 1);
 }
 
 void MainWindow::connectSignals()
@@ -290,8 +307,10 @@ void MainWindow::connectSignals()
     connect(m_doctor, &DoctorPage::fixRequested, this, &MainWindow::fix);
 
     connect(m_headerAction, &QToolButton::clicked, this, &MainWindow::toggleService);
-
-    connect(m_tabs, &QTabWidget::currentChanged, this, [this]() { refreshTabIcons(); });
+    connect(m_nav, &UiKit::NavTabs::currentChanged, this, [this](int index) {
+        Q_UNUSED(index);
+        m_nav->refresh();
+    });
 
     connect(m_tray, &TrayIcon::openRequested, this, &MainWindow::showFromTray);
     connect(m_tray, &TrayIcon::startRequested, this, [this]() {
@@ -305,22 +324,6 @@ void MainWindow::connectSignals()
         }
     });
     connect(m_tray, &TrayIcon::quitRequested, this, &MainWindow::quitApplication);
-}
-
-void MainWindow::refreshTabIcons()
-{
-    const int index = m_tabs->currentIndex();
-    if (index == m_lastTabIconIndex) {
-        return;
-    }
-    m_lastTabIconIndex = index;
-    const QColor active = Theme::colors().accent;
-    const QColor idle = Theme::colors().muted;
-    const Theme::Glyph glyphs[3] = {Theme::Glyph::Phone, Theme::Glyph::Monitor,
-                                    Theme::Glyph::Doctor};
-    for (int tab = 0; tab < 3; ++tab) {
-        m_tabs->setTabIcon(tab, Theme::glyph(glyphs[tab], index == tab ? active : idle));
-    }
 }
 
 void MainWindow::retranslate()
@@ -348,18 +351,13 @@ void MainWindow::retranslate()
     m_openDashboard->setIcon(Theme::glyph(Theme::Glyph::Dashboard));
 
     m_appTagline->setText(t("appTagline"));
-    const Qt::Alignment appTextAlign =
-        (I18n::instance().lang() == Lang::Ar ? Qt::AlignRight : Qt::AlignLeft)
-        | Qt::AlignVCenter;
-    m_appTitle->setAlignment(appTextAlign);
-    m_appTagline->setAlignment(appTextAlign);
     m_updateDownload->setText(t("download"));
     m_updateDismiss->setText(t("later"));
     m_menuButton->setToolTip(t("moreOptions"));
 
-    m_tabs->setTabText(0, t("tabConnect"));
-    m_tabs->setTabText(1, escaped(t("tabDisplay")));
-    m_tabs->setTabText(2, t("tabDoctor"));
+    m_nav->setTabText(0, t("tabConnect"));
+    m_nav->setTabText(1, t("tabDisplay"));
+    m_nav->setTabText(2, t("tabDoctor"));
 
     m_langEn->setChecked(I18n::instance().lang() == Lang::En);
     m_langAr->setChecked(I18n::instance().lang() == Lang::Ar);
@@ -390,12 +388,12 @@ void MainWindow::applyState()
     syncHeaderAction();
 
     m_statusPill->setStatus(stateKey(), stateText());
-    m_stateLabel->setText(stateText());
-    m_resolutionLabel->setText(QStringLiteral("%1 × %2 @ %3 Hz")
+    const QString resolution = QStringLiteral("%1 × %2 @ %3 Hz")
                                    .arg(m_status.report.displayWidth)
                                    .arg(m_status.report.displayHeight)
-                                   .arg(m_status.report.displayFps));
-    m_portsLabel->setText(QStringLiteral("%1 / %2")
+                                   .arg(m_status.report.displayFps);
+    m_resolutionLabel->setText(resolution);
+    m_portsLabel->setText(QStringLiteral("TCP %1 · UDP %2")
                               .arg(m_status.report.signalingPort)
                               .arg(m_status.udpPort));
     const int clients = m_status.report.activeClients;
@@ -405,7 +403,6 @@ void MainWindow::applyState()
                                       ? t("deviceConnected")
                                       : I18n::instance().format(
                                             QStringLiteral("devicesConnected"), clients));
-    refreshTabIcons();
 }
 
 void MainWindow::syncHeaderAction()
@@ -436,10 +433,7 @@ QString MainWindow::stateText() const
         return t("stopped");
     }
     if (m_status.report.activeClients > 0) {
-        return QStringLiteral("%1 · %2")
-            .arg(t("streaming"),
-                 I18n::instance().format(QStringLiteral("devicesConnected"),
-                                         m_status.report.activeClients));
+        return t("streaming");
     }
     return t("ready");
 }
@@ -458,6 +452,7 @@ void MainWindow::toggleService()
     m_startStop->setEnabled(false);
     m_restart->setEnabled(false);
     m_headerAction->setEnabled(false);
+    m_lastHeaderActionKey = -1;
     syncHeaderAction();
     if (m_status.report.running) {
         statusBar()->showMessage(t("toastStopped"), 4000);
@@ -473,6 +468,7 @@ void MainWindow::restartService()
     m_startStop->setEnabled(false);
     m_restart->setEnabled(false);
     m_headerAction->setEnabled(false);
+    m_lastHeaderActionKey = -1;
     syncHeaderAction();
     statusBar()->showMessage(t("toastRestart"), 4000);
     m_client->restartService();
@@ -550,6 +546,7 @@ void MainWindow::handleActionFinished(const QString &message)
     m_startStop->setEnabled(true);
     m_restart->setEnabled(true);
     m_headerAction->setEnabled(true);
+    m_lastHeaderActionKey = -1;
     syncHeaderAction();
     m_doctor->setBusy(false, false);
     statusBar()->showMessage(message, 5000);
@@ -562,6 +559,7 @@ void MainWindow::handleActionFailed(const QString &error)
     m_startStop->setEnabled(true);
     m_restart->setEnabled(true);
     m_headerAction->setEnabled(true);
+    m_lastHeaderActionKey = -1;
     syncHeaderAction();
     m_doctor->setBusy(false, false);
     statusBar()->showMessage(error, 5000);

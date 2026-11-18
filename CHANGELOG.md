@@ -5,6 +5,130 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.44.0] - 2026-11-18
+
+### Fixed
+- **EVDI: "unsupported evdi pixel format: AB24" (issue #114).** `to_tight_bgra` only
+  accepted XRGB8888 and ARGB8888, so on COSMIC - which publishes ABGR8888, spelled
+  "AB24" - every frame was rejected and the tablet stayed black until the client
+  dropped. All four 32-bit layouts are now accepted, with the red/blue swap applied
+  to the two whose memory order is R,G,B (XBGR8888/ABGR8888) and skipped for the two
+  already in B,G,R order.
+- **Portal black screen with working input (issue #114).** `pipewiresrc` could stay
+  on DMABuf, which `videoconvert` cannot consume: the pipeline negotiated, emitted no
+  sample, and the daemon waited on an empty channel forever. It now passes
+  `always-copy=true` to stay on system memory, and the first pipeline error is kept
+  and returned by `next_frame` instead of being logged and forgotten, so a failed
+  negotiation reports its cause instead of a silent black screen.
+
+### Changed
+- feat: polish the Qt desktop interface and app icons
+
+The desktop GUI now derives every page from one grid. The header, update banner,
+navigation, and cards share a single centred content column, so their edges line
+up at any window width instead of drifting between 445px and 1040px. Spacing,
+radii, and type come from the `Theme` scales rather than per-page values.
+
+- `uikit` gained `PageScroll`/`ContentColumn`, `ResponsiveColumns` (two columns at
+  >=780px, one below), `GlyphWidget`/`LogoWidget`, and a custom `NavTabs`; the
+  tabs are aligned to the content column instead of hanging off its right edge.
+- Word-wrapped labels now report their own wrapped height, so cards stop clipping
+  their own text when the window is resized; stat tiles keep a fixed height, so
+  the status card no longer squeezes them to half their needed height.
+- The Arabic navigation painted its labels off-canvas; the tab buttons now place
+  the icon and text from the trailing edge in RTL.
+- Display & Input: geometry is a full-width card and the encoder/system cards
+  share the second row, so the encoder card no longer shows a mostly empty box.
+  Apply is disabled until the selection differs and shows `Applying...` while
+  busy. Doctor: the description no longer collapses to two words at narrow
+  widths, and the notes card grows instead of clipping.
+- Header: one primary CTA plus the overflow menu; restart and refresh stay
+  reachable there and keep distinct glyphs.
+- Status strings use sentence case (`No devices`, `1 device connected`), and the
+  banner and menu copy are shortened.
+
+The installed application icon set is regenerated from the SVG masters instead of
+being downscaled from a 512px raster, which is what made 16/24/32px look
+pixelated. The mark now fills 82% of the canvas (was 74%), so the icon reads
+larger at the same sizes.
+
+- `scripts/generate-icons.sh` renders 16/22/24/32px from
+  `assets/logo/orbiscreen-logo-small.svg` and 48-512px from
+  `data/orbiscreen.svg`, rebuilds `icon.ico` and the Android legacy mipmaps, and
+  verifies that the two masters stay identical, that every file is square, and
+  that the mark keeps its optical box and centring; `--check` verifies only.
+- Added the 22px icon and installed it from `PKGBUILD`, Debian, COPR, the local
+  spec, `scripts/install.sh`, `scripts/package-deb.sh`, and the AppImage, which
+  now ships the whole hicolor set and the scalable SVG.
+- `Theme::paintLogo` mirrors the new geometry on the 64-unit grid, with a heavier
+  compact variant for the tray and small in-app sizes; `Theme::logoIcon` stays
+  vector.
+- Android: the adaptive foreground scales to 0.69 of the 512 grid, so the mark
+  fills the tile (the dot's edge sits at 32.8dp of the 33dp safe radius) instead
+  of floating small inside it.
+- The header logo is now a 44px vector widget rather than a 42px pixmap.
+- Every button-like control now shares one geometry: 36px tall with the same 10px
+  corner radius. `QToolButton#HeaderAction` computed its own size from icon plus
+  text and grew to 39px, and `QToolButton#NavTab` used an 18px "pill" radius while
+  the push buttons used 10px, so the header, tabs, and form buttons visibly did not
+  match. The radius, minimum height, and tab padding are now fed into the
+  stylesheet from `Theme::Radius` / `Theme::Metrics` instead of being literals.
+- `TabButton` painted its icon and label at a 20px inset while the stylesheet
+  declared 14px, so the tabs' content sat off-centre in the box the layout had
+  sized. Both now use `Metrics::tabPadding`.
+- The step numbers in Getting Started are painted by `UiKit::Badge` instead of a
+  `QLabel` with a `border-radius` background, which positioned the digit inside a
+  font-metric padding box and left it low and right of centre.
+- The state pill's text kept the previous state's colour: `repolish()` was called
+  on the frame only, so the labels never re-evaluated the `[state=...]` rules and
+  "Ready" was drawn in the danger red of the initial stopped state.
+- Glyph fixes, judged from a contact sheet at 16/18/20/24/32px:
+  - small sizes raise the stroke so it never renders thinner than 1.5px, instead
+    of antialiasing a 1.2px hairline into grey;
+  - Check/Warning/Error are outlines in the glyph colour rather than a filled disc
+    with a hard-coded `#FFFFFF` knockout, which vanished on the light theme and
+    collapsed to a dot at 16px;
+  - `Touch` was two arcs and a dot, i.e. a duplicate of `Wifi` — and its first
+    replacement read as an exclamation mark at 18px — so it is now a pointer arrow;
+  - `Chip` drops from twelve pins to two per side and `Dashboard` is a two-pane
+    panel instead of the bisected ellipse that read as a globe.
+  - Card header glyphs are 20px (`Metrics::cardIconSize`) instead of 18px.
+- Restored the glyph on each stat tile (monitor / chip / phone), which the card
+  rewrite had dropped, so a row of tiles is scannable without reading captions.
+- The Wi-Fi row packs its prompt, URL, and Open button against the top of the QR
+  plate instead of centring a short text block against a tall one, which left a
+  dead gap under the button. The QR plate is 168px (`Metrics::qrTileSize`), which
+  balances the card and still scans.
+- The status bar now uses the same centred content column as the header and the
+  cards, so its metrics line up with the card edges instead of the window rim.
+- The header's two controls now share one shape: the status pill was a 28px capsule
+  with a 14px radius next to a 36px button with a 10px radius. Both are 36px with
+  `Radius::control`, measured at a 5px corner inset each.
+- Shorter strings, because the header CTA dominated the row: "Start Extended
+  Display" is now "Start Display" (Arabic "بدء العرض"), "Stop Display" is "إيقاف
+  العرض", the Doctor tab is "الفحص", Wi-Fi is "واي فاي", and the offline hint
+  points at the button by its new name.
+- Display & Input: Apply moved onto the fields row, removing the 60px void that a
+  second row left under the combos.
+- Wi-Fi: the Open button sits on the QR plate's bottom edge so the text column
+  fills the plate's height instead of ending short.
+- Desktop notifications use the brand mark: `TrayIcon::showMessage` passed
+  `QSystemTrayIcon::Information`, which made the notification daemon draw its own
+  generic blue "i" instead of the Orbiscreen icon. It now passes
+  `Theme::logoIcon()`, the same vector engine the tray and window icons use.
+- The Android vectors (`ic_launcher_foreground`, `ic_orbiscreen_logo`) and the web
+  favicon still carried the old 170/54 geometry and a stale `#74C7EC` dot, so the
+  phone, the in-app logo, and the browser tab showed an older mark than the
+  desktop. All three now use the master geometry and `#89B4FA`;
+  `scripts/generate-icons.sh` verifies the favicon geometry and regenerates
+  `favicon.png` and `apple-touch-icon.png` (the touch icon keeps an opaque
+  `#11111B` plate, which iOS requires).
+- New `theme-tests` target: renders every glyph at 16-48px and DPR 1.0/1.25/2.0,
+  checks the painted logo's optical box, and validates the committed icon set and
+  master parity.
+
+- Version bumped to 0.44.0 across the Cargo workspace, Android (`versionCode` 200), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.43.1] - 2026-11-16
 
 ### Changed

@@ -15,7 +15,6 @@ class QFrame;
 class QLabel;
 class QMenu;
 class QPushButton;
-class QTabWidget;
 class QToolButton;
 class ConnectPage;
 class DisplayPage;
@@ -24,6 +23,8 @@ class DaemonClient;
 class TrayIcon;
 
 namespace UiKit {
+class LogoWidget;
+class NavTabs;
 class StatusPill;
 }
 
@@ -43,7 +44,6 @@ private:
     void createStatusBar();
     void connectSignals();
     void retranslate();
-    void refreshTabIcons();
     void syncHeaderAction();
     void applyState();
     QString stateText() const;
@@ -76,7 +76,7 @@ private:
     ConnectPage *m_connect = nullptr;
     DisplayPage *m_display = nullptr;
     DoctorPage *m_doctor = nullptr;
-    QTabWidget *m_tabs = nullptr;
+    UiKit::NavTabs *m_nav = nullptr;
 
     QAction *m_startStop = nullptr;
     QAction *m_restart = nullptr;
@@ -95,17 +95,14 @@ private:
     QMenu *m_viewMenu = nullptr;
     QMenu *m_languageMenu = nullptr;
 
-    QLabel *m_appIcon = nullptr;
+    UiKit::LogoWidget *m_appIcon = nullptr;
     QLabel *m_appTitle = nullptr;
     QLabel *m_appTagline = nullptr;
-    QLabel *m_stateLabel = nullptr;
     QLabel *m_resolutionLabel = nullptr;
     QLabel *m_portsLabel = nullptr;
     QLabel *m_clientsLabel = nullptr;
     UiKit::StatusPill *m_statusPill = nullptr;
     QToolButton *m_headerAction = nullptr;
-    QToolButton *m_restartButton = nullptr;
-    QToolButton *m_refreshButton = nullptr;
     QToolButton *m_menuButton = nullptr;
 
     QFrame *m_updateBar = nullptr;
@@ -125,5 +122,4 @@ private:
     QString m_updateUrl;
     QImage m_qr;
     int m_lastHeaderActionKey = -1;
-    int m_lastTabIconIndex = -1;
 };

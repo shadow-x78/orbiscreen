@@ -11,10 +11,17 @@
        two role classes (.orbi-s stroke, .orbi-f
        fill). Square content box, dead-centered on
        the 512 canvas by construction.
+
+       Optical box: the ring's outer edge spans
+       416 of the 512 units (81.3%), so the mark
+       reads larger inside launcher and dock tiles
+       without touching the canvas edge. Keep this
+       file and assets/logo/orbiscreen-logo.svg
+       byte-identical (the icon script verifies it).
        ───────────────────────────────────────────── -->
   <defs>
     <style>.orbi-f{fill:#89b4fa;}.orbi-s{fill:none;stroke:#89b4fa;}</style>
   </defs>
-  <circle class="orbi-s" cx="256" cy="256" r="170" stroke-width="54"/>
-  <circle class="orbi-f" cx="376" cy="376" r="62"/>
+  <circle class="orbi-s" cx="256" cy="256" r="181" stroke-width="58"/>
+  <circle class="orbi-f" cx="384" cy="384" r="66"/>
 </svg>

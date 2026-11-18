@@ -3,12 +3,14 @@
      Orbiscreen - Android Launcher Foreground Icon
      https://github.com/shadow-x78/orbiscreen
 
-     The project mark at launcher scale: the O of
-     Orbiscreen as a display ring with the device
-     screen - a solid dot - riding its path. Drawn
-     on the 512 logo grid, scaled into the 66/108
-     adaptive safe zone so no launcher mask shape
-     ever clips it.
+     The project mark on the same 512 grid as data/orbiscreen.svg: the O of Orbiscreen as a
+     display ring (r 181, stroke 58) with the device screen - a solid dot (r 66 at 384,384) -
+     riding its path. The group scales that grid to 0.66 of the 108dp adaptive canvas.
+
+     Safe-area math: the dot reaches 247 units from the centre, i.e. 247/512 * 108 * 0.66 =
+     34.4dp. That is inside the 36dp visible circle (72dp diameter) with >1dp to spare, so no
+     launcher mask clips it, while the ring (210 units -> 29.2dp) fills the tile instead of
+     floating small inside it.
      ───────────────────────────────────────────── -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -16,17 +18,17 @@
     android:viewportWidth="512"
     android:viewportHeight="512">
     <group
-        android:scaleX="0.65"
-        android:scaleY="0.65"
+        android:scaleX="0.66"
+        android:scaleY="0.66"
         android:pivotX="256"
         android:pivotY="256">
         <path
             android:fillColor="@android:color/transparent"
             android:strokeColor="#89B4FA"
-            android:strokeWidth="54"
-            android:pathData="M256,256 m-170,0 a170,170 0 1 1 340,0 a170,170 0 1 1 -340,0" />
+            android:strokeWidth="58"
+            android:pathData="M256,256 m-181,0 a181,181 0 1 1 362,0 a181,181 0 1 1 -362,0" />
         <path
             android:fillColor="#89B4FA"
-            android:pathData="M376,376 m-62,0 a62,62 0 1 1 124,0 a62,62 0 1 1 -124,0" />
+            android:pathData="M384,384 m-66,0 a66,66 0 1 1 132,0 a66,66 0 1 1 -132,0" />
     </group>
 </vector>

@@ -1,3 +1,11 @@
+orbiscreen (0.44.0~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.44.0 for Ubuntu noble.
+  * feat: polish the Qt desktop interface and app icons
+  * Bump version to 0.44.0 across all packages; Android versionCode 200.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Mon, 16 Nov 2026 16:30:00 +0300
+
 orbiscreen (0.43.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.43.1 for Ubuntu noble.

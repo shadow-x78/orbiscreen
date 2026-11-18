@@ -2,7 +2,7 @@
 
 # Troubleshooting - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.43.1-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.44.0-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -946,6 +946,21 @@ Error: evdi kernel module is not installed
    lsmod | grep evdi
    ls /dev/dri/card*
    ```
+
+**Kernel compatibility.** The distro `evdi-dkms` packages lag behind new kernels: on
+Pop!_OS 24.04 / Ubuntu 24.04 with a 7.x kernel the packaged 1.14.x fails DKMS with
+"kernel package linux-headers-... is not supported". Build the current upstream release
+instead, which is what the EVDI path is tested against:
+
+```bash
+git clone https://github.com/DisplayLink/evdi.git
+cd evdi
+sudo make install_dkms          # installs as a DKMS module, not a one-off build
+sudo modprobe evdi
+```
+
+`orbiscreen doctor` reports the loaded version; anything older than 1.15 on a kernel
+newer than 6.12 is likely to fail the same way.
 
 ---
 

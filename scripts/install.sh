@@ -76,7 +76,7 @@ else
 fi
 cp -f data/orbiscreen.svg "${HOME}/.local/share/icons/hicolor/scalable/apps/"
 ln -sf orbiscreen.svg "${HOME}/.local/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg"
-for size in 16 24 32 48 64 128 256 512; do
+for size in 16 22 24 32 48 64 128 256 512; do
     if [ -f "gui/icons/${size}x${size}.png" ]; then
         mkdir -p "${HOME}/.local/share/icons/hicolor/${size}x${size}/apps"
         cp -f "gui/icons/${size}x${size}.png" "${HOME}/.local/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"

@@ -8,14 +8,13 @@
 #include "uikit.h"
 
 #include <QClipboard>
-#include <QFont>
+#include <QFontMetrics>
 #include <QFrame>
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QScrollArea>
 #include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -27,13 +26,10 @@ QString t(const char *key)
     return I18n::instance().t(QString::fromLatin1(key));
 }
 
-QLabel *stepBadge(const QString &number, QWidget *parent)
+int measureColumn(int characters)
 {
-    auto *badge = new QLabel(number, parent);
-    badge->setObjectName(QStringLiteral("StepBadge"));
-    badge->setFixedSize(26, 26);
-    badge->setAlignment(Qt::AlignCenter);
-    return badge;
+    const QFontMetrics metrics(Theme::font(Theme::FontRole::Body));
+    return metrics.horizontalAdvance(QStringLiteral("0")) * characters;
 }
 
 }
@@ -42,70 +38,75 @@ ConnectPage::ConnectPage(QWidget *parent)
     : QWidget(parent)
 {
     auto *outer = new QVBoxLayout(this);
-    outer->setContentsMargins(20, 12, 20, 16);
+    outer->setContentsMargins(0, 0, 0, 0);
     outer->setSpacing(0);
 
-    auto *scroll = new QScrollArea(this);
-    scroll->setWidgetResizable(true);
-    scroll->setFrameShape(QFrame::NoFrame);
-    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    auto *content = new QWidget(scroll);
-    auto *layout = new QVBoxLayout(content);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(14);
+    auto *scroll = new UiKit::PageScroll(this);
+    QVBoxLayout *layout = scroll->contentLayout();
 
-    m_statusCard = UiKit::card(Theme::Glyph::Monitor, t("tabConnect"));
+    m_statusCard = UiKit::card(Theme::Glyph::Monitor, t("statusTitle"));
     m_headline = UiKit::headline(QString(), true);
     m_subtitle = UiKit::label(QString(), QStringLiteral("Muted"), true);
+    m_subtitle->setMaximumWidth(measureColumn(64));
     m_statusCard->body()->addWidget(m_headline);
     m_statusCard->body()->addWidget(m_subtitle);
     auto *stats = new QHBoxLayout;
-    stats->setSpacing(10);
-    m_resolution = UiKit::statTile(Theme::Glyph::Monitor, t("resolution"));
-    m_encoder = UiKit::statTile(Theme::Glyph::Chip, t("encoder"));
-    m_devices = UiKit::statTile(Theme::Glyph::Phone, t("devices"));
+    stats->setSpacing(Theme::Spacing::md);
+    m_resolution = UiKit::statTile(t("resolution"), Theme::Glyph::Monitor);
+    m_encoder = UiKit::statTile(t("encoder"), Theme::Glyph::Chip);
+    m_devices = UiKit::statTile(t("devices"), Theme::Glyph::Phone);
     stats->addWidget(m_resolution.frame, 1);
     stats->addWidget(m_encoder.frame, 1);
     stats->addWidget(m_devices.frame, 1);
-    m_statusCard->body()->addSpacing(4);
+    m_statusCard->body()->addSpacing(Theme::Spacing::xs);
     m_statusCard->body()->addLayout(stats);
 
     m_wifiCard = UiKit::card(Theme::Glyph::Wifi, t("modeWifi"));
     auto *wifiRow = new QHBoxLayout;
-    wifiRow->setSpacing(20);
+    wifiRow->setSpacing(Theme::Spacing::xl);
     m_qr = new QrView(m_wifiCard);
-    m_qr->setFixedSize(210, 210);
+    m_qr->setFixedSize(Theme::Metrics::qrTileSize, Theme::Metrics::qrTileSize);
     wifiRow->addWidget(m_qr, 0, Qt::AlignTop);
+
     auto *wifiText = new QVBoxLayout;
-    wifiText->setSpacing(10);
+    wifiText->setContentsMargins(0, 0, 0, 0);
+    wifiText->setSpacing(Theme::Spacing::md);
     m_wifiPrompt = UiKit::label(t("qrPrompt"), QStringLiteral("Muted"), true);
+    m_wifiPrompt->setMaximumWidth(measureColumn(48));
     m_url = new QLineEdit(m_wifiCard);
     m_url->setReadOnly(true);
     m_url->setCursorPosition(0);
     m_url->setClearButtonEnabled(false);
+    m_url->setMinimumWidth(240);
+    m_url->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_copy = UiKit::iconButton(Theme::Glyph::Copy, t("copy"), 18);
     auto *urlRow = new QHBoxLayout;
-    urlRow->setSpacing(8);
+    urlRow->setSpacing(Theme::Spacing::sm);
     urlRow->addWidget(m_url, 1);
-    urlRow->addWidget(m_copy);
+    urlRow->addWidget(m_copy, 0, Qt::AlignVCenter);
     m_open = UiKit::button(t("open"), Theme::Glyph::ExternalLink, QStringLiteral("primary"));
     auto *wifiActions = new QHBoxLayout;
+    wifiActions->setSpacing(Theme::Spacing::sm);
     wifiActions->addWidget(m_open);
     wifiActions->addStretch(1);
     wifiText->addWidget(m_wifiPrompt);
     wifiText->addLayout(urlRow);
-    wifiText->addLayout(wifiActions);
+    // The button sits on the plate's bottom edge so the column fills the QR's height instead of
+    // ending short and leaving a gap under it.
     wifiText->addStretch(1);
+    wifiText->addLayout(wifiActions);
     wifiRow->addLayout(wifiText, 1);
+    wifiRow->setAlignment(wifiText, Qt::AlignTop);
     m_wifiCard->body()->addLayout(wifiRow);
 
     m_usbCard = UiKit::card(Theme::Glyph::Usb, t("usbTitle"));
     auto *usbRow = new QHBoxLayout;
-    usbRow->setSpacing(16);
+    usbRow->setSpacing(Theme::Spacing::lg);
     auto *usbText = new QVBoxLayout;
-    usbText->setSpacing(6);
+    usbText->setSpacing(Theme::Spacing::xs);
     m_usbState = UiKit::label(QString(), QStringLiteral("Value"));
     m_usbDesc = UiKit::label(t("usbDesc"), QStringLiteral("Muted"), true);
+    m_usbDesc->setMaximumWidth(measureColumn(64));
     m_usbDevices = UiKit::label(QString(), QStringLiteral("Muted"), true);
     usbText->addWidget(m_usbState);
     usbText->addWidget(m_usbDesc);
@@ -116,11 +117,12 @@ ConnectPage::ConnectPage(QWidget *parent)
     m_usbCard->body()->addLayout(usbRow);
 
     m_guideCard = UiKit::card(Theme::Glyph::Info, t("gettingStarted"));
+    m_guideCard->setBodySpacing(Theme::Spacing::md);
     const char *guideKeys[3] = {"guide1", "guide2", "guide3"};
     for (int index = 0; index < 3; ++index) {
         auto *row = new QHBoxLayout;
-        row->setSpacing(12);
-        row->addWidget(stepBadge(QString::number(index + 1), m_guideCard), 0,
+        row->setSpacing(Theme::Spacing::md);
+        row->addWidget(UiKit::stepBadge(QString::number(index + 1), m_guideCard), 0,
                        Qt::AlignTop);
         m_guide[index] = UiKit::label(t(guideKeys[index]), QString(), true);
         row->addWidget(m_guide[index], 1);
@@ -132,7 +134,6 @@ ConnectPage::ConnectPage(QWidget *parent)
     layout->addWidget(m_usbCard);
     layout->addWidget(m_guideCard);
     layout->addStretch(1);
-    scroll->setWidget(content);
     outer->addWidget(scroll);
 
     connect(m_copy, &QToolButton::clicked, this, [this]() {
@@ -215,7 +216,7 @@ void ConnectPage::setQr(const QImage &qr)
 
 void ConnectPage::retranslate()
 {
-    m_statusCard->setTitle(t("tabConnect"));
+    m_statusCard->setTitle(t("statusTitle"));
     m_wifiCard->setTitle(t("modeWifi"));
     m_usbCard->setTitle(t("usbTitle"));
     m_guideCard->setTitle(t("gettingStarted"));

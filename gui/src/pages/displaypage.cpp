@@ -8,13 +8,11 @@
 
 #include <QAbstractButton>
 #include <QComboBox>
-#include <QFont>
+#include <QFontMetrics>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <QScrollArea>
-#include <QSize>
 #include <QVBoxLayout>
 
 namespace {
@@ -38,11 +36,18 @@ const Resolution kResolutions[] = {
 
 const int kFramerates[] = {30, 60, 90, 120};
 
-QVBoxLayout *field(const QString &caption, QWidget *control, QLabel **captionLabel)
+int measureColumn(int characters)
+{
+    const QFontMetrics metrics(Theme::font(Theme::FontRole::Body));
+    return metrics.horizontalAdvance(QStringLiteral("0")) * characters;
+}
+
+QVBoxLayout *field(const QString &captionText, QWidget *control, QLabel **captionLabel)
 {
     auto *box = new QVBoxLayout;
-    box->setSpacing(6);
-    auto *label = UiKit::label(caption, QStringLiteral("Muted"));
+    box->setContentsMargins(0, 0, 0, 0);
+    box->setSpacing(Theme::Spacing::xs + 2);
+    auto *label = UiKit::caption(captionText);
     box->addWidget(label);
     box->addWidget(control);
     if (captionLabel) {
@@ -57,19 +62,15 @@ DisplayPage::DisplayPage(QWidget *parent)
     : QWidget(parent)
 {
     auto *outer = new QVBoxLayout(this);
-    outer->setContentsMargins(20, 12, 20, 16);
-    auto *scroll = new QScrollArea(this);
-    scroll->setWidgetResizable(true);
-    scroll->setFrameShape(QFrame::NoFrame);
-    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    auto *content = new QWidget(scroll);
-    auto *layout = new QVBoxLayout(content);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(14);
+    outer->setContentsMargins(0, 0, 0, 0);
+    outer->setSpacing(0);
+
+    auto *scroll = new UiKit::PageScroll(this);
+    QVBoxLayout *layout = scroll->contentLayout();
 
     m_geometryCard = UiKit::card(Theme::Glyph::Monitor, t("resGroup"));
     auto *geometryRow = new QHBoxLayout;
-    geometryRow->setSpacing(14);
+    geometryRow->setSpacing(Theme::Metrics::cardGap);
     m_resolution = UiKit::comboBox();
     for (const Resolution &resolution : kResolutions) {
         m_resolution->addItem(QString::fromLatin1(resolution.label),
@@ -80,44 +81,41 @@ DisplayPage::DisplayPage(QWidget *parent)
     for (int fps : kFramerates) {
         m_fps->addItem(QStringLiteral("%1 Hz").arg(fps), fps);
     }
-    geometryRow->addLayout(field(t("resolution"), m_resolution, &m_resolutionCaption), 1);
-    geometryRow->addLayout(field(t("framerate"), m_fps, &m_fpsCaption), 1);
-    m_geometryCard->body()->addLayout(geometryRow);
+    geometryRow->addLayout(field(t("resolution"), m_resolution, &m_resolutionCaption), 3);
+    geometryRow->addLayout(field(t("framerate"), m_fps, &m_fpsCaption), 2);
+    // Apply sits on the fields' baseline instead of in a second row that left a 60px void under
+    // the combos. The wrapper pins it to the bottom so it lines up with the inputs.
     m_apply = UiKit::button(t("resolutionApply"), Theme::Glyph::CheckMark,
                             QStringLiteral("primary"));
-    auto *applyRow = new QHBoxLayout;
-    applyRow->addStretch(1);
-    applyRow->addWidget(m_apply);
-    m_geometryCard->body()->addLayout(applyRow);
+    auto *applyCell = new QVBoxLayout;
+    applyCell->setContentsMargins(0, 0, 0, 0);
+    applyCell->addStretch(1);
+    applyCell->addWidget(m_apply);
+    geometryRow->addLayout(applyCell, 0);
+    m_geometryCard->body()->addLayout(geometryRow);
 
     m_encoderCard = UiKit::card(Theme::Glyph::Chip, t("encoder"));
     auto *encoderRow = new QHBoxLayout;
-    encoderRow->setSpacing(14);
-    encoderRow->addWidget(UiKit::badgeLabel(Theme::Glyph::Chip), 0, Qt::AlignTop);
-    auto *encoderText = new QVBoxLayout;
-    encoderText->setSpacing(4);
-    m_encoder = UiKit::valueLabel(true);
-    QFont encoderFont = m_encoder->font();
-    if (encoderFont.pointSizeF() > 0.0) {
-        encoderFont.setPointSizeF(encoderFont.pointSizeF() * 1.12);
-    }
-    encoderFont.setWeight(QFont::DemiBold);
-    m_encoder->setFont(encoderFont);
-    encoderText->addWidget(m_encoder);
-    encoderRow->addLayout(encoderText, 1);
+    encoderRow->setSpacing(Theme::Spacing::md);
+    m_encoder = UiKit::label(QStringLiteral("-"), QStringLiteral("Value"), false);
+    m_encoder->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    encoderRow->addWidget(m_encoder, 1, Qt::AlignVCenter);
     m_encoderCard->body()->addLayout(encoderRow);
 
-    m_inputCard = UiKit::card(Theme::Glyph::Phone, t("inputGroup"));
-    const Theme::Glyph inputGlyphs[2] = {Theme::Glyph::Monitor, Theme::Glyph::Pen};
+    m_inputCard = UiKit::card(Theme::Glyph::Touch, t("inputGroup"));
+    m_inputCard->setBodySpacing(Theme::Spacing::lg);
+    const Theme::Glyph inputGlyphs[2] = {Theme::Glyph::Touch, Theme::Glyph::Pen};
     for (int index = 0; index < 2; ++index) {
         auto *row = new QHBoxLayout;
-        row->setSpacing(12);
-        row->addWidget(UiKit::iconLabel(inputGlyphs[index], 20, Theme::colors().accent), 0,
-                       Qt::AlignTop);
+        row->setSpacing(Theme::Spacing::md);
+        auto *icon = new UiKit::GlyphWidget(inputGlyphs[index], 20, Theme::colors().muted,
+                                           m_inputCard);
+        row->addWidget(icon, 0, Qt::AlignTop);
         auto *text = new QVBoxLayout;
-        text->setSpacing(3);
+        text->setContentsMargins(0, 0, 0, 0);
+        text->setSpacing(Theme::Spacing::xs - 2);
         QLabel *title = UiKit::label(QString(), QStringLiteral("Value"));
-        QLabel *desc = UiKit::label(QString(), QStringLiteral("Muted"), true);
+        QLabel *desc = UiKit::caption(QString(), true);
         text->addWidget(title);
         text->addWidget(desc);
         row->addLayout(text, 1);
@@ -129,18 +127,17 @@ DisplayPage::DisplayPage(QWidget *parent)
             m_stylusDesc = desc;
         }
         m_inputCard->body()->addLayout(row);
-        if (index == 0) {
-            m_inputCard->body()->addWidget(UiKit::divider());
-        }
     }
 
-    m_systemCard = UiKit::card(Theme::Glyph::Dashboard, t("systemGroup"));
+    m_systemCard = UiKit::card(Theme::Glyph::Login, t("systemGroup"));
     auto *systemRow = new QHBoxLayout;
-    systemRow->setSpacing(16);
+    systemRow->setSpacing(Theme::Spacing::md);
     auto *systemText = new QVBoxLayout;
-    systemText->setSpacing(4);
+    systemText->setContentsMargins(0, 0, 0, 0);
+    systemText->setSpacing(Theme::Spacing::xs - 2);
     m_autostartTitle = UiKit::label(t("autostart"), QStringLiteral("Value"));
-    m_autostartDesc = UiKit::label(t("autostartDesc"), QStringLiteral("Muted"), true);
+    m_autostartDesc = UiKit::caption(t("autostartDesc"), true);
+    m_autostartDesc->setMaximumWidth(measureColumn(56));
     systemText->addWidget(m_autostartTitle);
     systemText->addWidget(m_autostartDesc);
     systemRow->addLayout(systemText, 1);
@@ -148,20 +145,27 @@ DisplayPage::DisplayPage(QWidget *parent)
     systemRow->addWidget(m_autostart, 0, Qt::AlignVCenter);
     m_systemCard->body()->addLayout(systemRow);
 
+    auto *columns = new UiKit::ResponsiveColumns(2, scroll);
+    auto *secondary = new QWidget(columns);
+    secondary->setObjectName(QStringLiteral("PageSurface"));
+    auto *secondaryLayout = new QVBoxLayout(secondary);
+    secondaryLayout->setContentsMargins(0, 0, 0, 0);
+    secondaryLayout->setSpacing(Theme::Metrics::cardGap);
+    secondaryLayout->addWidget(m_encoderCard);
+    secondaryLayout->addWidget(m_systemCard);
+    secondaryLayout->addStretch(1);
+
     layout->addWidget(m_geometryCard);
-    layout->addWidget(m_encoderCard);
-    layout->addWidget(m_inputCard);
-    layout->addWidget(m_systemCard);
+    columns->addWidget(m_inputCard, 1);
+    columns->addWidget(secondary, 1);
+    layout->addWidget(columns);
     layout->addStretch(1);
-    scroll->setWidget(content);
     outer->addWidget(scroll);
 
-    connect(m_apply, &QPushButton::clicked, this, [this]() {
-        const QSize size = m_resolution->currentData().toSize();
-        const int fps = m_fps->currentData().toInt();
-        m_pendingResolution = true;
-        emit resolutionApplyRequested(size.width(), size.height(), fps);
-    });
+    connect(m_apply, &QPushButton::clicked, this, &DisplayPage::applySelection);
+    connect(m_resolution, &QComboBox::currentIndexChanged, this,
+            &DisplayPage::updateApplyState);
+    connect(m_fps, &QComboBox::currentIndexChanged, this, &DisplayPage::updateApplyState);
     connect(m_autostart, &QAbstractButton::toggled, this, [this](bool enabled) {
         if (!m_updating) {
             m_pendingAutostart = true;
@@ -170,6 +174,7 @@ DisplayPage::DisplayPage(QWidget *parent)
     });
 
     retranslate();
+    updateApplyState();
 }
 
 void DisplayPage::update(const DaemonStatus &status, bool autostart)
@@ -190,13 +195,22 @@ void DisplayPage::update(const DaemonStatus &status, bool autostart)
         if (fpsIndex >= 0) {
             m_fps->setCurrentIndex(fpsIndex);
         }
+        m_appliedResolution = current;
+        m_appliedFps = status.report.displayFps;
+        m_encoder->setText(status.report.encoder.isEmpty() ? QStringLiteral("-")
+                                                           : status.report.encoder);
+        m_updating = false;
+        updateApplyState();
+    } else {
+        m_encoder->setText(status.report.encoder.isEmpty() ? QStringLiteral("-")
+                                                           : status.report.encoder);
+        m_updating = false;
     }
-    m_encoder->setText(status.report.encoder.isEmpty() ? QStringLiteral("-")
-                                                       : status.report.encoder);
     if (!m_pendingAutostart) {
+        m_updating = true;
         m_autostart->setChecked(autostart);
+        m_updating = false;
     }
-    m_updating = false;
 }
 
 void DisplayPage::setAutostart(bool enabled)
@@ -207,9 +221,41 @@ void DisplayPage::setAutostart(bool enabled)
     m_pendingAutostart = false;
 }
 
+void DisplayPage::applySelection()
+{
+    if (!m_apply->isEnabled()) {
+        return;
+    }
+    const QSize size = m_resolution->currentData().toSize();
+    const int fps = m_fps->currentData().toInt();
+    m_pendingResolution = true;
+    m_apply->setText(t("applying"));
+    m_apply->setEnabled(false);
+    m_resolution->setEnabled(false);
+    m_fps->setEnabled(false);
+    emit resolutionApplyRequested(size.width(), size.height(), fps);
+}
+
+void DisplayPage::updateApplyState()
+{
+    if (m_updating) {
+        return;
+    }
+    const QSize size = m_resolution->currentData().toSize();
+    const int fps = m_fps->currentData().toInt();
+    const bool dirty = size != m_appliedResolution || fps != m_appliedFps;
+    m_apply->setEnabled(dirty);
+    m_apply->setText(t("resolutionApply"));
+    m_resolution->setEnabled(true);
+    m_fps->setEnabled(true);
+}
+
 void DisplayPage::resolutionApplied()
 {
     m_pendingResolution = false;
+    m_appliedResolution = m_resolution->currentData().toSize();
+    m_appliedFps = m_fps->currentData().toInt();
+    updateApplyState();
 }
 
 void DisplayPage::retranslate()
@@ -226,5 +272,5 @@ void DisplayPage::retranslate()
     m_stylusDesc->setText(t("stylusDesc"));
     m_autostartTitle->setText(t("autostart"));
     m_autostartDesc->setText(t("autostartDesc"));
-    m_apply->setText(t("resolutionApply"));
+    m_apply->setText(m_pendingResolution ? t("applying") : t("resolutionApply"));
 }

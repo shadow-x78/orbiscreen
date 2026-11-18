@@ -42,7 +42,7 @@ fi
 # ── Prepare AppDir Staging ──
 APP="$DIST/orbiscreen.AppDir"
 rm -rf "$APP"
-mkdir -p "$APP/usr/bin" "$APP/usr/share/orbiscreen/client" "$APP/usr/share/icons/hicolor/256x256/apps"
+mkdir -p "$APP/usr/bin" "$APP/usr/share/orbiscreen/client" "$APP/usr/share/icons/hicolor"
 
 install -m755 target/release/orbiscreen "$APP/usr/bin/orbiscreen"
 if [ -f build-gui/orbiscreen-gui ]; then
@@ -133,20 +133,31 @@ StartupNotify=true
 StartupWMClass=orbiscreen.gui
 EOF
 
-rasterize_256() {
-    local svg="$1" out="$2"
+# Ship the committed hicolor set (rendered at each target size, not downscaled) and fall back to
+# rasterizing the 256 entry only if it is missing.
+for size in 16 22 24 32 48 64 128 256 512; do
+    if [ -f "$REPO_ROOT/gui/icons/${size}x${size}.png" ]; then
+        install -Dm644 "$REPO_ROOT/gui/icons/${size}x${size}.png" \
+            "$APP/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
+    fi
+done
+install -Dm644 "$REPO_ROOT/data/orbiscreen.svg" \
+    "$APP/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg"
+
+if [ ! -f "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png" ]; then
     if command -v rsvg-convert >/dev/null 2>&1; then
-        rsvg-convert -w 256 -h 256 "$svg" -o "$out"
+        rasterize() { rsvg-convert -w 256 -h 256 "$1" -o "$2"; }
     elif command -v magick >/dev/null 2>&1; then
-        magick -background none "$svg" -flatten -resize 256x256 "$out"
+        rasterize() { magick -background none "$1" -resize 256x256 "$2"; }
     elif command -v convert >/dev/null 2>&1; then
-        convert -background none "$svg" -flatten -resize 256x256 "$out"
+        rasterize() { convert -background none "$1" -resize 256x256 "$2"; }
     else
-        echo "error: no SVG rasterizer found (need 'rsvg-convert', 'magick' or 'convert')" >&2
+        echo "error: gui/icons/256x256.png is missing and no SVG rasterizer is available" >&2
         exit 1
     fi
-}
-rasterize_256 "$REPO_ROOT/data/orbiscreen.svg" "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png"
+    rasterize "$REPO_ROOT/data/orbiscreen.svg" \
+        "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png"
+fi
 cp "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png" "$APP/orbiscreen.png"
 
 # ── AppRun Launcher ──
@@ -161,6 +172,11 @@ fi
 if [ -d "$HERE/usr/lib/qt6/plugins" ]; then
     export QT_PLUGIN_PATH="$HERE/usr/lib/qt6/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
     export QT_QPA_PLATFORM_PLUGIN_PATH="$HERE/usr/lib/qt6/plugins/platforms"
+fi
+# Launch the desktop GUI when it was bundled (that is what the desktop entry and the icon set are
+# for); fall back to the CLI only in GUI-less builds.
+if [ -x "$HERE/usr/bin/orbiscreen-gui" ] && [ -z "${ORBISCREEN_CLI:-}" ]; then
+    exec "$HERE/usr/bin/orbiscreen-gui" "$@"
 fi
 exec "$HERE/usr/bin/orbiscreen" "$@"
 EOF

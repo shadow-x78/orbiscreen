@@ -8,6 +8,7 @@
 #include "uikit.h"
 
 class QLabel;
+class QProgressBar;
 class QPushButton;
 class QFrame;
 
@@ -42,12 +43,13 @@ private:
     QLabel *m_encoder = nullptr;
     QLabel *m_ports = nullptr;
     QLabel *m_usb = nullptr;
-    QLabel *m_backendIcon = nullptr;
-    QLabel *m_uinputIcon = nullptr;
-    QLabel *m_encoderIcon = nullptr;
-    QLabel *m_usbIcon = nullptr;
+    UiKit::GlyphWidget *m_backendIcon = nullptr;
+    UiKit::GlyphWidget *m_uinputIcon = nullptr;
+    UiKit::GlyphWidget *m_encoderIcon = nullptr;
+    UiKit::GlyphWidget *m_usbIcon = nullptr;
     QPushButton *m_scan = nullptr;
     QPushButton *m_fix = nullptr;
+    QProgressBar *m_progress = nullptr;
     bool m_scanning = false;
     bool m_fixing = false;
 };

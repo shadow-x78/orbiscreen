@@ -93,6 +93,8 @@ void TrayIcon::retranslate()
 void TrayIcon::showMessage(const QString &title, const QString &message)
 {
     if (m_tray) {
-        m_tray->showMessage(title, message, QSystemTrayIcon::Information, 4000);
+        // Pass the brand mark explicitly: the Information/MessageIcon enums make the notification
+        // daemon show its own generic glyph instead of the application icon.
+        m_tray->showMessage(title, message, Theme::logoIcon(), 4000);
     }
 }

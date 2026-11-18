@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <QSize>
 #include <QWidget>
 
 #include "report.h"
@@ -28,6 +29,9 @@ signals:
     void autostartChanged(bool enabled);
 
 private:
+    void applySelection();
+    void updateApplyState();
+
     UiKit::Card *m_geometryCard = nullptr;
     UiKit::Card *m_encoderCard = nullptr;
     UiKit::Card *m_inputCard = nullptr;
@@ -46,6 +50,8 @@ private:
     QComboBox *m_fps = nullptr;
     QPushButton *m_apply = nullptr;
     QAbstractButton *m_autostart = nullptr;
+    QSize m_appliedResolution;
+    int m_appliedFps = 0;
     bool m_updating = false;
     bool m_pendingResolution = false;
     bool m_pendingAutostart = false;

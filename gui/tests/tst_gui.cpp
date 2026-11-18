@@ -140,7 +140,7 @@ void GuiTests::formatsDeviceCount()
     const Lang previous = i18n.lang();
     i18n.setLang(Lang::En);
     QCOMPARE(i18n.format(QStringLiteral("devicesConnected"), 3),
-             QStringLiteral("3 Devices Connected"));
+             QStringLiteral("3 devices connected"));
     i18n.setLang(previous);
 }
 

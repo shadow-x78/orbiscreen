@@ -21,17 +21,26 @@ pub(crate) struct PipewireSpec {
 pub(crate) struct PipewireCapture {
     pipeline: gstreamer::Pipeline,
     rx: tokio::sync::Mutex<mpsc::Receiver<CapturedFrame>>,
+    /// First pipeline error, if any. Without this a failed negotiation only reached the log and
+    /// the caller waited on an empty channel forever, which surfaced as a permanent black screen.
+    error: Arc<std::sync::Mutex<Option<String>>>,
 }
 
 impl PipewireCapture {
     pub fn open(spec: PipewireSpec) -> Result<Self, String> {
         gstreamer::init().map_err(|e| format!("gst init: {e}"))?;
+        // always-copy keeps pipewiresrc on system memory. Left on its default it can stay on
+        // DMABuf, which videoconvert cannot consume, so the pipeline negotiates but never emits a
+        // sample: the tablet shows black while input still works.
         let source = match spec.fd {
             Some(fd) => format!(
-                "pipewiresrc fd={fd} path={} do-timestamp=true",
+                "pipewiresrc fd={fd} path={} do-timestamp=true always-copy=true",
                 spec.node_id
             ),
-            None => format!("pipewiresrc path={} do-timestamp=true", spec.node_id),
+            None => format!(
+                "pipewiresrc path={} do-timestamp=true always-copy=true",
+                spec.node_id
+            ),
         };
         let pipeline_str = format!(
             "{source} \
@@ -74,14 +83,26 @@ impl PipewireCapture {
                 .build(),
         );
 
+        let error_slot = Arc::new(std::sync::Mutex::new(None::<String>));
+        let error_for_bus = Arc::clone(&error_slot);
         if let Some(bus) = pipeline.bus() {
-            bus.set_sync_handler(|_bus, msg| {
+            bus.set_sync_handler(move |_bus, msg| {
                 match msg.view() {
-                    gstreamer::MessageView::Error(err) => tracing::error!(
-                        "gstreamer capture error: {} (debug: {})",
-                        err.error(),
-                        err.debug().unwrap_or_default()
-                    ),
+                    gstreamer::MessageView::Error(err) => {
+                        tracing::error!(
+                            "gstreamer capture error: {} (debug: {})",
+                            err.error(),
+                            err.debug().unwrap_or_default()
+                        );
+                        let mut slot = error_for_bus.lock().unwrap_or_else(|e| e.into_inner());
+                        if slot.is_none() {
+                            *slot = Some(format!(
+                                "{} ({})",
+                                err.error(),
+                                err.debug().unwrap_or_default()
+                            ));
+                        }
+                    }
                     gstreamer::MessageView::Warning(warn) => tracing::warn!(
                         "gstreamer capture warning: {} (debug: {})",
                         warn.error(),
@@ -100,14 +121,21 @@ impl PipewireCapture {
         Ok(Self {
             pipeline,
             rx: tokio::sync::Mutex::new(rx),
+            error: error_slot,
         })
     }
 
     pub async fn next_frame(&self) -> Result<CapturedFrame, String> {
         let mut rx = self.rx.lock().await;
-        rx.recv()
-            .await
-            .ok_or_else(|| "GStreamer pipeline closed".to_string())
+        match rx.recv().await {
+            Some(frame) => Ok(frame),
+            None => {
+                // The channel closes when the appsink stops, so report the pipeline error that
+                // caused it instead of a generic "closed" message.
+                let detail = self.error.lock().unwrap_or_else(|e| e.into_inner()).clone();
+                Err(detail.unwrap_or_else(|| "GStreamer pipeline closed".to_string()))
+            }
+        }
     }
 }
 

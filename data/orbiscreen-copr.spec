@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.43.1
+%global version 0.44.0
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -66,7 +66,7 @@ install -Dm0755 target/release/orbiscreen %{buildroot}%{_bindir}/orbiscreen
 install -Dm0755 build-gui/orbiscreen-gui %{buildroot}%{_bindir}/orbiscreen-gui
 install -Dm0644 data/orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen.svg
 ln -sf orbiscreen.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/orbiscreen-gui.svg
-for size in 16 24 32 48 64 128 256 512; do
+for size in 16 22 24 32 48 64 128 256 512; do
     if [ -f "gui/icons/${size}x${size}.png" ]; then
         install -Dm0644 "gui/icons/${size}x${size}.png" "%{buildroot}%{_datadir}/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
         ln -sf orbiscreen.png "%{buildroot}%{_datadir}/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"
@@ -152,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Mon Nov 16 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.44.0-1
+- Release 0.44.0: feat: polish the Qt desktop interface and app icons
+
 * Mon Nov 16 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.43.1-1
 - Release 0.43.1: unblock USB video on Android 8 decoders and keep the PPA
   release job from failing while Launchpad builds

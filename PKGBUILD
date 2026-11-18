@@ -6,7 +6,7 @@
 # Maintainer: shadow-x78 <shadow-x7@red-shadows-rs.com>
 
 pkgname=orbiscreen
-pkgver=0.43.1
+pkgver=0.44.0
 pkgrel=1
 pkgdesc="Turn Android devices into high-performance secondary monitors for Linux (Wayland & X11)"
 arch=('x86_64')
@@ -55,7 +55,7 @@ package() {
     install -Dm0755 build-gui/orbiscreen-gui "${pkgdir}/usr/bin/orbiscreen-gui"
     install -Dm0644 data/orbiscreen.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg"
     ln -sf orbiscreen.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg"
-    for size in 16 24 32 48 64 128 256 512; do
+    for size in 16 22 24 32 48 64 128 256 512; do
         if [ -f "gui/icons/${size}x${size}.png" ]; then
             install -Dm0644 "gui/icons/${size}x${size}.png" "${pkgdir}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen.png"
             ln -sf orbiscreen.png "${pkgdir}/usr/share/icons/hicolor/${size}x${size}/apps/orbiscreen-gui.png"
