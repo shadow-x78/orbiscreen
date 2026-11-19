@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.44.5] - 2026-11-19
+
+### Fixed
+- **v0.44.4 did not publish.** Its release gate failed on `clippy`, which runs a
+  newer toolchain in CI than locally and rejects `chunks_exact_mut` with a constant
+  chunk size (`chunks_exact_to_as_chunks`). The three loops in the black-frame tests
+  use `as_chunks_mut::<4>()` instead, which is the same behaviour with the shape the
+  lint asks for. No runtime code changed; the capture and encode probes introduced
+  in v0.44.4 ship unchanged in this release.
+
+### Changed
+- Version bumped to 0.44.5 across the Cargo workspace, Android (`versionCode` 205),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.44.4] - 2026-11-19
 
 ### Changed

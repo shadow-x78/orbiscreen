@@ -1,3 +1,13 @@
+orbiscreen (0.44.5~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.44.5 for Ubuntu noble.
+  * Replace chunks_exact_mut with as_chunks_mut in the black-frame tests so the
+    release gate clippy passes on the newer CI toolchain; v0.44.4 failed there.
+  * Ship the capture and encode probes from v0.44.4 unchanged.
+  * Bump version to 0.44.5 across all packages; Android versionCode 205.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Thu, 19 Nov 2026 23:20:00 +0300
+
 orbiscreen (0.44.4~ubuntunoble1) noble; urgency=medium
 
   * Release 0.44.4 for Ubuntu noble.

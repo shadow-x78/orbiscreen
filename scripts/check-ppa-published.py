@@ -23,8 +23,8 @@ UNPUBLISHABLE = {"Superseded", "Deleted", "Obsolete"}
 def upstream_version(debian_version: str) -> str:
     """Reduce a Debian version to the upstream part.
 
-    "0.44.4~ubuntunoble1" and "0.44.4-1~ubuntu24.04.1" both become "0.44.4", so a
-    release is not mistaken for a published "0.44.40".
+    "0.44.5~ubuntunoble1" and "0.44.5-1~ubuntu24.04.1" both become "0.44.5", so a
+    release is not mistaken for a published "0.44.50".
     """
     return debian_version.split("~", 1)[0].split("-", 1)[0]
 

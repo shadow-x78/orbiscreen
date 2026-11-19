@@ -106,7 +106,7 @@ mod tests {
             "display_height": 1440,
             "display_fps": 120,
             "signaling_port": 8788,
-            "version": "0.44.4"
+            "version": "0.44.5"
         }"#;
         let report: StatusReport = serde_json::from_str(raw).expect("status");
         assert!(report.running);
