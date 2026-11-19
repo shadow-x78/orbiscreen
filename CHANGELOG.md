@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.44.3] - 2026-11-19
+
+### Fixed
+- **Portal capture stayed black because a capsfilter pinned the format before
+  `videoconvert` (issue #114).** The pipeline read
+  `pipewiresrc ! video/x-raw ! videoconvert ! videoscale ! video/x-raw,format=BGRA`.
+  That bare `video/x-raw` is not a no-op: without a memory feature it means system
+  memory, so a portal stream backed by DMA-BUF can never fix its caps and the
+  pipeline parks in PAUSED. The reporter isolated it precisely with two
+  `gst-launch-1.0` runs against the live node: restricting to
+  `video/x-raw,format=BGRx` aborted with
+  `handle_format_change: assertion 'gst_caps_is_fixed (pwsrc->caps)' failed`, while
+  `pipewiresrc ! videoconvert ! fakesink` reached PLAYING and ran for 48 seconds.
+  `videoconvert` advertises both a `video/x-raw` and a `video/x-raw(ANY)` sink
+  template, the latter including `DMA_DRM`; the filter in front of it removed that
+  second option. The filter is gone, so the pipeline is now
+  `pipewiresrc ! videoconvert ! videoscale ! video/x-raw,format=BGRA,width,height`,
+  which is the shape the reporter proved working.
+- **`always-copy=true` removed.** It is deprecated in current GStreamer and, per the
+  reporter's testing, does not widen caps - which is why v0.44.0's change did not
+  help. Copying is now left to `videoconvert`, which handles the DMA-BUF to system
+  memory transition itself.
+- **The stall warning now reports why it stalled.** When no frame arrives within
+  5 s, the warning includes the pipeline state, the pending state, and the caps
+  negotiated on the appsink, so PAUSED (caps never fixed) is distinguishable from
+  PLAYING (compositor not drawing) without a separate `GST_DEBUG` run. The
+  `set_state` result is also logged, since it returns `Async` even when the pipeline
+  never actually leaves PAUSED.
+
+### Changed
+- The pipeline string is built by `pipeline_description`, so tests assert against
+  the real pipeline rather than a copy of it. Three tests cover the shape: no
+  capsfilter before `videoconvert`, no `always-copy`, and the sink still requesting
+  BGRA at the configured size.
+- Version bumped to 0.44.3 across the Cargo workspace, Android (`versionCode` 203),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.44.2] - 2026-11-18
 
 ### Fixed

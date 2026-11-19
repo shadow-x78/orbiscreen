@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.44.2
+%global version 0.44.3
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -152,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Mon Nov 16 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.44.3-1
+- Release 0.44.3: drop the capsfilter that blocked DMA-BUF portal streams (issue #114)
+
 * Wed Nov 18 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.44.2-1
 - Release 0.44.2: stop probing unrelated USB devices for AOA (issue #115)
 

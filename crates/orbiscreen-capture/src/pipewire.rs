@@ -63,28 +63,28 @@ impl StallWatch {
     }
 }
 
+fn pipeline_description(spec: &PipewireSpec) -> String {
+    let source = match spec.fd {
+        Some(fd) => format!(
+            "pipewiresrc fd={fd} path={} do-timestamp=true",
+            spec.node_id
+        ),
+        None => format!("pipewiresrc path={} do-timestamp=true", spec.node_id),
+    };
+    format!(
+        "{source} \
+         ! videoconvert n-threads=4 \
+         ! videoscale \
+         ! video/x-raw,format=BGRA,width={},height={} \
+         ! appsink name=sink drop=true sync=false max-buffers=1 emit-signals=false",
+        spec.width, spec.height
+    )
+}
+
 impl PipewireCapture {
     pub fn open(spec: PipewireSpec) -> Result<Self, String> {
         gstreamer::init().map_err(|e| format!("gst init: {e}"))?;
-        let source = match spec.fd {
-            Some(fd) => format!(
-                "pipewiresrc fd={fd} path={} do-timestamp=true always-copy=true",
-                spec.node_id
-            ),
-            None => format!(
-                "pipewiresrc path={} do-timestamp=true always-copy=true",
-                spec.node_id
-            ),
-        };
-        let pipeline_str = format!(
-            "{source} \
-             ! video/x-raw \
-             ! videoconvert n-threads=4 \
-             ! videoscale \
-             ! video/x-raw,format=BGRA,width={},height={} \
-             ! appsink name=sink drop=true sync=false max-buffers=1 emit-signals=false",
-            spec.width, spec.height
-        );
+        let pipeline_str = pipeline_description(&spec);
         let pipeline = gstreamer::parse::launch(&pipeline_str)
             .map_err(|e| format!("gst launch: {e}"))?
             .downcast::<gstreamer::Pipeline>()
@@ -221,9 +221,18 @@ impl PipewireCapture {
             });
         }
 
-        pipeline
-            .set_state(gstreamer::State::Playing)
-            .map_err(|e| format!("state error: {e}"))?;
+        match pipeline.set_state(gstreamer::State::Playing) {
+            Ok(gstreamer::StateChangeSuccess::Success) => {
+                tracing::debug!("screencast pipeline reached PLAYING synchronously");
+            }
+            Ok(gstreamer::StateChangeSuccess::Async) => {
+                tracing::debug!("screencast pipeline is changing to PLAYING asynchronously");
+            }
+            Ok(gstreamer::StateChangeSuccess::NoPreroll) => {
+                tracing::debug!("screencast pipeline is live and needs no preroll");
+            }
+            Err(e) => return Err(format!("state error: {e}")),
+        }
 
         Ok(Self {
             pipeline,
@@ -259,11 +268,33 @@ impl PipewireCapture {
         {
             return;
         }
+        let (state, pending) = match self.pipeline.current_state() {
+            gstreamer::State::Playing => ("PLAYING".to_string(), String::new()),
+            other => (
+                format!("{other:?}"),
+                format!("{:?}", self.pipeline.pending_state()),
+            ),
+        };
+        let negotiated = self
+            .pipeline
+            .by_name("sink")
+            .and_then(|sink| sink.static_pad("sink"))
+            .and_then(|pad| pad.current_caps())
+            .map(|caps| {
+                caps.structure(0)
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| caps.to_string())
+            })
+            .unwrap_or_else(|| "none".to_string());
         tracing::warn!(
-            "the screencast portal negotiated the stream but delivered no frame after {:?}; \
-             the compositor may not be drawing on the shared surface. Check that \
-             xdg-desktop-portal-cosmic matches the running cosmic-comp and try \
-             GST_DEBUG=3 to see the negotiated caps",
+            state = %state,
+            pending = %pending,
+            sink_caps = %negotiated,
+            "the screencast portal opened but delivered no frame after {:?}; \
+             if state is PAUSED the caps never fixed (a capsfilter restricting the \
+             format before videoconvert blocks a DMA-BUF stream), otherwise the \
+             compositor is not drawing on the shared surface. Check that \
+             xdg-desktop-portal-cosmic matches the running cosmic-comp",
             STALL_REPORT_AFTER
         );
     }
@@ -279,6 +310,47 @@ impl Drop for PipewireCapture {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn spec(node_id: u32, fd: Option<i32>, width: u32, height: u32) -> PipewireSpec {
+        PipewireSpec {
+            node_id,
+            fd,
+            width,
+            height,
+        }
+    }
+
+    #[test]
+    fn the_pipeline_does_not_restrict_caps_before_videoconvert() {
+        let pipeline_str = pipeline_description(&spec(87, None, 1920, 1080));
+        let before_convert = pipeline_str
+            .split("videoconvert")
+            .next()
+            .unwrap_or_default();
+        assert!(
+            !before_convert.contains("video/x-raw"),
+            "a capsfilter before videoconvert pins the format and stops a DMA-BUF \
+             portal stream from fixing caps; the sink may stay in PAUSED"
+        );
+        assert!(
+            !pipeline_str.contains("always-copy"),
+            "always-copy is deprecated and does not widen caps"
+        );
+    }
+
+    #[test]
+    fn the_pipeline_still_asks_for_bgra_at_the_sink() {
+        let pipeline_str = pipeline_description(&spec(1, None, 1280, 720));
+        assert!(pipeline_str.contains("format=BGRA"));
+        assert!(pipeline_str.contains("width=1280,height=720"));
+    }
+
+    #[test]
+    fn the_pipeline_passes_the_portal_fd_when_present() {
+        let pipeline_str = pipeline_description(&spec(87, Some(12), 1920, 1080));
+        assert!(pipeline_str.contains("fd=12"));
+        assert!(pipeline_str.contains("path=87"));
+    }
 
     #[test]
     fn stall_is_silent_before_the_window_elapses() {

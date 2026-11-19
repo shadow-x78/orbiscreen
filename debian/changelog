@@ -1,3 +1,19 @@
+orbiscreen (0.44.3~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.44.3 for Ubuntu noble.
+  * Remove the bare video/x-raw capsfilter before videoconvert; it restricted the
+    stream to system memory and left DMA-BUF portal streams stuck in PAUSED on
+    COSMIC (issue #114).
+  * Drop the deprecated always-copy property and let videoconvert handle the
+    DMA-BUF copy.
+  * Report the pipeline state, pending state, and negotiated sink caps in the
+    five-second stall warning.
+  * Build the pipeline string through a shared helper so tests assert the real
+    pipeline shape.
+  * Bump version to 0.44.3 across all packages; Android versionCode 203.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Thu, 19 Nov 2026 20:45:00 +0300
+
 orbiscreen (0.44.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.44.2 for Ubuntu noble.
