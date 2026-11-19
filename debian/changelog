@@ -1,3 +1,14 @@
+orbiscreen (0.44.4~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.44.4 for Ubuntu noble.
+  * Log the capture frame rate and whether captured frames are blank, every five
+    seconds, to locate the remaining black screen on COSMIC (issue #114).
+  * Log the encoder chunk and keyframe rate, and the first chunk emitted, so a
+    stalled KeyframeGate is distinguishable from an encoder that emits nothing.
+  * Bump version to 0.44.4 across all packages; Android versionCode 204.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Thu, 19 Nov 2026 22:55:00 +0300
+
 orbiscreen (0.44.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.44.3 for Ubuntu noble.

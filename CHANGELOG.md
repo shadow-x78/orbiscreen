@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.44.4] - 2026-11-19
+
+### Changed
+- **Capture and encode are now instrumented, because the black screen on COSMIC is
+  still unlocated (issue #114).** v0.44.3 removed the capsfilter that pinned the
+  format before `videoconvert`, and the reporter's `gst-launch-1.0` runs had already
+  proven that shape negotiates. The screen is still black, and the five-second stall
+  warning still does not appear - which is itself the clue: that warning only fires
+  when no frame has ever arrived, so frames are reaching the encoder and the failure
+  is further down the chain.
+- Two probes now report every five seconds at INFO, so one run identifies the exact
+  stage that breaks:
+  - `capture probe over the last 5s` with `frames` and `black`, plus a one-shot
+    `first captured frame` line carrying the dimensions, byte count, and whether the
+    frame is blank. A separate warning fires once if every frame in a window is
+    black, which distinguishes "the compositor draws nothing" from "the compositor
+    never delivers".
+  - `encoder probe over the last 5s` with `chunks`, `keyframes`, and `bytes`, plus a
+    one-shot `encoder emitted its first chunk` line. If frames arrive but chunks do
+    not, the encoder is the problem; if chunks arrive but `keyframes` stays zero,
+    clients are blocked by `KeyframeGate`, which withholds every packet until it sees
+    one flagged as a keyframe.
+
+  Together these separate the four remaining cases: no frames, black frames, frames
+  without encoded output, and encoded output that never reaches a client.
+- `frame_looks_black` samples at most 4096 pixels and treats a frame as black only
+  when fewer than 0.5 percent of them carry any channel above 7, so a drawn cursor
+  or a single lit glyph does not produce a false "black" verdict.
+
+### Changed
+- Version bumped to 0.44.4 across the Cargo workspace, Android (`versionCode` 204),
+  Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.44.3] - 2026-11-19
 
 ### Fixed

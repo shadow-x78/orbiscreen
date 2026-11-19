@@ -281,6 +281,82 @@ enum SourceOutcome {
     Ended,
 }
 
+struct CaptureProbe {
+    frames: u64,
+    black: u64,
+    window_start: std::time::Instant,
+    reported_black: bool,
+    reported_first: bool,
+}
+
+impl CaptureProbe {
+    fn new() -> Self {
+        Self {
+            frames: 0,
+            black: 0,
+            window_start: std::time::Instant::now(),
+            reported_black: false,
+            reported_first: false,
+        }
+    }
+
+    fn note(&mut self, frame: &Frame, backend: &str) {
+        self.frames = self.frames.saturating_add(1);
+        let is_black = frame_looks_black(&frame.data);
+        if is_black {
+            self.black = self.black.saturating_add(1);
+        }
+        if !self.reported_first {
+            self.reported_first = true;
+            tracing::info!(
+                backend,
+                width = frame.width,
+                height = frame.height,
+                bytes = frame.data.len(),
+                black = is_black,
+                "first captured frame"
+            );
+        }
+        if self.window_start.elapsed() < std::time::Duration::from_secs(5) {
+            return;
+        }
+        let frames = self.frames;
+        let black = self.black;
+        tracing::info!(backend, frames, black, "capture probe over the last 5s");
+        if frames > 0 && black == frames && !self.reported_black {
+            self.reported_black = true;
+            tracing::warn!(
+                backend,
+                "every captured frame is black; the compositor is drawing nothing on the \
+                 captured surface, so the encoder is streaming a black image"
+            );
+        }
+        self.frames = 0;
+        self.black = 0;
+        self.window_start = std::time::Instant::now();
+    }
+}
+
+fn frame_looks_black(data: &[u8]) -> bool {
+    let pixels = data.len() / 4;
+    if pixels == 0 {
+        return true;
+    }
+    let step = (pixels / 4096).max(1);
+    let mut index = 0usize;
+    let mut sampled = 0usize;
+    let mut lit = 0usize;
+    while index < pixels {
+        let offset = index * 4;
+        if data[offset].max(data[offset + 1]).max(data[offset + 2]) >= 8 {
+            lit += 1;
+        }
+        sampled += 1;
+        index += step;
+    }
+    sampled > 0 && lit * 200 < sampled
+}
+
 impl FrameSource {
     async fn next_frame(&mut self) -> SourceOutcome {
         match self {
@@ -2790,14 +2866,40 @@ async fn run_start(
     let frame_pump = tokio::spawn(async move {
         let mut timestamps = pipeline::TimestampBase::default();
         let mut dump_file = encoder_dump;
+        let mut chunks: u64 = 0;
+        let mut keyframes: u64 = 0;
+        let mut bytes: u64 = 0;
+        let mut reported_first = false;
+        let mut window = std::time::Instant::now();
         while let Some(chunk) = encoded_rx.recv().await {
             let packet = timestamps.normalize(chunk);
+            let is_key = packet.is_keyframe;
+            bytes = bytes.saturating_add(packet.bytes.len() as u64);
+            chunks = chunks.saturating_add(1);
+            if is_key {
+                keyframes = keyframes.saturating_add(1);
+            }
+            if !reported_first {
+                reported_first = true;
+                info!(
+                    keyframe = is_key,
+                    bytes = packet.bytes.len(),
+                    "encoder emitted its first chunk"
+                );
+            }
             if let Some(file) = dump_file.as_mut() {
                 use std::io::Write;
                 let _ = file.write_all(&packet.bytes);
             }
             if video_tx.send(packet).await.is_err() {
                 break;
+            }
+            if window.elapsed() >= std::time::Duration::from_secs(5) {
+                info!(chunks, keyframes, bytes, "encoder probe over the last 5s");
+                chunks = 0;
+                keyframes = 0;
+                bytes = 0;
+                window = std::time::Instant::now();
             }
         }
     });
@@ -2812,6 +2914,8 @@ async fn run_start(
         let started = std::time::Instant::now();
         let mut last_pts_ns: u64 = 0;
         let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = None;
+        let mut probe = CaptureProbe::new();
+        let probe_backend = backend_name;
         loop {
             let outcome = match tokio::time::timeout(KEEPALIVE, source.next_frame()).await {
                 Ok(outcome) => outcome,
@@ -2855,6 +2959,7 @@ async fn run_start(
             match outcome {
                 SourceOutcome::Frame(frame) => {
                     let _ = fc.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    probe.note(&frame, probe_backend);
                     let (width, height) = (frame.width, frame.height);
                     match &mut keepalive_frame {
                         Some((w, h, buf)) if buf.len() == frame.data.len() => {
@@ -3112,6 +3217,53 @@ async fn run_start(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_all_zero_frame_is_black() {
+        let data = vec![0u8; 640 * 480 * 4];
+        assert!(frame_looks_black(&data));
+    }
+
+    #[test]
+    fn an_opaque_black_frame_is_black() {
+        let mut data = vec![0u8; 64 * 64 * 4];
+        for pixel in data.chunks_exact_mut(4) {
+            pixel[3] = 255;
+        }
+        assert!(frame_looks_black(&data));
+    }
+
+    #[test]
+    fn a_coloured_frame_is_not_black() {
+        let mut data = vec![0u8; 64 * 64 * 4];
+        for pixel in data.chunks_exact_mut(4) {
+            pixel[0] = 200;
+            pixel[1] = 120;
+            pixel[2] = 40;
+            pixel[3] = 255;
+        }
+        assert!(!frame_looks_black(&data));
+    }
+
+    #[test]
+    fn a_mostly_black_frame_with_one_lit_corner_is_not_black() {
+        let mut data = vec![0u8; 100 * 100 * 4];
+        for pixel in data.chunks_exact_mut(4).take(400) {
+            pixel[0] = 250;
+            pixel[1] = 250;
+            pixel[2] = 250;
+            pixel[3] = 255;
+        }
+        assert!(
+            !frame_looks_black(&data),
+            "a drawn cursor corner must not be reported as a black frame"
+        );
+    }
+
+    #[test]
+    fn an_empty_frame_is_treated_as_black() {
+        assert!(frame_looks_black(&[]));
+    }
 
     #[test]
     fn log_records_reach_tracing() {
