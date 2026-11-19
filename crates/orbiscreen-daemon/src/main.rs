@@ -3227,7 +3227,7 @@ mod tests {
     #[test]
     fn an_opaque_black_frame_is_black() {
         let mut data = vec![0u8; 64 * 64 * 4];
-        for pixel in data.chunks_exact_mut(4) {
+        for pixel in data.as_chunks_mut::<4>().0 {
             pixel[3] = 255;
         }
         assert!(frame_looks_black(&data));
@@ -3236,7 +3236,7 @@ mod tests {
     #[test]
     fn a_coloured_frame_is_not_black() {
         let mut data = vec![0u8; 64 * 64 * 4];
-        for pixel in data.chunks_exact_mut(4) {
+        for pixel in data.as_chunks_mut::<4>().0 {
             pixel[0] = 200;
             pixel[1] = 120;
             pixel[2] = 40;
@@ -3248,7 +3248,7 @@ mod tests {
     #[test]
     fn a_mostly_black_frame_with_one_lit_corner_is_not_black() {
         let mut data = vec![0u8; 100 * 100 * 4];
-        for pixel in data.chunks_exact_mut(4).take(400) {
+        for pixel in data.as_chunks_mut::<4>().0.iter_mut().take(400) {
             pixel[0] = 250;
             pixel[1] = 250;
             pixel[2] = 250;
