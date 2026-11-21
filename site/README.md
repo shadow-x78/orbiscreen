@@ -78,6 +78,10 @@ Cloudflare Workers Builds (or Pages) settings:
 - **Version command**: `npx wrangler versions upload`
 - **Variable**: `NODE_VERSION` = `22`
 
+`workers_dev` and `preview_urls` are both off, so the worker answers only on the
+two routes. Nothing serves the site from a second host, and there is no preview
+address to leak into search results.
+
 No custom history command is needed: `sync-docs` dates each document from its
 last commit, and when it finds a shallow clone it runs `git fetch --unshallow`
 itself. If the fetch is impossible it falls back to the newest `CHANGELOG.md`

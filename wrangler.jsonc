@@ -3,10 +3,12 @@
   "name": "orbiscreen-site",
   "main": "./worker/index.mjs",
   "compatibility_date": "2026-11-21",
-  // Keeps a workers.dev URL for testing a deployment before the custom
-  // domains resolve.
-  "workers_dev": true,
-  "preview_urls": true,
+  // The worker answers on orbiscreen.com and www.orbiscreen.com only. A
+  // workers.dev address and preview URLs would serve the same pages from a
+  // second, indexable host, which is exactly what the canonical host exists to
+  // avoid.
+  "workers_dev": false,
+  "preview_urls": false,
   "assets": {
     "directory": "./site/dist",
     "binding": "ASSETS",
