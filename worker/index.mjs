@@ -3,13 +3,18 @@
 // https://github.com/shadow-x78/orbiscreen
 // ─────────────────────────────────────────────
 // The site is static: every page is built ahead of time and served from the
-// assets binding. The only thing that needs code is the canonical host, because
-// a path-based _redirects file cannot see the hostname. Everything on
-// www.orbiscreen.com answers with a single 301 to the apex, preserving the path
-// and query, so the domain has one address for search engines.
+// assets binding. Two things need code, because a path-based _redirects file
+// cannot see the hostname:
+//
+//  1. www answers with one 301 to the apex, preserving path and query, so the
+//     domain has a single address for search engines.
+//  2. Any other host - the workers.dev endpoint and every preview URL - serves
+//     the same pages with X-Robots-Tag: noindex. Without it, an indexed preview
+//     deployment competes with orbiscreen.com for the same content.
 
 const CANONICAL_HOST = 'orbiscreen.com';
-const REDIRECT_HOSTS = new Set(['www.orbiscreen.com']);
+const CANONICAL_HOSTS = new Set([CANONICAL_HOST, `www.${CANONICAL_HOST}`]);
+const REDIRECT_HOSTS = new Set([`www.${CANONICAL_HOST}`]);
 
 export default {
   async fetch(request, env) {
@@ -33,6 +38,11 @@ export default {
       });
     }
 
-    return env.ASSETS.fetch(request);
+    const response = await env.ASSETS.fetch(request);
+    if (CANONICAL_HOSTS.has(hostname)) return response;
+
+    const headers = new Headers(response.headers);
+    headers.set('x-robots-tag', 'noindex, nofollow');
+    return new Response(response.body, { status: response.status, headers });
   },
 };
