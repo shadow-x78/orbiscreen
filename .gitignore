@@ -79,6 +79,7 @@ __pycache__/
 /site/dist/
 /site/.astro/
 /site/.wrangler/
+/.wrangler/
 /site/src/content/docs/
 
 # ── Playwright MCP scratch output ──

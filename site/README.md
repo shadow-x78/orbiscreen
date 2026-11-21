@@ -61,7 +61,8 @@ works without any extra configuration:
 | --- | --- |
 | `/package.json` | `build` runs `cd site && npm ci && npm run build`; `deploy` runs `wrangler deploy` |
 | `/package-lock.json` | pins the `wrangler` CLI used by the deploy step |
-| `/wrangler.jsonc` | serves `./site/dist` as static assets, drops trailing slashes, uses the custom 404 |
+| `/wrangler.jsonc` | serves `./site/dist` as static assets, drops trailing slashes, uses the custom 404, and attaches `orbiscreen.com` plus `www.orbiscreen.com` as custom domains |
+| `/worker/index.js` | redirects `www` to the apex with a 301, then hands every other request to the assets binding |
 
 Cloudflare Workers Builds (or Pages) settings:
 

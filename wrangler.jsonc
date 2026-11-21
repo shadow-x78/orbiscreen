@@ -1,10 +1,23 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "orbiscreen-site",
+  "main": "./worker/index.js",
   "compatibility_date": "2026-11-21",
   "assets": {
     "directory": "./site/dist",
+    "binding": "ASSETS",
     "html_handling": "drop-trailing-slash",
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    // Without this the assets layer answers matching requests before the worker
+    // runs, so the www redirect would never be reached. The worker is a thin
+    // hostname check that hands everything else to ASSETS.
+    "run_worker_first": true
+  },
+  "routes": [
+    { "pattern": "orbiscreen.com", "custom_domain": true },
+    { "pattern": "www.orbiscreen.com", "custom_domain": true }
+  ],
+  "observability": {
+    "enabled": true
   }
 }
