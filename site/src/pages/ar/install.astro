@@ -1,0 +1,42 @@
+---
+import Base from '../../layouts/Base.astro';
+import InstallBody from '../../components/InstallBody.astro';
+import { pages } from '../../data/pages';
+import { SITE_URL } from '../../lib/site';
+import { breadcrumbSchema, howToSchema, webPageSchema } from '../../lib/schema';
+
+const url = `${SITE_URL}/ar/install`;
+const steps = pages.install.ar.after.steps;
+const schema = [
+  webPageSchema({
+    name: 'تثبيت Orbiscreen',
+    description:
+      'أوامر الحزم لأوبونتو وفيدورا وآرتش وAppImage، مع عميل أندرويد، وما يطبعه orbiscreen doctor على سطح مكتبك.',
+    url,
+    lang: 'ar',
+  }),
+  howToSchema({
+    name: 'تثبيت Orbiscreen على أوبونتو',
+    description:
+      'أضف مستودع Orbiscreen، وثبّت الحزمة، وتحقّق من خطة الالتقاط بأمر orbiscreen doctor، ثم وصّل تابلت أندرويد أو عميل متصفح.',
+    url,
+    lang: 'ar',
+    steps: steps.map((step) => ({ name: step.title, text: step.text })),
+  }),
+  breadcrumbSchema([
+    { name: 'الرئيسية', url: `${SITE_URL}/ar` },
+    { name: 'التثبيت', url },
+  ]),
+];
+---
+
+<Base
+  lang="ar"
+  title="التثبيت — أوبونتو وفيدورا وآرتش وAppImage"
+  description="ثبّت Orbiscreen على أوبونتو أو فيدورا أو آرتش أو كملف AppImage، ثم وصّل تابلت أندرويد أو متصفحاً كشاشة ثانية في نحو ثلاث دقائق."
+  path="/install"
+  arPath="/ar/install"
+  schema={schema}
+>
+  <InstallBody lang="ar" />
+</Base>

@@ -1,0 +1,37 @@
+---
+import Base from '../../../layouts/Base.astro';
+import DocsIndexBody from '../../../components/DocsIndexBody.astro';
+import { SITE_URL } from '../../../lib/site';
+import { breadcrumbSchema, webPageSchema } from '../../../lib/schema';
+
+const url = `${SITE_URL}/ar/docs`;
+const schema = [
+  webPageSchema({
+    name: 'التوثيق',
+    description: 'المعمارية ونقل UDP والإطارات ودعم بيئات سطح المكتب والتغليف وD-Bus وحل الأعطال في Orbiscreen.',
+    url,
+    lang: 'ar',
+    type: 'CollectionPage',
+  }),
+  breadcrumbSchema([
+    { name: 'الرئيسية', url: `${SITE_URL}/ar` },
+    { name: 'التوثيق', url },
+  ]),
+];
+---
+
+<Base
+  lang="ar"
+  title="التوثيق — المعمارية والنقل والتغليف"
+  description="المعمارية ونقل UDP والإطارات ودعم بيئات سطح المكتب والتغليف وD-Bus وحل الأعطال في Orbiscreen، تُصان بجانب الشيفرة."
+  path="/docs"
+  arPath="/ar/docs"
+  schema={schema}
+>
+  <DocsIndexBody
+    lang="ar"
+    eyebrow="التوثيق"
+    title="التوثيق."
+    lede="سبعة مستندات، كل واحد منها يُصان بجانب الشيفرة التي يصفها. ابدأ بالمعمارية، ثم اختر دليل النقل أو سطح المكتب الذي تحتاجه."
+  />
+</Base>

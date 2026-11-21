@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import ChangelogBody from '../../components/ChangelogBody.astro';
+import { SITE_URL } from '../../lib/site';
+import { breadcrumbSchema, webPageSchema } from '../../lib/schema';
+
+const url = `${SITE_URL}/ar/changelog`;
+const schema = [
+  webPageSchema({
+    name: 'سجل التغييرات',
+    description: 'ملاحظات إصدارات Orbiscreen: الإصلاحات والتغييرات وسبب كل إصدار.',
+    url,
+    lang: 'ar',
+  }),
+  breadcrumbSchema([
+    { name: 'الرئيسية', url: `${SITE_URL}/ar` },
+    { name: 'سجل التغييرات', url },
+  ]),
+];
+---
+
+<Base
+  lang="ar"
+  title="سجل التغييرات — كل إصدار"
+  description="ملاحظات إصدارات Orbiscreen: إصلاحات الالتقاط والترميز، وتغييرات النقل، وتحديثات التغليف، وسبب كل تغيير في كل إصدار."
+  path="/changelog"
+  arPath="/ar/changelog"
+  schema={schema}
+>
+  <link slot="head" rel="alternate" type="application/rss+xml" title="إصدارات Orbiscreen" href="/rss.xml" />
+  <ChangelogBody lang="ar" />
+</Base>

@@ -1,0 +1,81 @@
+{
+  "docs": [
+    {
+      "slug": "architecture",
+      "source": "ARCHITECTURE",
+      "title": "Architecture",
+      "titleAr": "المعمارية",
+      "description": "System topology, frame pipeline, and crate layout for Orbiscreen: capture, encode, transport, and input across Wayland and X11.",
+      "descriptionAr": "بنية النظام وخط أنابيب الإطارات وتوزيع الحزم في Orbiscreen: الالتقاط والترميز والنقل والإدخال عبر Wayland وX11.",
+      "group": "core",
+      "seoTitle": "Architecture — capture, encode, transport, input",
+      "seoTitleAr": "المعمارية — الالتقاط والترميز والنقل والإدخال"
+    },
+    {
+      "slug": "udp-transport",
+      "source": "UDP_TRANSPORT",
+      "title": "UDP transport",
+      "titleAr": "نقل UDP",
+      "description": "The UDP Annex-B video path: packet types, forward error correction, DPLPMTUD, and how the client reassembles access units.",
+      "descriptionAr": "مسار فيديو UDP بنمط Annex-B: أنواع الحزم، وتصحيح الأخطاء الأمامي، وDPLPMTUD، وكيف يعيد العميل تجميع وحدات الوصول.",
+      "group": "core",
+      "seoTitle": "UDP transport — Annex-B, FEC, DPLPMTUD",
+      "seoTitleAr": "نقل UDP — Annex-B وتصحيح الأخطاء وDPLPMTUD"
+    },
+    {
+      "slug": "frame-transport",
+      "source": "FRAME_TRANSPORT",
+      "title": "Frame transport",
+      "titleAr": "نقل الإطارات",
+      "description": "I, P, IDR, and GOP in plain terms: how access units flow from the encoder to the client and how loss is recovered.",
+      "descriptionAr": "إطارات I وP وIDR وGOP ببساطة: كيف تتدفق وحدات الوصول من المُرمِّز إلى العميل، وكيف يُعالَج الفقد، ومتى يُطلب إطار مفتاحي جديد.",
+      "group": "core",
+      "seoTitle": "Frame transport — I, P, IDR and loss recovery",
+      "seoTitleAr": "نقل الإطارات — I وP وIDR والتعافي من الفقد"
+    },
+    {
+      "slug": "de-support",
+      "source": "DE_SUPPORT",
+      "title": "Desktop environment support",
+      "titleAr": "دعم بيئات سطح المكتب",
+      "description": "Per-compositor support: the virtual display path, the capture backend, the input method, and what orbiscreen doctor checks.",
+      "descriptionAr": "الدعم لكل مدير نوافذ: مسار الشاشة الافتراضية، وواجهة الالتقاط، وطريقة الإدخال، وما يفحصه orbiscreen doctor، وحلول الأعطال الشائعة لكل بيئة.",
+      "group": "guides",
+      "seoTitle": "Desktop support — KDE, GNOME, COSMIC, Sway, X11",
+      "seoTitleAr": "دعم بيئات سطح المكتب — KDE وGNOME وCOSMIC وSway وX11"
+    },
+    {
+      "slug": "packaging",
+      "source": "PACKAGING",
+      "title": "Packaging",
+      "titleAr": "التغليف",
+      "description": "How the deb, rpm, AppImage, and PKGBUILD artifacts are built, signed, and published, and how versions stay in sync.",
+      "descriptionAr": "كيف تُبنى حزم deb وrpm وAppImage وPKGBUILD وتُوقَّع وتُنشر، وكيف تبقى الإصدارات متزامنة عبر مسارات البناء والتغليف.",
+      "group": "guides",
+      "seoTitle": "Packaging — deb, rpm, AppImage, PKGBUILD",
+      "seoTitleAr": "التغليف — deb وrpm وAppImage وPKGBUILD"
+    },
+    {
+      "slug": "dbus-spec",
+      "source": "DBUS_SPEC",
+      "title": "D-Bus API",
+      "titleAr": "واجهة D-Bus",
+      "description": "The session-bus interface the daemon exposes: methods, signals, properties, and the owner-only authorization rule.",
+      "descriptionAr": "واجهة ناقل الجلسة التي يعرضها الخادم: التوابع والإشارات والخصائص وقاعدة التفويض للمالك فقط، وأمثلة استخدام من سطر الأوامر.",
+      "group": "reference",
+      "seoTitle": "D-Bus API — methods, signals, authorization",
+      "seoTitleAr": "واجهة D-Bus — التوابع والإشارات والتفويض"
+    },
+    {
+      "slug": "troubleshooting",
+      "source": "TROUBLESHOOTING",
+      "title": "Troubleshooting",
+      "titleAr": "حل الأعطال",
+      "description": "Symptom-to-fix reference for capture, encoding, transport, pairing, input, packaging, and CI failures, with the command that confirms each fix.",
+      "descriptionAr": "مرجع من العَرَض إلى الحل للالتقاط والترميز والنقل والاقتران والإدخال والتغليف وأعطال CI، مع الأوامر التي تؤكد كل إصلاح.",
+      "group": "reference",
+      "seoTitle": "Troubleshooting — capture, pairing, input, CI",
+      "seoTitleAr": "حل الأعطال — الالتقاط والاقتران والإدخال وCI"
+    }
+  ]
+}

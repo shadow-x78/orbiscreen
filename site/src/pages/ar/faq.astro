@@ -1,0 +1,34 @@
+---
+import Base from '../../layouts/Base.astro';
+import FaqBody from '../../components/FaqBody.astro';
+import { faq } from '../../data/faq';
+import { SITE_URL } from '../../lib/site';
+import { breadcrumbSchema, faqSchema, webPageSchema } from '../../lib/schema';
+
+const url = `${SITE_URL}/ar/faq`;
+const schema = [
+  webPageSchema({
+    name: 'الأسئلة الشائعة',
+    description:
+      'الشاشة الممتدة مقابل المنسوخة، وWayland بلا root، ودعم القلم، ونقل USB، وزمن الاستجابة، ورموز الاقتران، والخصوصية.',
+    url,
+    lang: 'ar',
+  }),
+  faqSchema(faq.ar),
+  breadcrumbSchema([
+    { name: 'الرئيسية', url: `${SITE_URL}/ar` },
+    { name: 'الأسئلة', url },
+  ]),
+];
+---
+
+<Base
+  lang="ar"
+  title="الأسئلة الشائعة — الشاشة الممتدة وWayland والقلم"
+  description="أجوبة عن الشاشة الممتدة مقابل المنسوخة، وWayland بلا root، ودعم القلم، ونقل USB، وزمن الاستجابة، ورموز الاقتران، والخصوصية."
+  path="/faq"
+  arPath="/ar/faq"
+  schema={schema}
+>
+  <FaqBody lang="ar" />
+</Base>

@@ -1,0 +1,150 @@
+/* ─────────────────────────────────────────────
+   Orbiscreen - Design Tokens
+   https://github.com/shadow-x78/orbiscreen
+   ───────────────────────────────────────────── */
+
+:root {
+  color-scheme: dark;
+
+  /* ── Background & surface ── */
+  --bg-base: #0e1116;
+  --bg-subtle: #0a0d11;
+  --surface-1: #151a21;
+  --surface-2: #1b222b;
+  --surface-hover: #232c38;
+  --surface-deep: #10151c;
+  --surface-sunken: #0e151f;
+
+  /* ── Borders ── */
+  --border-hairline: #252d38;
+  --border-strong: #333d4b;
+
+  /* ── Text ── */
+  --text-primary: #e8edf5;
+  --text-muted: #93a0b4;
+  /* The design's #616D80 is 3.6:1 on the base background, below AA for body
+     text. Captions use this lifted tone (5.3:1) instead. */
+  --text-faint-aa: #7d8899;
+
+  /* ── Accents ── */
+  --accent-interactive: #4c8dff;
+  --accent-brand: #89b4fa;
+  --accent-solid: #2563eb;
+  --accent-solid-hover: #1d4ed8;
+  --accent-soft: rgb(76 141 255 / 12%);
+
+  /* ── Semantic ── */
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+
+  /* ── Code ── */
+  --code-bg: #0a0d11;
+  --code-text: #e8edf5;
+  --code-comment: #6b7a90;
+
+  /* ── Light parity (used by print and forced light) ── */
+  --light-bg: #f3f5f9;
+  --light-surface: #ffffff;
+  --light-surface-alt: #f6f8fc;
+  --light-border: #e1e6ef;
+  --light-text: #141a24;
+  --light-muted: #64708a;
+  --light-accent: #2563eb;
+
+  /* ── Type ── */
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-arabic: 'Noto Sans Arabic', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Source Code Pro', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --text-h1: 64px;
+  --leading-h1: 72px;
+  --tracking-h1: -1.5px;
+  --text-h2: 40px;
+  --leading-h2: 48px;
+  --tracking-h2: -1px;
+  --text-h3: 24px;
+  --leading-h3: 32px;
+  --text-body-lg: 20px;
+  --leading-body-lg: 32px;
+  --text-body: 16px;
+  --leading-body: 26px;
+  --text-small: 14px;
+  --leading-small: 22px;
+  --text-caption: 13px;
+  --leading-caption: 20px;
+  --text-label: 12px;
+  --leading-label: 18px;
+
+  /* ── Space & shape ── */
+  --container: 1200px;
+  --gutter: 120px;
+  --gutter-sm: 20px;
+  --section-y: 96px;
+  --section-y-sm: 64px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-pill: 999px;
+
+  --shadow-raised: 0 18px 40px rgb(0 0 0 / 28%);
+  --focus-ring: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent-interactive);
+}
+
+@media (max-width: 1279px) {
+  :root {
+    --gutter: 48px;
+    --section-y: 80px;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --gutter: var(--gutter-sm);
+    --section-y: var(--section-y-sm);
+    --text-h1: 38px;
+    --leading-h1: 43px;
+    --tracking-h1: -1.4px;
+    --text-h2: 27px;
+    --leading-h2: 34px;
+    --tracking-h2: -0.6px;
+    --text-h3: 19px;
+    --leading-h3: 26px;
+    --text-body-lg: 17px;
+    --leading-body-lg: 28px;
+  }
+}
+
+/* Arabic optical parity: larger size, looser leading, no negative tracking. */
+:root[lang='ar'] {
+  --font-sans: var(--font-arabic);
+  --text-h1: 56px;
+  --leading-h1: 82px;
+  --tracking-h1: 0;
+  --text-h2: 36px;
+  --leading-h2: 58px;
+  --tracking-h2: 0;
+  --text-h3: 23px;
+  --leading-h3: 38px;
+  --text-body-lg: 17px;
+  --leading-body-lg: 30px;
+  --text-body: 16px;
+  --leading-body: 30px;
+  --text-small: 15px;
+  --leading-small: 26px;
+  --text-caption: 14px;
+  --leading-caption: 24px;
+}
+
+@media (max-width: 767px) {
+  :root[lang='ar'] {
+    --text-h1: 34px;
+    --leading-h1: 52px;
+    --text-h2: 25px;
+    --leading-h2: 40px;
+    --text-h3: 19px;
+    --leading-h3: 32px;
+  }
+}

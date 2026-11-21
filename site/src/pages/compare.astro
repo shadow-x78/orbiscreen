@@ -1,0 +1,32 @@
+---
+import Base from '../layouts/Base.astro';
+import CompareBody from '../components/CompareBody.astro';
+import { SITE_URL } from '../lib/site';
+import { breadcrumbSchema, webPageSchema } from '../lib/schema';
+
+const url = `${SITE_URL}/compare`;
+const schema = [
+  webPageSchema({
+    name: 'How Orbiscreen compares',
+    description:
+      'Linux host support, extended display, latency, stylus input, rootless operation and licensing next to Spacedesk, Deskreen, Weylus and Sidecar.',
+    url,
+    lang: 'en',
+  }),
+  breadcrumbSchema([
+    { name: 'Home', url: `${SITE_URL}/` },
+    { name: 'Compare', url },
+  ]),
+];
+---
+
+<Base
+  lang="en"
+  title="Compare — Orbiscreen vs Spacedesk, Deskreen, Weylus"
+  description="How Orbiscreen compares with Spacedesk, Deskreen, Weylus and Sidecar: Linux host support, extended display, latency, stylus, and rootless operation."
+  path="/compare"
+  arPath="/ar/compare"
+  schema={schema}
+>
+  <CompareBody lang="en" />
+</Base>

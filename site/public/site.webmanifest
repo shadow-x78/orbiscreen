@@ -1,0 +1,19 @@
+{
+  "name": "Orbiscreen",
+  "short_name": "Orbiscreen",
+  "description": "Turn an Android tablet or phone into a real extended display for Linux.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0E1116",
+  "theme_color": "#0E1116",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    { "src": "/icon-256.png", "sizes": "256x256", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

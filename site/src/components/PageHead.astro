@@ -1,0 +1,35 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Page head
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import '../styles/docs.css';
+import Breadcrumbs from './Breadcrumbs.astro';
+import type { Lang } from '../lib/site';
+
+interface Crumb {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  lang: Lang;
+  eyebrow?: string;
+  title: string;
+  lede?: string;
+  breadcrumbs?: Crumb[];
+}
+
+const { lang, eyebrow, title, lede, breadcrumbs } = Astro.props;
+---
+
+<section class="page-head">
+  <div class="container page-head__inner">
+    {breadcrumbs && <Breadcrumbs lang={lang} items={breadcrumbs} />}
+    {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+    <h1 class="h1">{title}</h1>
+    {lede && <p class="lede">{lede}</p>}
+    <slot />
+  </div>
+</section>

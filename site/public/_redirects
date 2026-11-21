@@ -1,0 +1,25 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - legacy path redirects
+# The www -> apex redirect is a Cloudflare rule, not a path rule.
+# ─────────────────────────────────────────────
+
+/docs/ARCHITECTURE /docs/architecture 301
+/docs/UDP_TRANSPORT /docs/udp-transport 301
+/docs/FRAME_TRANSPORT /docs/frame-transport 301
+/docs/DE_SUPPORT /docs/de-support 301
+/docs/PACKAGING /docs/packaging 301
+/docs/DBUS_SPEC /docs/dbus-spec 301
+/docs/TROUBLESHOOTING /docs/troubleshooting 301
+
+/ar/docs/ARCHITECTURE /ar/docs/architecture 301
+/ar/docs/UDP_TRANSPORT /ar/docs/udp-transport 301
+/ar/docs/FRAME_TRANSPORT /ar/docs/frame-transport 301
+/ar/docs/DE_SUPPORT /ar/docs/de-support 301
+/ar/docs/PACKAGING /ar/docs/packaging 301
+/ar/docs/DBUS_SPEC /ar/docs/dbus-spec 301
+/ar/docs/TROUBLESHOOTING /ar/docs/troubleshooting 301
+
+/docs/udp /docs/udp-transport 301
+/ar/docs/udp /ar/docs/udp-transport 301
+/setup /install 301
+/ar/setup /ar/install 301

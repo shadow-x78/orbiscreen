@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import FeaturesBody from '../../components/FeaturesBody.astro';
+import { SITE_URL } from '../../lib/site';
+import { breadcrumbSchema, webPageSchema } from '../../lib/schema';
+
+const url = `${SITE_URL}/ar/features`;
+const schema = [
+  webPageSchema({
+    name: 'المزايا',
+    description:
+      'شاشات افتراضية حتى 8K، وترميز H.264 عتادي، وإدخال قلم عكسي، ونقل UDP وUSB، وعميل ويب بلا تثبيت.',
+    url,
+    lang: 'ar',
+  }),
+  breadcrumbSchema([
+    { name: 'الرئيسية', url: `${SITE_URL}/ar` },
+    { name: 'المزايا', url },
+  ]),
+];
+---
+
+<Base
+  lang="ar"
+  title="المزايا — شاشة افتراضية وترميز H.264 وإدخال قلم"
+  description="كل قدرات Orbiscreen بالتفصيل: شاشات افتراضية حتى 8K، وترميز H.264 عتادي، وإدخال قلم عكسي، ونقل UDP وUSB، وعميل ويب بلا تثبيت."
+  path="/features"
+  arPath="/ar/features"
+  schema={schema}
+>
+  <FeaturesBody lang="ar" />
+</Base>

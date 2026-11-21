@@ -1,0 +1,111 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Document head, Open Graph and JSON-LD
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import { SITE_NAME, SITE_URL, OG_IMAGE, OG_IMAGE_WIDTH, OG_IMAGE_HEIGHT, type Lang } from '../lib/site';
+import { organizationSchema, softwareApplicationSchema, websiteSchema } from '../lib/schema';
+
+interface Props {
+  lang: Lang;
+  title: string;
+  description: string;
+  /** English path for this page, e.g. "/features". */
+  path: string;
+  /** Arabic path for the same page. */
+  arPath: string;
+  image?: string;
+  type?: 'website' | 'article';
+  noindex?: boolean;
+  schema?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const {
+  lang,
+  title,
+  description,
+  path,
+  arPath,
+  image = OG_IMAGE,
+  type = 'website',
+  noindex = false,
+  schema,
+} = Astro.props;
+
+const fullTitle = /orbiscreen/i.test(title) ? title : `${title} · ${SITE_NAME}`;
+const canonical = `${SITE_URL}${lang === 'ar' ? arPath : path}`;
+const enUrl = `${SITE_URL}${path}`;
+const arUrl = `${SITE_URL}${arPath}`;
+const imageUrl = image.startsWith('http') ? image : `${SITE_URL}${image}`;
+
+function mirrorPath(p: string): string {
+  if (p === '/') return '/index.md';
+  if (p === '/ar' || p === '/ar/') return '/ar/index.md';
+  return `${p.replace(/\/$/, '')}.md`;
+}
+const markdownHref = mirrorPath(lang === 'ar' ? arPath : path);
+
+// Every page carries the same three entity nodes so that @id references in the
+// page-specific schema always resolve, and answer engines see one consistent
+// description of Orbiscreen wherever they land.
+const base = [organizationSchema(), websiteSchema(), softwareApplicationSchema()];
+const pageNodes = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
+
+// A page may refine a base entity (the home page lists its own features on the
+// SoftwareApplication). Page nodes are merged last so a matching @id replaces
+// the generic base node instead of being silently dropped.
+const byKey = new Map<string, Record<string, unknown>>();
+for (const node of [...base, ...pageNodes]) {
+  const id = typeof node['@id'] === 'string' ? node['@id'] : '';
+  const key = id || `${String(node['@type'])}:${String(node.name ?? node.url ?? '')}`;
+  byKey.set(key, node);
+}
+const graph = [...byKey.values()];
+---
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+{!noindex && <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />}
+
+<link rel="alternate" hreflang="en" href={enUrl} />
+<link rel="alternate" hreflang="ar" href={arUrl} />
+<link rel="alternate" hreflang="x-default" href={enUrl} />
+<link rel="alternate" type="text/markdown" href={`${SITE_URL}${markdownHref}`} />
+
+<meta property="og:type" content={type} />
+<meta property="og:site_name" content={SITE_NAME} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={imageUrl} />
+<meta property="og:image:width" content={String(OG_IMAGE_WIDTH)} />
+<meta property="og:image:height" content={String(OG_IMAGE_HEIGHT)} />
+<meta property="og:image:alt" content={`${SITE_NAME}: ${title}`} />
+<meta property="og:locale" content={lang === 'ar' ? 'ar_AR' : 'en_US'} />
+<meta property="og:locale:alternate" content={lang === 'ar' ? 'en_US' : 'ar_AR'} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={imageUrl} />
+
+<meta name="theme-color" content="#0E1116" />
+<meta name="color-scheme" content="dark" />
+<meta name="application-name" content={SITE_NAME} />
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+<link rel="sitemap" href="/sitemap-index.xml" />
+
+{graph.length > 0 && (
+  <script
+    type="application/ld+json"
+    set:html={JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replace(/</g, '\\u003c')}
+  />
+)}

@@ -1,0 +1,49 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Comparison table
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import type { CompareRow } from '../data/compare';
+import type { Lang } from '../lib/site';
+
+interface Props {
+  rows: CompareRow[];
+  caption: string;
+  lang: Lang;
+}
+
+const { rows, caption, lang } = Astro.props;
+const heads =
+  lang === 'ar'
+    ? { capability: 'القدرة', us: 'Orbiscreen' }
+    : { capability: 'Capability', us: 'Orbiscreen' };
+---
+
+<div class="compare__scroll">
+  <table class="compare">
+    <caption class="visually-hidden">{caption}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{heads.capability}</th>
+        <th scope="col">Spacedesk</th>
+        <th scope="col">Deskreen</th>
+        <th scope="col">Weylus</th>
+        <th scope="col">Sidecar</th>
+        <th scope="col" class="col-us">{heads.us}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr>
+          <th scope="row">{row.capability}</th>
+          <td dir="auto">{row.spacedesk}</td>
+          <td dir="auto">{row.deskreen}</td>
+          <td dir="auto">{row.weylus}</td>
+          <td dir="auto">{row.sidecar}</td>
+          <td class="col-us" dir="auto">{row.orbiscreen}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

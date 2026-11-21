@@ -1,0 +1,47 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - الرئيسية (العربية)
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import Base from '../../layouts/Base.astro';
+import LandingPage from '../../components/LandingPage.astro';
+import { landing } from '../../data/landing';
+import { SITE_URL } from '../../lib/site';
+import {
+  organizationSchema,
+  softwareApplicationSchema,
+  webPageSchema,
+  websiteSchema,
+} from '../../lib/schema';
+
+const data = landing.ar;
+const features = [
+  ...data.capabilities.tiles.map((tile) => tile.title),
+  ...data.howItWorks.steps.map((step) => step.title),
+];
+
+const schema = [
+  organizationSchema(),
+  websiteSchema(),
+  softwareApplicationSchema(features),
+  webPageSchema({
+    name: 'Orbiscreen — تابلتك، شاشتك الثانية',
+    description:
+      'حوّل أي تابلت أو هاتف Android إلى شاشة ممتدة حقيقية لـ Linux. ترميز H.264 عبر الشبكة أو USB، بزمن استجابة 25-40 ms، ودون root على KDE وwlroots.',
+    url: `${SITE_URL}/ar`,
+    lang: 'ar',
+  }),
+];
+---
+
+<Base
+  lang="ar"
+  title="Orbiscreen — تابلت أندرويد كشاشة ثانية لـ Linux"
+  description="حوّل أي تابلت أو هاتف Android إلى شاشة ممتدة حقيقية لـ Linux. ترميز H.264 عبر الشبكة أو USB، بزمن استجابة 25-40 ms، ودون root على KDE وwlroots. رخصة GPL-3.0."
+  path="/"
+  arPath="/ar"
+  schema={schema}
+>
+  <LandingPage lang="ar" />
+</Base>

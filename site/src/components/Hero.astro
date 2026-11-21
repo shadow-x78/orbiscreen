@@ -1,0 +1,74 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Hero section
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import HeroVisual from './HeroVisual.astro';
+import Icon from './Icon.astro';
+import { GITHUB_URL, LATEST_RELEASE_URL, RELEASES_URL, type Lang } from '../lib/site';
+import { CHANGELOG_ANCHOR } from '../lib/version';
+import type { Landing } from '../data/landing';
+import { ui } from '../data/i18n';
+
+interface Props {
+  lang: Lang;
+  hero: Landing['hero'];
+}
+
+const { lang, hero } = Astro.props;
+const t = ui[lang];
+const installHref = lang === 'ar' ? '/ar/install' : '/install';
+---
+
+<section class="hero">
+  <div class="container hero__row">
+    <div class="hero__col">
+      <div class="hero__pills">
+        <a class="pill" href={`${lang === 'ar' ? '/ar' : ''}/changelog#${CHANGELOG_ANCHOR}`}>
+          <span class="pill__dot"></span>{hero.pills[0]}
+        </a>
+        {hero.pills.slice(1).map((pill) => (
+          <span class="pill"><span class="pill__dot"></span>{pill}</span>
+        ))}
+      </div>
+
+      <h1 class="h1">{hero.title}</h1>
+      <p class="lede">{hero.sub}</p>
+
+      <div class="hero__cta">
+        <a class="btn btn--primary" href={installHref}>
+          {hero.primary}
+          <Icon name="arrow-right" size={18} />
+        </a>
+        <a class="btn btn--secondary" href={GITHUB_URL} rel="noopener">
+          <Icon name="github" size={18} />
+          {hero.secondary}
+        </a>
+      </div>
+
+      <div class="hero__stores">
+        <a class="store" href={LATEST_RELEASE_URL} rel="noopener">
+          <Icon name="android" size={22} class="store__icon" />
+          <span class="btn__stack">
+            <span class="btn__micro">{lang === 'ar' ? 'تحميل مباشر' : 'DIRECT DOWNLOAD'}</span>
+            <span class="btn__main">{t.actions.androidApk}</span>
+          </span>
+        </a>
+        <a class="store" href={RELEASES_URL} rel="noopener">
+          <Icon name="github" size={22} class="store__icon" />
+          <span class="btn__stack">
+            <span class="btn__micro">{lang === 'ar' ? 'كل الحزم' : 'ALL PACKAGES'}</span>
+            <span class="btn__main">{lang === 'ar' ? 'GitHub Releases' : 'GitHub Releases'}</span>
+          </span>
+        </a>
+      </div>
+
+      <p class="hero__trust">{hero.trust}</p>
+    </div>
+
+    <div class="hero__col">
+      <HeroVisual lang={lang} />
+    </div>
+  </div>
+</section>

@@ -1,0 +1,32 @@
+---
+import Base from '../layouts/Base.astro';
+import FeaturesBody from '../components/FeaturesBody.astro';
+import { SITE_URL } from '../lib/site';
+import { breadcrumbSchema, webPageSchema } from '../lib/schema';
+
+const url = `${SITE_URL}/features`;
+const schema = [
+  webPageSchema({
+    name: 'Features',
+    description:
+      'Virtual displays up to 8K, hardware H.264 encoding, reverse stylus input, UDP and USB transports, and a zero-install web client.',
+    url,
+    lang: 'en',
+  }),
+  breadcrumbSchema([
+    { name: 'Home', url: `${SITE_URL}/` },
+    { name: 'Features', url },
+  ]),
+];
+---
+
+<Base
+  lang="en"
+  title="Features — virtual display, H.264, stylus input"
+  description="Every capability of Orbiscreen in detail: virtual displays up to 8K, hardware H.264, reverse stylus input, UDP and USB transports, and a web client."
+  path="/features"
+  arPath="/ar/features"
+  schema={schema}
+>
+  <FeaturesBody lang="en" />
+</Base>

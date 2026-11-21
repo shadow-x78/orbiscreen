@@ -1,0 +1,105 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Changelog page body
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import '../styles/docs.css';
+import PageHead from './PageHead.astro';
+import Icon from './Icon.astro';
+import { CHANGELOG_PAGE_SIZE, getReleases, inlineMarkdown } from '../lib/changelog';
+import { changelogPage } from '../data/legal';
+import { ui } from '../data/i18n';
+import { GITHUB_URL, type Lang } from '../lib/site';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const page = changelogPage[lang];
+const t = ui[lang];
+
+const releases = getReleases()
+  .slice(0, CHANGELOG_PAGE_SIZE)
+  .map((release) => ({
+    tag: release.tag,
+    date: release.date,
+    anchor: release.anchor,
+    html: release.blocks
+      .map((block) => {
+        if (block.type === 'heading') return `<h3>${inlineMarkdown(block.text)}</h3>`;
+        if (block.type === 'list') {
+          // Nested bullets must live inside their parent <li> to stay valid HTML.
+          let html = '<ul>';
+          let itemOpen = false;
+          let nestedOpen = false;
+          for (const item of block.items) {
+            if (item.depth > 0) {
+              if (!itemOpen) {
+                html += '<li>';
+                itemOpen = true;
+              }
+              if (!nestedOpen) {
+                html += '<ul>';
+                nestedOpen = true;
+              }
+              html += `<li>${inlineMarkdown(item.text)}</li>`;
+              continue;
+            }
+            if (nestedOpen) {
+              html += '</ul>';
+              nestedOpen = false;
+            }
+            if (itemOpen) html += '</li>';
+            html += `<li>${inlineMarkdown(item.text)}`;
+            itemOpen = true;
+          }
+          if (nestedOpen) html += '</ul>';
+          if (itemOpen) html += '</li>';
+          return `${html}</ul>`;
+        }
+        return `<p>${inlineMarkdown(block.text)}</p>`;
+      })
+      .join(''),
+  }));
+---
+
+<PageHead
+  lang={lang}
+  eyebrow={page.eyebrow}
+  title={page.title}
+  lede={page.lede}
+  breadcrumbs={[
+    { label: t.labels.breadcrumbHome },
+    { label: t.footer.changelog },
+  ]}
+/>
+
+<section class="section">
+  <div class="container">
+    {releases.map((release) => (
+      <article class="changelog__version" id={release.anchor}>
+        <div class="changelog__head">
+          <h2 class="changelog__tag" style="margin:0">{release.tag}</h2>
+          <time class="changelog__date" datetime={release.date}>{release.date}</time>
+          <a class="mono faint" href={`#${release.anchor}`} style="font-size:12px" aria-label={`${release.tag} anchor`}>#</a>
+        </div>
+        <div class="changelog__body" set:html={release.html} />
+      </article>
+    ))}
+
+    <div class="cta-card" style="margin-block-start:40px">
+      <div class="cta-card__text">
+        <h2 class="h3">{page.older}</h2>
+        <p>{page.olderBody}</p>
+      </div>
+      <div class="cta-card__actions">
+        <a class="btn btn--secondary" href={`${GITHUB_URL}/blob/main/CHANGELOG.md`} rel="noopener">
+          <Icon name="github" size={18} />
+          {page.olderCta}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import CompareBody from '../../components/CompareBody.astro';
+import { SITE_URL } from '../../lib/site';
+import { breadcrumbSchema, webPageSchema } from '../../lib/schema';
+
+const url = `${SITE_URL}/ar/compare`;
+const schema = [
+  webPageSchema({
+    name: 'كيف يُقارَن Orbiscreen',
+    description:
+      'دعم مضيف Linux والشاشة الممتدة وزمن الاستجابة وإدخال القلم والعمل بلا root والترخيص مقابل Spacedesk وDeskreen وWeylus وSidecar.',
+    url,
+    lang: 'ar',
+  }),
+  breadcrumbSchema([
+    { name: 'الرئيسية', url: `${SITE_URL}/ar` },
+    { name: 'المقارنة', url },
+  ]),
+];
+---
+
+<Base
+  lang="ar"
+  title="المقارنة — Orbiscreen مقابل Spacedesk وDeskreen وWeylus"
+  description="كيف يُقارَن Orbiscreen بـ Spacedesk وDeskreen وWeylus وSidecar: دعم مضيف Linux، والشاشة الممتدة، وزمن الاستجابة، والقلم، والعمل بلا root."
+  path="/compare"
+  arPath="/ar/compare"
+  schema={schema}
+>
+  <CompareBody lang="ar" />
+</Base>

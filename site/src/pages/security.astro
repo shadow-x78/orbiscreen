@@ -1,0 +1,38 @@
+---
+import Base from '../layouts/Base.astro';
+import SimplePageBody from '../components/SimplePageBody.astro';
+import { securityPage } from '../data/legal';
+import { ADVISORY_URL, GITHUB_URL, SITE_URL } from '../lib/site';
+import { breadcrumbSchema, webPageSchema } from '../lib/schema';
+
+const url = `${SITE_URL}/security`;
+const schema = [
+  webPageSchema({
+    name: 'Security policy',
+    description: 'How to report an Orbiscreen vulnerability privately, what is in scope, and which versions receive updates.',
+    url,
+    lang: 'en',
+  }),
+  breadcrumbSchema([
+    { name: 'Home', url: `${SITE_URL}/` },
+    { name: 'Security', url },
+  ]),
+];
+---
+
+<Base
+  lang="en"
+  title="Security — report a vulnerability"
+  description="Report Orbiscreen vulnerabilities privately through GitHub advisories or email. Scope covers authentication, session ownership, input injection and packaging."
+  path="/security"
+  arPath="/ar/security"
+  schema={schema}
+>
+  <SimplePageBody lang="en" page={securityPage.en} crumb="Security">
+    <p>
+      <a href={ADVISORY_URL} rel="noopener">Open a private security advisory</a>
+      {' · '}
+      <a href={`${GITHUB_URL}/blob/main/SECURITY.md`} rel="noopener">SECURITY.md</a>
+    </p>
+  </SimplePageBody>
+</Base>

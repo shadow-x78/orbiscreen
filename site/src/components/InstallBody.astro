@@ -1,0 +1,104 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Install page body
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import PageHead from './PageHead.astro';
+import Icon from './Icon.astro';
+import InstallTabs from './InstallTabs.astro';
+import DownloadButtons from './DownloadButtons.astro';
+import PlatformTable from './PlatformTable.astro';
+import { pages } from '../data/pages';
+import { installMethods, downloads } from '../data/install';
+import { platforms } from '../data/platforms';
+import { landing } from '../data/landing';
+import { ui } from '../data/i18n';
+import { ISSUES_URL, type Lang } from '../lib/site';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const page = pages.install[lang];
+const t = ui[lang];
+const data = landing[lang];
+const troubleshootingHref = lang === 'ar' ? '/ar/docs/troubleshooting' : '/docs/troubleshooting';
+---
+
+<PageHead
+  lang={lang}
+  eyebrow={page.eyebrow}
+  title={page.title}
+  lede={page.lede}
+  breadcrumbs={[
+    { label: t.labels.breadcrumbHome },
+    { label: t.nav.install },
+  ]}
+/>
+
+<section class="section">
+  <div class="container">
+    <div class="card" style="margin-block-end:32px">
+      <h2 class="h3" style="margin-block-end:12px">{page.requirements.title}</h2>
+      <ul style="display:flex;flex-direction:column;gap:10px;padding-inline-start:1.1em;color:var(--text-muted)">
+        {page.requirements.items.map((item) => <li>{item}</li>)}
+      </ul>
+    </div>
+
+    <InstallTabs lang={lang} methods={installMethods[lang]} />
+
+    <DownloadButtons label={data.install.hostLabel} items={downloads[lang].host} />
+    <DownloadButtons label={data.install.clientsLabel} items={downloads[lang].clients} />
+  </div>
+</section>
+
+<section class="section section--subtle">
+  <div class="container">
+    <div class="section__head">
+      <h2 class="h2">{page.after.title}</h2>
+    </div>
+    <ol class="grid-2" style="list-style:none;padding:0;margin:0">
+      {page.after.steps.map((step, index) => (
+        <li class="card">
+          <span class="step__num">{String(index + 1).padStart(2, '0')}</span>
+          <h3 class="h3" style="margin-block:8px 6px;font-size:18px">{step.title}</h3>
+          <p class="muted" style="font-size:14px;line-height:1.7">{step.text}</p>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section__head">
+      <h2 class="h2">{page.platformTitle}</h2>
+      <p class="section__lede">{page.platformLede}</p>
+    </div>
+    <PlatformTable
+      rows={platforms[lang]}
+      lang={lang}
+      caption={lang === 'ar' ? 'مصفوفة دعم بيئات سطح المكتب' : 'Desktop environment support matrix'}
+    />
+  </div>
+</section>
+
+<section class="section section--subtle">
+  <div class="container">
+    <div class="cta-card">
+      <div class="cta-card__text">
+        <h2 class="h3">{page.cta.title}</h2>
+        <p>{page.cta.body}</p>
+      </div>
+      <div class="cta-card__actions">
+        <a class="btn btn--primary" href={troubleshootingHref}>
+          {page.cta.primary}
+          <Icon name="arrow-right" size={18} />
+        </a>
+        <a class="btn btn--secondary" href={ISSUES_URL} rel="noopener">{page.cta.secondary}</a>
+      </div>
+    </div>
+  </div>
+</section>

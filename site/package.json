@@ -1,0 +1,34 @@
+{
+  "name": "orbiscreen-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Marketing site for Orbiscreen, the Android second display for Linux.",
+  "scripts": {
+    "sync:docs": "node scripts/sync-docs.mjs",
+    "prebuild": "node scripts/sync-docs.mjs",
+    "build": "astro build",
+    "postbuild": "node scripts/emit-headers.mjs && node scripts/check-site.mjs",
+    "dev": "astro dev",
+    "preview": "astro preview",
+    "check": "astro check",
+    "verify": "node scripts/check-site.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.0.0",
+    "@fontsource/noto-sans-arabic": "^5.0.0",
+    "@fontsource/source-code-pro": "^5.0.0",
+    "astro": "^5.0.0",
+    "github-slugger": "^2.0.0",
+    "mermaid": "^11.0.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.0",
+    "@types/node": "^26.6.6",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.166.0"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  }
+}

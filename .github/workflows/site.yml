@@ -1,0 +1,71 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - Website build gate
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+# Cloudflare Pages builds and deploys the site itself. This workflow only proves
+# that a change to the site, the docs, or the changelog still builds, type-checks,
+# and passes the SEO/GEO gates before it reaches main.
+
+name: Website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'docs/**'
+      - 'CHANGELOG.md'
+      - 'Cargo.toml'
+      - '.github/workflows/site.yml'
+  pull_request:
+    paths:
+      - 'site/**'
+      - 'docs/**'
+      - 'CHANGELOG.md'
+      - 'Cargo.toml'
+      - '.github/workflows/site.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & verify
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Full history: sync-docs dates each document from its last commit.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Type-check
+        run: npm run check
+
+      - name: Build and run site gates
+        run: npm run build
+
+      - name: Upload build output
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: site-dist
+          path: site/dist
+          retention-days: 7

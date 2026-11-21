@@ -1,0 +1,32 @@
+---
+import Base from '../layouts/Base.astro';
+import SimplePageBody from '../components/SimplePageBody.astro';
+import { privacyPage } from '../data/legal';
+import { SITE_URL } from '../lib/site';
+import { breadcrumbSchema, webPageSchema } from '../lib/schema';
+
+const url = `${SITE_URL}/privacy`;
+const schema = [
+  webPageSchema({
+    name: 'Privacy',
+    description: 'No accounts, no cookies, no tracking. What Cloudflare records, what the daemon does not send, and how to opt out of the update check.',
+    url,
+    lang: 'en',
+  }),
+  breadcrumbSchema([
+    { name: 'Home', url: `${SITE_URL}/` },
+    { name: 'Privacy', url },
+  ]),
+];
+---
+
+<Base
+  lang="en"
+  title="Privacy — no cookies, no tracking"
+  description="This site sets no cookies and asks for no personal data. Cloudflare serves it and records aggregate request data; the daemon sends no telemetry."
+  path="/privacy"
+  arPath="/ar/privacy"
+  schema={schema}
+>
+  <SimplePageBody lang="en" page={privacyPage.en} crumb="Privacy" />
+</Base>

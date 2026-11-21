@@ -1,0 +1,200 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Install tabs and terminal
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import Icon from './Icon.astro';
+import { ui } from '../data/i18n';
+import type { InstallMethod } from '../data/install';
+import type { Lang } from '../lib/site';
+
+interface Props {
+  lang: Lang;
+  methods: InstallMethod[];
+  /** Compact mode hides notes and actions (used on the landing page). */
+  compact?: boolean;
+}
+
+const { lang, methods, compact = false } = Astro.props;
+const t = ui[lang];
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+const prepared = methods.map((method, index) => ({
+  id: method.id,
+  label: method.label,
+  note: method.note,
+  action: method.action,
+  commands: method.lines.filter((line) => line.kind === 'cmd').map((line) => line.text).join('\n'),
+  codeHtml: method.lines
+    .map((line) =>
+      line.kind === 'comment'
+        ? `<span class="c">${escapeHtml(line.text)}</span>`
+        : `<span class="cmd">$ ${escapeHtml(line.text)}</span>`,
+    )
+    .join('\n'),
+  first: index === 0,
+}));
+---
+
+<div class:list={['install-tabs', compact && 'install-tabs--compact']} data-install-tabs>
+  <div class="tabs" role="tablist" aria-label={lang === 'ar' ? 'طرق التثبيت' : 'Install methods'}>
+    {prepared.map((method) => (
+      <button
+        class="tab"
+        id={`tab-${method.id}`}
+        type="button"
+        role="tab"
+        aria-selected={method.first ? 'true' : 'false'}
+        aria-controls={`panel-${method.id}`}
+        tabindex={method.first ? 0 : -1}
+        data-tab={method.id}
+      >{method.label}</button>
+    ))}
+  </div>
+
+  {prepared.map((method) => (
+    <div
+      class="panel"
+      id={`panel-${method.id}`}
+      role="tabpanel"
+      aria-labelledby={`tab-${method.id}`}
+      tabindex="-1"
+      hidden={!method.first}
+      data-panel={method.id}
+    >
+      <div class="terminal">
+        <div class="terminal__head">
+          <span class="terminal__dots" aria-hidden="true">
+            <span class="mock__dot mock__dot--r"></span>
+            <span class="mock__dot mock__dot--y"></span>
+            <span class="mock__dot mock__dot--g"></span>
+          </span>
+          <span class="terminal__path">~/  bash</span>
+          <button
+            class="terminal__copy"
+            type="button"
+            data-copy={method.commands}
+            data-label-copy={t.actions.copy}
+            data-label-copied={t.actions.copied}
+            data-label-failed={t.actions.copyFailed}
+          >{t.actions.copy}</button>
+        </div>
+        <div class="terminal__body">
+          <pre class="terminal__code"><code set:html={method.codeHtml} /></pre>
+        </div>
+      </div>
+
+      <div class="install-note">
+        <p class="muted">{method.note}</p>
+        {method.action && (
+          <a class="btn btn--secondary btn--sm" href={method.action.href} rel="noopener">
+            {method.action.label}
+            <Icon name="external" size={15} />
+          </a>
+        )}
+      </div>
+    </div>
+  ))}
+</div>
+
+<style>
+  .install-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-block-start: 14px;
+    font-size: 14px;
+  }
+
+  .install-note p {
+    max-width: 68ch;
+    margin: 0;
+  }
+
+  .install-tabs--compact .install-note {
+    display: none;
+  }
+</style>
+
+<script>
+  function setup(root: HTMLElement) {
+    const tabs = Array.from(root.querySelectorAll('[role="tab"]'));
+    const panels = Array.from(root.querySelectorAll('[role="tabpanel"]'));
+
+    function activate(id: string, focus: boolean) {
+      tabs.forEach((tab) => {
+        const element = tab as HTMLButtonElement;
+        const selected = element.dataset.tab === id;
+        element.setAttribute('aria-selected', String(selected));
+        element.tabIndex = selected ? 0 : -1;
+        if (selected && focus) element.focus();
+      });
+      panels.forEach((panel) => {
+        (panel as HTMLElement).hidden = (panel as HTMLElement).dataset.panel !== id;
+      });
+      const url = new URL(window.location.href);
+      url.hash = id;
+      history.replaceState(null, '', url);
+    }
+
+    tabs.forEach((tab, index) => {
+      const element = tab as HTMLButtonElement;
+      element.addEventListener('click', () => activate(element.dataset.tab || '', false));
+      element.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+        event.preventDefault();
+        const step = event.key === 'ArrowRight' ? 1 : -1;
+        const next = tabs[(index + step + tabs.length) % tabs.length] as HTMLButtonElement;
+        activate(next.dataset.tab || '', true);
+      });
+    });
+
+    const initial = window.location.hash.replace('#', '');
+    if (initial && tabs.some((tab) => (tab as HTMLButtonElement).dataset.tab === initial)) {
+      activate(initial, false);
+    }
+
+    root.querySelectorAll('[data-copy]').forEach((node) => {
+      const button = node as HTMLButtonElement;
+      button.addEventListener('click', () => {
+        const text = button.dataset.copy || '';
+        const done = (label: string) => {
+          button.textContent = label;
+          window.setTimeout(() => {
+            button.textContent = button.dataset.labelCopy || 'Copy';
+          }, 1600);
+        };
+
+        const fallback = () => {
+          const pre = button.closest('.terminal')?.querySelector('pre');
+          const range = document.createRange();
+          if (pre) {
+            range.selectNodeContents(pre);
+            const selection = window.getSelection();
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
+          done(button.dataset.labelFailed || 'Copy failed');
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(
+            () => done(button.dataset.labelCopied || 'Copied'),
+            fallback,
+          );
+          return;
+        }
+
+        fallback();
+      });
+    });
+  }
+
+  document.querySelectorAll('[data-install-tabs]').forEach((node) => setup(node as HTMLElement));
+</script>

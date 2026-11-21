@@ -1,0 +1,190 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Documentation shell
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import '../styles/docs.css';
+import Breadcrumbs from './Breadcrumbs.astro';
+import docsMeta from '../data/docs-meta.json';
+import { ui } from '../data/i18n';
+import type { Lang } from '../lib/site';
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  lang: Lang;
+  title: string;
+  description: string;
+  slug: string;
+  source: string;
+  updated: string;
+  headings: Heading[];
+  readingTime: number;
+}
+
+const { lang, title, description, slug, source, updated, headings, readingTime } = Astro.props;
+const t = ui[lang];
+const docs = docsMeta.docs;
+
+const groupLabels: { key: string; label: string }[] = [
+  { key: 'core', label: lang === 'ar' ? 'الأساس' : 'Core' },
+  { key: 'guides', label: lang === 'ar' ? 'الأدلة' : 'Guides' },
+  { key: 'reference', label: lang === 'ar' ? 'المراجع' : 'Reference' },
+];
+
+function hrefFor(docSlug: string): string {
+  return lang === 'ar' ? `/ar/docs/${docSlug}` : `/docs/${docSlug}`;
+}
+
+function docTitle(doc: (typeof docs)[number]): string {
+  return lang === 'ar' ? doc.titleAr : doc.title;
+}
+
+const sidebar = groupLabels
+  .map((group) => ({
+    label: group.label,
+    items: docs
+      .filter((doc) => doc.group === group.key)
+      .map((doc) => ({
+        href: hrefFor(doc.slug),
+        title: docTitle(doc),
+        current: doc.slug === slug,
+      })),
+  }))
+  .filter((group) => group.items.length > 0);
+
+const index = docs.findIndex((doc) => doc.slug === slug);
+const previous = index > 0 ? docs[index - 1] : null;
+const following = index >= 0 && index < docs.length - 1 ? docs[index + 1] : null;
+const current = index >= 0 ? docs[index] : null;
+const currentTitle = current ? docTitle(current) : title;
+
+const toc = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
+---
+
+<div class="doc">
+  <div class="container doc__grid">
+    <aside class="doc__sidebar">
+      <a class="doc__nav-link" href={docsHref} style="font-weight:600;color:var(--text-primary)">
+        {t.labels.allDocs}
+      </a>
+      {sidebar.map((group) => (
+        <div class="doc__group">
+          <span class="doc__group-title">{group.label}</span>
+          {group.items.map((item) => (
+            <a class="doc__nav-link" href={item.href} aria-current={item.current ? 'page' : undefined}>
+              {item.title}
+            </a>
+          ))}
+        </div>
+      ))}
+    </aside>
+
+    <div>
+      <Breadcrumbs
+        lang={lang}
+        items={[
+          { label: t.labels.breadcrumbHome },
+          { label: t.labels.docs, href: docsHref },
+          { label: currentTitle },
+        ]}
+      />
+
+      <h1 class="h1" style="margin-block:14px 12px">{title}</h1>
+      <p class="lede" style="margin-block-end:20px">{description}</p>
+
+      <div class="doc__meta">
+        <span class="doc__meta-item">{t.labels.updated}: {updated}</span>
+        <span class="doc__meta-item">{t.labels.readingTime}: {readingTime} {t.labels.minutes}</span>
+        <span class="doc__meta-item">{t.labels.source}: docs/{source}</span>
+      </div>
+
+      <article class="prose">
+        <slot />
+      </article>
+
+      <nav class="doc__pager" aria-label={t.labels.pagination}>
+        {previous && (
+          <a class="doc__pager-link" href={hrefFor(previous.slug)} rel="prev">
+            <span class="doc__pager-dir">← {t.labels.previous}</span>
+            <span class="doc__pager-title">{docTitle(previous)}</span>
+          </a>
+        )}
+        {following && (
+          <a class="doc__pager-link doc__pager-link--next" href={hrefFor(following.slug)} rel="next">
+            <span class="doc__pager-dir">{t.labels.next} →</span>
+            <span class="doc__pager-title">{docTitle(following)}</span>
+          </a>
+        )}
+      </nav>
+    </div>
+
+    <aside class="doc__toc">
+      <span class="doc__toc-title">{t.labels.onThisPage}</span>
+      {toc.map((heading) => (
+        <a href={`#${heading.slug}`} data-depth={String(heading.depth)}>{heading.text}</a>
+      ))}
+      <a href="#" style="margin-block-start:10px">{t.actions.backToTop} ↑</a>
+    </aside>
+  </div>
+</div>
+
+<script>
+  function renderMermaid() {
+    const blocks = Array.from(document.querySelectorAll('.prose pre > code.language-mermaid'));
+    if (blocks.length === 0) return;
+
+    import('mermaid').then((module) => {
+      const mermaid = module.default;
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: 'dark',
+        themeVariables: {
+          background: '#0E1116',
+          primaryColor: '#1B222B',
+          primaryTextColor: '#E8EDF5',
+          primaryBorderColor: '#333D4B',
+          lineColor: '#93A0B4',
+          secondaryColor: '#151A21',
+          tertiaryColor: '#0A0D11',
+          fontFamily: 'Inter Variable, Inter, sans-serif',
+        },
+      });
+
+      blocks.forEach((node, index) => {
+        const code = node as HTMLElement;
+        const pre = code.parentElement;
+        if (!pre) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mermaid-block';
+        mermaid
+          .render(`mermaid-${index}`, code.textContent || '')
+          .then((result) => {
+            wrapper.innerHTML = result.svg;
+            pre.replaceWith(wrapper);
+          })
+          .catch(() => {
+            pre.classList.add('mermaid-fallback');
+          });
+      });
+    });
+  }
+
+  const run = () => {
+    renderMermaid();
+  };
+
+  const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback;
+  if (typeof idle === 'function') {
+    idle(run);
+  } else {
+    window.setTimeout(run, 200);
+  }
+</script>

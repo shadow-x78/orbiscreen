@@ -1,0 +1,67 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Features page body
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import PageHead from './PageHead.astro';
+import Icon from './Icon.astro';
+import { pages } from '../data/pages';
+import { ui } from '../data/i18n';
+import type { Lang } from '../lib/site';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const page = pages.features[lang];
+const t = ui[lang];
+const installHref = lang === 'ar' ? '/ar/install' : '/install';
+const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
+---
+
+<PageHead
+  lang={lang}
+  eyebrow={page.eyebrow}
+  title={page.title}
+  lede={page.lede}
+  breadcrumbs={[
+    { label: t.labels.breadcrumbHome },
+    { label: t.nav.features },
+  ]}
+/>
+
+<section class="section">
+  <div class="container">
+    {page.sections.map((section) => (
+      <article class="feature-row" id={section.id}>
+        <div class="feature-row__body">
+          <h2 class="h3">{section.title}</h2>
+          {section.body.map((paragraph) => <p>{paragraph}</p>)}
+        </div>
+        {section.points && (
+          <div class="feature-row__points">
+            <ul>
+              {section.points.map((point) => <li>{point}</li>)}
+            </ul>
+          </div>
+        )}
+      </article>
+    ))}
+
+    <div class="cta-card" style="margin-block-start:48px">
+      <div class="cta-card__text">
+        <h2 class="h3">{page.cta.title}</h2>
+        <p>{page.cta.body}</p>
+      </div>
+      <div class="cta-card__actions">
+        <a class="btn btn--primary" href={installHref}>
+          {page.cta.primary}
+          <Icon name="arrow-right" size={18} />
+        </a>
+        <a class="btn btn--secondary" href={docsHref}>{page.cta.secondary}</a>
+      </div>
+    </div>
+  </div>
+</section>

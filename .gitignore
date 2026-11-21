@@ -72,3 +72,13 @@ coverage/
 # ── Python bytecode ──
 __pycache__/
 *.pyc
+
+# ── Website (Astro) ──
+/site/node_modules/
+/site/dist/
+/site/.astro/
+/site/.wrangler/
+/site/src/content/docs/
+
+# ── Playwright MCP scratch output ──
+/.playwright-mcp/

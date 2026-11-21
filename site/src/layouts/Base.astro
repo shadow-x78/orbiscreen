@@ -1,0 +1,67 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Base layout
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import interLatinUrl from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
+import notoArabicUrl from '@fontsource/noto-sans-arabic/files/noto-sans-arabic-arabic-400-normal.woff2?url';
+import '../styles/fonts.css';
+import '../styles/tokens.css';
+import '../styles/global.css';
+
+import Seo from '../components/Seo.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import type { Lang } from '../lib/site';
+
+interface Props {
+  lang: Lang;
+  title: string;
+  description: string;
+  path: string;
+  arPath: string;
+  image?: string;
+  type?: 'website' | 'article';
+  noindex?: boolean;
+  schema?: Record<string, unknown> | Record<string, unknown>[];
+  bodyClass?: string;
+}
+
+const { lang, title, description, path, arPath, image, type, noindex, schema, bodyClass } = Astro.props;
+---
+
+<!doctype html>
+<html lang={lang} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <Seo
+      lang={lang}
+      title={title}
+      description={description}
+      path={path}
+      arPath={arPath}
+      image={image}
+      type={type}
+      noindex={noindex}
+      schema={schema}
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href={lang === 'ar' ? notoArabicUrl : interLatinUrl}
+      crossorigin="anonymous"
+    />
+    <slot name="head" />
+  </head>
+  <body class={bodyClass}>
+    <a class="skip-link" href="#main">{lang === 'ar' ? 'تخطَّ إلى المحتوى' : 'Skip to content'}</a>
+    <Navbar lang={lang} path={path} arPath={arPath} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer lang={lang} path={path} arPath={arPath} />
+  </body>
+</html>

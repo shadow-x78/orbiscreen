@@ -1,0 +1,27 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - FAQ list
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import type { FaqItem } from '../data/faq';
+
+interface Props {
+  items: FaqItem[];
+  /** Open the first item by default. */
+  openFirst?: boolean;
+}
+
+const { items, openFirst = false } = Astro.props;
+---
+
+<div class="faq">
+  {items.map((item, index) => (
+    <details class="faq__item" id={item.id} open={openFirst && index === 0}>
+      <summary>{item.question}</summary>
+      <div class="faq__answer">
+        {item.answer.map((part) => <p set:html={part} />)}
+      </div>
+    </details>
+  ))}
+</div>

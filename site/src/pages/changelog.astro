@@ -1,0 +1,32 @@
+---
+import Base from '../layouts/Base.astro';
+import ChangelogBody from '../components/ChangelogBody.astro';
+import { SITE_URL } from '../lib/site';
+import { breadcrumbSchema, webPageSchema } from '../lib/schema';
+
+const url = `${SITE_URL}/changelog`;
+const schema = [
+  webPageSchema({
+    name: 'Changelog',
+    description: 'Release notes for Orbiscreen: fixes, changes, and the reasoning behind each release.',
+    url,
+    lang: 'en',
+  }),
+  breadcrumbSchema([
+    { name: 'Home', url: `${SITE_URL}/` },
+    { name: 'Changelog', url },
+  ]),
+];
+---
+
+<Base
+  lang="en"
+  title="Changelog — every release"
+  description="Release notes for Orbiscreen: capture and encoder fixes, transport changes, packaging updates, and the reasoning behind each release."
+  path="/changelog"
+  arPath="/ar/changelog"
+  schema={schema}
+>
+  <link slot="head" rel="alternate" type="application/rss+xml" title="Orbiscreen releases" href="/rss.xml" />
+  <ChangelogBody lang="en" />
+</Base>

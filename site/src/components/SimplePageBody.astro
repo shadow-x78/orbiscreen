@@ -1,0 +1,51 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Simple content page body
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import '../styles/docs.css';
+import PageHead from './PageHead.astro';
+import type { SimplePage } from '../data/legal';
+import { ui } from '../data/i18n';
+import type { Lang } from '../lib/site';
+
+interface Props {
+  lang: Lang;
+  page: SimplePage;
+  crumb: string;
+}
+
+const { lang, page, crumb } = Astro.props;
+const t = ui[lang];
+---
+
+<PageHead
+  lang={lang}
+  eyebrow={page.eyebrow}
+  title={page.title}
+  lede={page.lede}
+  breadcrumbs={[
+    { label: t.labels.breadcrumbHome },
+    { label: crumb },
+  ]}
+/>
+
+<section class="section">
+  <div class="container" style="max-width:820px">
+    <div class="prose">
+      {page.sections.map((section) => (
+        <div class="prose-section">
+          <h2>{section.title}</h2>
+          {section.body.map((paragraph) => <p>{paragraph}</p>)}
+          {section.list && (
+            <ul>
+              {section.list.map((item) => <li>{item}</li>)}
+            </ul>
+          )}
+        </div>
+      ))}
+      <slot />
+    </div>
+  </div>
+</section>

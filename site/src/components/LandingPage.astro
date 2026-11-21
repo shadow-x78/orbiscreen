@@ -1,0 +1,190 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Landing page body (EN / AR)
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import Hero from './Hero.astro';
+import Icon from './Icon.astro';
+import InstallTabs from './InstallTabs.astro';
+import DownloadButtons from './DownloadButtons.astro';
+import { landing } from '../data/landing';
+import { installMethods, downloads } from '../data/install';
+import { ui } from '../data/i18n';
+import { GITHUB_URL, RELEASES_URL, type Lang } from '../lib/site';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const data = landing[lang];
+const t = ui[lang];
+const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
+const ossPrimary = GITHUB_URL;
+const ossSecondary = lang === 'ar' ? '/ar/docs' : '/docs';
+---
+
+<Hero lang={lang} hero={data.hero} />
+
+<section class="trust" aria-label={lang === 'ar' ? 'خصائص سريعة' : 'At a glance'}>
+  <div class="container">
+    <div class="chips">
+      {data.trustChips.map((chip) => (
+        <span class="chip"><span class="chip__dot"></span>{chip}</span>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="section" id="capabilities" aria-labelledby="capabilities-title">
+  <div class="container">
+    <div class="section__head">
+      <p class="eyebrow">{data.capabilities.eyebrow}</p>
+      <h2 class="h2" id="capabilities-title">{data.capabilities.title}</h2>
+    </div>
+
+    <div class="bento">
+      <div class="bento__row bento__row--2">
+        {data.capabilities.tiles.slice(0, 2).map((tile) => (
+          <article class="tile">
+            <span class="tile__icon"><Icon name={tile.icon} /></span>
+            <h3 class="tile__title">{tile.title}</h3>
+            <p class="tile__body">{tile.body}</p>
+          </article>
+        ))}
+      </div>
+      <div class="bento__row bento__row--3">
+        {data.capabilities.tiles.slice(2).map((tile) => (
+          <article class="tile">
+            <span class="tile__icon"><Icon name={tile.icon} /></span>
+            <h3 class="tile__title">{tile.title}</h3>
+            <p class="tile__body">{tile.body}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section--subtle" id="how-it-works" aria-labelledby="how-title">
+  <div class="container">
+    <div class="section__head">
+      <p class="eyebrow">{data.howItWorks.eyebrow}</p>
+      <h2 class="h2" id="how-title">{data.howItWorks.title}</h2>
+    </div>
+
+    <ol class="steps" style="list-style:none;padding:0">
+      {data.howItWorks.steps.map((step) => (
+        <li class="step">
+          <span class="step__num">{step.num}</span>
+          <h3 class="step__title">{step.title}</h3>
+          <p class="step__body">{step.body}</p>
+          <span class="step__mono" dir="ltr">{step.mono}</span>
+        </li>
+      ))}
+    </ol>
+
+    <p class="mono faint" style="margin-block-start:24px;font-size:12.5px">{data.howItWorks.footnote}</p>
+  </div>
+</section>
+
+<section class="section" id="platform" aria-labelledby="platform-title">
+  <div class="container split">
+    <div class="split__col">
+      <p class="eyebrow">{data.platform.eyebrow}</p>
+      <h2 class="h2" id="platform-title">{data.platform.title}</h2>
+      <p class="lede">{data.platform.sub}</p>
+
+      <div class="callout" role="img" aria-label={data.platform.doctorCmd}>
+        <span class="callout__label">{data.platform.doctorLabel}</span>
+        <span class="callout__cmd">{data.platform.doctorCmd}</span>
+        <span class="callout__out">{data.platform.doctorOut}</span>
+      </div>
+
+      <a class="btn btn--secondary btn--sm" href={docsHref}>{t.actions.readDocs} <Icon name="arrow-right" size={16} /></a>
+    </div>
+
+    <div class="matrix" role="list">
+      {data.platform.rows.map((row) => (
+        <div class="matrix__row" role="listitem">
+          <span class="matrix__name">{row.name}</span>
+          <span class="matrix__status"><span class="chip__dot"></span>{row.status}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="section section--subtle" id="performance" aria-labelledby="performance-title">
+  <div class="container">
+    <div class="section__head">
+      <p class="eyebrow">{data.performance.eyebrow}</p>
+      <h2 class="h2" id="performance-title">{data.performance.title}</h2>
+    </div>
+    <dl class="stats" style="margin:0">
+      {data.performance.stats.map((stat) => (
+        <div class="stat">
+          <dt class="stat__value" style="margin:0" dir="ltr">{stat.value}</dt>
+          <dd class="stat__label" style="margin:0">{stat.label}</dd>
+        </div>
+      ))}
+    </dl>
+  </div>
+</section>
+
+<section class="section" id="install" aria-labelledby="install-title">
+  <div class="container">
+    <div class="section__head">
+      <p class="eyebrow">{data.install.eyebrow}</p>
+      <h2 class="h2" id="install-title">{data.install.title}</h2>
+    </div>
+
+    <InstallTabs lang={lang} methods={installMethods[lang]} compact />
+
+    <DownloadButtons label={data.install.hostLabel} items={downloads[lang].host} />
+    <DownloadButtons label={data.install.clientsLabel} items={downloads[lang].clients} />
+  </div>
+</section>
+
+<section class="section section--subtle" id="open-source" aria-labelledby="oss-title">
+  <div class="container">
+    <div class="oss">
+      <div class="oss__text">
+        <h2 class="h3" id="oss-title">{data.oss.title}</h2>
+        <p class="muted" style="max-width:52ch">{data.oss.body}</p>
+        <div class="row" style="margin-block-start:6px">
+          <a class="btn btn--primary" href={ossPrimary} rel="noopener">
+            <Icon name="github" size={18} />
+            {data.oss.primary}
+          </a>
+          <a class="btn btn--secondary" href={ossSecondary}>
+            <Icon name="terminal" size={18} />
+            {data.oss.secondary}
+          </a>
+        </div>
+      </div>
+
+      <dl class="oss__stats" style="margin:0">
+        {data.oss.stats.map((stat) => (
+          <div class="oss__stat">
+            <dt class="oss__key" style="margin:0">{stat.key}</dt>
+            <dd class="oss__val" style="margin:0">{stat.value}</dd>
+          </div>
+        ))}
+        <div class="oss__stat">
+          <dt class="oss__key" style="margin:0">{lang === 'ar' ? 'المصدر' : 'Source'}</dt>
+          <dd class="oss__val" style="margin:0">
+            <a href={GITHUB_URL} rel="noopener">{lang === 'ar' ? 'shadow-x78/orbiscreen' : 'shadow-x78/orbiscreen'}</a>
+          </dd>
+        </div>
+        <div class="oss__stat">
+          <dt class="oss__key" style="margin:0">{lang === 'ar' ? 'التنزيل' : 'Download'}</dt>
+          <dd class="oss__val" style="margin:0">
+            <a href={RELEASES_URL} rel="noopener">GitHub Releases</a>
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</section>

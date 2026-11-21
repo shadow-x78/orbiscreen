@@ -1,0 +1,38 @@
+---
+import Base from '../../layouts/Base.astro';
+import DocsIndexBody from '../../components/DocsIndexBody.astro';
+import { SITE_URL } from '../../lib/site';
+import { breadcrumbSchema, webPageSchema } from '../../lib/schema';
+
+const url = `${SITE_URL}/docs`;
+const schema = [
+  webPageSchema({
+    name: 'Documentation',
+    description:
+      'Architecture, UDP and frame transport, desktop environment support, packaging, D-Bus, and troubleshooting for Orbiscreen.',
+    url,
+    lang: 'en',
+    type: 'CollectionPage',
+  }),
+  breadcrumbSchema([
+    { name: 'Home', url: `${SITE_URL}/` },
+    { name: 'Docs', url },
+  ]),
+];
+---
+
+<Base
+  lang="en"
+  title="Documentation — architecture, transport, packaging"
+  description="Architecture, UDP and frame transport, desktop environment support, packaging, D-Bus, and troubleshooting, maintained next to the source."
+  path="/docs"
+  arPath="/ar/docs"
+  schema={schema}
+>
+  <DocsIndexBody
+    lang="en"
+    eyebrow="DOCUMENTATION"
+    title="Documentation."
+    lede="Seven documents, each maintained beside the code it describes. Start with the architecture, then pick the transport or desktop guide you need."
+  />
+</Base>

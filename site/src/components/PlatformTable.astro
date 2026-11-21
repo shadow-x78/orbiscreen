@@ -1,0 +1,49 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Desktop support table
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import '../styles/docs.css';
+import type { PlatformRow } from '../data/platforms';
+import { rootLabels } from '../data/platforms';
+import type { Lang } from '../lib/site';
+
+interface Props {
+  rows: PlatformRow[];
+  lang: Lang;
+  caption: string;
+}
+
+const { rows, lang, caption } = Astro.props;
+const heads =
+  lang === 'ar'
+    ? { platform: 'البيئة', virtual: 'الشاشة الافتراضية', capture: 'الالتقاط', input: 'الإدخال', root: 'root' }
+    : { platform: 'Environment', virtual: 'Virtual display', capture: 'Capture', input: 'Input', root: 'Root' };
+---
+
+<div class="prose" style="max-width:none">
+  <table>
+    <caption class="visually-hidden">{caption}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{heads.platform}</th>
+        <th scope="col">{heads.virtual}</th>
+        <th scope="col">{heads.capture}</th>
+        <th scope="col">{heads.input}</th>
+        <th scope="col">{heads.root}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr>
+          <th scope="row" dir="ltr" style="color:var(--text-primary);font-weight:500;text-align:start">{row.name}</th>
+          <td>{row.virtual}</td>
+          <td>{row.capture}</td>
+          <td>{row.input}</td>
+          <td>{rootLabels[lang][row.root]}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

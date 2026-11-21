@@ -1,0 +1,33 @@
+---
+import Base from '../layouts/Base.astro';
+import SimplePageBody from '../components/SimplePageBody.astro';
+import { licensePage } from '../data/legal';
+import { GITHUB_URL, SITE_URL } from '../lib/site';
+import { breadcrumbSchema, webPageSchema } from '../lib/schema';
+
+const url = `${SITE_URL}/license`;
+const schema = [
+  webPageSchema({ name: 'License', description: 'GPL-3.0-or-later: the freedoms, the obligations, and the bundled MIT component.', url, lang: 'en' }),
+  breadcrumbSchema([
+    { name: 'Home', url: `${SITE_URL}/` },
+    { name: 'License', url },
+  ]),
+];
+---
+
+<Base
+  lang="en"
+  title="License — GPL-3.0-or-later"
+  description="Orbiscreen is free software under GPL-3.0-or-later: run, study, share and modify it, with derivative works under the same license."
+  path="/license"
+  arPath="/ar/license"
+  schema={schema}
+>
+  <SimplePageBody lang="en" page={licensePage.en} crumb="License">
+    <p>
+      <a href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener">Read the full GPL-3.0 text</a>
+      {' · '}
+      <a href={`${GITHUB_URL}/blob/main/LICENSE`} rel="noopener">LICENSE in the repository</a>
+    </p>
+  </SimplePageBody>
+</Base>

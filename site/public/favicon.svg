@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Orbiscreen mark: same geometry and colour as data/orbiscreen.svg (ring r181, stroke 58,
+       dot r66 at 384,384). scripts/generate-icons.sh verifies it stays in sync. -->
+  <circle cx="256" cy="256" r="181" fill="none" stroke="#89B4FA" stroke-width="58"/>
+  <circle cx="384" cy="384" r="66" fill="#89B4FA"/>
+</svg>

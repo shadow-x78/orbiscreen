@@ -1,0 +1,46 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Home (English)
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import Base from '../layouts/Base.astro';
+import LandingPage from '../components/LandingPage.astro';
+import { landing } from '../data/landing';
+import { SHORT_DESCRIPTION, SITE_URL } from '../lib/site';
+import {
+  organizationSchema,
+  softwareApplicationSchema,
+  webPageSchema,
+  websiteSchema,
+} from '../lib/schema';
+
+const data = landing.en;
+const features = [
+  ...data.capabilities.tiles.map((tile) => tile.title),
+  ...data.howItWorks.steps.map((step) => step.title),
+];
+
+const schema = [
+  organizationSchema(),
+  websiteSchema(),
+  softwareApplicationSchema(features),
+  webPageSchema({
+    name: 'Orbiscreen — Your tablet is your second monitor',
+    description: SHORT_DESCRIPTION,
+    url: `${SITE_URL}/`,
+    lang: 'en',
+  }),
+];
+---
+
+<Base
+  lang="en"
+  title="Orbiscreen — Android tablet as a second monitor for Linux"
+  description="Turn an Android tablet or phone into a real extended display for Linux. H.264 over LAN or USB, 25-40 ms latency, no root on KDE and wlroots. GPL-3.0."
+  path="/"
+  arPath="/ar"
+  schema={schema}
+>
+  <LandingPage lang="en" />
+</Base>

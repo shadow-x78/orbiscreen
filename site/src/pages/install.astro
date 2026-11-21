@@ -1,0 +1,42 @@
+---
+import Base from '../layouts/Base.astro';
+import InstallBody from '../components/InstallBody.astro';
+import { pages } from '../data/pages';
+import { SITE_URL } from '../lib/site';
+import { breadcrumbSchema, howToSchema, webPageSchema } from '../lib/schema';
+
+const url = `${SITE_URL}/install`;
+const steps = pages.install.en.after.steps;
+const schema = [
+  webPageSchema({
+    name: 'Install Orbiscreen',
+    description:
+      'Package commands for Ubuntu, Fedora, Arch and AppImage, plus the Android client, and what orbiscreen doctor reports on your desktop.',
+    url,
+    lang: 'en',
+  }),
+  howToSchema({
+    name: 'Install Orbiscreen on Ubuntu',
+    description:
+      'Add the Orbiscreen PPA, install the package, verify the capture plan with orbiscreen doctor, and connect an Android tablet or browser client.',
+    url,
+    lang: 'en',
+    steps: steps.map((step) => ({ name: step.title, text: step.text })),
+  }),
+  breadcrumbSchema([
+    { name: 'Home', url: `${SITE_URL}/` },
+    { name: 'Setup', url },
+  ]),
+];
+---
+
+<Base
+  lang="en"
+  title="Install — Ubuntu, Fedora, Arch, AppImage"
+  description="Install Orbiscreen on Ubuntu, Fedora, Arch, or as an AppImage, then connect an Android tablet or browser as a second display in about three minutes."
+  path="/install"
+  arPath="/ar/install"
+  schema={schema}
+>
+  <InstallBody lang="en" />
+</Base>

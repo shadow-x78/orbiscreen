@@ -1,0 +1,35 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+
+const docsHref = '/docs';
+---
+
+<Base
+  lang="en"
+  title="Page not found"
+  description="The requested page does not exist on orbiscreen.com. Browse the documentation index for architecture, transport and packaging guides, or return to the home page."
+  path="/"
+  arPath="/ar"
+  noindex
+>
+  <section class="section" style="min-height:60vh;display:flex;align-items:center">
+    <div class="container" style="max-width:720px">
+      <p class="eyebrow">404</p>
+      <h1 class="h1" style="margin-block:14px 16px">That page does not exist.</h1>
+      <p class="lede" style="margin-block-end:28px">
+        The link may come from an older release, or the path may have changed. The documentation index and the home page are the fastest ways back.
+      </p>
+      <div class="row">
+        <a class="btn btn--primary" href="/">
+          Back to the home page
+          <Icon name="arrow-right" size={18} />
+        </a>
+        <a class="btn btn--secondary" href={docsHref}>Browse the documentation</a>
+      </div>
+      <p class="muted" lang="ar" dir="rtl" style="margin-block-start:28px">
+        هذه الصفحة غير موجودة. يمكنك العودة إلى <a href="/ar">الصفحة الرئيسية</a> أو تصفّح <a href="/ar/docs">التوثيق</a>.
+      </p>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,73 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Hero device mockup (pure CSS)
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import type { Lang } from '../lib/site';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t =
+  lang === 'ar'
+    ? {
+        window: 'orbiscreen · الشاشة 2',
+        res: '1920x1080 · 60Hz',
+        codec: 'H.264 NVENC',
+        extended: 'ممتدة',
+        latency: '2-4 ms نقل',
+      }
+    : {
+        window: 'orbiscreen · display 2',
+        res: '1920x1080 · 60Hz',
+        codec: 'H.264 NVENC',
+        extended: 'Extended',
+        latency: '2-4 ms transport',
+      };
+---
+
+<div class="mock" role="img" aria-label={lang === 'ar' ? 'رسم توضيحي: شاشة سطح مكتب ممتدة على تابلت أندرويد' : 'Illustration: an extended desktop display on an Android tablet'}>
+  <div class="mock__monitor">
+    <div class="mock__bar">
+      <span class="mock__dot mock__dot--r"></span>
+      <span class="mock__dot mock__dot--y"></span>
+      <span class="mock__dot mock__dot--g"></span>
+      <span class="mock__title">{t.window}</span>
+      <span class="mock__res">{t.res}</span>
+    </div>
+    <div class="mock__screen">
+      <div class="mock__pane">
+        <div class="mock__line"></div>
+        <div class="mock__line"></div>
+        <div class="mock__line mock__line--short"></div>
+        <span class="mock__badge">{t.codec}</span>
+      </div>
+      <div class="mock__pane mock__pane--accent">
+        <div class="mock__line mock__line--accent"></div>
+        <div class="mock__line"></div>
+        <div class="mock__line"></div>
+        <div class="mock__line mock__line--short"></div>
+        <span class="mock__badge">{t.extended}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mock__tablet" aria-hidden="true">
+    <div class="mock__tablet-screen">
+      <div class="mock__line mock__line--accent"></div>
+      <div class="mock__line"></div>
+      <div class="mock__line"></div>
+      <div class="mock__line mock__line--short"></div>
+      <div class="mock__line"></div>
+      <div class="mock__line mock__line--short"></div>
+    </div>
+  </div>
+
+  <div class="mock__latency" aria-hidden="true">
+    <span class="chip__dot"></span>
+    <span>{t.latency}</span>
+  </div>
+</div>

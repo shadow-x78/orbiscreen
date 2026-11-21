@@ -1,0 +1,34 @@
+---
+import Base from '../layouts/Base.astro';
+import FaqBody from '../components/FaqBody.astro';
+import { faq } from '../data/faq';
+import { SITE_URL } from '../lib/site';
+import { breadcrumbSchema, faqSchema, webPageSchema } from '../lib/schema';
+
+const url = `${SITE_URL}/faq`;
+const schema = [
+  webPageSchema({
+    name: 'Frequently asked questions',
+    description:
+      'Extended versus mirrored displays, Wayland without root, stylus support, USB transport, latency, pairing tokens, and privacy.',
+    url,
+    lang: 'en',
+  }),
+  faqSchema(faq.en),
+  breadcrumbSchema([
+    { name: 'Home', url: `${SITE_URL}/` },
+    { name: 'FAQ', url },
+  ]),
+];
+---
+
+<Base
+  lang="en"
+  title="FAQ — extended display, Wayland, stylus, USB"
+  description="Answers about extended versus mirrored displays, Wayland without root, stylus support, USB, latency, pairing tokens, and privacy."
+  path="/faq"
+  arPath="/ar/faq"
+  schema={schema}
+>
+  <FaqBody lang="en" />
+</Base>

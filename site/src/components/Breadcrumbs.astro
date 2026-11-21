@@ -1,0 +1,38 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Breadcrumbs (visual)
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import { ui } from '../data/i18n';
+import type { Lang } from '../lib/site';
+
+interface Crumb {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  lang: Lang;
+  items: Crumb[];
+}
+
+const { lang, items } = Astro.props;
+const t = ui[lang];
+const homeHref = lang === 'ar' ? '/ar' : '/';
+---
+
+<nav aria-label={t.labels.breadcrumb}>
+  <ol class="breadcrumbs">
+    <li><a href={homeHref}>{items[0]?.label ?? 'Home'}</a></li>
+    {items.slice(1).map((item, index) => (
+      <li>
+        {item.href && index < items.length - 2 ? (
+          <a href={item.href}>{item.label}</a>
+        ) : (
+          <span aria-current="page">{item.label}</span>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>

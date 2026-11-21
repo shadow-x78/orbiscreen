@@ -1,0 +1,35 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Download button grid
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import Icon from './Icon.astro';
+import type { DownloadButton } from '../data/install';
+
+interface Props {
+  label: string;
+  items: DownloadButton[];
+}
+
+const { label, items } = Astro.props;
+---
+
+<div class="downloads">
+  <p class="downloads__label">{label}</p>
+  <div class="downloads__grid">
+    {items.map((item) => (
+      <a
+        class="store"
+        href={item.href}
+        rel={item.external ? 'noopener' : undefined}
+      >
+        <Icon name={item.icon} size={22} class="store__icon" />
+        <span class="btn__stack">
+          <span class="btn__micro">{item.micro}</span>
+          <span class="btn__main">{item.main}</span>
+        </span>
+      </a>
+    ))}
+  </div>
+</div>

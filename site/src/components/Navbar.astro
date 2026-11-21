@@ -1,0 +1,195 @@
+---
+// ─────────────────────────────────────────────
+// Orbiscreen - Navigation and mobile drawer
+// https://github.com/shadow-x78/orbiscreen
+// ─────────────────────────────────────────────
+
+import Icon from './Icon.astro';
+import { GITHUB_URL, type Lang } from '../lib/site';
+import { ui } from '../data/i18n';
+
+interface Props {
+  lang: Lang;
+  /** Current English path. */
+  path: string;
+  /** Current Arabic path. */
+  arPath: string;
+}
+
+const { lang, path, arPath } = Astro.props;
+const t = ui[lang];
+const enHref = path;
+const arHref = arPath;
+
+const links = [
+  { href: '/features', label: t.nav.features },
+  { href: '/install', label: t.nav.install },
+  { href: '/docs', label: t.nav.docs },
+  { href: '/compare', label: t.nav.compare },
+];
+
+function localise(href: string): string {
+  if (lang === 'ar') return href === '/' ? '/ar' : `/ar${href}`;
+  return href;
+}
+
+function isActive(href: string): boolean {
+  const current = lang === 'ar' ? `/ar${href}` : href;
+  const target = lang === 'ar' ? arPath : path;
+  if (href === '/docs') return target === current || target.startsWith(`${current}/`);
+  return target === current;
+}
+---
+
+<header class="nav">
+  <div class="container nav__inner">
+    <a class="brand" href={lang === 'ar' ? '/ar' : '/'} aria-label={`${t.labels.breadcrumbHome} — Orbiscreen`}>
+      <svg class="brand__mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+        <circle cx="256" cy="256" r="184" fill="none" stroke="var(--accent-brand)" stroke-width="63" />
+        <circle cx="386" cy="386" r="68" fill="var(--accent-brand)" />
+      </svg>
+      <span>Orbiscreen</span>
+    </a>
+
+    <nav class="nav__links" aria-label={t.nav.primary}>
+      {links.map((link) => (
+        <a
+          class="nav__link"
+          href={localise(link.href)}
+          aria-current={isActive(link.href) ? 'page' : undefined}
+        >
+          {link.label}
+        </a>
+      ))}
+      <a class="nav__link" href={GITHUB_URL} rel="noopener">
+        {t.nav.github}
+      </a>
+    </nav>
+
+    <div class="nav__actions">
+      <div class="lang" role="group" aria-label={t.nav.language}>
+        <a
+          class="lang__opt"
+          href={lang === 'en' ? enHref : enHref}
+          hreflang="en"
+          lang="en"
+          aria-current={lang === 'en' ? 'true' : undefined}
+        >
+          EN
+        </a>
+        <a
+          class="lang__opt"
+          href={arHref}
+          hreflang="ar"
+          lang="ar"
+          aria-current={lang === 'ar' ? 'true' : undefined}
+        >
+          عربي
+        </a>
+      </div>
+      <a class="btn btn--primary btn--sm" href={localise('/install')}>{t.nav.cta}</a>
+      <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="mobile-drawer" data-drawer-toggle>
+        <span class="visually-hidden">{t.nav.menu}</span>
+        <Icon name="menu" size={22} />
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer" id="mobile-drawer" data-open="false" data-drawer>
+  <button class="drawer__backdrop" type="button" data-drawer-close aria-label={t.nav.close}></button>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-label={t.nav.dialog} data-drawer-panel>
+    <div class="drawer__head">
+      <a class="brand" href={lang === 'ar' ? '/ar' : '/'}>
+        <svg class="brand__mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+          <circle cx="256" cy="256" r="184" fill="none" stroke="var(--accent-brand)" stroke-width="63" />
+          <circle cx="386" cy="386" r="68" fill="var(--accent-brand)" />
+        </svg>
+        <span>Orbiscreen</span>
+      </a>
+      <button class="nav__toggle" type="button" data-drawer-close style="display:inline-flex" aria-label={t.nav.close}>
+        <Icon name="close" size={22} />
+      </button>
+    </div>
+
+    {links.map((link) => (
+      <a class="drawer__link" href={localise(link.href)} aria-current={isActive(link.href) ? 'page' : undefined}>
+        {link.label}
+      </a>
+    ))}
+    <a class="drawer__link" href={localise('/faq')}>{t.nav.faq}</a>
+    <a class="drawer__link" href={localise('/changelog')}>{t.footer.changelog}</a>
+    <a class="drawer__link" href={GITHUB_URL} rel="noopener">{t.nav.github}</a>
+
+    <div class="drawer__foot">
+      <div class="lang" role="group" aria-label={t.nav.language}>
+        <a class="lang__opt" href={enHref} hreflang="en" lang="en" aria-current={lang === 'en' ? 'true' : undefined}>EN</a>
+        <a class="lang__opt" href={arHref} hreflang="ar" lang="ar" aria-current={lang === 'ar' ? 'true' : undefined}>عربي</a>
+      </div>
+      <a class="btn btn--primary btn--block" href={localise('/install')}>{t.nav.cta}</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const drawer = document.querySelector<HTMLElement>('[data-drawer]');
+  const toggles = document.querySelectorAll<HTMLButtonElement>('[data-drawer-toggle]');
+  const closers = document.querySelectorAll<HTMLButtonElement>('[data-drawer-close]');
+  const panel = document.querySelector<HTMLElement>('[data-drawer-panel]');
+  let lastFocus: HTMLElement | null = null;
+
+  function focusable(): HTMLElement[] {
+    if (!panel) return [];
+    return Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((element) => element.offsetParent !== null);
+  }
+
+  function setOpen(open: boolean) {
+    if (!drawer) return;
+    drawer.dataset.open = String(open);
+    toggles.forEach((toggle) => toggle.setAttribute('aria-expanded', String(open)));
+    document.body.style.overflow = open ? 'hidden' : '';
+    if (open) {
+      lastFocus = document.activeElement as HTMLElement | null;
+      drawer.querySelector<HTMLElement>('.drawer__link, .nav__toggle')?.focus();
+    } else if (lastFocus) {
+      lastFocus.focus();
+    }
+  }
+
+  toggles.forEach((toggle) => {
+    toggle.addEventListener('click', () => setOpen(drawer?.dataset.open !== 'true'));
+  });
+  closers.forEach((closer) => closer.addEventListener('click', () => setOpen(false)));
+  drawer?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => setOpen(false)));
+  document.addEventListener('keydown', (event) => {
+    if (drawer?.dataset.open !== 'true') return;
+
+    if (event.key === 'Escape') {
+      setOpen(false);
+      return;
+    }
+
+    // aria-modal only describes the dialog; the focus still has to be kept
+    // inside it, or Tab reaches the page behind the backdrop.
+    if (event.key !== 'Tab') return;
+    const items = focusable();
+    if (items.length === 0) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+    if (event.shiftKey && (active === first || !panel?.contains(active))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (active === last || !panel?.contains(active))) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 959 && drawer?.dataset.open === 'true') setOpen(false);
+  });
+</script>
