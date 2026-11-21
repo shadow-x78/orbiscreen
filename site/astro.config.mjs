@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import rehypeScrollable from './scripts/rehype-scrollable.mjs';
 
 export default defineConfig({
   site: 'https://orbiscreen.com',
@@ -19,6 +20,8 @@ export default defineConfig({
   },
   markdown: {
     syntaxHighlight: false,
+    // Scrollable code blocks and tables must be reachable with the keyboard.
+    rehypePlugins: [rehypeScrollable],
   },
   vite: {
     build: {
