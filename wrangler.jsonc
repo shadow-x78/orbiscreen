@@ -3,6 +3,10 @@
   "name": "orbiscreen-site",
   "main": "./worker/index.js",
   "compatibility_date": "2026-11-21",
+  // Keeps a workers.dev URL for testing a deployment before the custom
+  // domains resolve.
+  "workers_dev": true,
+  "preview_urls": true,
   "assets": {
     "directory": "./site/dist",
     "binding": "ASSETS",
@@ -14,8 +18,13 @@
     "run_worker_first": true
   },
   "routes": [
-    { "pattern": "orbiscreen.com", "custom_domain": true },
-    { "pattern": "www.orbiscreen.com", "custom_domain": true }
+    // The apex still carries the imported parking A record, and a custom domain
+    // cannot attach over an externally managed record. A route takes over the
+    // hostname instead: the record only has to exist and be proxied, which it is.
+    { "pattern": "orbiscreen.com/*", "zone_name": "orbiscreen.com" },
+    // www carries an imported record as well, so it is a route too. The worker
+    // answers every request on it with the 301 to the apex.
+    { "pattern": "www.orbiscreen.com/*", "zone_name": "orbiscreen.com" }
   ],
   "observability": {
     "enabled": true

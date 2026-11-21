@@ -61,7 +61,7 @@ works without any extra configuration:
 | --- | --- |
 | `/package.json` | `build` runs `cd site && npm ci && npm run build`; `deploy` runs `wrangler deploy` |
 | `/package-lock.json` | pins the `wrangler` CLI used by the deploy step |
-| `/wrangler.jsonc` | serves `./site/dist` as static assets, drops trailing slashes, uses the custom 404, and attaches `orbiscreen.com` plus `www.orbiscreen.com` as custom domains |
+| `/wrangler.jsonc` | serves `./site/dist` as static assets, drops trailing slashes, uses the custom 404, and routes `orbiscreen.com/*` and `www.orbiscreen.com/*` to the worker |
 | `/worker/index.js` | redirects `www` to the apex with a 301, then hands every other request to the assets binding |
 
 Cloudflare Workers Builds (or Pages) settings:
@@ -79,9 +79,15 @@ last commit, and when it finds a shallow clone it runs `git fetch --unshallow`
 itself. If the fetch is impossible it falls back to the newest `CHANGELOG.md`
 date and prints a warning instead of inventing "today".
 
-Then attach `orbiscreen.com` and `www.orbiscreen.com`, redirect `www` to the
-apex, and enable Web Analytics for the project. Nothing in the build needs a
-secret.
+Deploying is the whole setup: the routes in `wrangler.jsonc` attach both
+hostnames, and the worker redirects `www` to the apex with a 301. Nothing in the
+build needs a secret.
+
+The two hostnames use Worker routes rather than Workers custom domains because
+the zone still holds the A record imported from the previous registrar, and a
+custom domain cannot attach over an externally managed record. A route only
+needs the record to exist and be proxied, which it is. If that A record is ever
+deleted in the dashboard, both entries can become `custom_domain: true`.
 
 Locally, from the repository root:
 

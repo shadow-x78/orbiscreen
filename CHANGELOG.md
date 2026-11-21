@@ -30,8 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   at the repository root working without a root-directory setting.
 - `worker/index.js` gives the site one canonical host: `www.orbiscreen.com`
   answers with a 301 to `orbiscreen.com` and the path and query are preserved.
-  Both hostnames are attached as custom domains by `wrangler deploy`, so no DNS
-  or redirect rule has to be created by hand.
+  Both hostnames are attached by `wrangler deploy` through Worker routes, so no
+  DNS record or redirect rule has to be created by hand.
 
 ### Changed
 - `docs/PACKAGING_AR.md` gained a `release-publishing-secrets` anchor so the
