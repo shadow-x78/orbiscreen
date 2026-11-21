@@ -93,6 +93,18 @@ custom domain cannot attach over an externally managed record. A route only
 needs the record to exist and be proxied, which it is. If that A record is ever
 deleted in the dashboard, both entries can become `custom_domain: true`.
 
+### One zone setting fights the CSP
+
+Cloudflare injects `/cdn-cgi/challenge-platform/scripts/jsd/main.js` as an inline
+script when Bot Fight Mode (JavaScript Detections) is on. Its body carries a
+per-request ray and timestamp, so no build-time hash can cover it, and the
+browser logs one CSP violation per page. The site itself is unaffected.
+
+Turn Bot Fight Mode off under **Security → Bots** on a static site: it adds
+nothing here, and the CSP stays strict. Do not weaken `script-src` instead —
+once a hash is present, `'unsafe-inline'` is ignored, so relaxing it would not
+even silence the warning.
+
 Locally, from the repository root:
 
 ```bash
