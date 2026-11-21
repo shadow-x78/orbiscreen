@@ -100,7 +100,20 @@ ${globalHeaders}
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Icons and the social preview change only with a redesign.
+/favicon.ico
+  Cache-Control: public, max-age=604800
+
 /favicon.svg
+  Cache-Control: public, max-age=604800
+
+/favicon-*.png
+  Cache-Control: public, max-age=604800
+
+/icon-*.png
+  Cache-Control: public, max-age=604800
+
+/apple-touch-icon.png
   Cache-Control: public, max-age=604800
 
 /og/*
