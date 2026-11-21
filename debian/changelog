@@ -1,3 +1,11 @@
+orbiscreen (0.44.6~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.44.6 for Ubuntu noble.
+  * ship the orbiscreen.com site and its build pipeline
+  * Bump version to 0.44.6 across all packages; Android versionCode 206.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Sat, 21 Nov 2026 21:28:42 +0300
+
 orbiscreen (0.44.5~ubuntunoble1) noble; urgency=medium
 
   * Release 0.44.5 for Ubuntu noble.
