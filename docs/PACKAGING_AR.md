@@ -204,6 +204,7 @@ aapt dump badging app-release.apk | grep version
 
 ---
 
+<a id="release-publishing-secrets"></a>
 ## التوقيع والتوزيع
 
 ### حزم Linux
