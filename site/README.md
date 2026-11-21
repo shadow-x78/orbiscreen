@@ -40,6 +40,10 @@ script the generated CSP does not allow, a skipped heading level, a missing
   and the other security headers.
 - `_redirects` for legacy document paths.
 - `public/robots.txt`, `public/.well-known/security.txt`, `public/site.webmanifest`.
+- `public/<key>.txt`: the IndexNow key. `.github/workflows/indexnow.yml` submits
+  every sitemap URL to `api.indexnow.org` after a deploy, which is what reaches
+  Bing, Yandex, Seznam and Naver without an account. Google still needs the
+  Search Console property to be added once.
 
 ## Adding a document
 

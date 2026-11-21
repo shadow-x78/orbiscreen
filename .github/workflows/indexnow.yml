@@ -1,0 +1,79 @@
+# ─────────────────────────────────────────────
+# Orbiscreen - IndexNow submission
+# https://github.com/shadow-x78/orbiscreen
+# ─────────────────────────────────────────────
+# Google retired the sitemap ping endpoint, and the Search Console submission is
+# a one-time dashboard step. IndexNow is the one endpoint that still accepts a
+# push without an account: Bing, Yandex, Seznam and Naver read it. The key is a
+# public file at site/public/<key>.txt; it only proves the domain is ours.
+
+name: IndexNow
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'docs/**'
+      - 'CHANGELOG.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: indexnow
+  cancel-in-progress: true
+
+jobs:
+  submit:
+    name: Submit the sitemap to IndexNow
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      # The deployment runs in parallel with this workflow. The URLs are stable,
+      # but the key file has to be live before a submission can be accepted.
+      - name: Wait for the deployment
+        run: |
+          key_file="$(ls site/public/*.txt | head -1)"
+          key="$(basename "$key_file" .txt)"
+          url="https://orbiscreen.com/${key}.txt"
+          for attempt in $(seq 1 30); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' "$url")" = "200" ]; then
+              echo "key file is live"
+              exit 0
+            fi
+            echo "attempt ${attempt}: key file not live yet"
+            sleep 20
+          done
+          echo "key file never became reachable; skipping this submission"
+          exit 0
+
+      - name: Submit URLs
+        run: |
+          key_file="$(ls site/public/*.txt | head -1)"
+          key="$(basename "$key_file" .txt)"
+          mapfile -t urls < <(curl -s https://orbiscreen.com/sitemap.xml | grep -o '<loc>[^<]*</loc>' | sed 's|</\?loc>||g')
+          echo "submitting ${#urls[@]} URLs"
+          python3 - "$key" "${urls[@]}" <<'PY'
+          import json, sys, urllib.request
+          key, urls = sys.argv[1], sys.argv[2:]
+          body = json.dumps({
+              "host": "orbiscreen.com",
+              "key": key,
+              "keyLocation": f"https://orbiscreen.com/{key}.txt",
+              "urlList": urls,
+          }).encode()
+          request = urllib.request.Request(
+              "https://api.indexnow.org/indexnow",
+              data=body,
+              headers={"Content-Type": "application/json; charset=utf-8"},
+          )
+          with urllib.request.urlopen(request, timeout=60) as response:
+              print("IndexNow responded", response.status)
+          PY
