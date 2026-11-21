@@ -83,7 +83,7 @@ const prepared = methods.map((method, index) => ({
             data-label-failed={t.actions.copyFailed}
           >{t.actions.copy}</button>
         </div>
-        <div class="terminal__body">
+        <div class="terminal__body" tabindex="0">
           <pre class="terminal__code"><code set:html={method.codeHtml} /></pre>
         </div>
       </div>

@@ -15,16 +15,10 @@ function visit(node) {
 
   if (node.type === 'element' && CONTAINERS.has(node.tagName)) {
     node.properties = node.properties ?? {};
+    // tabindex alone is what the rule asks for. A region role here would create
+    // one landmark per code block, all with the same name, which is its own
+    // violation.
     node.properties.tabIndex = 0;
-    // A focusable region needs a name, or a screen reader announces an
-    // unlabelled "group" when the user tabs into it.
-    if (node.tagName === 'pre') {
-      node.properties.role = 'region';
-      node.properties.ariaLabel = 'Code sample, scrollable';
-    } else {
-      node.properties.role = 'region';
-      node.properties.ariaLabel = 'Table, scrollable';
-    }
   }
 
   for (const child of node.children ?? []) visit(child);
