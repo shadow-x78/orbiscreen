@@ -48,7 +48,7 @@ jobs:
           key="$(basename "$(ls site/public/*.txt | head -1)" .txt)"
           url="https://orbiscreen.com/${key}.txt"
           for attempt in $(seq 1 30); do
-            if [ "$(curl -s -o /dev/null -w '%{http_code}' "$url")" = "200" ]; then
+            if [ "$(curl -s -A "orbiscreen-indexnow/1.0 (+https://orbiscreen.com)" -o /dev/null -w '%{http_code}' "$url")" = "200" ]; then
               echo "key file is live"
               exit 0
             fi
@@ -71,7 +71,13 @@ jobs:
           key = sys.argv[1]
           host = "orbiscreen.com"
 
-          sitemap = urllib.request.urlopen(f"https://{host}/sitemap.xml", timeout=60).read().decode()
+          # Cloudflare's bot protection answers the default Python agent with a
+          # 403, so the request identifies itself.
+          agent = "orbiscreen-indexnow/1.0 (+https://orbiscreen.com)"
+          sitemap_request = urllib.request.Request(
+              f"https://{host}/sitemap.xml", headers={"User-Agent": agent}
+          )
+          sitemap = urllib.request.urlopen(sitemap_request, timeout=60).read().decode()
           urls = [part.split("</loc>")[0].replace("<loc>", "") for part in sitemap.split("<loc>")[1:]]
           if not urls:
               print("::warning::sitemap contained no URLs; nothing to submit")
@@ -91,7 +97,10 @@ jobs:
               request = urllib.request.Request(
                   "https://api.indexnow.org/indexnow",
                   data=payload,
-                  headers={"Content-Type": "application/json; charset=utf-8"},
+                  headers={
+                      "Content-Type": "application/json; charset=utf-8",
+                      "User-Agent": agent,
+                  },
               )
               try:
                   with urllib.request.urlopen(request, timeout=60) as response:
