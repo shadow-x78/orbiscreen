@@ -83,7 +83,7 @@ const releases = getReleases()
         <div class="changelog__head">
           <h2 class="changelog__tag" style="margin:0">{release.tag}</h2>
           <time class="changelog__date" datetime={release.date}>{release.date}</time>
-          <a class="mono faint" href={`#${release.anchor}`} style="font-size:12px" aria-label={`${release.tag} anchor`}>#</a>
+          <a class="changelog__anchor" href={`#${release.anchor}`} aria-label={`${release.tag} anchor`}>#</a>
         </div>
         <div class="changelog__body" set:html={release.html} />
       </article>

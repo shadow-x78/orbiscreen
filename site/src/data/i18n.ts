@@ -56,6 +56,7 @@ export interface UiStrings {
   labels: {
     breadcrumbHome: string;
     breadcrumb: string;
+    docsNav: string;
     docs: string;
     onThisPage: string;
     previous: string;
@@ -122,6 +123,7 @@ export const ui: Record<Lang, UiStrings> = {
     labels: {
       breadcrumbHome: 'Home',
       breadcrumb: 'Breadcrumb',
+      docsNav: 'Documentation navigation',
       docs: 'Docs',
       onThisPage: 'On this page',
       previous: 'Previous',
@@ -185,6 +187,7 @@ export const ui: Record<Lang, UiStrings> = {
     labels: {
       breadcrumbHome: 'الرئيسية',
       breadcrumb: 'مسار التنقل',
+      docsNav: 'التنقل في التوثيق',
       docs: 'التوثيق',
       onThisPage: 'في هذه الصفحة',
       previous: 'السابق',

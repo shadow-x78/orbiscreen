@@ -27,16 +27,6 @@ const ossSecondary = lang === 'ar' ? '/ar/docs' : '/docs';
 
 <Hero lang={lang} hero={data.hero} />
 
-<section class="trust" aria-label={lang === 'ar' ? 'خصائص سريعة' : 'At a glance'}>
-  <div class="container">
-    <div class="chips">
-      {data.trustChips.map((chip) => (
-        <span class="chip"><span class="chip__dot"></span>{chip}</span>
-      ))}
-    </div>
-  </div>
-</section>
-
 <section class="section" id="capabilities" aria-labelledby="capabilities-title">
   <div class="container">
     <div class="section__head">
@@ -85,7 +75,7 @@ const ossSecondary = lang === 'ar' ? '/ar/docs' : '/docs';
       ))}
     </ol>
 
-    <p class="mono faint" style="margin-block-start:24px;font-size:12.5px">{data.howItWorks.footnote}</p>
+    <p class="mono faint" style="margin-block-start:24px">{data.howItWorks.footnote}</p>
   </div>
 </section>
 

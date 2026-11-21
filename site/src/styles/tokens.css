@@ -26,9 +26,11 @@
      text. Captions use this lifted tone (5.3:1) instead. */
   --text-faint-aa: #7d8899;
 
-  /* ── Accents ── */
+  /* ── Accent ──
+     One hue, three steps, each with a job. The ink step clears 4.5:1 on the
+     base background, the solid step clears 4.5:1 against white button text. */
   --accent-interactive: #4c8dff;
-  --accent-brand: #89b4fa;
+  --accent-brand: var(--accent-interactive);
   --accent-solid: #2563eb;
   --accent-solid-hover: #1d4ed8;
   --accent-soft: rgb(76 141 255 / 12%);
@@ -41,7 +43,7 @@
   /* ── Code ── */
   --code-bg: #0a0d11;
   --code-text: #e8edf5;
-  --code-comment: #6b7a90;
+  --code-comment: #6f7e94;
 
   /* ── Light parity (used by print and forced light) ── */
   --light-bg: #f3f5f9;
@@ -56,6 +58,11 @@
   --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-arabic: 'Noto Sans Arabic', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'Source Code Pro', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Labels sit in sentence case. 0.02em is the only tracking the UI uses, and
+     Arabic takes none, because tracking pulls the joined letters apart. */
+  --tracking-label: 0.02em;
+  --tracking-display: -0.3px;
 
   --text-h1: 64px;
   --leading-h1: 72px;
@@ -91,6 +98,7 @@
 
   --shadow-raised: 0 18px 40px rgb(0 0 0 / 28%);
   --focus-ring: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent-interactive);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (max-width: 1279px) {
@@ -120,6 +128,8 @@
 /* Arabic optical parity: larger size, looser leading, no negative tracking. */
 :root[lang='ar'] {
   --font-sans: var(--font-arabic);
+  --tracking-label: 0;
+  --tracking-display: 0;
   --text-h1: 56px;
   --leading-h1: 82px;
   --tracking-h1: 0;

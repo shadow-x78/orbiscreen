@@ -24,7 +24,7 @@ export const changelogPage: Record<
 > = {
   en: {
     eyebrow: 'CHANGELOG',
-    title: 'Every release, in order.',
+    title: 'Every release, in order',
     lede: 'The newest releases with their fixes and changes. The full history, back to the first release, is in CHANGELOG.md next to the source.',
     older: 'Looking for an older release?',
     olderBody:
@@ -33,7 +33,7 @@ export const changelogPage: Record<
   },
   ar: {
     eyebrow: 'سجل التغييرات',
-    title: 'كل إصدار بالترتيب.',
+    title: 'كل إصدار بالترتيب',
     lede: 'أحدث الإصدارات بإصلاحاتها وتغييراتها. والتاريخ الكامل حتى أول إصدار في CHANGELOG.md بجانب الشيفرة.',
     older: 'تبحث عن إصدار أقدم؟',
     olderBody: 'يغطي السجل الكامل كل إصدار منذ البداية، مع سبب كل تغيير وتصحيحات المدخلات السابقة.',
@@ -43,8 +43,8 @@ export const changelogPage: Record<
 
 export const licensePage: Record<Lang, SimplePage> = {
   en: {
-    eyebrow: 'LICENSE',
-    title: 'GPL-3.0-or-later.',
+    eyebrow: 'License',
+    title: 'GPL-3.0-or-later',
     lede: 'Orbiscreen is free software. You can run it, study it, share it, and modify it, provided derivative works stay under the same license.',
     sections: [
       {
@@ -74,7 +74,7 @@ export const licensePage: Record<Lang, SimplePage> = {
   },
   ar: {
     eyebrow: 'الرخصة',
-    title: 'GPL-3.0-or-later.',
+    title: 'GPL-3.0-or-later',
     lede: 'Orbiscreen برنامج حر. يمكنك تشغيله ودراسته ومشاركته وتعديله، بشرط بقاء الأعمال المشتقة تحت الرخصة نفسها.',
     sections: [
       {
@@ -106,8 +106,8 @@ export const licensePage: Record<Lang, SimplePage> = {
 
 export const securityPage: Record<Lang, SimplePage> = {
   en: {
-    eyebrow: 'SECURITY',
-    title: 'Report a vulnerability privately.',
+    eyebrow: 'Security',
+    title: 'Report a vulnerability privately',
     lede: 'Orbiscreen runs on a local network and injects input into your desktop, so security reports are taken seriously and answered privately.',
     sections: [
       {
@@ -145,7 +145,7 @@ export const securityPage: Record<Lang, SimplePage> = {
   },
   ar: {
     eyebrow: 'الأمان',
-    title: 'أبلغ عن ثغرة بخصوصية.',
+    title: 'أبلغ عن ثغرة بخصوصية',
     lede: 'يعمل Orbiscreen على شبكة محلية ويحقن الإدخال في سطح مكتبك، لذا تُؤخذ بلاغات الأمان بجدية وتُجاب بخصوصية.',
     sections: [
       {
@@ -185,8 +185,8 @@ export const securityPage: Record<Lang, SimplePage> = {
 
 export const privacyPage: Record<Lang, SimplePage> = {
   en: {
-    eyebrow: 'PRIVACY',
-    title: 'No accounts, no cookies, no tracking.',
+    eyebrow: 'Privacy',
+    title: 'No accounts, no cookies, no tracking',
     lede: 'This site is static documentation and marketing for a local-network tool. It sets no cookies and asks for no personal data.',
     sections: [
       {
@@ -217,7 +217,7 @@ export const privacyPage: Record<Lang, SimplePage> = {
   },
   ar: {
     eyebrow: 'الخصوصية',
-    title: 'بلا حسابات ولا كوكيز ولا تتبع.',
+    title: 'بلا حسابات ولا كوكيز ولا تتبع',
     lede: 'هذا الموقع توثيق وتسويق ثابت لأداة تعمل على الشبكة المحلية. لا يضع كوكيز ولا يطلب بيانات شخصية.',
     sections: [
       {

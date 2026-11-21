@@ -188,24 +188,24 @@ export interface DownloadButton {
 }
 
 const hostEn: DownloadButton[] = [
-  { icon: 'github', micro: 'ALL PACKAGES', main: 'GitHub Releases', href: RELEASES_URL, external: true },
+  { icon: 'github', micro: 'All packages', main: 'GitHub Releases', href: RELEASES_URL, external: true },
   {
     icon: 'terminal',
-    micro: 'UBUNTU / DEBIAN',
+    micro: 'Ubuntu / Debian',
     main: 'APT Repository',
     href: PPA_URL,
     external: true,
   },
   {
     icon: 'terminal',
-    micro: 'FEDORA / RHEL',
+    micro: 'Fedora / RHEL',
     main: 'COPR Repository',
     href: COPR_URL,
     external: true,
   },
-  { icon: 'terminal', micro: 'ARCH / MANJARO', main: 'PKGBUILD', href: `${RELEASES_URL}/latest`, external: true },
-  { icon: 'display', micro: 'PORTABLE BINARY', main: 'AppImage', href: RELEASES_URL, external: true },
-  { icon: 'chip', micro: 'CARGO / GIT', main: 'Build from source', href: 'https://github.com/shadow-x78/orbiscreen', external: true },
+  { icon: 'terminal', micro: 'Arch / Manjaro', main: 'PKGBUILD', href: `${RELEASES_URL}/latest`, external: true },
+  { icon: 'display', micro: 'Portable binary', main: 'AppImage', href: RELEASES_URL, external: true },
+  { icon: 'chip', micro: 'Cargo / Git', main: 'Build from source', href: 'https://github.com/shadow-x78/orbiscreen', external: true },
 ];
 
 const hostAr: DownloadButton[] = [
@@ -230,8 +230,8 @@ const hostAr: DownloadButton[] = [
 ];
 
 const clientEn: DownloadButton[] = [
-  { icon: 'android', micro: 'DIRECT DOWNLOAD', main: 'Android APK', href: `${RELEASES_URL}/latest`, external: true },
-  { icon: 'globe', micro: 'NO INSTALL', main: 'Web Client', href: '/features#web-client', external: false },
+  { icon: 'android', micro: 'Direct download', main: 'Android APK', href: `${RELEASES_URL}/latest`, external: true },
+  { icon: 'globe', micro: 'No install', main: 'Web Client', href: '/features#web-client', external: false },
 ];
 
 const clientAr: DownloadButton[] = [

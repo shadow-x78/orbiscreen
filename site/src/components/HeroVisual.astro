@@ -1,6 +1,6 @@
 ---
 // ─────────────────────────────────────────────
-// Orbiscreen - Hero device mockup (pure CSS)
+// Orbiscreen - Hero visual: the host display and the extended tablet
 // https://github.com/shadow-x78/orbiscreen
 // ─────────────────────────────────────────────
 
@@ -14,60 +14,88 @@ const { lang } = Astro.props;
 const t =
   lang === 'ar'
     ? {
-        window: 'orbiscreen · الشاشة 2',
-        res: '1920x1080 · 60Hz',
-        codec: 'H.264 NVENC',
-        extended: 'ممتدة',
-        latency: '2-4 ms نقل',
+        hostTitle: 'الطرفية',
+        hostMetaLabel: 'الشاشة 1 ·',
+        hostMetaValue: '1920x1080',
+        cmd: 'orbiscreen doctor',
+        checks: [
+          { label: 'compositor:', value: 'KWin (Wayland)' },
+          { label: 'virtual display:', value: 'portal' },
+          { label: 'encoder:', value: 'NVENC · 8 Mbps' },
+          { label: 'root:', value: 'not needed' },
+        ],
+        tabletMetaLabel: 'الشاشة 2 ·',
+        tabletMetaValue: 'ممتدة',
+        editorFile: 'main.rs',
+        latency: '2-4 ms',
+        latencyLabel: 'نقل',
       }
     : {
-        window: 'orbiscreen · display 2',
-        res: '1920x1080 · 60Hz',
-        codec: 'H.264 NVENC',
-        extended: 'Extended',
-        latency: '2-4 ms transport',
+        hostTitle: 'bash',
+        hostMetaLabel: 'display 1 ·',
+        hostMetaValue: '1920x1080',
+        cmd: 'orbiscreen doctor',
+        checks: [
+          { label: 'compositor:', value: 'KWin (Wayland)' },
+          { label: 'virtual display:', value: 'portal' },
+          { label: 'encoder:', value: 'NVENC · 8 Mbps' },
+          { label: 'root:', value: 'not needed' },
+        ],
+        tabletMetaLabel: 'display 2 ·',
+        tabletMetaValue: 'extended',
+        editorFile: 'main.rs',
+        latency: '2-4 ms',
+        latencyLabel: 'transport',
       };
 ---
 
-<div class="mock" role="img" aria-label={lang === 'ar' ? 'رسم توضيحي: شاشة سطح مكتب ممتدة على تابلت أندرويد' : 'Illustration: an extended desktop display on an Android tablet'}>
+<div
+  class="mock"
+  role="img"
+  aria-label={lang === 'ar' ? 'الطرفية على المضيف تعرض orbiscreen doctor، والتابلت يعرض شاشة ثانية ممتدة' : 'The host terminal running orbiscreen doctor, and the tablet showing the extended second display'}
+>
   <div class="mock__monitor">
     <div class="mock__bar">
-      <span class="mock__dot mock__dot--r"></span>
-      <span class="mock__dot mock__dot--y"></span>
-      <span class="mock__dot mock__dot--g"></span>
-      <span class="mock__title">{t.window}</span>
-      <span class="mock__res">{t.res}</span>
+      <span class="mock__bar-title">{t.hostTitle}</span>
+      <span class="mock__bar-meta">
+        <span>{t.hostMetaLabel}</span>
+        <bdi dir="ltr">{t.hostMetaValue}</bdi>
+      </span>
     </div>
-    <div class="mock__screen">
-      <div class="mock__pane">
-        <div class="mock__line"></div>
-        <div class="mock__line"></div>
-        <div class="mock__line mock__line--short"></div>
-        <span class="mock__badge">{t.codec}</span>
-      </div>
-      <div class="mock__pane mock__pane--accent">
-        <div class="mock__line mock__line--accent"></div>
-        <div class="mock__line"></div>
-        <div class="mock__line"></div>
-        <div class="mock__line mock__line--short"></div>
-        <span class="mock__badge">{t.extended}</span>
-      </div>
+    <div class="mock__term" dir="ltr">
+      <p class="mock__term-line mock__term-cmd">$ {t.cmd}</p>
+      {t.checks.map((check) => (
+        <p class="mock__term-line mock__term-ok">
+          <span class="mock__check">✓</span> <span>{check.label}</span>
+          <bdi>{check.value}</bdi>
+        </p>
+      ))}
     </div>
   </div>
 
   <div class="mock__tablet" aria-hidden="true">
+    <div class="mock__bar">
+      <span class="mock__bar-meta">
+        <span>{t.tabletMetaLabel}</span>
+        <span>{t.tabletMetaValue}</span>
+      </span>
+    </div>
     <div class="mock__tablet-screen">
-      <div class="mock__line mock__line--accent"></div>
-      <div class="mock__line"></div>
-      <div class="mock__line"></div>
-      <div class="mock__line mock__line--short"></div>
-      <div class="mock__line"></div>
-      <div class="mock__line mock__line--short"></div>
+      <div class="mock__editor">
+        <span class="mock__editor-file">{t.editorFile}</span>
+        <p class="mock__editor-line" dir="ltr"><span class="mock__kw">fn</span> <span class="mock__fn">main</span>() &#123;</p>
+        <p class="mock__editor-line" dir="ltr">    <span class="mock__kw">let</span> fps = <span class="mock__num">60</span>;</p>
+        <p class="mock__editor-line" dir="ltr">&#125;</p>
+      </div>
+      <div class="mock__term mock__term--small" dir="ltr">
+        <p class="mock__term-line mock__term-cmd">$ make</p>
+      </div>
     </div>
   </div>
 
-  <div class="mock__latency" aria-hidden="true">
-    <span class="chip__dot"></span>
-    <span>{t.latency}</span>
-  </div>
+  <p class="latency">
+    <span class="latency__dot"></span>
+    <span class="latency__value" dir="ltr">{t.latency}</span>
+    <span class="latency__label">{t.latencyLabel}</span>
+  </p>
 </div>

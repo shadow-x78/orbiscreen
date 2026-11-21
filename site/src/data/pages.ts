@@ -49,8 +49,8 @@ export interface FaqPage {
 }
 
 const featuresEn: FeaturesPage = {
-  eyebrow: 'FEATURES',
-  title: 'Everything a second screen needs.',
+  eyebrow: 'Features',
+  title: 'Everything a second screen needs',
   lede:
     'Orbiscreen is not a mirror and not a remote desktop. It creates a real virtual monitor on the Linux host, streams it as H.264, and injects the tablet input back as native Linux events.',
   sections: [
@@ -176,7 +176,7 @@ const featuresEn: FeaturesPage = {
 
 const featuresAr: FeaturesPage = {
   eyebrow: 'المزايا',
-  title: 'كل ما تحتاجه شاشة ثانية.',
+  title: 'كل ما تحتاجه شاشة ثانية',
   lede:
     'Orbiscreen ليس نسخاً للشاشة ولا سطح مكتب بعيد. ينشئ شاشة افتراضية حقيقية على مضيف Linux، ويبثها بترميز H.264، ويعيد إدخال التابلت كأحداث Linux أصلية.',
   sections: [
@@ -301,8 +301,8 @@ const featuresAr: FeaturesPage = {
 };
 
 const installEn: InstallPage = {
-  eyebrow: 'INSTALLATION',
-  title: 'Install in one command.',
+  eyebrow: 'Installation',
+  title: 'Install in one command',
   lede:
     'Pick the package for your distribution. Every method installs the same daemon, CLI, D-Bus service, and systemd user unit; only the delivery differs.',
   requirements: {
@@ -348,7 +348,7 @@ const installEn: InstallPage = {
 
 const installAr: InstallPage = {
   eyebrow: 'التثبيت',
-  title: 'ثبّت بأمر واحد.',
+  title: 'ثبّت بأمر واحد',
   lede:
     'اختر حزمة توزيعتك. كل الطرق تثبّت الخادم نفسه وسطر الأوامر وخدمة D-Bus ووحدة systemd للمستخدم؛ يتغيّر التوصيل فقط.',
   requirements: {
@@ -392,8 +392,8 @@ const installAr: InstallPage = {
 };
 
 const compareEn: ComparePage = {
-  eyebrow: 'COMPARISON',
-  title: 'How Orbiscreen compares.',
+  eyebrow: 'Comparison',
+  title: 'How Orbiscreen compares',
   lede:
     'Second-screen tools differ mainly in whether they extend the desktop or mirror it, and whether they need root, a dummy HDMI plug, or a cloud service.',
   methodology: {
@@ -431,7 +431,7 @@ const compareEn: ComparePage = {
 
 const compareAr: ComparePage = {
   eyebrow: 'المقارنة',
-  title: 'كيف يُقارَن Orbiscreen.',
+  title: 'كيف يُقارَن Orbiscreen',
   lede:
     'تختلف أدوات الشاشة الثانية أساساً في كونها تمدّ سطح المكتب أو تنسخه، وفي حاجتها إلى root أو وصلة HDMI وهمية أو خدمة سحابية.',
   methodology: {
@@ -469,7 +469,7 @@ const compareAr: ComparePage = {
 
 const faqEn: FaqPage = {
   eyebrow: 'FAQ',
-  title: 'Questions, answered.',
+  title: 'Questions, answered',
   lede:
     'The short answers to what people ask before installing. Each answer names the component involved, so you can verify it in the source.',
   cta: {
@@ -482,7 +482,7 @@ const faqEn: FaqPage = {
 
 const faqAr: FaqPage = {
   eyebrow: 'الأسئلة',
-  title: 'أسئلة وأجوبة.',
+  title: 'أسئلة وأجوبة',
   lede: 'أجوبة قصيرة عمّا يُسأل قبل التثبيت. كل جواب يسمّي المكوّن المعني كي تتحقق منه في الشيفرة.',
   cta: {
     title: 'ما زلت عالقاً؟',

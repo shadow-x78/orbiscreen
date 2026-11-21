@@ -70,7 +70,7 @@ const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
 
 <div class="doc">
   <div class="container doc__grid">
-    <aside class="doc__sidebar">
+    <aside class="doc__sidebar" aria-label={t.labels.docsNav}>
       <a class="doc__nav-link" href={docsHref} style="font-weight:600;color:var(--text-primary)">
         {t.labels.allDocs}
       </a>
@@ -145,16 +145,29 @@ const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
       mermaid.initialize({
         startOnLoad: false,
         securityLevel: 'strict',
-        theme: 'dark',
+        // base, not dark: the dark preset derives some strokes from a violet
+        // palette, so every value is set here instead.
+        theme: 'base',
         themeVariables: {
+          darkMode: true,
           background: '#0E1116',
           primaryColor: '#1B222B',
           primaryTextColor: '#E8EDF5',
           primaryBorderColor: '#333D4B',
-          lineColor: '#93A0B4',
           secondaryColor: '#151A21',
+          secondaryBorderColor: '#252D38',
+          secondaryTextColor: '#93A0B4',
           tertiaryColor: '#0A0D11',
+          tertiaryBorderColor: '#252D38',
+          tertiaryTextColor: '#93A0B4',
+          lineColor: '#93A0B4',
+          textColor: '#93A0B4',
+          nodeBorder: '#333D4B',
+          clusterBkg: '#0A0D11',
+          clusterBorder: '#252D38',
+          edgeLabelBackground: '#0E1116',
           fontFamily: 'Inter Variable, Inter, sans-serif',
+          fontSize: '13px',
         },
       });
 

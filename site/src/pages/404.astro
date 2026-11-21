@@ -16,7 +16,7 @@ const docsHref = '/docs';
   <section class="section" style="min-height:60vh;display:flex;align-items:center">
     <div class="container" style="max-width:720px">
       <p class="eyebrow">404</p>
-      <h1 class="h1" style="margin-block:14px 16px">That page does not exist.</h1>
+      <h1 class="h1" style="margin-block:14px 16px">That page does not exist</h1>
       <p class="lede" style="margin-block-end:28px">
         The link may come from an older release, or the path may have changed. The documentation index and the home page are the fastest ways back.
       </p>
@@ -27,9 +27,21 @@ const docsHref = '/docs';
         </a>
         <a class="btn btn--secondary" href={docsHref}>Browse the documentation</a>
       </div>
-      <p class="muted" lang="ar" dir="rtl" style="margin-block-start:28px">
+      <p class="not-found-ar" lang="ar" dir="rtl">
         هذه الصفحة غير موجودة. يمكنك العودة إلى <a href="/ar">الصفحة الرئيسية</a> أو تصفّح <a href="/ar/docs">التوثيق</a>.
       </p>
     </div>
   </section>
 </Base>
+
+<style>
+  /* Links inside body text must not rely on colour alone (WCAG 1.4.1). */
+  .not-found-ar {
+    margin-block-start: 28px;
+    color: var(--text-muted);
+  }
+
+  .not-found-ar a {
+    text-decoration: underline;
+  }
+</style>
