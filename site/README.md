@@ -93,6 +93,22 @@ custom domain cannot attach over an externally managed record. A route only
 needs the record to exist and be proxied, which it is. If that A record is ever
 deleted in the dashboard, both entries can become `custom_domain: true`.
 
+### Cloudflare blocks two of the crawlers robots.txt allows
+
+On the live zone, `ClaudeBot` and `PerplexityBot` receive `403 Your request was
+blocked` while `GPTBot`, `OAI-SearchBot`, `ChatGPT-User`, `Google-Extended`,
+`CCBot`, `Applebot`, `Googlebot` and `Bingbot` receive `200`. That is Cloudflare's
+AI bot blocking at the edge, before the worker runs, so nothing in this
+repository can override it — and it defeats the point of `llms.txt` and the
+Markdown mirrors for those two engines. Turn it off under **Security → Bots**
+("Block AI bots" / AI Crawl Control) and re-check with:
+
+```bash
+for ua in ClaudeBot PerplexityBot GPTBot OAI-SearchBot; do
+  printf '%-16s ' "$ua"; curl -s -A "$ua" -o /dev/null -w '%{http_code}\n' https://orbiscreen.com/features
+done
+```
+
 ### One zone setting fights the CSP
 
 Cloudflare injects `/cdn-cgi/challenge-platform/scripts/jsd/main.js` as an inline
