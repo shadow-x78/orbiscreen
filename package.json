@@ -1,7 +1,6 @@
 {
   "name": "orbiscreen-deploy",
   "private": true,
-  "type": "module",
   "description": "Build and deploy entry point for the website in site/. The Rust workspace is the project itself; this file only exists so a CI builder that starts at the repository root still finds a package.json and a wrangler config.",
   "scripts": {
     "build": "node scripts/build-site.mjs",

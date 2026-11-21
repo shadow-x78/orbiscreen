@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "orbiscreen-site",
-  "main": "./worker/index.js",
+  "main": "./worker/index.mjs",
   "compatibility_date": "2026-11-21",
   // Keeps a workers.dev URL for testing a deployment before the custom
   // domains resolve.
