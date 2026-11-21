@@ -2,12 +2,18 @@
 # Orbiscreen - robots.txt
 # https://orbiscreen.com/
 # ─────────────────────────────────────────────
+# Answer engines and crawlers are explicitly welcome: the site exists to be
+# read by them, and llms.txt and the per-page Markdown mirrors serve the same
+# content in a cleaner form.
+#
+# Cloudflare's "Bot Preference Sync" prepends a managed block that disallows
+# most AI crawlers (Content-Signal: ai-train=no). When both blocks name the same
+# user agent, RFC 9309 merges the groups and the first Disallow wins, so the
+# managed block must be turned off in AI Crawl Control for this file to apply.
 
 User-agent: *
 Allow: /
 
-# Answer engines and crawlers are explicitly welcome. Nothing on this site is
-# gated, and the Markdown mirrors under each path serve the same content.
 User-agent: GPTBot
 Allow: /
 
@@ -23,7 +29,13 @@ Allow: /
 User-agent: Claude-SearchBot
 Allow: /
 
+User-agent: Claude-User
+Allow: /
+
 User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
 Allow: /
 
 User-agent: Google-Extended
@@ -39,6 +51,12 @@ User-agent: Bingbot
 Allow: /
 
 User-agent: CCBot
+Allow: /
+
+User-agent: Yeti
+Allow: /
+
+User-agent: DuckAssistBot
 Allow: /
 
 Sitemap: https://orbiscreen.com/sitemap-index.xml

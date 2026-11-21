@@ -97,6 +97,21 @@ custom domain cannot attach over an externally managed record. A route only
 needs the record to exist and be proxied, which it is. If that A record is ever
 deleted in the dashboard, both entries can become `custom_domain: true`.
 
+### Bot Preference Sync overwrites robots.txt
+
+AI Crawl Control's **Bot Preference Sync** prepends a managed block to
+`robots.txt` that disallows most AI crawlers (`Content-Signal: ai-train=no`)
+before the repository's own rules. When two groups name the same user agent,
+RFC 9309 merges them and the first `Disallow` wins, so the site's `Allow`
+never takes effect for those agents.
+
+Turn it off under **AI Crawl Control → Overview → Enable Bot Preference Sync**,
+then confirm the served file starts with the site's own header:
+
+```bash
+curl -s https://orbiscreen.com/robots.txt | head -12
+```
+
 ### Cloudflare blocks two of the crawlers robots.txt allows
 
 On the live zone, `ClaudeBot` and `PerplexityBot` receive `403 Your request was
