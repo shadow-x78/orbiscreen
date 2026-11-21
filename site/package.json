@@ -12,7 +12,9 @@
     "dev": "astro dev",
     "preview": "astro preview",
     "check": "astro check",
-    "verify": "node scripts/check-site.mjs"
+    "verify": "node scripts/check-site.mjs",
+    "deploy": "wrangler deploy --config ../wrangler.jsonc",
+    "worker": "wrangler dev --config ../wrangler.jsonc"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.0.0",

@@ -23,9 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   description, a missing Markdown mirror, malformed sitemap or RSS, or an inline
   script the generated CSP does not allow. `.github/workflows/site.yml` runs the
   same gate on changes to `site/`, `docs/`, `CHANGELOG.md`, or `Cargo.toml`.
-- A Cloudflare deployment path: `site/wrangler.jsonc` serves `dist` as static
-  assets with dropped trailing slashes and the custom 404 page, so the same
-  build runs on Workers or Pages.
+- A Cloudflare deployment path: `wrangler.jsonc` at the repository root serves
+  `site/dist` as static assets with dropped trailing slashes and the custom 404
+  page, so the same build runs on Workers or Pages. A root `package.json`
+  delegates `build` and `deploy` into `site/`, which keeps a builder that starts
+  at the repository root working without a root-directory setting.
 
 ### Changed
 - `docs/PACKAGING_AR.md` gained a `release-publishing-secrets` anchor so the

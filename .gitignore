@@ -74,6 +74,7 @@ __pycache__/
 *.pyc
 
 # ── Website (Astro) ──
+/node_modules/
 /site/node_modules/
 /site/dist/
 /site/.astro/

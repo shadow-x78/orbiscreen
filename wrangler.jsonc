@@ -1,9 +1,9 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "orbiscreen-site",
   "compatibility_date": "2026-11-21",
   "assets": {
-    "directory": "./dist",
+    "directory": "./site/dist",
     "html_handling": "drop-trailing-slash",
     "not_found_handling": "404-page"
   }

@@ -54,23 +54,43 @@ link still points at the page, and the build prints which one.
 
 ## Deploying
 
-Cloudflare Pages builds and deploys this directory directly.
+The repository root carries a small entry point so a builder that starts at `/`
+works without any extra configuration:
 
-- Connect the repository, branch `main`.
-- Root directory: `site`
-- Build command: `npm ci && npm run build`
+| File | Purpose |
+| --- | --- |
+| `/package.json` | `build` runs `cd site && npm ci && npm run build`; `deploy` runs `wrangler deploy` |
+| `/package-lock.json` | pins the `wrangler` CLI used by the deploy step |
+| `/wrangler.jsonc` | serves `./site/dist` as static assets, drops trailing slashes, uses the custom 404 |
 
-  No custom command is needed for history. `sync-docs` dates each document from
-  its last commit; when it finds a shallow clone (Cloudflare's default) it runs
-  `git fetch --unshallow` once itself, so the build command stays plain. If the
-  fetch is impossible (offline or read-only checkout) it falls back to the newest
-  `CHANGELOG.md` date and prints a warning instead of inventing "today".
-- Output directory: `dist`
-- Environment: `NODE_VERSION=22`
+Cloudflare Workers Builds (or Pages) settings:
+
+- Repository `shadow-x78/orbiscreen`, production branch `main`.
+- **Root directory**: `/` — leave it. If your project allows editing it, `site`
+  also works with `npm ci && npm run build` and `npx wrangler deploy`.
+- **Build command**: `npm ci && npm run build`
+- **Deploy command**: `npx wrangler deploy`
+- **Version command**: `npx wrangler versions upload`
+- **Variable**: `NODE_VERSION` = `22`
+
+No custom history command is needed: `sync-docs` dates each document from its
+last commit, and when it finds a shallow clone it runs `git fetch --unshallow`
+itself. If the fetch is impossible it falls back to the newest `CHANGELOG.md`
+date and prints a warning instead of inventing "today".
 
 Then attach `orbiscreen.com` and `www.orbiscreen.com`, redirect `www` to the
 apex, and enable Web Analytics for the project. Nothing in the build needs a
 secret.
+
+Locally, from the repository root:
+
+```bash
+npm ci            # the wrangler CLI for deploys
+npm run build     # builds site/ and runs the gates
+npm run dev       # wrangler dev serving site/dist on :8787
+```
+
+or from `site/` as before: `npm run build`, `npm run deploy`, `npm run worker`.
 
 `.github/workflows/site.yml` runs the same build and gates on every change to
 `site/`, `docs/`, `CHANGELOG.md`, or `Cargo.toml`, so a broken page cannot reach
