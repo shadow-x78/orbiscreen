@@ -57,10 +57,12 @@ impl CaptureStats {
 
     fn note_skipped(&self) {
         self.skipped.fetch_add(1, Ordering::Relaxed);
+        self.maybe_report();
     }
 
     fn note_dropped(&self) {
         self.dropped.fetch_add(1, Ordering::Relaxed);
+        self.maybe_report();
     }
 
     fn maybe_report(&self) {
