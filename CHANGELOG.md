@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.44.9] - 2026-11-22
 
 ### Changed
 - **The Android app now follows the host's resolution by default.** Its preset
@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ignored the resolution set on the host. "Host" is the default now, "Native"
   stays available for pixel-perfect 1:1, the chip row shows both, and a stored
   "native" preference is migrated once.
+- Version bumped to 0.44.9 across the Cargo workspace, Android (`versionCode` 209), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 
 ## [v0.44.8] - 2026-11-22
 

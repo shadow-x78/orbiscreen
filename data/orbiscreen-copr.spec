@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.44.8
+%global version 0.44.9
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -152,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sun Nov 22 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.44.9-1
+- Release 0.44.9: follow the host resolution by default (#116)
+
 * Sun Nov 22 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.44.8-1
 - Release 0.44.8: keep the idle stream alive once a second (#116)
 

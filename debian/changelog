@@ -1,3 +1,11 @@
+orbiscreen (0.44.9~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.44.9 for Ubuntu noble.
+  * follow the host resolution by default (#116)
+  * Bump version to 0.44.9 across all packages; Android versionCode 209.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Mon, 23 Nov 2026 01:41:08 +0300
+
 orbiscreen (0.44.8~ubuntunoble1) noble; urgency=medium
 
   * Release 0.44.8 for Ubuntu noble.
