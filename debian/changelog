@@ -1,3 +1,11 @@
+orbiscreen (0.44.8~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.44.8 for Ubuntu noble.
+  * keep the idle stream alive once a second (#116)
+  * Bump version to 0.44.8 across all packages; Android versionCode 208.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Sun, 22 Nov 2026 19:44:15 +0300
+
 orbiscreen (0.44.7~ubuntunoble1) noble; urgency=medium
 
   * Release 0.44.7 for Ubuntu noble.

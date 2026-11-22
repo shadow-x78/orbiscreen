@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.44.8] - 2026-11-22
 
 ### Added
 - **The site answers requests that ask for Markdown.** A request with
@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   even after duplicates were dropped. The keepalive interval is one second, so
   the same static screen costs a tenth of that. A frame that actually changes
   still preempts the timeout and is encoded immediately.
+- Version bumped to 0.44.8 across the Cargo workspace, Android (`versionCode` 208), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 
 ## [v0.44.7] - 2026-11-22
 

@@ -2,7 +2,7 @@
 
 # مواصفات المعمارية - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.44.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.44.8-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -101,14 +101,14 @@ flowchart TD
 
 <div dir="rtl" align="right">
 
-نقلت إعادة الهيكلة في 0.44.7 كل تعريف مكرر إلى الطبقة الأدنى التي تملكه:
+نقلت إعادة الهيكلة في 0.44.8 كل تعريف مكرر إلى الطبقة الأدنى التي تملكه:
 
 - `orbiscreen-core::{session, frame, paths, shm, ports, report, output}`: خطة الالتقاط وكشف الجلسة، وتحويل BGRA/الـ stride، ومسارات XDG والكتابة الذرية للأسرار، وتعيين الذاكرة المشتركة، وحساب المنافذ، وتقارير `StatusReport`/`DoctorReport`، وأسماء المخارج الافتراضية.
 - `orbiscreen-transport::{protocol, session}`: أنواع الإطارات وأطوال الرؤوس ومسارات النقاط، وسياسة الاتصال والقطع وطلب IDR وانتظار الإطار المفتاحي المشتركة بين HTTP Annex-B و MPEG-TS و WebTransport.
 - `orbiscreen-daemon::pipeline`: مضخة IDR، وتطبيع PTS، وتحجيم إحداثيات الإدخال، وتوزيع `IncomingInput` المشترك بين مساري العرض المشترك ولكل عميل.
 - `clients/web/protocol.js` (يتحقق منه `protocol.golden.json`) و`net/Protocol.kt` في Android هما النظيران في العميل. و`net/HostSpec.kt` هو المرجع الوحيد لتحليل host:port والمخطط وعنوان loopback.
 
-أُزيلت جلسة العرض الثانوي المستقلة في 0.44.7 لأنها كانت تحجز `signaling_port + 2`، وهو نفس منفذ WebTransport، فلم تكن تعمل بجانب النقل العادي. تدعم عدة أجهزة لوحية عبر مركز جلسات KWin لكل عميل، بمخرج `Virtual-Orbi-<key>` لكل جهاز.
+أُزيلت جلسة العرض الثانوي المستقلة في 0.44.8 لأنها كانت تحجز `signaling_port + 2`، وهو نفس منفذ WebTransport، فلم تكن تعمل بجانب النقل العادي. تدعم عدة أجهزة لوحية عبر مركز جلسات KWin لكل عميل، بمخرج `Virtual-Orbi-<key>` لكل جهاز.
 
 </div>
 
