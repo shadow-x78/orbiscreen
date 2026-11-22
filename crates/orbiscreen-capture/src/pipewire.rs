@@ -33,9 +33,6 @@ pub(crate) struct PipewireCapture {
 const STALL_REPORT_AFTER: Duration = Duration::from_secs(5);
 const STATS_WINDOW: Duration = Duration::from_secs(5);
 
-/// Frames seen, captured, and skipped as duplicates. The pump forces the
-/// compositor to produce frames whether or not anything changed, so this is the
-/// number that says whether the encoder is doing work for a static picture.
 struct CaptureStats {
     captured: AtomicU64,
     skipped: AtomicU64,
@@ -178,9 +175,6 @@ impl PipewireCapture {
                             }
                         }
                         FrameSample::Unchanged => {
-                            // The pipeline is alive and produced a frame; it is
-                            // simply identical. Counting it keeps the stall
-                            // detector from reporting a static picture.
                             stall_for_sink
                                 .lock()
                                 .unwrap_or_else(|e| e.into_inner())

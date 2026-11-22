@@ -56,18 +56,13 @@ pub struct CaptureSession {
     height: u32,
 }
 
-/// Outcome of turning one GStreamer sample into a capture frame.
 #[derive(Debug)]
 pub(crate) enum FrameSample {
     Captured(CapturedFrame),
-    /// The pixels are identical to the previous frame, so nothing downstream
-    /// needs to run. Mirrors what the X11 backend already does.
     Unchanged,
-    /// The sample was unusable and has been logged.
     Dropped,
 }
 
-/// Remembers the previous frame's digest. Returns true when the digest matches.
 pub(crate) fn frame_is_unchanged(
     last_hash: &std::sync::Mutex<Option<[u64; 2]>>,
     hash: [u64; 2],
@@ -178,9 +173,7 @@ impl VirtualOutputLease {
         };
         let capture = tokio::task::spawn_blocking(move || {
             kwin_virtual::KwinVirtualCapture::open(kwin_virtual::KwinVirtualSpec::unnamed(
-                width,
-                height,
-                refresh_hz,
+                width, height, refresh_hz,
             ))
         })
         .await
