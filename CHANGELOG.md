@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.44.7] - 2026-11-22
 
 ### Fixed
 - **A static picture no longer keeps the encoder and the GPU busy on KWin/Wayland
@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   conversion no longer runs four CPU threads at 1080p. The pipeline is started
   before it is accepted, so a setup that cannot negotiate through VPP falls back
   to CPU conversion and then to x264 exactly as before.
+- Version bumped to 0.44.7 across the Cargo workspace, Android (`versionCode` 207), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 
 ## [v0.44.6] - 2026-11-21
 

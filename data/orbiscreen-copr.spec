@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.44.6
+%global version 0.44.7
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -152,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sun Nov 22 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.44.7-1
+- Release 0.44.7: stop encoding a static screen on KWin and Wayland
+
 * Sat Nov 21 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.44.6-1
 - Release 0.44.6: ship the orbiscreen.com site and its build pipeline
 

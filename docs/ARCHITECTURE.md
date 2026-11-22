@@ -2,7 +2,7 @@
 
 # Architecture Specification - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.44.6-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.44.7-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -124,14 +124,14 @@ Qt 6 Widgets application and links only `Qt6::Widgets`, `Qt6::DBus`, and
 
 ### Shared Foundations
 
-The 0.44.6 refactor moved every repeated definition to the lowest layer that owns it:
+The 0.44.7 refactor moved every repeated definition to the lowest layer that owns it:
 
 - `orbiscreen-core::{session, frame, paths, shm, ports, report, output}` defines the capture plan and session detection, BGRA/stride conversion, XDG paths and atomic secret writes, shared-memory mapping, port arithmetic, `StatusReport`/`DoctorReport`, and virtual-output names.
 - `orbiscreen-transport::{protocol, session}` defines frame types and header lengths, endpoint paths, and the shared attach/detach/IDR/keyframe policy used by HTTP Annex-B, HTTP MPEG-TS, and WebTransport.
 - `orbiscreen-daemon::pipeline` defines the IDR pump, PTS normalization, input coordinate scaling, and the `IncomingInput` dispatch shared by the shared-display and per-client paths.
 - `clients/web/protocol.js` (checked by `protocol.golden.json`) and Android `net/Protocol.kt` are the client-side counterparts. Android `net/HostSpec.kt` is the single host:port/scheme/loopback authority.
 
-The separate secondary-display session was removed in 0.44.6. It bound `signaling_port + 2`, the same port as the WebTransport listener, so it could not run beside the normal transport. Multiple tablets are handled by the KWin per-client session hub, one `Virtual-Orbi-<key>` output per device.
+The separate secondary-display session was removed in 0.44.7. It bound `signaling_port + 2`, the same port as the WebTransport listener, so it could not run beside the normal transport. Multiple tablets are handled by the KWin per-client session hub, one `Virtual-Orbi-<key>` output per device.
 
 ---
 

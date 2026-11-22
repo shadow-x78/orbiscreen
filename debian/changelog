@@ -1,3 +1,11 @@
+orbiscreen (0.44.7~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.44.7 for Ubuntu noble.
+  * stop encoding a static screen on KWin and Wayland
+  * Bump version to 0.44.7 across all packages; Android versionCode 207.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Sun, 22 Nov 2026 11:56:39 +0300
+
 orbiscreen (0.44.6~ubuntunoble1) noble; urgency=medium
 
   * Release 0.44.6 for Ubuntu noble.
