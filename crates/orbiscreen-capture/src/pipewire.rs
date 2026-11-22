@@ -18,6 +18,7 @@ pub(crate) struct PipewireSpec {
     pub node_id: u32,
     pub width: u32,
     pub height: u32,
+    pub activity: Option<Arc<AtomicU64>>,
 }
 
 pub(crate) struct PipewireCapture {
@@ -151,6 +152,7 @@ impl PipewireCapture {
         let pool = Arc::new(FramePool::new());
         let last_hash = Arc::new(Mutex::new(None::<[u64; 2]>));
         let stats = Arc::new(CaptureStats::new());
+        let activity = spec.activity.clone();
         let stall = Arc::new(std::sync::Mutex::new(StallWatch::new()));
         let stall_for_sink = Arc::clone(&stall);
         let hash_for_sink = Arc::clone(&last_hash);
@@ -167,6 +169,9 @@ impl PipewireCapture {
                     };
                     match sample_to_captured_frame(&sample, &pool, &hash_for_sink) {
                         FrameSample::Captured(frame) => {
+                            if let Some(activity) = &activity {
+                                activity.store(super::now_millis(), Ordering::Relaxed);
+                            }
                             stall_for_sink
                                 .lock()
                                 .unwrap_or_else(|e| e.into_inner())
@@ -385,6 +390,7 @@ mod tests {
             fd,
             width,
             height,
+            activity: None,
         }
     }
 

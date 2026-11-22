@@ -2,7 +2,7 @@ use std::io::Write as _;
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -811,11 +811,13 @@ impl KwinVirtualCapture {
             }
         };
 
+        let activity = Arc::new(AtomicU64::new(super::now_millis()));
         let pipewire = PipewireCapture::open(PipewireSpec {
             fd: None,
             node_id,
             width: spec.width,
             height: spec.height,
+            activity: Some(Arc::clone(&activity)),
         })
         .map_err(KwinVirtualError::Wayland)?;
 
@@ -824,7 +826,7 @@ impl KwinVirtualCapture {
         let hint = accepted_name
             .clone()
             .unwrap_or_else(|| VIRTUAL_OUTPUT_CONNECTOR.to_string());
-        let damage_pump = super::damage_pump::spawn(pump_interval, &hint);
+        let damage_pump = super::damage_pump::spawn(pump_interval, &hint, activity);
 
         let ended = Arc::new(AtomicBool::new(false));
         let stop = Arc::new(AtomicBool::new(false));

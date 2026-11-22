@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -11,6 +11,8 @@ use wayland_protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::Ancho
 use wayland_protocols_wlr::layer_shell::v1::client::{zwlr_layer_shell_v1, zwlr_layer_surface_v1};
 
 const DEFAULT_OUTPUT_HINT: &str = "ORBISCREEN";
+const IDLE_PERIOD: Duration = Duration::from_secs(1);
+const ACTIVE_WINDOW_MS: u64 = 2_000;
 
 pub(crate) struct DamagePumpHandle {
     stop: Arc<AtomicBool>,
@@ -26,7 +28,15 @@ impl Drop for DamagePumpHandle {
     }
 }
 
-pub(crate) fn spawn(period: Duration, hint: &str) -> DamagePumpHandle {
+fn pump_period(active_period: Duration, activity_ms: u64, now_ms: u64) -> Duration {
+    if now_ms.saturating_sub(activity_ms) < ACTIVE_WINDOW_MS {
+        active_period
+    } else {
+        IDLE_PERIOD
+    }
+}
+
+pub(crate) fn spawn(period: Duration, hint: &str, activity: Arc<AtomicU64>) -> DamagePumpHandle {
     let stop = Arc::new(AtomicBool::new(false));
     let pump_stop = Arc::clone(&stop);
     let hint = if hint.is_empty() {
@@ -34,6 +44,7 @@ pub(crate) fn spawn(period: Duration, hint: &str) -> DamagePumpHandle {
     } else {
         hint.to_string()
     };
+    let pump_activity = Arc::clone(&activity);
     let thread = std::thread::Builder::new()
         .name("orbiscreen-damage".into())
         .spawn(move || {
@@ -42,7 +53,12 @@ pub(crate) fn spawn(period: Duration, hint: &str) -> DamagePumpHandle {
                 if pump_stop.load(Ordering::Relaxed) {
                     return;
                 }
-                match run(Some(hint.clone()), period, Arc::clone(&pump_stop)) {
+                match run(
+                    Some(hint.clone()),
+                    period,
+                    Arc::clone(&pump_stop),
+                    Arc::clone(&pump_activity),
+                ) {
                     Ok(()) => return,
                     Err(e) => {
                         last = Some(e);
@@ -60,8 +76,9 @@ pub(crate) fn spawn(period: Duration, hint: &str) -> DamagePumpHandle {
 
 fn run(
     target_output: Option<String>,
-    period: Duration,
+    active_period: Duration,
     stop: Arc<AtomicBool>,
+    activity: Arc<AtomicU64>,
 ) -> Result<(), String> {
     let conn = Connection::connect_to_env().map_err(|e| format!("wayland connect: {e}"))?;
     let (globals, mut queue) = wayland_client::globals::registry_queue_init::<PumpState>(&conn)
@@ -245,12 +262,13 @@ fn run(
     );
 
     tracing::info!(
-        "damage pump active on virtual display ({width}x{height}, every {}ms)",
-        period.as_millis()
+        "damage pump active on virtual display ({width}x{height}, every {}ms while idle at {})",
+        active_period.as_millis(),
+        IDLE_PERIOD.as_millis()
     );
 
     surface.attach(Some(&buffer_a), 0, 0);
-    surface.damage_buffer(0, 0, width, height);
+    surface.damage_buffer(0, 0, 1, 1);
     surface.commit();
 
     let mut flip = false;
@@ -259,6 +277,11 @@ fn run(
         if stop.load(Ordering::Relaxed) {
             return Ok(());
         }
+        let period = pump_period(
+            active_period,
+            activity.load(Ordering::Relaxed),
+            crate::now_millis(),
+        );
         next_commit += period;
         let now = std::time::Instant::now();
         if next_commit > now {
@@ -278,9 +301,34 @@ fn run(
         }
         let next = if flip { &buffer_a } else { &buffer_b };
         surface.attach(Some(next), 0, 0);
-        surface.damage_buffer(0, 0, width, height);
+        surface.damage_buffer(0, 0, 1, 1);
         surface.commit();
         flip = !flip;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pump_runs_at_the_active_rate_after_a_change() {
+        let active = Duration::from_millis(16);
+        assert_eq!(pump_period(active, 1_000, 1_000), active);
+        assert_eq!(pump_period(active, 1_000, 2_999), active);
+    }
+
+    #[test]
+    fn pump_falls_back_to_the_idle_rate_when_nothing_changed() {
+        let active = Duration::from_millis(16);
+        assert_eq!(pump_period(active, 1_000, 3_000), IDLE_PERIOD);
+        assert_eq!(pump_period(active, 1_000, 60_000), IDLE_PERIOD);
+    }
+
+    #[test]
+    fn pump_handles_a_clock_that_moved_backwards() {
+        let active = Duration::from_millis(16);
+        assert_eq!(pump_period(active, 5_000, 1_000), active);
     }
 }
 

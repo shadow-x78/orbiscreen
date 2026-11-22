@@ -406,15 +406,36 @@ impl Encoder {
     pub fn new(params: EncodeParams) -> Result<Self, EncodeError> {
         init()?;
         let (kind, encoder_el) = detect_available(params.kind);
-        match Self::build_pipeline(&params, kind, encoder_el) {
+        if kind == EncoderKind::Vaapi && element_available("vapostproc") {
+            match Self::build_pipeline(&params, kind, encoder_el, true) {
+                Ok(enc) => return Ok(enc),
+                Err(e) => warn!(
+                    "GPU colour conversion through vapostproc failed ({e}); retrying the VA-API encoder with CPU conversion"
+                ),
+            }
+        }
+        match Self::build_pipeline(&params, kind, encoder_el, false) {
             Ok(enc) => Ok(enc),
             Err(e) if kind != EncoderKind::X264 => {
                 warn!(
                     "Hardware encoder {encoder_el} failed to initialize ({e}); falling back to software x264"
                 );
-                Self::build_pipeline(&params, EncoderKind::X264, EncoderKind::X264.gst_element())
+                Self::build_pipeline(
+                    &params,
+                    EncoderKind::X264,
+                    EncoderKind::X264.gst_element(),
+                    false,
+                )
             }
             Err(e) => Err(e),
+        }
+    }
+
+    fn convert_element(use_vapostproc: bool) -> &'static str {
+        if use_vapostproc {
+            "vapostproc"
+        } else {
+            "videoconvert"
         }
     }
 
@@ -422,8 +443,14 @@ impl Encoder {
         params: &EncodeParams,
         kind: EncoderKind,
         encoder_el: &'static str,
+        use_vapostproc: bool,
     ) -> Result<Self, EncodeError> {
-        info!(?kind, element = encoder_el, "Using GStreamer encoder");
+        info!(
+            ?kind,
+            element = encoder_el,
+            convert = Self::convert_element(use_vapostproc),
+            "Using GStreamer encoder"
+        );
         let encoder = make_element(encoder_el)?;
 
         let appsrc = ElementFactory::make("appsrc")
@@ -432,8 +459,10 @@ impl Encoder {
             .downcast::<AppSrc>()
             .map_err(|_| EncodeError::Pipeline("appsrc downcast".into()))?;
 
-        let videoconvert = make_element("videoconvert")?;
-        set_str_if_present(&videoconvert, "n-threads", "4");
+        let convert = make_element(Self::convert_element(use_vapostproc))?;
+        if !use_vapostproc {
+            set_str_if_present(&convert, "n-threads", "4");
+        }
 
         let appsink = ElementFactory::make("appsink")
             .build()
@@ -454,7 +483,7 @@ impl Encoder {
         pipeline
             .add_many([
                 appsrc.upcast_ref(),
-                &videoconvert,
+                &convert,
                 &encoder,
                 appsink.upcast_ref(),
             ])
@@ -512,7 +541,7 @@ impl Encoder {
             .map_err(|e| EncodeError::Pipeline(format!("add capsfilter: {e}")))?;
         gstreamer::Element::link_many([
             appsrc.upcast_ref(),
-            &videoconvert,
+            &convert,
             &nv12_caps,
             &encoder,
             &h264parse,
@@ -955,6 +984,12 @@ mod tests {
         assert_eq!(enc.kind(), EncoderKind::X264);
         assert_live_one_frame_vbv(&enc);
         enc.stop();
+    }
+
+    #[test]
+    fn conversion_element_follows_the_requested_path() {
+        assert_eq!(Encoder::convert_element(true), "vapostproc");
+        assert_eq!(Encoder::convert_element(false), "videoconvert");
     }
 
     #[test]

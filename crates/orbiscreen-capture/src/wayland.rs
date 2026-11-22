@@ -170,6 +170,7 @@ impl WaylandCapture {
             node_id,
             width: spec.width,
             height: spec.height,
+            activity: None,
         })
         .map_err(WaylandCaptureError::Dbus)?;
 

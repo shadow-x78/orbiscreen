@@ -22,6 +22,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   60, so `refresh_rate_hz = 30` still pumped and encoded at 60 Hz. The rate is
   now part of the unnamed spec and is preserved when the output is parked and
   restored.
+- **The damage pump no longer repaints the whole virtual output.** It damaged
+  the full surface every tick to give the compositor something to stream, which
+  repainted 1920x1080 (and, on a compositor that redraws the whole output for any
+  damage, woke the GPU) sixty times a second. The two rotating buffers differ in
+  a single pixel, so only that pixel is damaged now.
+- **The pump falls back to a one-second keep-alive while the picture is static.**
+  It still commits at the session refresh rate for two seconds after a frame
+  actually changed, so interaction stays at full rate, but an idle screen is no
+  longer captured, converted and hashed sixty times a second. The keep-alive
+  keeps the compositor stream alive, and the capture pump's existing 100 ms
+  keepalive frame keeps the client fed.
+- **VA-API encoding converts on the GPU.** When the VA-API encoder is selected
+  and `vapostproc` exists, the pipeline is `appsrc ! vapostproc ! vah264enc`
+  instead of `appsrc ! videoconvert ! NV12 ! vah264enc`, so the BGRA to NV12
+  conversion no longer runs four CPU threads at 1080p. The pipeline is started
+  before it is accepted, so a setup that cannot negotiate through VPP falls back
+  to CPU conversion and then to x264 exactly as before.
 
 ## [v0.44.6] - 2026-11-21
 
