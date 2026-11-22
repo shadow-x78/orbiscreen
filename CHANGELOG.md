@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **The site answers requests that ask for Markdown.** A request with
+  `Accept: text/markdown` receives the page's mirror under `<path>.md` instead of
+  the HTML, and every HTML response advertises that mirror with
+  `Link: <...md>; rel="alternate"; type="text/markdown"` and `Vary: Accept`. This
+  is what Cloudflare sells as "Markdown for Agents", implemented in the worker
+  so it also runs on the free plan. Assets and paths that already end in `.md`
+  are passed through untouched.
+
 ## [v0.44.7] - 2026-11-22
 
 ### Fixed

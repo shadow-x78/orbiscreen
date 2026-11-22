@@ -36,6 +36,16 @@ script the generated CSP does not allow, a skipped heading level, a missing
 - `llms.txt` (curated index) and `llms-full.txt` (every page as plain text).
 - A Markdown mirror at `<path>.md` for every page, advertised with
   `<link rel="alternate" type="text/markdown">`.
+- Content negotiation in the worker: a request with `Accept: text/markdown`
+  receives that mirror instead of the HTML, and every HTML response carries
+  `Link: <...md>; rel="alternate"; type="text/markdown"` plus `Vary: Accept`.
+  This is the same idea as Cloudflare's paid "Markdown for Agents", done in the
+  worker so it also runs on the free plan:
+
+  ```bash
+  curl -s -H 'Accept: text/markdown' https://orbiscreen.com/features | head -5
+  curl -sI https://orbiscreen.com/features | grep -i '^link:'
+  ```
 - `_headers` with a hash-based CSP built from the scripts in `dist`, plus HSTS
   and the other security headers.
 - `_redirects` for legacy document paths.
