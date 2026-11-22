@@ -66,6 +66,7 @@ ${docsAr}
 - [Sitemap](${SITE_URL}/sitemap.xml)
 - [RSS feed](${SITE_URL}/rss.xml)
 - Markdown mirrors: append \`.md\` to any page path, for example ${SITE_URL}/features.md or ${SITE_URL}/docs/architecture.md
+- Content negotiation: the same markup is returned when a request sends \`Accept: text/markdown\`, and every HTML response advertises its mirror in a \`Link: rel="alternate"; type="text/markdown"\` header
 - [Full text dump](${SITE_URL}/llms-full.txt)
 `;
 
