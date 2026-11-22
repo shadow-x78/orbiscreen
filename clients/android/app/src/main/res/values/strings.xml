@@ -66,6 +66,7 @@
     <string name="display_settings_title">Display</string>
 
     <string name="resolution_title">Resolution</string>
+    <string name="resolution_host">Host</string>
     <string name="resolution_native">Native</string>
     <string name="res_apply">Apply</string>
     <string name="scale_fit">Fit</string>

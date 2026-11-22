@@ -665,11 +665,11 @@ private fun ConnectionSettingsSheet(
                     }
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        resChip(stringResource(R.string.resolution_host), "host", 0, 0)
                         resChip(stringResource(R.string.resolution_native), "native", 0, 0)
                         resChip("720p", "720p", 1280, 720)
                         resChip("1080p", "1080p", 1920, 1080)
                         resChip("1440p", "1440p", 2560, 1440)
-                        resChip("2K", "2k", 2560, 1600)
                     }
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {

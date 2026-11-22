@@ -14,6 +14,18 @@ class ResolutionPresetTest {
     }
 
     @Test
+    fun host_preset_follows_the_host_geometry() {
+        assertEquals(1920 to 1080, resolveSelectedResolution("host", nativeW, nativeH, 1920, 1080))
+        assertEquals(2560 to 1440, resolveSelectedResolution("host", nativeW, nativeH, 2560, 1440))
+    }
+
+    @Test
+    fun host_preset_falls_back_to_the_panel_when_the_host_is_unknown() {
+        assertEquals(2560 to 1536, resolveSelectedResolution("host", nativeW, nativeH))
+        assertEquals(2560 to 1536, resolveSelectedResolution("host", nativeW, nativeH, 0, 0))
+    }
+
+    @Test
     fun custom_preset_wins_over_the_native_panel_size() {
         assertEquals(1280 to 800, resolveSelectedResolution("custom_1280x800", nativeW, nativeH))
     }

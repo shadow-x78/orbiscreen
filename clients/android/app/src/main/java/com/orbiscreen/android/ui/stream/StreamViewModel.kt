@@ -54,8 +54,11 @@ internal fun resolveSelectedResolution(
     preset: String,
     nativeW: Int,
     nativeH: Int,
+    hostW: Int = 0,
+    hostH: Int = 0,
 ): Pair<Int, Int> {
     val (w, h) = when {
+        preset == "host" -> if (hostW > 0 && hostH > 0) hostW to hostH else nativeW to nativeH
         preset == "720p" -> 1280 to 720
         preset == "1080p" -> 1920 to 1080
         preset == "1440p" -> 2560 to 1440
@@ -214,7 +217,14 @@ class StreamViewModel(
 
     private fun selectedResolution(): Pair<Int, Int> {
         val (nativeW, nativeH, _) = detectNativeDisplay()
-        val (w, h) = resolveSelectedResolution(prefs.resolutionPreset, nativeW, nativeH)
+        val state = _state.value
+        val (w, h) = resolveSelectedResolution(
+            prefs.resolutionPreset,
+            nativeW,
+            nativeH,
+            state.displayWidth,
+            state.displayHeight,
+        )
         return clampToPanel(w, h)
     }
 
@@ -253,6 +263,7 @@ class StreamViewModel(
     }
 
     init {
+        prefs.migrateResolutionPreset()
         viewModelScope.launch {
             holders.flatMapLatest { it.event }.collect { ev ->
                 _state.value = _state.value.copy(event = ev)
@@ -718,16 +729,27 @@ class StreamViewModel(
     fun setResolutionPreset(preset: String, w: Int, h: Int) {
         prefs.resolutionPreset = preset
         val (targetW, targetH) = selectedResolution()
-        updateDimensions(targetW, targetH, if (preset == "native") "Native" else "${targetW}x${targetH}")
+        val label = when (preset) {
+            "host" -> "Host ${targetW}x$targetH"
+            "native" -> "Native ${targetW}x$targetH"
+            else -> "${targetW}x$targetH"
+        }
+        updateDimensions(targetW, targetH, label, keepPreset = true)
     }
 
-    fun updateDimensions(w: Int, h: Int, label: String = "${w}x${h}", fps: Int = detectNativeDisplay().third) {
+    fun updateDimensions(
+        w: Int,
+        h: Int,
+        label: String = "${w}x${h}",
+        fps: Int = detectNativeDisplay().third,
+        keepPreset: Boolean = false,
+    ) {
         if (w > 0 && h > 0) {
             val (clampedW, clampedH) = clampToPanel(w, h)
             val requested = maxOf(w, h) to minOf(w, h)
             val finalLabel =
                 if (clampedW to clampedH == requested) label else "${clampedW}x${clampedH}"
-            prefs.resolutionPreset = "custom_${clampedW}x$clampedH"
+            if (!keepPreset) prefs.resolutionPreset = "custom_${clampedW}x$clampedH"
             _state.value = _state.value.copy(
                 displayWidth = clampedW,
                 displayHeight = clampedH,

@@ -66,6 +66,7 @@
     <string name="display_settings_title">العرض</string>
 
     <string name="resolution_title">دقة الشاشة</string>
+    <string name="resolution_host">المضيف</string>
     <string name="resolution_native">الأصلية</string>
     <string name="res_apply">تطبيق</string>
     <string name="scale_fit">ملاءمة الشاشة</string>

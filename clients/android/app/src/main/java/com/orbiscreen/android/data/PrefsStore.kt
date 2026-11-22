@@ -108,8 +108,17 @@ class PrefsStore(context: Context) {
         set(value) { prefs.edit { putString(KEY_SCALE_MODE, value) } }
 
     var resolutionPreset: String
-        get() = prefs.getString(KEY_RESOLUTION_PRESET, "native") ?: "native"
+        get() = prefs.getString(KEY_RESOLUTION_PRESET, "host") ?: "host"
         set(value) { prefs.edit { putString(KEY_RESOLUTION_PRESET, value) } }
+
+    fun migrateResolutionPreset() {
+        if (prefs.getBoolean(KEY_RESOLUTION_MIGRATED, false)) return
+        val stored = prefs.getString(KEY_RESOLUTION_PRESET, null)
+        prefs.edit {
+            putBoolean(KEY_RESOLUTION_MIGRATED, true)
+            if (stored == "native") putString(KEY_RESOLUTION_PRESET, "host")
+        }
+    }
 
     var showStats: Boolean
         get() = prefs.getBoolean(KEY_SHOW_STATS, false)
@@ -135,6 +144,7 @@ class PrefsStore(context: Context) {
         private const val KEY_TOUCH_MODE = "touch_mode"
         private const val KEY_SCALE_MODE = "scale_mode"
         private const val KEY_RESOLUTION_PRESET = "resolution_preset"
+        private const val KEY_RESOLUTION_MIGRATED = "resolution_preset_migrated"
         private const val KEY_SHOW_STATS = "show_stats"
     }
 }
