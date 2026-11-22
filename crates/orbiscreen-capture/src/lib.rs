@@ -56,51 +56,80 @@ pub struct CaptureSession {
     height: u32,
 }
 
+/// Outcome of turning one GStreamer sample into a capture frame.
+#[derive(Debug)]
+pub(crate) enum FrameSample {
+    Captured(CapturedFrame),
+    /// The pixels are identical to the previous frame, so nothing downstream
+    /// needs to run. Mirrors what the X11 backend already does.
+    Unchanged,
+    /// The sample was unusable and has been logged.
+    Dropped,
+}
+
+/// Remembers the previous frame's digest. Returns true when the digest matches.
+pub(crate) fn frame_is_unchanged(
+    last_hash: &std::sync::Mutex<Option<[u64; 2]>>,
+    hash: [u64; 2],
+) -> bool {
+    let mut guard = last_hash.lock().unwrap_or_else(|e| e.into_inner());
+    let unchanged = guard.as_ref() == Some(&hash);
+    *guard = Some(hash);
+    unchanged
+}
+
 pub(crate) fn sample_to_captured_frame(
     sample: &gstreamer::Sample,
     pool: &Arc<FramePool>,
-) -> Option<CapturedFrame> {
+    last_hash: &std::sync::Mutex<Option<[u64; 2]>>,
+) -> FrameSample {
     let Some(buffer) = sample.buffer() else {
         tracing::warn!("skipping sample with no buffer");
-        return None;
+        return FrameSample::Dropped;
     };
     let Some(caps) = sample.caps() else {
         tracing::warn!("skipping sample with no caps");
-        return None;
+        return FrameSample::Dropped;
     };
     let Some(structure) = caps.structure(0) else {
         tracing::warn!("skipping sample with empty caps");
-        return None;
+        return FrameSample::Dropped;
     };
     let (Ok(width), Ok(height)) = (
         structure.get::<i32>("width"),
         structure.get::<i32>("height"),
     ) else {
         tracing::warn!("skipping sample with missing width/height in caps");
-        return None;
+        return FrameSample::Dropped;
     };
     if width <= 0 || height <= 0 {
         tracing::warn!("skipping sample with non-positive dimensions {width}x{height}");
-        return None;
+        return FrameSample::Dropped;
     }
     let Ok(map) = buffer.map_readable() else {
         tracing::warn!("buffer not readable; skipping sample");
-        return None;
+        return FrameSample::Dropped;
     };
     let Some(expected) = frame_len(width as u32, height as u32) else {
         tracing::warn!("skipping sample with overflowing dimensions {width}x{height}");
-        return None;
+        return FrameSample::Dropped;
     };
     if map.size() != expected {
         tracing::warn!(
             "frame size mismatch: got {} B, expected {expected} B ({width}x{height}); dropping",
             map.size()
         );
-        return None;
+        return FrameSample::Dropped;
     }
+
+    let hash = x11::fast_frame_hash(&map.as_slice()[..expected]);
+    if frame_is_unchanged(last_hash, hash) {
+        return FrameSample::Unchanged;
+    }
+
     let mut data = pool.acquire(expected);
     data.copy_from_slice(map.as_slice());
-    Some(CapturedFrame {
+    FrameSample::Captured(CapturedFrame {
         width: width as u32,
         height: height as u32,
         data,
@@ -111,6 +140,7 @@ struct KwinSlot {
     capture: Option<std::sync::Arc<kwin_virtual::KwinVirtualCapture>>,
     width: u32,
     height: u32,
+    refresh_hz: u32,
     connector: Option<String>,
 }
 
@@ -139,16 +169,18 @@ impl VirtualOutputLease {
         let Some(slot) = &self.kwin else {
             return Ok(false);
         };
-        let (width, height) = {
+        let (width, height, refresh_hz) = {
             let guard = slot.lock().await;
             if guard.capture.is_some() {
                 return Ok(false);
             }
-            (guard.width, guard.height)
+            (guard.width, guard.height, guard.refresh_hz)
         };
         let capture = tokio::task::spawn_blocking(move || {
             kwin_virtual::KwinVirtualCapture::open(kwin_virtual::KwinVirtualSpec::unnamed(
-                width, height,
+                width,
+                height,
+                refresh_hz,
             ))
         })
         .await
@@ -223,7 +255,7 @@ impl CaptureSession {
                     description: "Orbiscreen Virtual Display".into(),
                     refresh_hz,
                 },
-                None => kwin_virtual::KwinVirtualSpec::unnamed(width, height),
+                None => kwin_virtual::KwinVirtualSpec::unnamed(width, height, refresh_hz),
             };
             kwin_virtual::KwinVirtualCapture::open(spec)
         })
@@ -238,6 +270,7 @@ impl CaptureSession {
             capture: Some(std::sync::Arc::new(capture)),
             width: actual_w,
             height: actual_h,
+            refresh_hz,
             connector: Some(connector),
         }));
         Ok(Self {
@@ -351,6 +384,15 @@ impl CaptureSession {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unchanged_frames_are_detected_once() {
+        let last = std::sync::Mutex::new(None);
+        assert!(!frame_is_unchanged(&last, [1, 2]));
+        assert!(frame_is_unchanged(&last, [1, 2]));
+        assert!(!frame_is_unchanged(&last, [3, 4]));
+        assert!(frame_is_unchanged(&last, [3, 4]));
+    }
 
     #[test]
     fn empty_frame_is_zeroes() {

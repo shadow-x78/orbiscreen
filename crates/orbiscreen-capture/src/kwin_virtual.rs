@@ -71,13 +71,13 @@ pub struct KwinVirtualSpec {
 }
 
 impl KwinVirtualSpec {
-    pub fn unnamed(width: u32, height: u32) -> Self {
+    pub fn unnamed(width: u32, height: u32, refresh_hz: u32) -> Self {
         Self {
             width,
             height,
             names: Vec::new(),
             description: "Orbiscreen Virtual Display".into(),
-            refresh_hz: 60,
+            refresh_hz: refresh_hz.max(1),
         }
     }
 }
@@ -948,6 +948,12 @@ fn pump_events(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unnamed_spec_keeps_the_configured_refresh_rate() {
+        assert_eq!(KwinVirtualSpec::unnamed(1920, 1080, 30).refresh_hz, 30);
+        assert_eq!(KwinVirtualSpec::unnamed(1920, 1080, 0).refresh_hz, 1);
+    }
 
     #[test]
     fn forget_saved_virtual_output_drops_connector() {

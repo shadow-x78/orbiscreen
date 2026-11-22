@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **A static picture no longer keeps the encoder and the GPU busy on KWin/Wayland
+  (issue #116).** The portal/KWin capture path had no equivalent of the X11
+  backend's unchanged-frame check, so every frame the damage pump forced out -
+  sixty per second, by design - was colour-converted and encoded even when the
+  virtual screen had not changed. The shared PipeWire sink now digests each
+  frame and drops one whose pixels match the previous frame, and it logs the
+  captured/skipped/dropped counts every five seconds so the ratio can be read
+  from a normal run. An identical frame still counts as pipeline liveness, so a
+  static screen is not reported as a stalled capture.
+- The configured `refresh_rate_hz` reached the damage pump only when a virtual
+  output name was configured. The unnamed path built the spec with a hardcoded
+  60, so `refresh_rate_hz = 30` still pumped and encoded at 60 Hz. The rate is
+  now part of the unnamed spec and is preserved when the output is parked and
+  restored.
+
 ## [v0.44.6] - 2026-11-21
 
 ### Added

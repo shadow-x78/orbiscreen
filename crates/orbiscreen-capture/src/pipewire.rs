@@ -1,6 +1,6 @@
 use std::os::fd::RawFd;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use gstreamer::prelude::*;
@@ -9,7 +9,7 @@ use orbiscreen_core::frame::CapturedFrame;
 use orbiscreen_core::frame_pool::FramePool;
 use tokio::sync::mpsc;
 
-use super::sample_to_captured_frame;
+use super::{sample_to_captured_frame, FrameSample};
 
 const FRAME_CHANNEL_CAPACITY: usize = 8;
 
@@ -27,9 +27,62 @@ pub(crate) struct PipewireCapture {
     ended: Arc<AtomicBool>,
     shutting_down: Arc<AtomicBool>,
     stall: Arc<std::sync::Mutex<StallWatch>>,
+    _stats: Arc<CaptureStats>,
 }
 
 const STALL_REPORT_AFTER: Duration = Duration::from_secs(5);
+const STATS_WINDOW: Duration = Duration::from_secs(5);
+
+/// Frames seen, captured, and skipped as duplicates. The pump forces the
+/// compositor to produce frames whether or not anything changed, so this is the
+/// number that says whether the encoder is doing work for a static picture.
+struct CaptureStats {
+    captured: AtomicU64,
+    skipped: AtomicU64,
+    dropped: AtomicU64,
+    window: Mutex<std::time::Instant>,
+}
+
+impl CaptureStats {
+    fn new() -> Self {
+        Self {
+            captured: AtomicU64::new(0),
+            skipped: AtomicU64::new(0),
+            dropped: AtomicU64::new(0),
+            window: Mutex::new(std::time::Instant::now()),
+        }
+    }
+
+    fn note_captured(&self) {
+        self.captured.fetch_add(1, Ordering::Relaxed);
+        self.maybe_report();
+    }
+
+    fn note_skipped(&self) {
+        self.skipped.fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn note_dropped(&self) {
+        self.dropped.fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn maybe_report(&self) {
+        let mut window = self.window.lock().unwrap_or_else(|e| e.into_inner());
+        if window.elapsed() < STATS_WINDOW {
+            return;
+        }
+        let captured = self.captured.swap(0, Ordering::Relaxed);
+        let skipped = self.skipped.swap(0, Ordering::Relaxed);
+        let dropped = self.dropped.swap(0, Ordering::Relaxed);
+        *window = std::time::Instant::now();
+        tracing::info!(
+            captured,
+            skipped,
+            dropped,
+            "capture frames over the last 5s (skipped are identical to the previous frame)"
+        );
+    }
+}
 
 #[derive(Debug)]
 struct StallWatch {
@@ -97,8 +150,12 @@ impl PipewireCapture {
 
         let (tx, rx) = mpsc::channel::<CapturedFrame>(FRAME_CHANNEL_CAPACITY);
         let pool = Arc::new(FramePool::new());
+        let last_hash = Arc::new(Mutex::new(None::<[u64; 2]>));
+        let stats = Arc::new(CaptureStats::new());
         let stall = Arc::new(std::sync::Mutex::new(StallWatch::new()));
         let stall_for_sink = Arc::clone(&stall);
+        let hash_for_sink = Arc::clone(&last_hash);
+        let stats_for_sink = Arc::clone(&stats);
         appsink.set_callbacks(
             AppSinkCallbacks::builder()
                 .new_sample(move |sink| {
@@ -109,14 +166,28 @@ impl PipewireCapture {
                             return Err(gstreamer::FlowError::Eos);
                         }
                     };
-                    if let Some(frame) = sample_to_captured_frame(&sample, &pool) {
-                        stall_for_sink
-                            .lock()
-                            .unwrap_or_else(|e| e.into_inner())
-                            .note_frame();
-                        if tx.try_send(frame).is_err() {
-                            tracing::debug!("capture frame dropped: consumer channel full");
+                    match sample_to_captured_frame(&sample, &pool, &hash_for_sink) {
+                        FrameSample::Captured(frame) => {
+                            stall_for_sink
+                                .lock()
+                                .unwrap_or_else(|e| e.into_inner())
+                                .note_frame();
+                            stats_for_sink.note_captured();
+                            if tx.try_send(frame).is_err() {
+                                tracing::debug!("capture frame dropped: consumer channel full");
+                            }
                         }
+                        FrameSample::Unchanged => {
+                            // The pipeline is alive and produced a frame; it is
+                            // simply identical. Counting it keeps the stall
+                            // detector from reporting a static picture.
+                            stall_for_sink
+                                .lock()
+                                .unwrap_or_else(|e| e.into_inner())
+                                .note_frame();
+                            stats_for_sink.note_skipped();
+                        }
+                        FrameSample::Dropped => stats_for_sink.note_dropped(),
                     }
                     Ok(gstreamer::FlowSuccess::Ok)
                 })
@@ -241,6 +312,7 @@ impl PipewireCapture {
             ended: ended_slot,
             shutting_down,
             stall,
+            _stats: stats,
         })
     }
 
