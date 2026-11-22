@@ -2910,7 +2910,7 @@ async fn run_start(
     let encoder_for_pump = Arc::clone(&encoder);
     let cap_pump = tokio::spawn(async move {
         let encoder = encoder_for_pump;
-        const KEEPALIVE: std::time::Duration = std::time::Duration::from_millis(100);
+        const KEEPALIVE: std::time::Duration = std::time::Duration::from_secs(1);
         let started = std::time::Instant::now();
         let mut last_pts_ns: u64 = 0;
         let mut keepalive_frame: Option<(u32, u32, Vec<u8>)> = None;

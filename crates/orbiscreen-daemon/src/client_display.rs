@@ -710,7 +710,7 @@ fn spawn_capture_pump(
     mut shutdown: watch::Receiver<bool>,
 ) {
     tokio::spawn(async move {
-        const KEEPALIVE: Duration = Duration::from_millis(100);
+        const KEEPALIVE: Duration = Duration::from_secs(1);
         let frame_interval_ns = 1_000_000_000u64 / refresh_hz.max(1) as u64;
         let started = std::time::Instant::now();
         let mut last_pts_ns: u64 = 0;

@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   so it also runs on the free plan. Assets and paths that already end in `.md`
   are passed through untouched.
 
+### Fixed
+- **An idle stream now costs one frame per second, not ten.** The capture pump
+  re-encoded the last frame whenever no new one arrived for 100 ms, which kept
+  the encoder at roughly 20% and the link at ~2 Mbit/s with a static picture
+  even after duplicates were dropped. The keepalive interval is one second, so
+  the same static screen costs a tenth of that. A frame that actually changes
+  still preempts the timeout and is encoded immediately.
+
 ## [v0.44.7] - 2026-11-22
 
 ### Fixed
