@@ -786,9 +786,8 @@ html[dir='rtl'] .drawer__panel {
 
 .hero__store {
   display: flex;
-  justify-content: flex-end;
-  width: min(424px, 100%);
-  padding-inline-end: 12px;
+  gap: 12px;
+  width: min(412px, 100%);
 }
 
 .hero__store .dl-btn {
@@ -3637,7 +3636,8 @@ html[dir='rtl'] .route-progress {
 
   .hero__store {
     width: 100%;
-    justify-content: stretch;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .hero__store .dl-btn {
