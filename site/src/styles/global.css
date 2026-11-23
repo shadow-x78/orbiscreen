@@ -2263,14 +2263,15 @@ html[lang='ar'] .matrix__name {
   display: grid;
   grid-template-columns: 340px minmax(0, 804px);
   gap: 56px;
-  align-items: start;
+  align-items: center;
 }
 
 .feature-row__head {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
+  text-align: center;
 }
 
 .feature-row__icon {
