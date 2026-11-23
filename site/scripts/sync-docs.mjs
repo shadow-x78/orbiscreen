@@ -190,6 +190,17 @@ function stripBadgeBlock(lines) {
 }
 
 /**
+ * Drops the standalone language links that some documents place above the
+ * introduction. The site already exposes a language switch in the navbar, so
+ * the duplicated row of flags is removed from the generated pages.
+ */
+function stripLanguageSwitcher(lines) {
+  const full = /^\s*<a\s+href="[^"]+">(?:🇬🇧\s*)?English<\/a>\s*·\s*<a\s+href="[^"]+">(?:🇸🇦\s*)?العربية<\/a>\s*$/u;
+  const englishOnly = /^\s*<a\s+href="[^"]+">English<\/a>\s*$/u;
+  return lines.filter((line) => !full.test(line) && !englishOnly.test(line));
+}
+
+/**
  * Some Arabic documents mark sections with raw HTML (`<h2 dir="rtl">…</h2>`)
  * instead of Markdown. Astro only assigns heading ids to Markdown headings, so
  * those sections would be missing from the table of contents and could not be
@@ -261,6 +272,7 @@ function transform(source, lang, entry, updated) {
   let lines = raw.split(/\r?\n/);
 
   lines = stripBadgeBlock(lines);
+  lines = stripLanguageSwitcher(lines);
   lines = removeSection(lines, /^##\s+(Language|اللغة)\s*$/);
   lines = removeSection(lines, /^##\s+(Table of Contents|المحتويات)\s*$/);
 
