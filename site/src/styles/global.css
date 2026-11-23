@@ -66,6 +66,7 @@ img,
 svg {
   display: block;
   max-width: 100%;
+  overflow: visible;
 }
 
 a {
@@ -768,6 +769,11 @@ html[dir='rtl'] .drawer__panel {
   display: flex;
   justify-content: flex-end;
   width: min(424px, 100%);
+  padding-inline-end: 12px;
+}
+
+.hero__store .dl-btn {
+  width: 200px;
 }
 
 .hero__trust {

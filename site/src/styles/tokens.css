@@ -9,7 +9,7 @@
   /* Backgrounds and alternating bands */
   --bg-base: #0e1116;
   --bg-subtle: #0a0d11;
-  --bg-band-alt: #10141a;
+  --bg-band-alt: #0b0e13;
   --surface-1: #151a21;
   --surface-2: #1b222b;
   --table-head: #1b222b;
@@ -36,15 +36,15 @@
   --code-bg: #0a0d11;
 
   /* Primary action */
-  --primary-bg: #88b4fa;
-  --primary-hover: #9cc2ff;
-  --primary-active: #74a4f0;
-  --primary-text: #0e1116;
+  --primary-bg: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-active: #1e40af;
+  --primary-text: #ffffff;
 
   /* Accent */
-  --accent-interactive: #88b4fa;
-  --accent-brand: #88b4fa;
-  --accent-soft: rgb(136 180 250 / 14%);
+  --accent-interactive: #4c8dff;
+  --accent-brand: #89b4fa;
+  --accent-soft: rgb(76 141 255 / 12%);
   --accent-solid: var(--primary-bg);
   --accent-solid-hover: var(--primary-hover);
 
@@ -108,9 +108,9 @@
   --radius-xl: var(--radius-16);
 
   /* Focus */
-  --focus-ring-color: #88b4fa;
+  --focus-ring-color: #4c8dff;
   --focus-ring: 2px solid var(--focus-ring-color);
-  --focus-ring-shadow: 0 0 0 3px rgb(136 180 250 / 30%);
+  --focus-ring-shadow: 0 0 0 3px rgb(76 141 255 / 30%);
   --focus-offset: 2px;
 
   /* Depth */
@@ -118,10 +118,10 @@
   --shadow-raised: 0 18px 40px rgb(0 0 0 / 28%);
   --shadow-float: 0 12px 32px rgb(0 0 0 / 45%);
   --shadow-float-lg: 0 18px 48px rgb(0 0 0 / 55%);
-  --nav-bg: rgb(14 17 22 / 90%);
-  --nav-bg-scrolled: rgb(14 17 22 / 96%);
-  --nav-blur: 16px;
-  --nav-edge: rgb(255 255 255 / 6%);
+  --nav-bg: rgb(14 17 22 / 78%);
+  --nav-bg-scrolled: rgb(14 17 22 / 94%);
+  --nav-blur: 12px;
+  --nav-edge: rgb(255 255 255 / 9%);
 
   /* Motion */
   --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
