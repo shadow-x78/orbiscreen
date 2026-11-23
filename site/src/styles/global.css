@@ -2254,7 +2254,7 @@ html[lang='ar'] .matrix__name {
 
 .feature-rule {
   height: 1px;
-  margin: 0;
+  margin-block: 48px;
   border: 0;
   background: var(--border-hairline);
 }
@@ -2268,10 +2268,11 @@ html[lang='ar'] .matrix__name {
 
 .feature-row__head {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
   align-items: center;
-  text-align: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: start;
 }
 
 .feature-row__icon {
@@ -2293,6 +2294,7 @@ html[lang='ar'] .matrix__name {
   line-height: 30px;
   letter-spacing: -0.4px;
   font-weight: 600;
+  text-wrap: balance;
 }
 
 .feature-row__body {
@@ -4094,6 +4096,10 @@ html[dir='rtl'] .route-progress {
 
   .feature-sections {
     padding-block: 40px;
+  }
+
+  .feature-rule {
+    margin-block: 32px;
   }
 
   .feature-row,
