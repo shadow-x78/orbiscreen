@@ -43,7 +43,7 @@ const prepared = methods.map((method, index) => ({
 ---
 
 <div class:list={['install-tabs', compact && 'install-tabs--compact']} data-install-tabs>
-  <div class="tabs" dir="ltr" role="tablist" aria-label={lang === 'ar' ? 'طرق التثبيت' : 'Install methods'}>
+  <div class="tabs" role="tablist" aria-label={lang === 'ar' ? 'طرق التثبيت' : 'Install methods'}>
     <span class="tabs__pill" aria-hidden="true" hidden></span>
     {[prepared.slice(0, 3), prepared.slice(3)].map((group) => (
       <div class="tabs__row">

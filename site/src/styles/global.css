@@ -4625,8 +4625,8 @@ html.drawer-open body {
 
 @media (min-width: 768px) {
   html[lang='ar'] .install-tabs .tabs {
-    direction: ltr;
-    justify-content: flex-end;
+    direction: rtl;
+    justify-content: flex-start;
   }
 
   html[lang='ar'] .install-tabs .tab {
@@ -4644,6 +4644,7 @@ html.drawer-open body {
   }
 
   html[lang='ar'] .install-tabs .tabs {
+    direction: rtl;
     align-items: flex-end;
   }
 
