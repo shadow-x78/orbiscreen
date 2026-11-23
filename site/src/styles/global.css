@@ -1187,7 +1187,7 @@ html[lang='ar'] .mockup__chip {
 .bento {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 16px;
+  gap: 40px 16px;
 }
 
 .tile {
@@ -1195,12 +1195,12 @@ html[lang='ar'] .mockup__chip {
   isolation: isolate;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  min-height: 200px;
-  padding: 24px;
+  gap: 12px;
+  min-height: 208px;
+  padding: 26px;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-16);
-  background-color: var(--surface-1);
+  background-color: var(--surface-2);
   overflow: hidden;
   transition:
     border-color var(--dur-state) var(--ease-out-expo),
@@ -1231,13 +1231,17 @@ html[lang='ar'] .mockup__chip {
 
 .tile--feature {
   grid-column: span 4;
-  gap: 16px;
-  min-height: 240px;
-  padding: 24px;
+  gap: 14px;
+  min-height: 268px;
+  padding: 28px;
+  background-color: var(--surface-1);
 }
 
 .tile:nth-child(2) {
   grid-column: span 2;
+  gap: 14px;
+  min-height: 268px;
+  padding: 28px;
 }
 
 .tile:nth-child(n + 3) {
@@ -1248,8 +1252,8 @@ html[lang='ar'] .mockup__chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   margin-block-end: 0;
   border-radius: var(--radius-12);
   background: var(--accent-soft);
@@ -1259,52 +1263,71 @@ html[lang='ar'] .mockup__chip {
 
 .tile:nth-child(2) .tile__icon {
   background: rgb(52 211 153 / 12%);
+  color: var(--semantic-success);
 }
 
 .tile:nth-child(3) .tile__icon {
-  background: rgb(251 191 36 / 12%);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgb(137 180 250 / 12%);
+  color: var(--accent-brand);
 }
 
 .tile:nth-child(4) .tile__icon {
-  background: rgb(137 180 250 / 12%);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-brand);
 }
 
 .tile:nth-child(5) .tile__icon {
-  background: rgb(52 211 153 / 12%);
-}
-
-.tile__icon svg {
-  width: 22px;
-  height: 22px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgb(251 191 36 / 12%);
+  color: var(--semantic-warning);
 }
 
 .tile__title {
   margin: 0;
   color: var(--text-primary);
-  font-size: 20px;
-  line-height: 28px;
+  font-size: 18px;
+  line-height: 26px;
   letter-spacing: -0.2px;
   font-weight: 600;
 }
 
+.tile:nth-child(2) .tile__title {
+  font-size: 19px;
+  line-height: 26px;
+  letter-spacing: -0.2px;
+}
+
 .tile--feature .tile__title {
-  font-size: 24px;
-  line-height: 32px;
-  letter-spacing: -0.3px;
+  font-size: 22px;
+  line-height: 30px;
+  letter-spacing: -0.4px;
 }
 
 .tile__body {
   margin: 0;
   max-width: 46ch;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 22px;
+}
+
+.tile:nth-child(2) .tile__body {
+  font-size: 14px;
+  line-height: 23px;
 }
 
 .tile--feature .tile__body {
   max-width: 56ch;
   font-size: 15px;
-  line-height: 24px;
+  line-height: 25px;
 }
 
 /* ── How it works ── */
@@ -3713,10 +3736,11 @@ html[dir='rtl'] .route-progress {
     display: none;
   }
 
-  .tile__icon {
+  .tile__icon,
+  .tile:nth-child(n) .tile__icon {
     width: 36px;
     height: 36px;
-    border-radius: var(--radius-8);
+    border-radius: 8px;
   }
 
   .tile__icon svg {
@@ -3725,6 +3749,7 @@ html[dir='rtl'] .route-progress {
   }
 
   .tile__title,
+  .tile:nth-child(2) .tile__title,
   .tile--feature .tile__title {
     font-size: 17px;
     line-height: 24px;
@@ -3732,6 +3757,7 @@ html[dir='rtl'] .route-progress {
   }
 
   .tile__body,
+  .tile:nth-child(2) .tile__body,
   .tile--feature .tile__body {
     font-size: 13.5px;
     line-height: 22px;

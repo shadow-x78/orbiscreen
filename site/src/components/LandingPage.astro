@@ -149,7 +149,7 @@ const contributingHref = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
     <div class="bento">
       {d.capabilities.tiles.map((tile, index) => (
         <article class:list={['tile', index === 0 && 'tile--feature']} data-reveal data-sheen>
-          <span class="tile__icon"><Icon name={tile.icon} size={22} /></span>
+          <span class="tile__icon"><Icon name={tile.icon} size={index === 0 ? 22 : 20} /></span>
           <h3 class="tile__title">{tile.title}</h3>
           <p class="tile__body">{tile.body}</p>
         </article>

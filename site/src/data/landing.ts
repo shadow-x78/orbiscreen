@@ -6,7 +6,7 @@
 import type { Lang } from '../lib/site';
 import { RUST_VERSION, VERSION_TAG } from '../lib/version';
 
-export type IconKey = 'display' | 'chip' | 'pen' | 'usb' | 'lock';
+export type IconKey = 'screens' | 'display' | 'chip' | 'pen' | 'usb' | 'lock';
 
 export interface Tile {
   icon: IconKey;
@@ -84,7 +84,7 @@ const en: Landing = {
     title: 'What it does.',
     tiles: [
       {
-        icon: 'display',
+        icon: 'screens',
         title: 'True extended display',
         body: 'A real virtual monitor up to 8K, created by your compositor on KDE Plasma and wlroots, or by EVDI elsewhere. Never a mirror.',
       },
@@ -199,7 +199,7 @@ const ar: Landing = {
     title: 'ما يفعله.',
     tiles: [
       {
-        icon: 'display',
+        icon: 'screens',
         title: 'شاشة ممتدة حقيقية',
         body: 'شاشة افتراضية حتى 8K ينشئها مدير النوافذ على KDE Plasma وwlroots، أو عبر EVDI في غيرها. لا نسخة من شاشتك الأساسية.',
       },
