@@ -2378,20 +2378,9 @@ html[lang='ar'] .matrix__name {
   flex: none;
 }
 
-.bullets--check .bullet::before {
-  content: '';
-  width: 13px;
-  height: 8px;
-  margin-block-start: 6px;
-  border-inline-start: 1.75px solid var(--semantic-success);
-  border-block-end: 1.75px solid var(--semantic-success);
-  border-radius: 0;
-  background: none;
-  transform: rotate(-45deg);
-}
-
-html[dir='rtl'] .bullets--check .bullet::before {
-  transform: rotate(45deg);
+html[lang='ar'] .bullet {
+  font-size: 14px;
+  line-height: 24px;
 }
 
 /* ── Shared section heads for inner pages ── */
