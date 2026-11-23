@@ -24,7 +24,7 @@ export const changelogPage: Record<
 > = {
   en: {
     eyebrow: 'CHANGELOG',
-    title: 'Every release, in order',
+    title: 'Every release, in order.',
     lede: 'The newest releases with their fixes and changes. The full history, back to the first release, is in CHANGELOG.md next to the source.',
     older: 'Looking for an older release?',
     olderBody:
@@ -33,7 +33,7 @@ export const changelogPage: Record<
   },
   ar: {
     eyebrow: 'سجل التغييرات',
-    title: 'كل إصدار بالترتيب',
+    title: 'كل إصدار بالترتيب.',
     lede: 'أحدث الإصدارات بإصلاحاتها وتغييراتها. والتاريخ الكامل حتى أول إصدار في CHANGELOG.md بجانب الشيفرة.',
     older: 'تبحث عن إصدار أقدم؟',
     olderBody: 'يغطي السجل الكامل كل إصدار منذ البداية، مع سبب كل تغيير وتصحيحات المدخلات السابقة.',
@@ -44,7 +44,7 @@ export const changelogPage: Record<
 export const licensePage: Record<Lang, SimplePage> = {
   en: {
     eyebrow: 'License',
-    title: 'GPL-3.0-or-later',
+    title: 'GPL-3.0-or-later.',
     lede: 'Orbiscreen is free software. You can run it, study it, share it, and modify it, provided derivative works stay under the same license.',
     sections: [
       {
@@ -74,7 +74,7 @@ export const licensePage: Record<Lang, SimplePage> = {
   },
   ar: {
     eyebrow: 'الرخصة',
-    title: 'GPL-3.0-or-later',
+    title: 'GPL-3.0-or-later.',
     lede: 'Orbiscreen برنامج حر. يمكنك تشغيله ودراسته ومشاركته وتعديله، بشرط بقاء الأعمال المشتقة تحت الرخصة نفسها.',
     sections: [
       {
@@ -84,20 +84,20 @@ export const licensePage: Record<Lang, SimplePage> = {
           'تشغيل البرنامج لأي غرض.',
           'دراسة طريقة عمله وتغييره مع الوصول إلى المصدر.',
           'إعادة توزيع النسخ، بما فيها الملفات الثنائية المنشورة في الإصدارات.',
-          'توزيع نسخ معدّلة بشرط حملها الرخصة نفسها.',
+          'توزيع نسخ معدلة بشرط حملها الرخصة نفسها.',
         ],
       },
       {
         title: 'ما تطلبه منك',
         body: [
-          'إن وزّعت نسخة معدّلة فعليك إتاحة المصدر المقابل تحت GPL-3.0-or-later والحفاظ على الإشعارات. أما توزيع الملفات الثنائية غير المعدّلة من الإصدارات فلا يحتاج أكثر من نص الرخصة.',
-          'يُوزَّع Orbiscreen على أمل أن يكون مفيداً، لكن دون أي ضمان، حتى الضمان الضمني لقابلية التسويق أو الملاءمة لغرض معين.',
+          'إن وزعت نسخة معدلة فعليك إتاحة المصدر المقابل تحت GPL-3.0-or-later والحفاظ على الإشعارات. أما توزيع الملفات الثنائية غير المعدلة من الإصدارات فلا يحتاج أكثر من نص الرخصة.',
+          'يوزع Orbiscreen على أمل أن يكون مفيدا، لكن دون أي ضمان، حتى الضمان الضمني لقابلية التسويق أو الملاءمة لغرض معين.',
         ],
       },
       {
-        title: 'مكوّنات مضمّنة',
+        title: 'مكونات مضمنة',
         body: [
-          'مساعد رمز QR في gui/ui/qrcode.js مرخّص بـ MIT ويحتفظ بإشعاره الأصلي. ذلك الإشعار التزام ترخيصي لا توثيق، فيبقى في مكانه داخل شجرة GPL-3.0-or-later.',
+          'مساعد رمز QR في gui/ui/qrcode.js مرخص بـ MIT ويحتفظ بإشعاره الأصلي. ذلك الإشعار التزام ترخيصي لا توثيق، فيبقى في مكانه داخل شجرة GPL-3.0-or-later.',
         ],
       },
     ],
@@ -107,7 +107,7 @@ export const licensePage: Record<Lang, SimplePage> = {
 export const securityPage: Record<Lang, SimplePage> = {
   en: {
     eyebrow: 'Security',
-    title: 'Report a vulnerability privately',
+    title: 'Report a vulnerability privately.',
     lede: 'Orbiscreen runs on a local network and injects input into your desktop, so security reports are taken seriously and answered privately.',
     sections: [
       {
@@ -145,18 +145,18 @@ export const securityPage: Record<Lang, SimplePage> = {
   },
   ar: {
     eyebrow: 'الأمان',
-    title: 'أبلغ عن ثغرة بخصوصية',
-    lede: 'يعمل Orbiscreen على شبكة محلية ويحقن الإدخال في سطح مكتبك، لذا تُؤخذ بلاغات الأمان بجدية وتُجاب بخصوصية.',
+    title: 'أبلغ عن ثغرة بخصوصية.',
+    lede: 'يعمل Orbiscreen على شبكة محلية ويحقن الإدخال في سطح مكتبك، لذا تؤخذ بلاغات الأمان بجدية وتجاب بخصوصية.',
     sections: [
       {
-        title: 'كيف تبلّغ',
+        title: 'كيف تبلغ',
         body: [
-          'افتح استشارة أمان خاصة على GitHub، فتُبقي التفاصيل بعيدة عن العرض العام حتى يصبح الإصلاح جاهزاً. ويتوفر البريد كبديل إن تعذّر استخدام GitHub.',
+          'افتح استشارة أمان خاصة على GitHub، فتبقي التفاصيل بعيدة عن العرض العام حتى يصبح الإصلاح جاهزا. ويتوفر البريد كبديل إن تعذر استخدام GitHub.',
         ],
         list: [
           'GitHub: Security ← Advisories ← New draft security advisory',
           `البريد: ${SECURITY_EMAIL}`,
-          'أدرج الإصدار المتأثر والمكوّن وخطوات إعادة الإنتاج والأثر الذي لاحظته.',
+          'أدرج الإصدار المتأثر والمكون وخطوات إعادة الإنتاج والأثر الذي لاحظته.',
         ],
       },
       {
@@ -175,8 +175,8 @@ export const securityPage: Record<Lang, SimplePage> = {
       {
         title: 'الإصدارات المدعومة',
         body: [
-          'لا يتلقى تحديثات الأمان إلا أحدث إصدار ثانوي. ابنِ من main قبل الإبلاغ كي لا تكون المشكلة مُصلحة سلفاً.',
-          'كل إصدارات Linux وAndroid موقّعة تشفيرياً، وتُنشر التوقيعات مع الإصدار.',
+          'لا يتلقى تحديثات الأمان إلا أحدث إصدار ثانوي. ابن من main قبل الإبلاغ كي لا تكون المشكلة مصلحة سلفا.',
+          'كل إصدارات Linux وAndroid موقعة تشفيريا، وتنشر التوقيعات مع الإصدار.',
         ],
       },
     ],
@@ -186,7 +186,7 @@ export const securityPage: Record<Lang, SimplePage> = {
 export const privacyPage: Record<Lang, SimplePage> = {
   en: {
     eyebrow: 'Privacy',
-    title: 'No accounts, no cookies, no tracking',
+    title: 'No accounts, no cookies, no tracking.',
     lede: 'This site is static documentation and marketing for a local-network tool. It sets no cookies and asks for no personal data.',
     sections: [
       {
@@ -217,13 +217,13 @@ export const privacyPage: Record<Lang, SimplePage> = {
   },
   ar: {
     eyebrow: 'الخصوصية',
-    title: 'بلا حسابات ولا كوكيز ولا تتبع',
+    title: 'بلا حسابات ولا كوكيز ولا تتبع.',
     lede: 'هذا الموقع توثيق وتسويق ثابت لأداة تعمل على الشبكة المحلية. لا يضع كوكيز ولا يطلب بيانات شخصية.',
     sections: [
       {
         title: 'ما يجمعه هذا الموقع',
         body: [
-          'يقدّم Cloudflare هذا الموقع ويسجّل بيانات طلب مجمّعة مثل المسار المطلوب وحالة الاستجابة والبلد ووكيل المستخدم. ويضيف Cloudflare Web Analytics عدّاً مجمّعاً للمشاهدات بلا كوكيز وبلا معرّفات عبر المواقع وبلا بصمة.',
+          'يقدم Cloudflare هذا الموقع ويسجل بيانات طلب مجمعة مثل المسار المطلوب وحالة الاستجابة والبلد ووكيل المستخدم. ويضيف Cloudflare Web Analytics عدا مجمعا للمشاهدات بلا كوكيز وبلا معرفات عبر المواقع وبلا بصمة.',
           'لا حسابات ولا نماذج ولا نشرة بريدية ولا تعليقات. لا شيء في هذا الموقع يطلب منك تعريف نفسك.',
         ],
       },
@@ -237,7 +237,7 @@ export const privacyPage: Record<Lang, SimplePage> = {
       {
         title: 'الروابط الخارجية',
         body: [
-          'تفتح روابط GitHub وLaunchpad وFedora COPR مواقع طرف ثالث لها سياساتها. ولا يضمّن هذا الموقع سكربتات أو خطوطاً أو بكسلات تتبع من طرف ثالث.',
+          'تفتح روابط GitHub وLaunchpad وFedora COPR مواقع طرف ثالث لها سياساتها. ولا يضمن هذا الموقع سكربتات أو خطوطا أو بكسلات تتبع من طرف ثالث.',
         ],
       },
       {

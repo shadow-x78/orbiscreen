@@ -33,7 +33,7 @@ const ar: CompareRow[] = [
   { capability: 'شاشة ممتدة', spacedesk: 'Windows فقط', deskreen: 'لا', weylus: 'لا', sidecar: 'Apple فقط', orbiscreen: 'شاشة افتراضية' },
   { capability: 'تطبيق Android أصلي', spacedesk: 'نعم', deskreen: 'متصفح', weylus: 'متصفح', sidecar: 'iPad', orbiscreen: 'تطبيق Compose' },
   { capability: 'ترميز عتادي', spacedesk: 'نعم', deskreen: 'لا', weylus: 'جزئي', sidecar: 'نعم', orbiscreen: 'NVENC وVA-API' },
-  { capability: 'زمن الاستجابة المقاس', spacedesk: '~50-80 ms', deskreen: '~150-300 ms', weylus: '~80-120 ms', sidecar: '~30 ms', orbiscreen: '~25-40 ms' },
+  { capability: 'زمن الاستجابة المقاس', spacedesk: '\u2066~50-80 ms\u2069', deskreen: '\u2066~150-300 ms\u2069', weylus: '\u2066~80-120 ms\u2069', sidecar: '\u2066~30 ms\u2069', orbiscreen: '\u2066~25-40 ms\u2069' },
   { capability: 'ضغط القلم وميله', spacedesk: 'لا', deskreen: 'لا', weylus: 'القلم فقط', sidecar: 'نعم', orbiscreen: '4095 مستوى' },
   { capability: 'لمس وفأرة عكسيان', spacedesk: 'نعم', deskreen: 'لا', weylus: 'القلم فقط', sidecar: 'نعم', orbiscreen: 'لمس متعدد' },
   { capability: 'بلا root على KDE وwlroots', spacedesk: 'لا ينطبق', deskreen: 'نعم', weylus: 'لا', sidecar: 'لا ينطبق', orbiscreen: 'نعم' },

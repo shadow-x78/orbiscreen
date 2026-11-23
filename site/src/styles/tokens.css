@@ -1,68 +1,68 @@
 /* ─────────────────────────────────────────────
-   Orbiscreen - Design Tokens
-   https://github.com/shadow-x78/orbiscreen
+   Orbiscreen · Design tokens
+   Extracted from orbiscreen.figcraft (01_Design_Tokens)
    ───────────────────────────────────────────── */
 
 :root {
   color-scheme: dark;
 
-  /* ── Background & surface ── */
+  /* Backgrounds and alternating bands */
   --bg-base: #0e1116;
   --bg-subtle: #0a0d11;
+  --bg-band-alt: #10141a;
   --surface-1: #151a21;
   --surface-2: #1b222b;
+  --table-head: #1b222b;
   --surface-hover: #232c38;
   --surface-deep: #10151c;
   --surface-sunken: #0e151f;
+  --surface-terminal-head: #0e1218;
 
-  /* ── Borders ── */
+  /* Borders */
   --border-hairline: #252d38;
   --border-strong: #333d4b;
 
-  /* ── Text ── */
+  /* Text */
   --text-primary: #e8edf5;
   --text-muted: #93a0b4;
-  /* The design's #616D80 is 3.6:1 on the base background, below AA for body
-     text. Captions use this lifted tone (5.3:1) instead. */
-  --text-faint-aa: #7d8899;
+  --text-faint: #7b899e;
+  --text-faint-aa: #7b899e;
+  --text-faint-inner: #7d8899;
+  --display-404: #6f7d93;
 
-  /* ── Accent ──
-     One hue, three steps, each with a job. The ink step clears 4.5:1 on the
-     base background, the solid step clears 4.5:1 against white button text. */
-  --accent-interactive: #4c8dff;
-  --accent-brand: var(--accent-interactive);
-  --accent-solid: #2563eb;
-  --accent-solid-hover: #1d4ed8;
-  --accent-soft: rgb(76 141 255 / 12%);
-
-  /* ── Semantic ── */
-  --success: #34d399;
-  --warning: #fbbf24;
-  --danger: #f87171;
-
-  /* ── Code ── */
-  --code-bg: #0a0d11;
+  /* Code */
   --code-text: #e8edf5;
-  --code-comment: #6f7e94;
+  --code-comment: #7b899e;
+  --code-bg: #0a0d11;
 
-  /* ── Light parity (used by print and forced light) ── */
-  --light-bg: #f3f5f9;
-  --light-surface: #ffffff;
-  --light-surface-alt: #f6f8fc;
-  --light-border: #e1e6ef;
-  --light-text: #141a24;
-  --light-muted: #64708a;
-  --light-accent: #2563eb;
+  /* Primary action */
+  --primary-bg: #88b4fa;
+  --primary-hover: #9cc2ff;
+  --primary-active: #74a4f0;
+  --primary-text: #0e1116;
 
-  /* ── Type ── */
+  /* Accent */
+  --accent-interactive: #88b4fa;
+  --accent-brand: #88b4fa;
+  --accent-soft: rgb(136 180 250 / 14%);
+  --accent-solid: var(--primary-bg);
+  --accent-solid-hover: var(--primary-hover);
+
+  /* Semantic */
+  --semantic-success: #34d399;
+  --semantic-warning: #fbbf24;
+  --semantic-danger: #f87171;
+  --success: var(--semantic-success);
+  --warning: var(--semantic-warning);
+  --danger: var(--semantic-danger);
+  --callout-note: #4c8dff;
+  --callout-tip: #34d399;
+  --callout-warn: #fbbf24;
+
+  /* Type */
   --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-arabic: 'Noto Sans Arabic', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'Source Code Pro', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-
-  /* Labels sit in sentence case. 0.02em is the only tracking the UI uses, and
-     Arabic takes none, because tracking pulls the joined letters apart. */
-  --tracking-label: 0.02em;
-  --tracking-display: -0.3px;
 
   --text-h1: 64px;
   --leading-h1: 72px;
@@ -72,8 +72,7 @@
   --tracking-h2: -1px;
   --text-h3: 24px;
   --leading-h3: 32px;
-  --text-body-lg: 20px;
-  --leading-body-lg: 32px;
+  --tracking-h3: -0.3px;
   --text-body: 16px;
   --leading-body: 26px;
   --text-small: 14px;
@@ -81,29 +80,75 @@
   --text-caption: 13px;
   --leading-caption: 20px;
   --text-label: 12px;
-  --leading-label: 18px;
+  --leading-label: 16px;
+  --tracking-label: 1.4px;
+  --text-code: 14px;
+  --leading-code: 22px;
 
-  /* ── Space & shape ── */
+  /* Space and shape */
   --container: 1200px;
   --gutter: 120px;
+  --gutter-md: 48px;
   --gutter-sm: 20px;
+  --nav-h: 64px;
+  --nav-h-sm: 60px;
   --section-y: 96px;
-  --section-y-sm: 64px;
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
-  --radius-pill: 999px;
+  --section-y-sm: 48px;
 
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-10: 10px;
+  --radius-12: 12px;
+  --radius-14: 14px;
+  --radius-16: 16px;
+  --radius-pill: 999px;
+  --radius-sm: var(--radius-8);
+  --radius-md: var(--radius-10);
+  --radius-lg: var(--radius-14);
+  --radius-xl: var(--radius-16);
+
+  /* Focus */
+  --focus-ring-color: #88b4fa;
+  --focus-ring: 2px solid var(--focus-ring-color);
+  --focus-ring-shadow: 0 0 0 3px rgb(136 180 250 / 30%);
+  --focus-offset: 2px;
+
+  /* Depth */
+  --hairline-fade: transparent 0%, rgb(255 255 255 / 8%) 50%, transparent 100%;
   --shadow-raised: 0 18px 40px rgb(0 0 0 / 28%);
-  --focus-ring: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent-interactive);
-  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-float: 0 12px 32px rgb(0 0 0 / 45%);
+  --shadow-float-lg: 0 18px 48px rgb(0 0 0 / 55%);
+  --nav-bg: rgb(14 17 22 / 90%);
+  --nav-bg-scrolled: rgb(14 17 22 / 96%);
+  --nav-blur: 16px;
+  --nav-edge: rgb(255 255 255 / 6%);
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease: var(--ease-out-expo);
+  --dur-micro: 180ms;
+  --dur-state: 240ms;
+  --dur-reveal: 320ms;
+  --dur-hero: 450ms;
+  --dur-1: var(--dur-micro);
+  --dur-2: var(--dur-state);
+  --dur-3: var(--dur-reveal);
+  --dur-4: var(--dur-hero);
+  --stagger: 60ms;
+
+  /* Light parity (print) */
+  --light-bg: #f3f5f9;
+  --light-surface: #ffffff;
+  --light-surface-alt: #f6f8fc;
+  --light-border: #e1e6ef;
+  --light-text: #141a24;
+  --light-muted: #64708a;
+  --light-accent: #2563eb;
 }
 
 @media (max-width: 1279px) {
   :root {
-    --gutter: 48px;
+    --gutter: var(--gutter-md);
     --section-y: 80px;
   }
 }
@@ -117,19 +162,19 @@
     --tracking-h1: -1.4px;
     --text-h2: 27px;
     --leading-h2: 34px;
-    --tracking-h2: -0.6px;
+    --tracking-h2: -0.8px;
     --text-h3: 19px;
     --leading-h3: 26px;
-    --text-body-lg: 17px;
-    --leading-body-lg: 28px;
+    --text-body: 15px;
+    --leading-body: 26px;
+    --text-small: 13px;
+    --leading-small: 20px;
   }
 }
 
-/* Arabic optical parity: larger size, looser leading, no negative tracking. */
+/* Arabic: larger size, looser leading, and no tracking anywhere. */
 :root[lang='ar'] {
   --font-sans: var(--font-arabic);
-  --tracking-label: 0;
-  --tracking-display: 0;
   --text-h1: 56px;
   --leading-h1: 82px;
   --tracking-h1: 0;
@@ -138,23 +183,34 @@
   --tracking-h2: 0;
   --text-h3: 23px;
   --leading-h3: 38px;
-  --text-body-lg: 17px;
-  --leading-body-lg: 30px;
+  --tracking-h3: 0;
   --text-body: 16px;
   --leading-body: 30px;
   --text-small: 15px;
   --leading-small: 26px;
   --text-caption: 14px;
   --leading-caption: 24px;
+  --text-label: 12px;
+  --leading-label: 18px;
+  --tracking-label: 0;
 }
 
 @media (max-width: 767px) {
   :root[lang='ar'] {
-    --text-h1: 34px;
-    --leading-h1: 52px;
+    --text-h1: 36px;
+    --leading-h1: 58px;
     --text-h2: 25px;
     --leading-h2: 40px;
     --text-h3: 19px;
     --leading-h3: 32px;
   }
+}
+
+/* Hard rule: Arabic script never receives tracking, including inline
+   Latin runs inside Arabic copy. Code and versions stay LTR and can keep
+   their own metrics because they sit outside Arabic words. */
+html[lang='ar'] *,
+html[lang='ar'] *::before,
+html[lang='ar'] *::after {
+  letter-spacing: 0 !important;
 }

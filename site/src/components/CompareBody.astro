@@ -1,7 +1,6 @@
 ---
 // ─────────────────────────────────────────────
-// Orbiscreen - Comparison page body
-// https://github.com/shadow-x78/orbiscreen
+// Orbiscreen · Compare page body
 // ─────────────────────────────────────────────
 
 import '../styles/docs.css';
@@ -20,8 +19,10 @@ interface Props {
 const { lang } = Astro.props;
 const page = pages.compare[lang];
 const t = ui[lang];
-const installHref = lang === 'ar' ? '/ar/install' : '/install';
-const architectureHref = lang === 'ar' ? '/ar/docs/architecture' : '/docs/architecture';
+const prefix = lang === 'ar' ? '/ar' : '';
+const installHref = `${prefix}/install`;
+const architectureHref = `${prefix}/docs/architecture`;
+const trailingArrow = lang === 'ar' ? 'arrow-left' : 'arrow-right-sm';
 ---
 
 <PageHead
@@ -35,43 +36,56 @@ const architectureHref = lang === 'ar' ? '/ar/docs/architecture' : '/docs/archit
   ]}
 />
 
-<section class="section">
+<section class="compare-sec">
   <div class="container">
+    <div class="compare-intro">
+      <p class="eyebrow">{lang === 'ar' ? 'المصفوفة' : 'Matrix'}</p>
+      <h2 class="compare-intro__title">{lang === 'ar' ? 'قدرة بقدرة.' : 'Capability by capability.'}</h2>
+    </div>
+
     <CompareTable
       rows={comparison[lang]}
       lang={lang}
       caption={lang === 'ar' ? 'مقارنة أدوات الشاشة الثانية' : 'Second-screen tool comparison'}
     />
+  </div>
+</section>
 
-    <div class="grid-2" style="margin-block-start:40px">
+<section class="compare-method">
+  <div class="container">
+    <h2 class="compare-method__title">{page.methodology.title}</h2>
+    <div class="compare-method__body">
+      {page.methodology.body.map((paragraph) => <p>{paragraph}</p>)}
+    </div>
+  </div>
+</section>
+
+<section class="differences">
+  <div class="container">
+    <div class="differences__head">
+      <p class="eyebrow">{lang === 'ar' ? 'الفروق' : 'Differences'}</p>
+      <h2 class="differences__title">{lang === 'ar' ? 'ما يتغير عمليا.' : 'What changes in practice.'}</h2>
+    </div>
+    <div class="diff-grid">
       {page.differences.map((item) => (
-        <article class="card">
-          <h2 class="h3" style="font-size:18px;margin-block-end:8px">{item.title}</h2>
-          <p class="muted" style="font-size:14.5px;line-height:1.7">{item.body}</p>
+        <article class="diff-card" data-reveal>
+          <h3 class="diff-card__title">{item.title}</h3>
+          <p class="diff-card__body">{item.body}</p>
         </article>
       ))}
     </div>
   </div>
 </section>
 
-<section class="section section--subtle">
+<section class="cta-section">
   <div class="container">
-    <div class="section__head">
-      <h2 class="h2">{page.methodology.title}</h2>
-    </div>
-    <div class="feature-row__body" style="max-width:74ch">
-      {page.methodology.body.map((paragraph) => <p>{paragraph}</p>)}
-    </div>
-
-    <div class="cta-card" style="margin-block-start:40px">
-      <div class="cta-card__text">
-        <h2 class="h3">{page.cta.title}</h2>
-        <p>{page.cta.body}</p>
-      </div>
+    <div class="cta-card" data-reveal>
+      <h2 class="cta-card__title">{page.cta.title}</h2>
+      <p class="cta-card__body">{page.cta.body}</p>
       <div class="cta-card__actions">
         <a class="btn btn--primary" href={installHref}>
           {page.cta.primary}
-          <Icon name="arrow-right" size={18} />
+          <Icon name={trailingArrow} size={16} class="btn__arrow" />
         </a>
         <a class="btn btn--secondary" href={architectureHref}>{page.cta.secondary}</a>
       </div>

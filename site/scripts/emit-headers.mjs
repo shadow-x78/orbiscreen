@@ -144,7 +144,7 @@ function orderKey(file) {
 
 const ordered = [...mdFiles].sort((a, b) => orderKey(a).localeCompare(orderKey(b)));
 const full = [
-  '# Orbiscreen — full text',
+  '# Orbiscreen: full text',
   '',
   `Generated from ${SITE_URL}. Every section below is also available as an HTML page and as a Markdown mirror.`,
   '',

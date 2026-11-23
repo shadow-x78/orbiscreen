@@ -1,7 +1,6 @@
 ---
 // ─────────────────────────────────────────────
-// Orbiscreen - Documentation index body
-// https://github.com/shadow-x78/orbiscreen
+// Orbiscreen · Documentation index body
 // ─────────────────────────────────────────────
 
 import { getCollection } from 'astro:content';
@@ -21,6 +20,7 @@ interface Props {
 
 const { lang, eyebrow, title, lede } = Astro.props;
 const t = ui[lang];
+const prefix = lang === 'ar' ? '/ar' : '';
 
 const entries = await getCollection('docs', (entry) => entry.data.lang === lang);
 const bySlug = new Map(entries.map((entry) => [entry.data.slug, entry]));
@@ -31,22 +31,31 @@ const groupLabels: Record<string, string> = {
   reference: lang === 'ar' ? 'المراجع' : 'Reference',
 };
 
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 const sections = Object.entries(groupLabels)
   .map(([group, label]) => ({
     label,
-    cards: docsMeta.docs
-      .filter((doc) => doc.group === group)
-      .map((doc) => {
-        const entry = bySlug.get(doc.slug);
-        return {
-          href: `${lang === 'ar' ? '/ar' : ''}/docs/${doc.slug}`,
-          title: lang === 'ar' ? doc.titleAr : doc.title,
-          description: lang === 'ar' ? doc.descriptionAr : doc.description,
-          meta: entry ? `docs/${entry.data.source} · ${entry.data.updated}` : `docs/${doc.slug}`,
-        };
-      }),
+    rows: chunk(
+      docsMeta.docs
+        .filter((doc) => doc.group === group)
+        .map((doc) => {
+          const entry = bySlug.get(doc.slug);
+          return {
+            href: `${prefix}/docs/${doc.slug}`,
+            title: lang === 'ar' ? doc.titleAr : doc.title,
+            description: lang === 'ar' ? doc.descriptionAr : doc.description,
+            meta: entry ? `docs/${doc.source}.md · ${entry.data.updated}` : `docs/${doc.slug}`,
+          };
+        }),
+      2,
+    ),
   }))
-  .filter((section) => section.cards.length > 0);
+  .filter((section) => section.rows.length > 0);
 ---
 
 <PageHead
@@ -60,38 +69,38 @@ const sections = Object.entries(groupLabels)
   ]}
 />
 
-<section class="section">
+<section class="docs-index">
   <div class="container">
     {sections.map((section) => (
-      <div style="margin-block-end:44px">
-        <h2 class="h3" style="margin-block-end:16px">{section.label}</h2>
-        <div class="doc-cards">
-          {section.cards.map((card) => (
-            <a class="doc-card" href={card.href}>
-              <span class="doc-card__title">{card.title}</span>
-              <span class="doc-card__desc">{card.description}</span>
-              <span class="doc-card__meta">{card.meta}</span>
-            </a>
-          ))}
-        </div>
+      <div class="docs-group">
+        <h2 class="docs-group__title">{section.label}</h2>
+        {section.rows.map((row) => (
+          <div class="docs-row">
+            {row.map((card) => (
+              <a class="doc-card" href={card.href} data-reveal data-sheen>
+                <span class="doc-card__title">{card.title}</span>
+                <span class="doc-card__desc">{card.description}</span>
+                <span class="doc-card__meta">{card.meta}</span>
+              </a>
+            ))}
+          </div>
+        ))}
       </div>
     ))}
 
-    <div class="cta-card">
-      <div class="cta-card__text">
-        <h2 class="h3">{lang === 'ar' ? 'التوثيق الكامل على GitHub' : 'The full source is on GitHub'}</h2>
-        <p>
+    <div class="docs-cta" data-reveal>
+      <div>
+        <h2 class="docs-cta__title">{lang === 'ar' ? 'المصدر الكامل على GitHub' : 'The full source is on GitHub'}</h2>
+        <p class="docs-cta__body">
           {lang === 'ar'
             ? 'كل مستند يعيش بجانب الشيفرة التي يصفها، ويمكنك قراءته أو تعديله هناك.'
             : 'Every document lives next to the code it describes, so you can read or amend it in place.'}
         </p>
       </div>
-      <div class="cta-card__actions">
-        <a class="btn btn--secondary" href={`${GITHUB_URL}/tree/main/docs`} rel="noopener">
-          <Icon name="github" size={18} />
-          {lang === 'ar' ? 'افتح docs/' : 'Open docs/'}
-        </a>
-      </div>
+      <a class="btn btn--secondary" href={`${GITHUB_URL}/tree/main/docs`} rel="noopener">
+        <Icon name="github" size={18} />
+        {lang === 'ar' ? 'افتح docs/' : 'Open docs/'}
+      </a>
     </div>
   </div>
 </section>

@@ -1,20 +1,18 @@
 ---
 // ─────────────────────────────────────────────
-// Orbiscreen - Install page body
-// https://github.com/shadow-x78/orbiscreen
+// Orbiscreen · Install page body
 // ─────────────────────────────────────────────
 
+import '../styles/docs.css';
 import PageHead from './PageHead.astro';
 import Icon from './Icon.astro';
 import InstallTabs from './InstallTabs.astro';
 import DownloadButtons from './DownloadButtons.astro';
-import PlatformTable from './PlatformTable.astro';
 import { pages } from '../data/pages';
-import { installMethods, downloads } from '../data/install';
-import { platforms } from '../data/platforms';
 import { landing } from '../data/landing';
+import { downloads, installMethods } from '../data/install';
 import { ui } from '../data/i18n';
-import { ISSUES_URL, type Lang } from '../lib/site';
+import { GITHUB_URL, type Lang } from '../lib/site';
 
 interface Props {
   lang: Lang;
@@ -23,8 +21,12 @@ interface Props {
 const { lang } = Astro.props;
 const page = pages.install[lang];
 const t = ui[lang];
-const data = landing[lang];
-const troubleshootingHref = lang === 'ar' ? '/ar/docs/troubleshooting' : '/docs/troubleshooting';
+const methods = installMethods[lang];
+const dl = downloads[lang];
+const rows = landing[lang].platform.rows;
+const prefix = lang === 'ar' ? '/ar' : '';
+const troubleshootingHref = `${prefix}/docs/troubleshooting`;
+const trailingArrow = lang === 'ar' ? 'arrow-left' : 'arrow-right-sm';
 ---
 
 <PageHead
@@ -40,64 +42,127 @@ const troubleshootingHref = lang === 'ar' ? '/ar/docs/troubleshooting' : '/docs/
 
 <section class="section">
   <div class="container">
-    <div class="card" style="margin-block-end:32px">
-      <h2 class="h3" style="margin-block-end:12px">{page.requirements.title}</h2>
-      <ul style="display:flex;flex-direction:column;gap:10px;padding-inline-start:1.1em;color:var(--text-muted)">
-        {page.requirements.items.map((item) => <li>{item}</li>)}
+    <div class="split-row">
+      <h2 class="split-row__title" data-reveal>{page.requirements.title}</h2>
+      <ul class="bullets bullets--check" data-reveal>
+        {page.requirements.items.map((item) => <li class="bullet">{item}</li>)}
       </ul>
     </div>
-
-    <InstallTabs lang={lang} methods={installMethods[lang]} />
-
-    <DownloadButtons label={data.install.hostLabel} items={downloads[lang].host} />
-    <DownloadButtons label={data.install.clientsLabel} items={downloads[lang].clients} />
   </div>
 </section>
 
 <section class="section section--subtle">
   <div class="container">
-    <div class="section__head">
-      <h2 class="h2">{page.after.title}</h2>
+    <div class="inner-head">
+      <p class="inner-head__label">{lang === 'ar' ? 'مديرو الحزم' : 'Package managers'}</p>
+      <h2 class="inner-head__title">{lang === 'ar' ? 'اختر توزيعتك.' : 'Pick your distribution.'}</h2>
     </div>
-    <ol class="grid-2" style="list-style:none;padding:0;margin:0">
-      {page.after.steps.map((step, index) => (
-        <li class="card">
-          <span class="step__num">{String(index + 1).padStart(2, '0')}</span>
-          <h3 class="h3" style="margin-block:8px 6px;font-size:18px">{step.title}</h3>
-          <p class="muted" style="font-size:14px;line-height:1.7">{step.text}</p>
-        </li>
-      ))}
-    </ol>
+    <InstallTabs lang={lang} methods={methods} />
   </div>
 </section>
 
 <section class="section">
   <div class="container">
-    <div class="section__head">
-      <h2 class="h2">{page.platformTitle}</h2>
-      <p class="section__lede">{page.platformLede}</p>
+    <div class="inner-head">
+      <p class="inner-head__label">{lang === 'ar' ? 'كل الطرق' : 'All methods'}</p>
+      <h2 class="inner-head__title">{lang === 'ar' ? 'ست طرق للتثبيت.' : 'Six ways to install.'}</h2>
     </div>
-    <PlatformTable
-      rows={platforms[lang]}
-      lang={lang}
-      caption={lang === 'ar' ? 'مصفوفة دعم بيئات سطح المكتب' : 'Desktop environment support matrix'}
-    />
+    <div class="methods-grid">
+      {methods.map((method) => {
+        const comment = method.lines.find((line) => line.kind === 'comment');
+        const command = method.lines.find((line) => line.kind === 'cmd');
+        return (
+          <article class="method" data-reveal>
+            <div class="method__head">
+              <h3 class="method__title">{method.label}</h3>
+              {method.action && (
+                <a class="method__link" href={method.action.href} rel="noopener">
+                  {method.action.label}
+                </a>
+              )}
+            </div>
+            <pre class="method__code">{comment && <span class="c">{comment.text}</span>}
+{command && <span>{command.text}</span>}</pre>
+            <p class="method__note">{method.note}</p>
+          </article>
+        );
+      })}
+    </div>
   </div>
 </section>
 
 <section class="section section--subtle">
   <div class="container">
-    <div class="cta-card">
-      <div class="cta-card__text">
-        <h2 class="h3">{page.cta.title}</h2>
-        <p>{page.cta.body}</p>
+    <DownloadButtons label={page.requirements.items.length ? (lang === 'ar' ? 'المضيف / سطح المكتب · الحزم' : 'Host / desktop · packages') : ''} items={dl.host} />
+    <div class="downloads-gap"></div>
+    <DownloadButtons label={lang === 'ar' ? 'تطبيقات العميل · المستقبل' : 'Client apps · receiver'} items={dl.clients} />
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="inner-head">
+      <p class="inner-head__label">{lang === 'ar' ? 'التحقق' : 'Verify'}</p>
+      <h2 class="inner-head__title">{lang === 'ar' ? 'تحقق من التثبيت' : 'Verify the install'}</h2>
+      <p class="inner-head__lead">
+        {lang === 'ar'
+          ? 'يسمي أمر doctor مدير النوافذ وواجهة الالتقاط ومسار الشاشة الافتراضية، ويفشل بوضوح بدل التخمين.'
+          : 'The doctor command names the compositor, the capture backend, and the virtual display path, and it fails loudly instead of guessing.'}
+      </p>
+    </div>
+
+    <div class="terminal" data-reveal>
+      <div class="terminal__head">
+        <span class="terminal__dots" aria-hidden="true">
+          <span class="terminal__dot dot--danger"></span>
+          <span class="terminal__dot dot--warning"></span>
+          <span class="terminal__dot dot--success"></span>
+        </span>
+        <span class="terminal__path">~/  bash</span>
+        <button class="terminal__copy" type="button" data-copy="orbiscreen doctor" data-label-copy={t.actions.copy} data-label-copied={t.actions.copied} data-label-failed={t.actions.copyFailed}>
+          <Icon name="copy" size={13} class="copy-icon--copy" />
+          <Icon name="check-sm" size={13} class="copy-icon--check" />
+          <span data-copy-label>{t.actions.copy}</span>
+        </button>
       </div>
+      <div class="terminal__body" tabindex="0">
+        <pre class="terminal__code"><code><span class="cmd">$ orbiscreen doctor</span>
+<span class="c">✓ compositor: KWin (Wayland) · virtual display: portal · root: not needed</span></code></pre>
+      </div>
+    </div>
+
+    <h3 class="verify-title">{lang === 'ar' ? 'ما تستخدمه كل بيئة' : 'What each desktop uses'}</h3>
+    <p class="verify-body">
+      {lang === 'ar'
+        ? 'يطبع أمر doctor هذا الجدول لجهازك. لا يحتاج root إلا حين توفر EVDI الشاشة الافتراضية.'
+        : 'The doctor command prints this table for your machine. Root is only needed where EVDI provides the virtual display.'}
+    </p>
+
+    <div class="matrix verify-matrix" role="table" aria-label={lang === 'ar' ? 'ما تستخدمه كل بيئة' : 'What each desktop uses'}>
+      {rows.map((row) => (
+        <div class="matrix__row" role="row">
+          <span class="matrix__name" role="cell" dir="ltr">{row.name}</span>
+          <span class="matrix__status" role="cell">
+            <span class:list={['matrix__dot', row.status.includes('EVDI') ? 'dot--warning' : row.status.includes('Portal') ? 'dot--interactive' : 'dot--success']}></span>
+            {row.status}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-card" data-reveal>
+      <h2 class="cta-card__title">{page.cta.title}</h2>
+      <p class="cta-card__body">{page.cta.body}</p>
       <div class="cta-card__actions">
         <a class="btn btn--primary" href={troubleshootingHref}>
           {page.cta.primary}
-          <Icon name="arrow-right" size={18} />
+          <Icon name={trailingArrow} size={16} class="btn__arrow" />
         </a>
-        <a class="btn btn--secondary" href={ISSUES_URL} rel="noopener">{page.cta.secondary}</a>
+        <a class="btn btn--secondary" href={`${GITHUB_URL}/issues`} rel="noopener">{page.cta.secondary}</a>
       </div>
     </div>
   </div>

@@ -351,8 +351,8 @@ larger at the same sizes.
   - Check/Warning/Error are outlines in the glyph colour rather than a filled disc
     with a hard-coded `#FFFFFF` knockout, which vanished on the light theme and
     collapsed to a dot at 16px;
-  - `Touch` was two arcs and a dot, i.e. a duplicate of `Wifi` — and its first
-    replacement read as an exclamation mark at 18px — so it is now a pointer arrow;
+  - `Touch` was two arcs and a dot, i.e. a duplicate of `Wifi` - and its first
+    replacement read as an exclamation mark at 18px - so it is now a pointer arrow;
   - `Chip` drops from twelve pins to two per side and `Dashboard` is a two-pane
     panel instead of the bisected ellipse that read as a globe.
   - Card header glyphs are 20px (`Metrics::cardIconSize`) instead of 18px.
@@ -415,8 +415,8 @@ larger at the same sizes.
 - feat: redesign the Qt desktop interface with a modern theme, runtime vector icons, and a crisp QR code
 
 The desktop client drops the native `QGroupBox` frames and the menu-bar/toolbar
-layout for a card-based interface. `MainWindow` now has a compact header — logo,
-state pill, a primary start/stop action, restart, refresh, and an overflow menu —
+layout for a card-based interface. `MainWindow` now has a compact header - logo,
+state pill, a primary start/stop action, restart, refresh, and an overflow menu -
 and the pages are built from rounded cards, stat tiles, a custom switch, and
 status rows. Actions, shortcuts, the tray menu, the D-Bus contract, and the
 binary/desktop-entry names are unchanged.
@@ -430,7 +430,7 @@ binary/desktop-entry names are unchanged.
   the project logo instead of a themed fallback.
 - `QrView` paints the daemon's module matrix directly with a four-module quiet
   zone instead of scaling a bitmap, so the QR stays sharp and scannable.
-- Right-to-left layouts mirror end to end — header, values, and pages — and
+- Right-to-left layouts mirror end to end - header, values, and pages - and
   switching language at runtime updates both directions and strings.
 - The header start/stop action replaces the duplicate button that sat at the
   bottom of the Connect page; Connect, Display & Input, and Doctor were rebuilt
@@ -649,7 +649,7 @@ connection to the local daemon, and that connection is HTTP keep-alive. When a
 client went away the daemon kept the connection open, so the host's reader never
 saw EOF and the entry stayed in the map forever. The map filled to its 48-entry
 bound and then evicted one stream per new connection, logging
-`AOA stream limit reached; evicted the oldest stream` indefinitely — the log
+`AOA stream limit reached; evicted the oldest stream` indefinitely - the log
 showed stream ids climbing past 100 with 47 entries live.
 
 - `finish_proxy_stream` now records a last-activity stamp per stream, touched on inbound client data, on frames written back, and on successful reads, and `open_proxy_stream` reaps streams idle for 30 s before applying the bound. An idle stream is closed and its close frame is sent, so a keep-alive connection that outlives its client can no longer pin a slot.
@@ -668,7 +668,7 @@ The remaining noise was mislabelled rather than harmful:
 ### Fixed
 - fix: stop forcing intra-refresh on x264, which turned every on-demand keyframe into an undecodable P-frame
 
-`configure_infinite_gop` set `intra-refresh=true` on `x264enc` unconditionally, not only when `ORBISCREEN_INFINITE_GOP=1` opts into it. With intra-refresh on, `x264enc` emits a real IDR only for the very first frame: `GstForceKeyUnit` afterwards produces a frame that `h264parse` flags as a keyframe (no `DELTA_UNIT`) but that carries **no IDR NAL** — just P-slices. Measured at 1920x1080 the opening IDR is 7065 B with NAL types `[9,7,8,6,5,5,5,5]`, while a forced keyframe is 389 B with `[9,7,8,6,1,1,1,1]`.
+`configure_infinite_gop` set `intra-refresh=true` on `x264enc` unconditionally, not only when `ORBISCREEN_INFINITE_GOP=1` opts into it. With intra-refresh on, `x264enc` emits a real IDR only for the very first frame: `GstForceKeyUnit` afterwards produces a frame that `h264parse` flags as a keyframe (no `DELTA_UNIT`) but that carries **no IDR NAL** - just P-slices. Measured at 1920x1080 the opening IDR is 7065 B with NAL types `[9,7,8,6,5,5,5,5]`, while a forced keyframe is 389 B with `[9,7,8,6,1,1,1,1]`.
 
 Clients trust that flag: the Android player clears its wait-for-keyframe state, feeds the access unit to `MediaCodec`, gets nothing decodable, and asks for another IDR. That is the loop in [#110](https://github.com/shadow-x78/orbiscreen/issues/110): the host logs `requested IDR from encoder` and `UDP IDR for session` every ~300 ms, `frames_forwarded` climbs, and the tablet stays black. Hardware encoders masked the bug because they honour force-key-unit with a real IDR.
 
@@ -706,7 +706,7 @@ the reporter's system (DP-1, HDMI-A-1, and the KWin virtual output) reports that
 as unsupported, so `parse_kscreen_outputs` saw **no enabled outputs at all**.
 
 Two things then went wrong. `next_available_output_x` filters on `enabled` and falls back to
-`0`, so the virtual display was enabled at `0,0` — exactly on top of the primary screen,
+`0`, so the virtual display was enabled at `0,0` - exactly on top of the primary screen,
 which makes the tablet show a copy of the primary desktop instead of an independent one and
 disturbs which screen Plasma treats as primary, moving the panel to another screen.
 `output_uuid` and `select_tablet_output` also filter on `enabled`, so the KWin input
@@ -777,7 +777,7 @@ interface and adds a few:
 ### Fixed
 - fix: stop the IDR flood when the AOA video lane stalls for hours
 
-After many hours of streaming, the tablet can stop draining the AOA video lane (background, USB stall). The lane then evicts a stale frame on every new encode, and each eviction requested a fresh IDR after only 250 ms — a vicious cycle: each IDR is a big frame (~157 KiB) that makes the lane even fuller, which triggers another IDR, saturating the encoder and the USB link. The `dropped_stale_aus` counter reached 90,000+ and the log filled with `requested IDR from encoder` every ~270 ms. Two changes: the IDR debounce on eviction is raised from 250 ms to 1000 ms, and after 64 consecutive evictions without a successful admit the IDR requests stop entirely until the lane drains again. The `consecutive_evictions` counter is included in the stall warning for diagnosis.
+After many hours of streaming, the tablet can stop draining the AOA video lane (background, USB stall). The lane then evicts a stale frame on every new encode, and each eviction requested a fresh IDR after only 250 ms - a vicious cycle: each IDR is a big frame (~157 KiB) that makes the lane even fuller, which triggers another IDR, saturating the encoder and the USB link. The `dropped_stale_aus` counter reached 90,000+ and the log filled with `requested IDR from encoder` every ~270 ms. Two changes: the IDR debounce on eviction is raised from 250 ms to 1000 ms, and after 64 consecutive evictions without a successful admit the IDR requests stop entirely until the lane drains again. The `consecutive_evictions` counter is included in the stall warning for diagnosis.
 
 - Version bumped to 0.38.0 across the Cargo workspace, Android (`versionCode` 180), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
 
@@ -786,7 +786,7 @@ After many hours of streaming, the tablet can stop draining the AOA video lane (
 ### Fixed
 - fix: detect the panel's maximum refresh rate dynamically instead of trusting the active display mode
 
-The Android client reported `display.mode.refreshRate` — the **active** mode — as its refresh rate. On devices whose active mode runs at 30 Hz (battery saver, adaptive refresh, or the default mode) the host was told 30 fps even though the panel supports 60 Hz or more, so the virtual display, damage pump, and encoder all paced at 30. The client now reads the maximum rate across `display.supportedModes` (the panel capability, exactly like the native resolution is detected), rounds it properly (`59.94 -> 60`), and passes the same detected rate in every resize path instead of the hardcoded `60`. Devices that only support 30 still report 30; nothing is forced.
+The Android client reported `display.mode.refreshRate` - the **active** mode - as its refresh rate. On devices whose active mode runs at 30 Hz (battery saver, adaptive refresh, or the default mode) the host was told 30 fps even though the panel supports 60 Hz or more, so the virtual display, damage pump, and encoder all paced at 30. The client now reads the maximum rate across `display.supportedModes` (the panel capability, exactly like the native resolution is detected), rounds it properly (`59.94 -> 60`), and passes the same detected rate in every resize path instead of the hardcoded `60`. Devices that only support 30 still report 30; nothing is forced.
 
 - Version bumped to 0.37.9 across the Cargo workspace, Android (`versionCode` 179), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
 
@@ -810,7 +810,7 @@ In `UsbPlayer` (AOA, USB HTTP, and LAN `/au` paths) decoded frames were released
 ### Added
 - feat: opt-in infinite GOP for on-demand IDR on reliable transports (`ORBISCREEN_INFINITE_GOP`)
 
-`configure_infinite_gop` sets `gop-size=120` / `key-int-max=120` by default so the encoder emits a full IDR roughly every 2 s at 60 fps — about 157 KiB at 2560×1536, a single-frame hitch that accounts for ~22 % of the remaining >25 ms intervals (vs ~4 % expected by chance). Over the reliable transports (`/au` over TCP, AOA) the periodic IDR buys nothing because clients already request one on attach and when their decoder waits for it, and periodic IDR can't recover UDP loss anyway (intra-refresh handles that). Set `ORBISCREEN_INFINITE_GOP=1` to make `gop-size` `-1`, `key-int-max` / `keyframe-period` their property maximum, so keyframes appear only on demand. The default is unchanged; UDP still gets the periodic or intra-refresh recovery it needs.
+`configure_infinite_gop` sets `gop-size=120` / `key-int-max=120` by default so the encoder emits a full IDR roughly every 2 s at 60 fps - about 157 KiB at 2560×1536, a single-frame hitch that accounts for ~22 % of the remaining >25 ms intervals (vs ~4 % expected by chance). Over the reliable transports (`/au` over TCP, AOA) the periodic IDR buys nothing because clients already request one on attach and when their decoder waits for it, and periodic IDR can't recover UDP loss anyway (intra-refresh handles that). Set `ORBISCREEN_INFINITE_GOP=1` to make `gop-size` `-1`, `key-int-max` / `keyframe-period` their property maximum, so keyframes appear only on demand. The default is unchanged; UDP still gets the periodic or intra-refresh recovery it needs.
 
 - Suggested and tested by [@Bulrok](https://github.com/Bulrok) in [#99](https://github.com/shadow-x78/orbiscreen/issues/99), who measured the single-frame hitch distribution and verified `gop-size=-1` on NVENC. The issue is intentionally left open pending a full before/after benchmark.
 - Version bumped to 0.37.7 across the Cargo workspace, Android (`versionCode` 177), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
@@ -830,7 +830,7 @@ The shared-display capture pumps re-sent a keepalive frame when no new frame arr
 ### Fixed
 - fix: stop forwarding the proxy-local token on the input WebSocket upgrade so Wi-Fi touch and pen input reaches the host over WebSocket
 
-Over Wi-Fi the input WebSocket (`/input/ws`) never connected: the proxy forwarded the client's `Authorization: Bearer <localToken>` unchanged and appended the real credential as `?token=`, but the host reads the bearer header before the query, so every upgrade was rejected with 401. All touch, pen and pointer input fell back to one HTTP `POST /input` per event — laggy, prone to reordering, and a request that hit the 500 ms timeout was silently dropped, which could leave a held button on the host when the lost event was a release. The upgrade head is now rewritten to replace the Authorization header with the host credential (unit-tested), and the WebSocket listener logs its failures instead of swallowing them.
+Over Wi-Fi the input WebSocket (`/input/ws`) never connected: the proxy forwarded the client's `Authorization: Bearer <localToken>` unchanged and appended the real credential as `?token=`, but the host reads the bearer header before the query, so every upgrade was rejected with 401. All touch, pen and pointer input fell back to one HTTP `POST /input` per event - laggy, prone to reordering, and a request that hit the 500 ms timeout was silently dropped, which could leave a held button on the host when the lost event was a release. The upgrade head is now rewritten to replace the Authorization header with the host credential (unit-tested), and the WebSocket listener logs its failures instead of swallowing them.
 
 - Reported and fixed by [@Bulrok](https://github.com/Bulrok) in [#97](https://github.com/shadow-x78/orbiscreen/issues/97) via [#101](https://github.com/shadow-x78/orbiscreen/pull/101), landed as commit `a6f3e5f`. The issue is intentionally left open pending confirmation on the released build.
 - Version bumped to 0.37.5 across the Cargo workspace, Android (`versionCode` 175), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
@@ -870,7 +870,7 @@ Closing a Conscrypt TLS socket flushes its outgoing queue, a blocking network wr
 ### Fixed
 - fix: fall back to the shared display over Wi-Fi on hosts without per-client displays
 
-On a GNOME host the daemon has no per-client displays, so `POST /api/session` answers `501 per-client displays are not available`. The Android client treated the missing session as fatal on LAN (`check(!isLan || session != null)`), and the generic login handler reported it as a pairing or TLS failure, so every Wi-Fi connection attempt failed with "Pairing failed, expired, or was denied" while the host had in fact approved the pairing — each retry re-paired from scratch and piled up duplicate approval requests. The LAN path now tolerates the missing session exactly like the USB/loopback path and falls back to the host's default shared display.
+On a GNOME host the daemon has no per-client displays, so `POST /api/session` answers `501 per-client displays are not available`. The Android client treated the missing session as fatal on LAN (`check(!isLan || session != null)`), and the generic login handler reported it as a pairing or TLS failure, so every Wi-Fi connection attempt failed with "Pairing failed, expired, or was denied" while the host had in fact approved the pairing - each retry re-paired from scratch and piled up duplicate approval requests. The LAN path now tolerates the missing session exactly like the USB/loopback path and falls back to the host's default shared display.
 
 - The two generic login catch blocks (`beginLogin`, `confirmFingerprint`) now log the underlying exception with `android.util.Log.w`, so a transport or session failure is no longer hidden behind the pairing error text
 - Dependency: `rustls` 0.23.45 carried four RUSTSEC advisories (RUSTSEC-2026-0346 through RUSTSEC-2026-0349, all fixed in 0.23.46); the lockfile is updated to `0.23.46` so the `cargo-deny` advisories gate stays green

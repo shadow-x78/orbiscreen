@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────
 
 import type { Lang } from '../lib/site';
-import { COPR_URL, PPA_URL, RELEASES_URL } from '../lib/site';
+import { COPR_URL, PLAY_URL, PPA_URL, RELEASES_URL } from '../lib/site';
 
 export interface CodeLine {
   kind: 'comment' | 'cmd';
@@ -101,7 +101,7 @@ const en: InstallMethod[] = [
 const ar: InstallMethod[] = [
   {
     id: 'ubuntu',
-    label: 'أوبونتو / منت',
+    label: 'أوبونتو / مينت',
     lines: [
       { kind: 'comment', text: '# أوبونتو / Pop!_OS / Linux Mint' },
       { kind: 'cmd', text: 'sudo add-apt-repository ppa:shadow-x78/ppa -y' },
@@ -120,7 +120,7 @@ const ar: InstallMethod[] = [
       { kind: 'cmd', text: 'sudo dnf install orbiscreen -y' },
       { kind: 'cmd', text: 'orbiscreen start' },
     ],
-    note: 'يبني مستودع COPR أيضاً لتوزيعات RHEL وCentOS Stream.',
+    note: 'يبني مستودع COPR أيضا لتوزيعات RHEL وCentOS Stream.',
     action: {
       label: 'افتح مستودع COPR',
       href: COPR_URL,
@@ -136,7 +136,7 @@ const ar: InstallMethod[] = [
       { kind: 'cmd', text: 'makepkg -si' },
       { kind: 'cmd', text: 'orbiscreen start' },
     ],
-    note: 'يبني PKGBUILD من أرشيف المصدر الموسوم ويثبّت وحدة systemd للمستخدم.',
+    note: 'يبني PKGBUILD من أرشيف المصدر الموسوم ويثبت وحدة systemd للمستخدم.',
     action: {
       label: 'PKGBUILD على GitHub',
       href: 'https://github.com/shadow-x78/orbiscreen/blob/main/PKGBUILD',
@@ -146,11 +146,11 @@ const ar: InstallMethod[] = [
     id: 'appimage',
     label: 'AppImage',
     lines: [
-      { kind: 'comment', text: '# نزّل orbiscreen-<version>-x86_64.AppImage أولاً' },
+      { kind: 'comment', text: '# نزل orbiscreen-<version>-x86_64.AppImage أولا' },
       { kind: 'cmd', text: 'chmod +x orbiscreen-*-x86_64.AppImage' },
       { kind: 'cmd', text: './orbiscreen-*-x86_64.AppImage' },
     ],
-    note: 'يحمل ملف AppImage رقم الإصدار في اسمه، لذا يتغيّر الاسم مع كل إصدار.',
+    note: 'يحمل ملف AppImage رقم الإصدار في اسمه، لذا يتغير الاسم مع كل إصدار.',
     action: { label: 'كل الإصدارات', href: RELEASES_URL },
   },
   {
@@ -162,17 +162,17 @@ const ar: InstallMethod[] = [
       { kind: 'cmd', text: 'cd ~/Orbiscreen && ./scripts/install.sh' },
       { kind: 'cmd', text: 'orbiscreen start' },
     ],
-    note: 'يبني scripts/install.sh مساحة العمل، ويثبّت خدمة D-Bus، ويستطيع بناء تطبيق Qt لسطح المكتب.',
+    note: 'يبني scripts/install.sh مساحة العمل، ويثبت خدمة D-Bus، ويستطيع بناء تطبيق Qt لسطح المكتب.',
     action: { label: 'اقرأ الشيفرة', href: 'https://github.com/shadow-x78/orbiscreen' },
   },
   {
     id: 'android',
     label: 'أندرويد',
     lines: [
-      { kind: 'comment', text: '# ثبّت orbiscreen-android-release.apk من GitHub Releases' },
+      { kind: 'comment', text: '# ثبت orbiscreen-android-release.apk من GitHub Releases' },
       { kind: 'cmd', text: 'orbiscreen doctor   # prints the session token and the client URL' },
     ],
-    note: 'تطبيق Android مبني بـ Material 3 Compose، وعميل المتصفح لا يحتاج تثبيتاً إطلاقاً.',
+    note: 'تطبيق Android مبني بـ Material 3 Compose، وعميل المتصفح لا يحتاج تثبيتا إطلاقا.',
     action: { label: 'Android APK', href: RELEASES_URL },
   },
 ];
@@ -190,53 +190,55 @@ export interface DownloadButton {
 const hostEn: DownloadButton[] = [
   { icon: 'github', micro: 'All packages', main: 'GitHub Releases', href: RELEASES_URL, external: true },
   {
-    icon: 'terminal',
+    icon: 'ubuntu',
     micro: 'Ubuntu / Debian',
     main: 'APT Repository',
     href: PPA_URL,
     external: true,
   },
   {
-    icon: 'terminal',
+    icon: 'fedora',
     micro: 'Fedora / RHEL',
     main: 'COPR Repository',
     href: COPR_URL,
     external: true,
   },
-  { icon: 'terminal', micro: 'Arch / Manjaro', main: 'PKGBUILD', href: `${RELEASES_URL}/latest`, external: true },
-  { icon: 'display', micro: 'Portable binary', main: 'AppImage', href: RELEASES_URL, external: true },
-  { icon: 'chip', micro: 'Cargo / Git', main: 'Build from source', href: 'https://github.com/shadow-x78/orbiscreen', external: true },
+  { icon: 'arch', micro: 'Arch / Manjaro', main: 'PKGBUILD', href: `${RELEASES_URL}/latest`, external: true },
+  { icon: 'appimage', micro: 'Portable binary', main: 'AppImage', href: RELEASES_URL, external: true },
+  { icon: 'code', micro: 'Cargo / Git', main: 'Build from source', href: 'https://github.com/shadow-x78/orbiscreen', external: true },
 ];
 
 const hostAr: DownloadButton[] = [
   { icon: 'github', micro: 'كل الحزم', main: 'GitHub Releases', href: RELEASES_URL, external: true },
   {
-    icon: 'terminal',
+    icon: 'ubuntu',
     micro: 'أوبونتو / ديبيان',
     main: 'APT Repository',
     href: PPA_URL,
     external: true,
   },
   {
-    icon: 'terminal',
+    icon: 'fedora',
     micro: 'فيدورا / RHEL',
     main: 'COPR Repository',
     href: COPR_URL,
     external: true,
   },
-  { icon: 'terminal', micro: 'آرتش / مانجارو', main: 'PKGBUILD', href: `${RELEASES_URL}/latest`, external: true },
-  { icon: 'display', micro: 'ملف محمول', main: 'AppImage', href: RELEASES_URL, external: true },
-  { icon: 'chip', micro: 'كارجو / GIT', main: 'البناء من المصدر', href: 'https://github.com/shadow-x78/orbiscreen', external: true },
+  { icon: 'arch', micro: 'آرتش / مانجارو', main: 'PKGBUILD', href: `${RELEASES_URL}/latest`, external: true },
+  { icon: 'appimage', micro: 'ملف محمول', main: 'AppImage', href: RELEASES_URL, external: true },
+  { icon: 'code', micro: 'كارجو / GIT', main: 'البناء من المصدر', href: 'https://github.com/shadow-x78/orbiscreen', external: true },
 ];
 
 const clientEn: DownloadButton[] = [
   { icon: 'android', micro: 'Direct download', main: 'Android APK', href: `${RELEASES_URL}/latest`, external: true },
   { icon: 'globe', micro: 'No install', main: 'Web Client', href: '/features#web-client', external: false },
+  { icon: 'play', micro: 'Play Store', main: 'Google Play', href: PLAY_URL, external: true },
 ];
 
 const clientAr: DownloadButton[] = [
   { icon: 'android', micro: 'تحميل مباشر', main: 'Android APK', href: `${RELEASES_URL}/latest`, external: true },
   { icon: 'globe', micro: 'دون تثبيت', main: 'Web Client', href: '/ar/features#web-client', external: false },
+  { icon: 'play', micro: 'متجر Play', main: 'Google Play', href: PLAY_URL, external: true },
 ];
 
 export const downloads: Record<Lang, { host: DownloadButton[]; clients: DownloadButton[] }> = {

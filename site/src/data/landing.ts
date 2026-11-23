@@ -73,7 +73,7 @@ export interface Landing {
 const en: Landing = {
   hero: {
     pills: [VERSION_TAG, 'GPL-3.0', `Rust ${RUST_VERSION}+`],
-    title: 'Your tablet is your second monitor',
+    title: 'Your tablet is your second monitor.',
     sub: `Orbiscreen turns any Android tablet or phone into a real extended display for Linux. H.264 over LAN or USB, 25-40 ms latency, no root on KDE and wlroots.`,
     primary: 'Install Orbiscreen',
     secondary: 'View on GitHub',
@@ -81,7 +81,7 @@ const en: Landing = {
   },
   capabilities: {
     eyebrow: 'Core capabilities',
-    title: 'What it does',
+    title: 'What it does.',
     tiles: [
       {
         icon: 'display',
@@ -143,7 +143,7 @@ const en: Landing = {
   },
   platform: {
     eyebrow: 'Desktop support',
-    title: 'Runs on your desktop',
+    title: 'Runs on your desktop.',
     sub: 'KDE Plasma, GNOME 46+, COSMIC, Sway and Hyprland, plus the classic X11 desktops. Each has its own capture path.',
     doctorLabel: '# check what your compositor can do',
     doctorCmd: '$ orbiscreen doctor',
@@ -158,7 +158,7 @@ const en: Landing = {
   },
   performance: {
     eyebrow: 'Performance',
-    title: 'Built for latency',
+    title: 'Built for latency.',
     stats: [
       { value: '2-4 ms', label: 'transport delay' },
       { value: '25-40 ms', label: 'glass to glass' },
@@ -168,15 +168,15 @@ const en: Landing = {
   },
   install: {
     eyebrow: 'Installation',
-    title: 'Install in one command',
+    title: 'Install in one command.',
     hostLabel: 'Host / desktop · packages',
     clientsLabel: 'Client apps · receiver',
   },
   oss: {
-    title: 'Open source, end to end',
+    title: 'Open source, end to end.',
     body: 'GPL-3.0, written in Rust. Every Linux and Android release artifact is cryptographically signed.',
     primary: 'Star on GitHub',
-    secondary: 'Read the source',
+    secondary: 'Contributing guide',
     stats: [
       { key: 'License', value: 'GPL-3.0' },
       { key: 'Language', value: `Rust ${RUST_VERSION}+` },
@@ -188,15 +188,15 @@ const en: Landing = {
 const ar: Landing = {
   hero: {
     pills: [VERSION_TAG, 'GPL-3.0', `Rust ${RUST_VERSION}+`],
-    title: 'تابلتك، شاشتك الثانية',
-    sub: 'يحوّل Orbiscreen أي جهاز Android إلى شاشة ممتدة حقيقية لـ Linux. ترميز H.264 عبر الشبكة أو USB، بزمن استجابة 25-40 ms، ودون صلاحيات root على KDE وwlroots.',
-    primary: 'ثبّت Orbiscreen',
+    title: 'تابلتك، شاشتك الثانية.',
+    sub: 'يحول Orbiscreen أي جهاز Android إلى شاشة ممتدة حقيقية لـ Linux. ترميز H.264 عبر الشبكة أو USB، بزمن استجابة \u206625-40 ms\u2069، ودون صلاحيات root على KDE وwlroots.',
+    primary: 'تثبيت Orbiscreen',
     secondary: 'شاهد على GitHub',
     trust: 'يعمل على KDE وGNOME وCOSMIC وSway وX11 · بلا root على KDE وwlroots',
   },
   capabilities: {
     eyebrow: 'القدرات الأساسية',
-    title: 'ما يفعله',
+    title: 'ما يفعله.',
     tiles: [
       {
         icon: 'display',
@@ -206,7 +206,7 @@ const ar: Landing = {
       {
         icon: 'chip',
         title: 'ترميز H.264 عتادي',
-        body: 'NVENC أو VA-API أو x264، مضبوط للشبكة المحلية: CBR 8 Mbps، وبلا إطارات B، وIDR كل 120 إطاراً.',
+        body: 'NVENC أو VA-API أو x264، مضبوط للشبكة المحلية: CBR 8 Mbps، وبلا إطارات B، وIDR كل 120 إطارا.',
       },
       {
         icon: 'pen',
@@ -232,7 +232,7 @@ const ar: Landing = {
       {
         num: '01',
         title: 'الالتقاط',
-        body: 'تُلتقط الإطارات من PipeWire على KWin والبوابات، أو wlr-screencopy على wlroots، أو XShm على X11.',
+        body: 'تلتقط الإطارات من PipeWire على KWin والبوابات، أو wlr-screencopy على wlroots، أو XShm على X11.',
         mono: 'pipewire · wlr-screencopy · XShm',
       },
       {
@@ -250,7 +250,7 @@ const ar: Landing = {
       {
         num: '04',
         title: 'العرض والإدخال',
-        body: 'يفكّ التطبيق الترميز، ويُعاد كل لمس ومفتاح وخط قلم كإدخال Linux حقيقي.',
+        body: 'يفك التطبيق الترميز، ويعاد كل لمس ومفتاح وخط قلم كإدخال Linux حقيقي.',
         mono: 'Android · Web · uinput',
       },
     ],
@@ -258,7 +258,7 @@ const ar: Landing = {
   },
   platform: {
     eyebrow: 'دعم بيئات سطح المكتب',
-    title: 'يعمل على سطح مكتبك',
+    title: 'يعمل على سطح مكتبك.',
     sub: 'KDE Plasma وGNOME 46+ وCOSMIC وSway وHyprland، إضافة إلى بيئات X11 الكلاسيكية. لكل منها مسار التقاط خاص.',
     doctorLabel: '# افحص ما يستطيعه مدير النوافذ لديك',
     doctorCmd: '$ orbiscreen doctor',
@@ -273,7 +273,7 @@ const ar: Landing = {
   },
   performance: {
     eyebrow: 'الأداء',
-    title: 'مبني لزمن استجابة أدنى',
+    title: 'مبني لزمن استجابة أدنى.',
     stats: [
       { value: '2-4 ms', label: 'تأخير النقل' },
       { value: '25-40 ms', label: 'من الزجاج إلى الزجاج' },
@@ -283,15 +283,15 @@ const ar: Landing = {
   },
   install: {
     eyebrow: 'التثبيت',
-    title: 'ثبّت بأمر واحد',
+    title: 'ثبت بأمر واحد.',
     hostLabel: 'المضيف / سطح المكتب · الحزم',
     clientsLabel: 'تطبيقات العميل · المستقبل',
   },
   oss: {
-    title: 'مفتوح المصدر من الأساس',
-    body: 'برخصة GPL-3.0 ومكتوب بـ Rust. كل إصدارات Linux وAndroid موقّعة تشفيرياً.',
+    title: 'مفتوح المصدر من الأساس.',
+    body: 'برخصة GPL-3.0 ومكتوب بـ Rust. كل إصدارات Linux وAndroid موقعة تشفيريا.',
     primary: 'أضف نجمة على GitHub',
-    secondary: 'اقرأ الشيفرة',
+    secondary: 'دليل المساهمة',
     stats: [
       { key: 'الرخصة', value: 'GPL-3.0' },
       { key: 'اللغة', value: `Rust ${RUST_VERSION}+` },

@@ -1,7 +1,6 @@
 ---
 // ─────────────────────────────────────────────
-// Orbiscreen - Changelog page body
-// https://github.com/shadow-x78/orbiscreen
+// Orbiscreen · Changelog page body
 // ─────────────────────────────────────────────
 
 import '../styles/docs.css';
@@ -30,7 +29,6 @@ const releases = getReleases()
       .map((block) => {
         if (block.type === 'heading') return `<h3>${inlineMarkdown(block.text)}</h3>`;
         if (block.type === 'list') {
-          // Nested bullets must live inside their parent <li> to stay valid HTML.
           let html = '<ul>';
           let itemOpen = false;
           let nestedOpen = false;
@@ -76,30 +74,28 @@ const releases = getReleases()
   ]}
 />
 
-<section class="section">
+<section class="changelog">
   <div class="container">
     {releases.map((release) => (
-      <article class="changelog__version" id={release.anchor}>
-        <div class="changelog__head">
-          <h2 class="changelog__tag" style="margin:0">{release.tag}</h2>
-          <time class="changelog__date" datetime={release.date}>{release.date}</time>
-          <a class="changelog__anchor" href={`#${release.anchor}`} aria-label={`${release.tag} anchor`}>#</a>
+      <article class="release" id={release.anchor} data-reveal>
+        <div class="release__head">
+          <h2 class="release__tag">{release.tag}</h2>
+          <time class="release__date" datetime={release.date}>{release.date}</time>
+          <a class="release__anchor" href={`#${release.anchor}`} aria-label={`${release.tag} anchor`}>#</a>
         </div>
-        <div class="changelog__body" set:html={release.html} />
+        <div class="release__body" set:html={release.html} />
       </article>
     ))}
 
-    <div class="cta-card" style="margin-block-start:40px">
-      <div class="cta-card__text">
-        <h2 class="h3">{page.older}</h2>
+    <div class="changelog__older" data-reveal>
+      <div>
+        <h2>{page.older}</h2>
         <p>{page.olderBody}</p>
       </div>
-      <div class="cta-card__actions">
-        <a class="btn btn--secondary" href={`${GITHUB_URL}/blob/main/CHANGELOG.md`} rel="noopener">
-          <Icon name="github" size={18} />
-          {page.olderCta}
-        </a>
-      </div>
+      <a class="btn btn--secondary" href={`${GITHUB_URL}/blob/main/CHANGELOG.md`} rel="noopener">
+        <Icon name="github" size={18} />
+        {page.olderCta}
+      </a>
     </div>
   </div>
 </section>

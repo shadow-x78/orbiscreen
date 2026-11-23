@@ -146,10 +146,10 @@ as new as
 The workflows need two repository secrets. Without them the upload either
 never happens or is rejected asynchronously:
 
-- `COPR_API_TOKEN` — a token for `shadow-x78/orbiscreen`. The Fedora workflow
+- `COPR_API_TOKEN` - a token for `shadow-x78/orbiscreen`. The Fedora workflow
   only builds local RPMs; the separate `Publish to COPR` workflow submits an
   SRPM with `copr-cli`.
-- `PPA_GPG_KEY` — the private key of the GPG key registered on the Launchpad
+- `PPA_GPG_KEY` - the private key of the GPG key registered on the Launchpad
   account. The RPM key is **not** accepted by Launchpad; uploads signed with it
   succeed over FTP and are then rejected, leaving the PPA on an old version.
 

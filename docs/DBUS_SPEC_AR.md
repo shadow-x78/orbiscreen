@@ -5,7 +5,7 @@
 [![الإصدار](https://img.shields.io/badge/version-0.44.9-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
-![المنصّة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
+![المنصة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
 
 </div>
 
@@ -17,14 +17,14 @@
 
 ---
 
-توفّر Orbiscreen واجهة D-Bus Session Service تتيح للوحات تحكم سطح المكتب، وسكربتات الطرفية، ومؤشرات شريط النظام فحص الحالة المباشرة والتحكم في الخدمة الخلفية (daemon). يقع التنفيذ البرمجي في `crates/orbiscreen-daemon/src/dbus.rs`.
+توفر Orbiscreen واجهة D-Bus Session Service تتيح للوحات تحكم سطح المكتب، وسكربتات الطرفية، ومؤشرات شريط النظام فحص الحالة المباشرة والتحكم في الخدمة الخلفية (daemon). يقع التنفيذ البرمجي في `crates/orbiscreen-daemon/src/dbus.rs`.
 
 - **نوع الناقل:** Session Bus (ناقل المستخدم)
 - **اسم الخدمة:** `org.shadow-x78.Orbiscreen` (واسم بديل: `com.orbiscreen.Daemon`)
 - **مسار الكائن:** `/com/orbiscreen/Daemon`
 - **اسم الواجهة:** `com.orbiscreen.Daemon`
 
-تُسجَّل الخدمة عند تشغيل الخادم الخلفي. إذا كان اسم الخدمة غير موجود (`ServiceUnknown`)، فالخدمة الخلفية غير نشطة.
+تسجل الخدمة عند تشغيل الخادم الخلفي. إذا كان اسم الخدمة غير موجود (`ServiceUnknown`)، فالخدمة الخلفية غير نشطة.
 
 ---
 
@@ -35,15 +35,15 @@
 | النقطة | المصادقة | الغرض |
 |--------|----------|-------|
 | `GET /health` | عامة | فحص الحيوية |
-| `GET /api/info` | عامة | أبعاد الشاشة والمُرمّز والإصدار |
+| `GET /api/info` | عامة | أبعاد الشاشة والمرمز والإصدار |
 | `GET /stream?token=…` | توكن | بث فيديو MPEG-TS ‏(H.264)‏ |
 | `POST /input` | توكن | أحداث المؤشر / لوحة المفاتيح / القلم |
 | `POST /api/control` | توكن | إجراءات المضيف `lock`، `blank`، `unblank`، `ctrl_alt_del` |
 | `GET /client/config.json` | عامة | تمهيد عميل الويب: `{token, display_width, display_height}` |
-| `GET /` | عامة | إعادة توجيه إلى عميل الويب المضمّن |
-| `GET /client/*` | عامة | ملفات عميل الويب المضمّن (WebTransport + فك ترميز WebCodecs ‏`VideoDecoder`)‏ |
+| `GET /` | عامة | إعادة توجيه إلى عميل الويب المضمن |
+| `GET /client/*` | عامة | ملفات عميل الويب المضمن (WebTransport + فك ترميز WebCodecs ‏`VideoDecoder`)‏ |
 
-**نموذج التوكن:** يولَّد توكن عشوائي جديد مع كل تشغيل للدايمن (32 بايت، base64url). المسارات المحمية تشترطه عبر ترويسة `Authorization: Bearer <token>` أو معامل `?token=<token>`. يحصل العملاء عليه من سجل mDNS TXT أو من `/client/config.json`. وبما أن التوكن قابل للقراءة من أي طرف يستطيع الوصول إلى المنفذ، فهذه حماية من الاستخدام العرضي وليست مصادقة قوية - راجع `SECURITY.md`.
+**نموذج التوكن:** يولد توكن عشوائي جديد مع كل تشغيل للدايمن (32 بايت، base64url). المسارات المحمية تشترطه عبر ترويسة `Authorization: Bearer <token>` أو معامل `?token=<token>`. يحصل العملاء عليه من سجل mDNS TXT أو من `/client/config.json`. وبما أن التوكن قابل للقراءة من أي طرف يستطيع الوصول إلى المنفذ، فهذه حماية من الاستخدام العرضي وليست مصادقة قوية - راجع `SECURITY.md`.
 
 يبقى D-Bus الواجهة المرجعية لعملاء Linux الأصليين (سكربتات CLI، `orbiscreen stop`). يتشارك السطحان مصدر الحقيقة نفسه في `orbiscreen-transport` (‏`Stats`).
 
@@ -51,11 +51,11 @@
 
 ## توابع D-Bus
 
-جميع التوابع معروضة على ناقل الجلسة. يحوّل zbus أسماء Rust إلى PascalCase على السلك.
+جميع التوابع معروضة على ناقل الجلسة. يحول zbus أسماء Rust إلى PascalCase على السلك.
 
 ### 1. `GetStatus() -> String` (التوقيع `s`)
 
-تُرجع حالة الـ daemon الحية كنص **كائن JSON**:
+ترجع حالة الـ daemon الحية كنص **كائن JSON**:
 
 ```json
 {
@@ -73,22 +73,22 @@
 | الحقل | النوع | المعنى |
 |-------|-------|--------|
 | `running` | bool | علم تشغيل خط الأنابيب (‏`false` لفترة قصيرة بعد طلب `Stop`)‏ |
-| `frames_forwarded` | u64 | عدد الإطارات المسلّمة إلى النقل منذ البدء |
-| `active_clients` | u64 | عملاء `/stream` المتصلون حالياً |
+| `frames_forwarded` | u64 | عدد الإطارات المسلمة إلى النقل منذ البدء |
+| `active_clients` | u64 | عملاء `/stream` المتصلون حاليا |
 | `total_clients` | u64 | إجمالي اتصالات `/stream` منذ البدء |
-| `auth_failures` | u64 | الطلبات غير المصرّ بها المرفوضة منذ البدء (يظهر أيضاً في `GET /health`) |
-| `usb_devices` | u64 | ملحقات USB/AOA المفتوحة حالياً (يُحدَّث أثناء عمل الدامن؛ يظهر أيضاً في `GET /health`) |
-| `encoder` | string | المُرمّز الفعلي قيد الاستخدام ‏(`x264`، `vaapi`، `nvenc`)‏ |
+| `auth_failures` | u64 | الطلبات غير المصر بها المرفوضة منذ البدء (يظهر أيضا في `GET /health`) |
+| `usb_devices` | u64 | ملحقات USB/AOA المفتوحة حاليا (يحدث أثناء عمل الدامن؛ يظهر أيضا في `GET /health`) |
+| `encoder` | string | المرمز الفعلي قيد الاستخدام ‏(`x264`، `vaapi`، `nvenc`)‏ |
 | `capture_backend` | string | `evdi` للشاشة الافتراضية؛ `x11-portal-fallback` / `wayland-portal-fallback` عند غياب وحدة evdi |
 
 ### 2. `SetResolution(u32 width, u32 height, u32 fps) -> String` (التوقيع `suus`)
 
-يغيّر أبعاد الشاشة الافتراضية. يمرّر المعالج أمر `DisplayCommand::Resize` إلى موزّع الشاشات، الذي يفكّ مخرج الجلسة الحالية ويعيد بناءه بالأبعاد الجديدة. ويُتوقّع من العميل أن يعيد الارتباط بالجلسة البديلة.
+يغير أبعاد الشاشة الافتراضية. يمرر المعالج أمر `DisplayCommand::Resize` إلى موزع الشاشات، الذي يفك مخرج الجلسة الحالية ويعيد بناءه بالأبعاد الجديدة. ويتوقع من العميل أن يعيد الارتباط بالجلسة البديلة.
 
-- **القيمة المُرجعة:** رسالة تأكيد نصّية، مثل `"Virtual display set to 1920x1080 @ 60 Hz"`
-- **عند الفشل:** رسالة خطأ نصّية؛ الاستدعاء نفسه ينتهي بنجاح
+- **القيمة المرجعة:** رسالة تأكيد نصية، مثل `"Virtual display set to 1920x1080 @ 60 Hz"`
+- **عند الفشل:** رسالة خطأ نصية؛ الاستدعاء نفسه ينتهي بنجاح
 
-مُستدعَيان: أمر `orbiscreen display set <W>x<H>@<fps>` (الذي يحفظ القيمة في ملف الإعدادات أيضاً)، وواجهة سطح المكتب الرسومية.
+مستدعيان: أمر `orbiscreen display set <W>x<H>@<fps>` (الذي يحفظ القيمة في ملف الإعدادات أيضا)، وواجهة سطح المكتب الرسومية.
 
 ```bash
 gdbus call --session --dest com.orbiscreen.Daemon \
@@ -100,12 +100,12 @@ gdbus call --session --dest com.orbiscreen.Daemon \
 
 طلب إيقاف منظم للخدمة الخلفية. يقلب المعالج راية التشغيل ويرسل إشارة إلى الحلقة الرئيسية عبر قناة watch داخلية، لإنهاء مراحل الالتقاط والترميز والنقل ثم الخروج بنجاح.
 
-- **القيمة المُرجعة:** `"Orbiscreen daemon shutting down"`
-- **إن كان متوقفاً أصلاً:** `"Orbiscreen is not running"`
+- **القيمة المرجعة:** `"Orbiscreen daemon shutting down"`
+- **إن كان متوقفا أصلا:** `"Orbiscreen is not running"`
 
 أمر `orbiscreen stop` هو استدعاء مباشر لهذا التابع: يستدعي `Stop()` عبر ناقل الجلسة، يطبع الرد، ويعيد الرمز 1 مع تلميح `systemctl --user stop orbiscreen` عند عدم العثور على اسم الخدمة.
 
-لا يمكن تشغيل الخدمة عبر D-Bus؛ تُدار الخدمة عبر systemd (`systemctl --user start orbiscreen`).
+لا يمكن تشغيل الخدمة عبر D-Bus؛ تدار الخدمة عبر systemd (`systemctl --user start orbiscreen`).
 
 ### 4. `ListClients() -> Array of String` (التوقيع `as`)
 
@@ -117,7 +117,7 @@ gdbus call --session --dest com.orbiscreen.Daemon \
 
 ### 5. `GetConfig() -> String` (التوقيع `s`)
 
-تُرجع الإعدادات المعقّمة التي بُدئ بها الـ daemon، مسلسلة بصيغة **TOML** (وليس JSON) عبر `orbiscreen-core::dump_config`:
+ترجع الإعدادات المعقمة التي بدئ بها الـ daemon، مسلسلة بصيغة **TOML** (وليس JSON) عبر `orbiscreen-core::dump_config`:
 
 ```toml
 [display]
@@ -141,9 +141,9 @@ mdns_advertise = true
 
 ### 6. `RenderQr(String text) -> String` (التوقيع `s`)
 
-يولّد رمز QR للاتصال لصالح عميل سطح المكتب دون إضافة مكتبة QR إلى الواجهة. الرد
+يولد رمز QR للاتصال لصالح عميل سطح المكتب دون إضافة مكتبة QR إلى الواجهة. الرد
 بصيغة `width:base64` حيث `width` هو عرض شبكة الرمز، والبايتات المفكوكة هي
-`width * width` عينة رمادية (`0` داكن، `255` فاتح). الرد الفارغ يعني تعذّر
+`width * width` عينة رمادية (`0` داكن، `255` فاتح). الرد الفارغ يعني تعذر
 ترميز النص.
 
 ```bash
@@ -151,9 +151,9 @@ busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon \
   com.orbiscreen.Daemon RenderQr "http://192.168.1.5:8788/client/"
 ```
 
-### غير منفّذ
+### غير منفذ
 
-كان `SetScreenState` مقترحاً سابقاً لكنه **غير منفّذ**. حالة شاشة المضيف (`blank` / `unblank`) لا يمكن الوصول إليها إلا عبر نقطة HTTP المصادَقة `POST /api/control`.
+كان `SetScreenState` مقترحا سابقا لكنه **غير منفذ**. حالة شاشة المضيف (`blank` / `unblank`) لا يمكن الوصول إليها إلا عبر نقطة HTTP المصادقة `POST /api/control`.
 
 ---
 
@@ -172,7 +172,7 @@ busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.D
 # طباعة الإعدادات الجارية (سلسلة TOML)
 busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon GetConfig
 
-# إيقاف الـ daemon رشيقاً
+# إيقاف الـ daemon رشيقا
 busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.Daemon Stop
 ```
 
@@ -180,7 +180,7 @@ busctl --user call com.orbiscreen.Daemon /com/orbiscreen/Daemon com.orbiscreen.D
 
 <div align="center">
 
-بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+بني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [العودة إلى README](../README_AR.md)
 
 <sub>&copy; 2026 Orbiscreen (shadow-x78)</sub>

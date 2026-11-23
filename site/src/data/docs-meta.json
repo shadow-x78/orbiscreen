@@ -28,7 +28,7 @@
       "title": "Frame transport",
       "titleAr": "نقل الإطارات",
       "description": "I, P, IDR, and GOP in plain terms: how access units flow from the encoder to the client and how loss is recovered.",
-      "descriptionAr": "إطارات I وP وIDR وGOP ببساطة: كيف تتدفق وحدات الوصول من المُرمِّز إلى العميل، وكيف يُعالَج الفقد، ومتى يُطلب إطار مفتاحي جديد.",
+      "descriptionAr": "إطارات I وP وIDR وGOP ببساطة: كيف تتدفق وحدات الوصول من المرمز إلى العميل، وكيف يعالج الفقد، ومتى يطلب إطار مفتاحي جديد.",
       "group": "core",
       "seoTitle": "Frame transport: I, P, IDR and loss recovery",
       "seoTitleAr": "نقل الإطارات: I وP وIDR والتعافي من الفقد"
@@ -50,7 +50,7 @@
       "title": "Packaging",
       "titleAr": "التغليف",
       "description": "How the deb, rpm, AppImage, and PKGBUILD artifacts are built, signed, and published, and how versions stay in sync.",
-      "descriptionAr": "كيف تُبنى حزم deb وrpm وAppImage وPKGBUILD وتُوقَّع وتُنشر، وكيف تبقى الإصدارات متزامنة عبر مسارات البناء والتغليف.",
+      "descriptionAr": "كيف تبنى حزم deb وrpm وAppImage وPKGBUILD وتوقع وتنشر، وكيف تبقى الإصدارات متزامنة عبر مسارات البناء والتغليف.",
       "group": "guides",
       "seoTitle": "Packaging: deb, rpm, AppImage, PKGBUILD",
       "seoTitleAr": "التغليف: deb وrpm وAppImage وPKGBUILD"
@@ -72,7 +72,7 @@
       "title": "Troubleshooting",
       "titleAr": "حل الأعطال",
       "description": "Symptom-to-fix reference for capture, encoding, transport, pairing, input, packaging, and CI failures, with the command that confirms each fix.",
-      "descriptionAr": "مرجع من العَرَض إلى الحل للالتقاط والترميز والنقل والاقتران والإدخال والتغليف وأعطال CI، مع الأوامر التي تؤكد كل إصلاح.",
+      "descriptionAr": "مرجع من العرض إلى الحل للالتقاط والترميز والنقل والاقتران والإدخال والتغليف وأعطال CI، مع الأوامر التي تؤكد كل إصلاح.",
       "group": "reference",
       "seoTitle": "Troubleshooting: capture, pairing, input, CI",
       "seoTitleAr": "حل الأعطال: الالتقاط والاقتران والإدخال وCI"

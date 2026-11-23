@@ -18,6 +18,7 @@ export const ISSUES_URL = `${GITHUB_URL}/issues`;
 export const ADVISORY_URL = `${GITHUB_URL}/security/advisories/new`;
 export const PPA_URL = 'https://launchpad.net/~shadow-x78/+archive/ubuntu/ppa';
 export const COPR_URL = 'https://copr.fedorainfracloud.org/coprs/shadow-x78/orbiscreen/';
+export const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.orbiscreen.app';
 export const SECURITY_EMAIL = 'shadow-x7@red-shadows-rs.com';
 
 export const OG_IMAGE = '/og/orbiscreen.png';

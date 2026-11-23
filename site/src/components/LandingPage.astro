@@ -1,180 +1,281 @@
 ---
 // ─────────────────────────────────────────────
-// Orbiscreen - Landing page body (EN / AR)
-// https://github.com/shadow-x78/orbiscreen
+// Orbiscreen · Landing page
 // ─────────────────────────────────────────────
 
-import Hero from './Hero.astro';
 import Icon from './Icon.astro';
 import InstallTabs from './InstallTabs.astro';
 import DownloadButtons from './DownloadButtons.astro';
 import { landing } from '../data/landing';
 import { installMethods, downloads } from '../data/install';
-import { ui } from '../data/i18n';
-import { GITHUB_URL, RELEASES_URL, type Lang } from '../lib/site';
+import { GITHUB_URL, type Lang } from '../lib/site';
 
 interface Props {
   lang: Lang;
 }
 
 const { lang } = Astro.props;
-const data = landing[lang];
-const t = ui[lang];
-const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
-const ossPrimary = GITHUB_URL;
-const ossSecondary = lang === 'ar' ? '/ar/docs' : '/docs';
+const d = landing[lang];
+const methods = installMethods[lang];
+const dl = downloads[lang];
+
+const trustChips = [
+  { label: lang === 'ar' ? 'Wayland وX11' : 'Wayland & X11', dot: 'dot--interactive', mono: false },
+  { label: 'NVENC · VA-API · x264', dot: 'dot--success', mono: true },
+  { label: lang === 'ar' ? 'Android والويب' : 'Android + Web', dot: 'dot--warning', mono: false },
+  { label: 'GPL-3.0', dot: 'dot--brand', mono: false },
+  { label: 'Rust 1.92+', dot: 'dot--danger', mono: true },
+];
+
+const arrowName = lang === 'ar' ? 'arrow-left' : 'arrow-right';
+const trailingArrow = lang === 'ar' ? 'arrow-left' : 'arrow-right-sm';
+const githubStore = dl.host[0];
+const installHref = lang === 'ar' ? '/ar/install' : '/install';
+const contributingHref = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
 ---
 
-<Hero lang={lang} hero={data.hero} />
+<!-- Hero -->
+<section class="hero">
+  <div class="container hero__inner">
+    <div class="hero__text">
+      <div class="hero__eyebrow hero-enter hero-enter--0">
+        <span class="pill pill--brand pill--mono">
+          <span class="pill__dot dot--brand"></span>{d.hero.pills[0]}
+        </span>
+        <span class="pill pill--surface">
+          <span class="pill__dot dot--success"></span>{d.hero.pills[1]}
+        </span>
+        <span class="pill pill--surface pill--mono">
+          <span class="pill__dot dot--warning"></span>{d.hero.pills[2]}
+        </span>
+      </div>
 
-<section class="section" id="capabilities" aria-labelledby="capabilities-title">
-  <div class="container">
-    <div class="section__head">
-      <p class="eyebrow">{data.capabilities.eyebrow}</p>
-      <h2 class="h2" id="capabilities-title">{data.capabilities.title}</h2>
+      <h1 class="hero__title hero-enter hero-enter--1">{d.hero.title}</h1>
+      <p class="hero__sub hero-enter hero-enter--2">{d.hero.sub}</p>
+
+      <div class="hero__cta hero-enter hero-enter--3">
+        <a class="btn btn--primary btn--lg" href={installHref}>
+          {d.hero.primary}
+          <Icon name={trailingArrow} size={16} class="btn__arrow" />
+        </a>
+        <a class="btn btn--secondary btn--lg" href={GITHUB_URL} rel="noopener">{d.hero.secondary}</a>
+      </div>
+
+      <div class="hero__store hero-enter hero-enter--4">
+        <a class="dl-btn" href={githubStore.href} rel="noopener" data-loading>
+          <span class="dl-btn__icon"><Icon name="github" size={20} /></span>
+          <span class="dl-btn__stack">
+            <span class="dl-btn__micro">{lang === 'ar' ? 'كل الحزم' : 'All packages'}</span>
+            <span class="dl-btn__main">GitHub Releases</span>
+          </span>
+        </a>
+      </div>
+
+      <p class="hero__trust hero-enter hero-enter--5">{d.hero.trust}</p>
     </div>
 
-    <div class="bento">
-      <div class="bento__row bento__row--2">
-        {data.capabilities.tiles.slice(0, 2).map((tile) => (
-          <article class="tile">
-            <span class="tile__icon"><Icon name={tile.icon} /></span>
-            <h3 class="tile__title">{tile.title}</h3>
-            <p class="tile__body">{tile.body}</p>
-          </article>
-        ))}
-      </div>
-      <div class="bento__row bento__row--3">
-        {data.capabilities.tiles.slice(2).map((tile) => (
-          <article class="tile">
-            <span class="tile__icon"><Icon name={tile.icon} /></span>
-            <h3 class="tile__title">{tile.title}</h3>
-            <p class="tile__body">{tile.body}</p>
-          </article>
-        ))}
+    <div class="hero__visual hero-enter hero-enter--4" aria-hidden="true">
+      <div class="mockup">
+        <div class="mockup__monitor">
+          <div class="mockup__windowbar">
+            <span class="mockup__dot dot--danger"></span>
+            <span class="mockup__dot dot--warning"></span>
+            <span class="mockup__dot dot--success"></span>
+            <span class="mockup__title">orbiscreen · display 2</span>
+            <span class="mockup__res"><span class="mockup__res-full">1920x1080 · 60Hz</span><span class="mockup__res-short">1080p · 60Hz</span></span>
+          </div>
+          <div class="mockup__desktop">
+            <div class="mockup__pane">
+              <span class="mockup__bar"></span>
+              <span class="mockup__bar"></span>
+              <span class="mockup__bar"></span>
+              <span class="mockup__pane-foot"><span class="mockup__codec">H.264 NVENC</span></span>
+            </div>
+            <div class="mockup__pane mockup__pane--extended">
+              <span class="mockup__bar mockup__bar--accent"></span>
+              <span class="mockup__bar"></span>
+              <span class="mockup__bar"></span>
+              <span class="mockup__pane-foot">
+                <span class="mockup__badge">Extended</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <span class="mockup__stand"></span>
+        <span class="mockup__base"></span>
+
+        <div class="mockup__tablet">
+          <div class="mockup__screen">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+
+        <span class="mockup__link"></span>
+
+        <span class="mockup__chip" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+          <span class="mockup__chip-dot"></span>
+          {lang === 'ar' ? '2-4 ms · النقل' : '2-4 ms transport'}
+        </span>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section section--subtle" id="how-it-works" aria-labelledby="how-title">
+<!-- Trust chips -->
+<section class="trust" aria-label={lang === 'ar' ? 'المنصات المدعومة' : 'Supported platforms'}>
   <div class="container">
-    <div class="section__head">
-      <p class="eyebrow">{data.howItWorks.eyebrow}</p>
-      <h2 class="h2" id="how-title">{data.howItWorks.title}</h2>
+    <div class="trust__row" data-reveal>
+      {trustChips.map((chip) => (
+        <span class:list={['chip', chip.mono && 'chip--mono']}>
+          <span class:list={['chip__dot', chip.dot]}></span>
+          {chip.label}
+        </span>
+      ))}
     </div>
+  </div>
+</section>
 
-    <ol class="steps" style="list-style:none;padding:0">
-      {data.howItWorks.steps.map((step) => (
-        <li class="step">
+<!-- Capabilities -->
+<section class="caps">
+  <div class="container">
+    <div class="caps__head">
+      <p class="eyebrow">{d.capabilities.eyebrow}</p>
+      <h2 class="caps__title">{d.capabilities.title}</h2>
+    </div>
+    <div class="bento">
+      {d.capabilities.tiles.map((tile, index) => (
+        <article class:list={['tile', index === 0 && 'tile--feature']} data-reveal data-sheen>
+          <span class="tile__icon"><Icon name={tile.icon} size={22} /></span>
+          <h3 class="tile__title">{tile.title}</h3>
+          <p class="tile__body">{tile.body}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="hiw">
+  <div class="container">
+    <div class="hiw__head">
+      <p class="eyebrow">{d.howItWorks.eyebrow}</p>
+      <h2 class="hiw__title">{d.howItWorks.title}</h2>
+    </div>
+    <div class="steps">
+      {d.howItWorks.steps.map((step) => (
+        <article class="step" data-reveal>
           <span class="step__num">{step.num}</span>
           <h3 class="step__title">{step.title}</h3>
           <p class="step__body">{step.body}</p>
-          <span class="step__mono" dir="ltr">{step.mono}</span>
-        </li>
+          <p class="step__mono" dir="ltr">{step.mono}</p>
+        </article>
       ))}
-    </ol>
-
-    <p class="mono faint" style="margin-block-start:24px">{data.howItWorks.footnote}</p>
+    </div>
+    <p class="hiw__footnote">{d.howItWorks.footnote}</p>
   </div>
 </section>
 
-<section class="section" id="platform" aria-labelledby="platform-title">
-  <div class="container split">
-    <div class="split__col">
-      <p class="eyebrow">{data.platform.eyebrow}</p>
-      <h2 class="h2" id="platform-title">{data.platform.title}</h2>
-      <p class="lede">{data.platform.sub}</p>
-
-      <div class="callout" role="img" aria-label={data.platform.doctorCmd}>
-        <span class="callout__label">{data.platform.doctorLabel}</span>
-        <span class="callout__cmd">{data.platform.doctorCmd}</span>
-        <span class="callout__out">{data.platform.doctorOut}</span>
-      </div>
-
-      <a class="btn btn--secondary btn--sm" href={docsHref}>{t.actions.readDocs} <Icon name="arrow-right" size={16} /></a>
+<!-- Platform -->
+<section class="platform">
+  <div class="container platform__grid">
+    <div class="platform__intro">
+      <p class="eyebrow">{d.platform.eyebrow}</p>
+      <h2 class="platform__title">{d.platform.title}</h2>
+      <p class="platform__sub">{d.platform.sub}</p>
     </div>
 
-    <div class="matrix" role="list">
-      {data.platform.rows.map((row) => (
-        <div class="matrix__row" role="listitem">
-          <span class="matrix__name">{row.name}</span>
-          <span class="matrix__status"><span class="chip__dot"></span>{row.status}</span>
+    <div class="matrix" role="table" aria-label={lang === 'ar' ? 'دعم بيئات سطح المكتب' : 'Desktop support'}>
+      {d.platform.rows.map((row) => (
+        <div class="matrix__row" role="row" data-reveal>
+          <span class="matrix__name" role="cell" dir="ltr">{row.name}</span>
+          <span class="matrix__status" role="cell">
+            <span
+              class:list={[
+                'matrix__dot',
+                row.status.includes('EVDI')
+                  ? 'dot--warning'
+                  : row.status.includes('Portal')
+                    ? 'dot--interactive'
+                    : 'dot--success',
+              ]}
+            ></span>
+            {row.status}
+          </span>
+        </div>
+      ))}
+    </div>
+
+    <div class="doctor">
+      <span class="doctor__label">{d.platform.doctorLabel}</span>
+      <span class="doctor__cmd">{d.platform.doctorCmd}</span>
+      <span class="doctor__out">{d.platform.doctorOut}</span>
+    </div>
+  </div>
+</section>
+
+<!-- Performance -->
+<section class="perf">
+  <div class="container">
+    <div class="perf__head">
+      <p class="eyebrow">{d.performance.eyebrow}</p>
+      <h2 class="perf__title">{d.performance.title}</h2>
+    </div>
+    <div class="stats">
+      {d.performance.stats.map((stat) => (
+        <div class="stat" data-reveal>
+          <span class="stat__value" dir="ltr">{stat.value}</span>
+          <span class="stat__label">{stat.label}</span>
         </div>
       ))}
     </div>
   </div>
 </section>
 
-<section class="section section--subtle" id="performance" aria-labelledby="performance-title">
-  <div class="container">
-    <div class="section__head">
-      <p class="eyebrow">{data.performance.eyebrow}</p>
-      <h2 class="h2" id="performance-title">{data.performance.title}</h2>
+<!-- Install -->
+<section class="install-landing" id="install">
+  <div class="container install-landing__inner">
+    <div class="install-landing__head">
+      <p class="eyebrow">{d.install.eyebrow}</p>
+      <h2 class="install-landing__title">{d.install.title}</h2>
     </div>
-    <dl class="stats" style="margin:0">
-      {data.performance.stats.map((stat) => (
-        <div class="stat">
-          <dt class="stat__value" style="margin:0" dir="ltr">{stat.value}</dt>
-          <dd class="stat__label" style="margin:0">{stat.label}</dd>
-        </div>
-      ))}
-    </dl>
+
+    <InstallTabs lang={lang} methods={methods} compact />
+
+    <DownloadButtons label={d.install.hostLabel} items={dl.host} compact />
+    <DownloadButtons label={d.install.clientsLabel} items={dl.clients} compact />
   </div>
 </section>
 
-<section class="section" id="install" aria-labelledby="install-title">
+<!-- Open source -->
+<section class="oss">
   <div class="container">
-    <div class="section__head">
-      <p class="eyebrow">{data.install.eyebrow}</p>
-      <h2 class="h2" id="install-title">{data.install.title}</h2>
-    </div>
-
-    <InstallTabs lang={lang} methods={installMethods[lang]} compact />
-
-    <DownloadButtons label={data.install.hostLabel} items={downloads[lang].host} />
-    <DownloadButtons label={data.install.clientsLabel} items={downloads[lang].clients} />
-  </div>
-</section>
-
-<section class="section section--subtle" id="open-source" aria-labelledby="oss-title">
-  <div class="container">
-    <div class="oss">
+    <div class="oss__card" data-reveal>
       <div class="oss__text">
-        <h2 class="h3" id="oss-title">{data.oss.title}</h2>
-        <p class="muted" style="max-width:52ch">{data.oss.body}</p>
-        <div class="row" style="margin-block-start:6px">
-          <a class="btn btn--primary" href={ossPrimary} rel="noopener">
+        <h2 class="oss__title">{d.oss.title}</h2>
+        <p class="oss__body">{d.oss.body}</p>
+        <div class="oss__actions">
+          <a class="btn btn--primary" href={GITHUB_URL} rel="noopener">
             <Icon name="github" size={18} />
-            {data.oss.primary}
+            {d.oss.primary}
           </a>
-          <a class="btn btn--secondary" href={ossSecondary}>
-            <Icon name="terminal" size={18} />
-            {data.oss.secondary}
+          <a class="btn btn--ghost" href={contributingHref} rel="noopener">
+            {d.oss.secondary}
+            <Icon name={arrowName} size={14} class="btn__arrow" />
           </a>
         </div>
       </div>
-
-      <dl class="oss__stats" style="margin:0">
-        {data.oss.stats.map((stat) => (
+      <div class="oss__stats">
+        {d.oss.stats.map((stat) => (
           <div class="oss__stat">
-            <dt class="oss__key" style="margin:0">{stat.key}</dt>
-            <dd class="oss__val" style="margin:0">{stat.value}</dd>
+            <span class="oss__stat-key">{stat.key}</span>
+            <span class="oss__stat-val">{stat.value}</span>
           </div>
         ))}
-        <div class="oss__stat">
-          <dt class="oss__key" style="margin:0">{lang === 'ar' ? 'المصدر' : 'Source'}</dt>
-          <dd class="oss__val" style="margin:0">
-            <a href={GITHUB_URL} rel="noopener">{lang === 'ar' ? 'shadow-x78/orbiscreen' : 'shadow-x78/orbiscreen'}</a>
-          </dd>
-        </div>
-        <div class="oss__stat">
-          <dt class="oss__key" style="margin:0">{lang === 'ar' ? 'التنزيل' : 'Download'}</dt>
-          <dd class="oss__val" style="margin:0">
-            <a href={RELEASES_URL} rel="noopener">GitHub Releases</a>
-          </dd>
-        </div>
-      </dl>
+      </div>
     </div>
   </div>
 </section>

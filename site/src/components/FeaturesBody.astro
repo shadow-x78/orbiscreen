@@ -1,9 +1,9 @@
 ---
 // ─────────────────────────────────────────────
-// Orbiscreen - Features page body
-// https://github.com/shadow-x78/orbiscreen
+// Orbiscreen · Features page body
 // ─────────────────────────────────────────────
 
+import '../styles/docs.css';
 import PageHead from './PageHead.astro';
 import Icon from './Icon.astro';
 import { pages } from '../data/pages';
@@ -17,8 +17,21 @@ interface Props {
 const { lang } = Astro.props;
 const page = pages.features[lang];
 const t = ui[lang];
-const installHref = lang === 'ar' ? '/ar/install' : '/install';
-const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
+const prefix = lang === 'ar' ? '/ar' : '';
+const installHref = `${prefix}/install`;
+const docsHref = `${prefix}/docs`;
+const trailingArrow = lang === 'ar' ? 'arrow-left' : 'arrow-right-sm';
+
+const iconFor: Record<string, string> = {
+  'virtual-display': 'display',
+  encoding: 'chip',
+  input: 'pen',
+  transport: 'usb',
+  'web-client': 'globe',
+  'android-client': 'monitor',
+  control: 'terminal',
+  security: 'shield',
+};
 ---
 
 <PageHead
@@ -32,33 +45,39 @@ const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
   ]}
 />
 
-<section class="section">
+<section class="feature-sections">
   <div class="container">
-    {page.sections.map((section) => (
-      <article class="feature-row" id={section.id}>
-        <div class="feature-row__body">
-          <h2 class="h3">{section.title}</h2>
-          {section.body.map((paragraph) => <p>{paragraph}</p>)}
-        </div>
-        {section.points && (
-          <div class="feature-row__points">
-            <ul>
-              {section.points.map((point) => <li>{point}</li>)}
-            </ul>
+    {page.sections.map((section, index) => (
+      <>
+        {index > 0 && <hr class="feature-rule" />}
+        <article class="feature-row" id={section.id}>
+          <div class="feature-row__head" data-reveal>
+            <span class="feature-row__icon"><Icon name={iconFor[section.id] || 'display'} size={22} /></span>
+            <h2 class="feature-row__title">{section.title}</h2>
           </div>
-        )}
-      </article>
+          <div class="feature-row__body" data-reveal>
+            {section.body.map((paragraph) => <p>{paragraph}</p>)}
+            {section.points && (
+              <ul class="points">
+                {section.points.map((point) => <li class="point">{point}</li>)}
+              </ul>
+            )}
+          </div>
+        </article>
+      </>
     ))}
+  </div>
+</section>
 
-    <div class="cta-card" style="margin-block-start:48px">
-      <div class="cta-card__text">
-        <h2 class="h3">{page.cta.title}</h2>
-        <p>{page.cta.body}</p>
-      </div>
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-card" data-reveal>
+      <h2 class="cta-card__title">{page.cta.title}</h2>
+      <p class="cta-card__body">{page.cta.body}</p>
       <div class="cta-card__actions">
         <a class="btn btn--primary" href={installHref}>
           {page.cta.primary}
-          <Icon name="arrow-right" size={18} />
+          <Icon name={trailingArrow} size={16} class="btn__arrow" />
         </a>
         <a class="btn btn--secondary" href={docsHref}>{page.cta.secondary}</a>
       </div>

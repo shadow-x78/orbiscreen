@@ -1,11 +1,11 @@
 ---
 // ─────────────────────────────────────────────
-// Orbiscreen - Documentation shell
-// https://github.com/shadow-x78/orbiscreen
+// Orbiscreen · Documentation shell
 // ─────────────────────────────────────────────
 
 import '../styles/docs.css';
 import Breadcrumbs from './Breadcrumbs.astro';
+import Icon from './Icon.astro';
 import docsMeta from '../data/docs-meta.json';
 import { ui } from '../data/i18n';
 import type { Lang } from '../lib/site';
@@ -30,6 +30,7 @@ interface Props {
 const { lang, title, description, slug, source, updated, headings, readingTime } = Astro.props;
 const t = ui[lang];
 const docs = docsMeta.docs;
+const prefix = lang === 'ar' ? '/ar' : '';
 
 const groupLabels: { key: string; label: string }[] = [
   { key: 'core', label: lang === 'ar' ? 'الأساس' : 'Core' },
@@ -37,13 +38,8 @@ const groupLabels: { key: string; label: string }[] = [
   { key: 'reference', label: lang === 'ar' ? 'المراجع' : 'Reference' },
 ];
 
-function hrefFor(docSlug: string): string {
-  return lang === 'ar' ? `/ar/docs/${docSlug}` : `/docs/${docSlug}`;
-}
-
-function docTitle(doc: (typeof docs)[number]): string {
-  return lang === 'ar' ? doc.titleAr : doc.title;
-}
+const hrefFor = (docSlug: string) => `${prefix}/docs/${docSlug}`;
+const docTitle = (doc: (typeof docs)[number]) => (lang === 'ar' ? doc.titleAr : doc.title);
 
 const sidebar = groupLabels
   .map((group) => ({
@@ -65,15 +61,16 @@ const current = index >= 0 ? docs[index] : null;
 const currentTitle = current ? docTitle(current) : title;
 
 const toc = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
-const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
+const docsHref = `${prefix}/docs`;
+
+const prevArrow = lang === 'ar' ? 'arrow-right' : 'arrow-left';
+const nextArrow = lang === 'ar' ? 'arrow-left' : 'arrow-right';
 ---
 
 <div class="doc">
   <div class="container doc__grid">
     <aside class="doc__sidebar" aria-label={t.labels.docsNav}>
-      <a class="doc__nav-link" href={docsHref} style="font-weight:600;color:var(--text-primary)">
-        {t.labels.allDocs}
-      </a>
+      <a class="doc__nav-link doc__nav-link--all" href={docsHref}>{t.labels.allDocs}</a>
       {sidebar.map((group) => (
         <div class="doc__group">
           <span class="doc__group-title">{group.label}</span>
@@ -86,7 +83,7 @@ const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
       ))}
     </aside>
 
-    <div>
+    <article class="doc__main">
       <Breadcrumbs
         lang={lang}
         items={[
@@ -96,41 +93,52 @@ const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
         ]}
       />
 
-      <h1 class="h1" style="margin-block:14px 12px">{title}</h1>
-      <p class="lede" style="margin-block-end:20px">{description}</p>
+      <h1 class="doc__title">{title}</h1>
+      <p class="doc__lede">{description}</p>
 
       <div class="doc__meta">
         <span class="doc__meta-item">{t.labels.updated}: {updated}</span>
         <span class="doc__meta-item">{t.labels.readingTime}: {readingTime} {t.labels.minutes}</span>
         <span class="doc__meta-item">{t.labels.source}: docs/{source}</span>
       </div>
+      <hr class="doc__rule" />
 
-      <article class="prose">
+      <div class="prose">
         <slot />
-      </article>
+      </div>
 
       <nav class="doc__pager" aria-label={t.labels.pagination}>
         {previous && (
           <a class="doc__pager-link" href={hrefFor(previous.slug)} rel="prev">
-            <span class="doc__pager-dir">← {t.labels.previous}</span>
+            <span class="doc__pager-dir">
+              <Icon name={prevArrow} size={14} />
+              {t.labels.previous}
+            </span>
             <span class="doc__pager-title">{docTitle(previous)}</span>
           </a>
         )}
         {following && (
           <a class="doc__pager-link doc__pager-link--next" href={hrefFor(following.slug)} rel="next">
-            <span class="doc__pager-dir">{t.labels.next} →</span>
+            <span class="doc__pager-dir">
+              {t.labels.next}
+              <Icon name={nextArrow} size={14} />
+            </span>
             <span class="doc__pager-title">{docTitle(following)}</span>
           </a>
         )}
       </nav>
-    </div>
+    </article>
 
-    <aside class="doc__toc">
+    <aside class="doc__toc" aria-label={t.labels.onThisPage}>
       <span class="doc__toc-title">{t.labels.onThisPage}</span>
       {toc.map((heading) => (
         <a href={`#${heading.slug}`} data-depth={String(heading.depth)}>{heading.text}</a>
       ))}
-      <a href="#" style="margin-block-start:10px">{t.actions.backToTop} ↑</a>
+      <span class="doc__toc-rule"></span>
+      <a class="doc__toc-top" href="#main">
+        <Icon name="arrow-up" size={12} />
+        {t.actions.backToTop}
+      </a>
     </aside>
   </div>
 </div>
@@ -145,8 +153,6 @@ const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
       mermaid.initialize({
         startOnLoad: false,
         securityLevel: 'strict',
-        // base, not dark: the dark preset derives some strokes from a violet
-        // palette, so every value is set here instead.
         theme: 'base',
         themeVariables: {
           darkMode: true,
@@ -190,14 +196,10 @@ const docsHref = lang === 'ar' ? '/ar/docs' : '/docs';
     });
   }
 
-  const run = () => {
-    renderMermaid();
-  };
-
   const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback;
   if (typeof idle === 'function') {
-    idle(run);
+    idle(renderMermaid);
   } else {
-    window.setTimeout(run, 200);
+    window.setTimeout(renderMermaid, 200);
   }
 </script>

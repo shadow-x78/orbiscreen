@@ -1,9 +1,9 @@
 ---
 // ─────────────────────────────────────────────
-// Orbiscreen - Comparison table
-// https://github.com/shadow-x78/orbiscreen
+// Orbiscreen · Comparison table and mobile cards
 // ─────────────────────────────────────────────
 
+import Icon from './Icon.astro';
 import type { CompareRow } from '../data/compare';
 import type { Lang } from '../lib/site';
 
@@ -14,36 +14,85 @@ interface Props {
 }
 
 const { rows, caption, lang } = Astro.props;
-const heads =
-  lang === 'ar'
-    ? { capability: 'القدرة', us: 'Orbiscreen' }
-    : { capability: 'Capability', us: 'Orbiscreen' };
+const capability = lang === 'ar' ? 'القدرة' : 'CAPABILITY';
+const tools = lang === 'ar'
+  ? [
+      { key: 'orbiscreen', label: 'Orbiscreen' },
+      { key: 'sidecar', label: 'Sidecar' },
+      { key: 'weylus', label: 'Weylus' },
+      { key: 'deskreen', label: 'Deskreen' },
+      { key: 'spacedesk', label: 'Spacedesk' },
+    ]
+  : [
+      { key: 'orbiscreen', label: 'Orbiscreen' },
+      { key: 'sidecar', label: 'Sidecar' },
+      { key: 'weylus', label: 'Weylus' },
+      { key: 'deskreen', label: 'Deskreen' },
+      { key: 'spacedesk', label: 'Spacedesk' },
+    ];
+const legend = lang === 'ar'
+  ? { yes: 'نعم', partial: 'جزئي', no: 'لا' }
+  : { yes: 'Yes', partial: 'Partial', no: 'No' };
 ---
 
-<div class="compare__scroll" role="region" aria-label={caption} tabindex="0">
+<div class="compare-wrap" role="region" aria-label={caption} tabindex="0">
   <table class="compare">
     <caption class="visually-hidden">{caption}</caption>
     <thead>
       <tr>
-        <th scope="col">{heads.capability}</th>
-        <th scope="col">Spacedesk</th>
-        <th scope="col">Deskreen</th>
-        <th scope="col">Weylus</th>
-        <th scope="col">Sidecar</th>
-        <th scope="col" class="col-us">{heads.us}</th>
+        <th scope="col">{capability}</th>
+        {tools.map((tool) => (
+          <th scope="col" class:list={[tool.key === 'orbiscreen' && 'col-us']} dir="auto">{tool.label}</th>
+        ))}
       </tr>
     </thead>
     <tbody>
       {rows.map((row) => (
         <tr>
           <th scope="row">{row.capability}</th>
-          <td dir="auto">{row.spacedesk}</td>
-          <td dir="auto">{row.deskreen}</td>
-          <td dir="auto">{row.weylus}</td>
+          <td class="col-us" dir="auto">
+            <span class="badge"><Icon name="check-sm" size={13} />{row.orbiscreen}</span>
+          </td>
           <td dir="auto">{row.sidecar}</td>
-          <td class="col-us" dir="auto">{row.orbiscreen}</td>
+          <td dir="auto">{row.weylus}</td>
+          <td dir="auto">{row.deskreen}</td>
+          <td dir="auto">{row.spacedesk}</td>
         </tr>
       ))}
     </tbody>
   </table>
+</div>
+
+<div class="compare-cards">
+  {rows.map((row) => (
+    <article class="compare-card">
+      <h3 class="compare-card__title">{row.capability}</h3>
+      <div class="compare-card__row">
+        <span class="compare-card__tool">Orbiscreen</span>
+        <span class="compare-card__val"><span class="badge"><Icon name="check-sm" size={13} />{row.orbiscreen}</span></span>
+      </div>
+      <div class="compare-card__row">
+        <span class="compare-card__tool">Sidecar</span>
+        <span class="compare-card__val" dir="auto">{row.sidecar}</span>
+      </div>
+      <div class="compare-card__row">
+        <span class="compare-card__tool">Weylus</span>
+        <span class="compare-card__val" dir="auto">{row.weylus}</span>
+      </div>
+      <div class="compare-card__row">
+        <span class="compare-card__tool">Deskreen</span>
+        <span class="compare-card__val" dir="auto">{row.deskreen}</span>
+      </div>
+      <div class="compare-card__row">
+        <span class="compare-card__tool">Spacedesk</span>
+        <span class="compare-card__val" dir="auto">{row.spacedesk}</span>
+      </div>
+    </article>
+  ))}
+</div>
+
+<div class="compare-legend">
+  <span class="legend-item legend-item--yes"><Icon name="check" size={16} />{legend.yes}</span>
+  <span class="legend-item legend-item--partial"><Icon name="minus" size={14} />{legend.partial}</span>
+  <span class="legend-item legend-item--no"><Icon name="cross" size={14} />{legend.no}</span>
 </div>

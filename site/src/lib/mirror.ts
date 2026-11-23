@@ -32,7 +32,7 @@ function bullets(items: string[]): string {
 
 function home(lang: Lang): string {
   const data = landing[lang];
-  const title = lang === 'ar' ? 'Orbiscreen — تابلتك، شاشتك الثانية' : 'Orbiscreen — Your tablet is your second monitor';
+  const title = lang === 'ar' ? 'Orbiscreen: تابلتك، شاشتك الثانية' : 'Orbiscreen: Your tablet is your second monitor';
   return [
     `# ${title}`,
     '',

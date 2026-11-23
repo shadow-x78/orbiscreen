@@ -1,7 +1,6 @@
 ---
 // ─────────────────────────────────────────────
-// Orbiscreen - Footer
-// https://github.com/shadow-x78/orbiscreen
+// Orbiscreen · Footer
 // ─────────────────────────────────────────────
 
 import { GITHUB_URL, ISSUES_URL, RELEASES_URL, type Lang } from '../lib/site';
@@ -15,11 +14,10 @@ interface Props {
 
 const { lang, path, arPath } = Astro.props;
 const t = ui[lang];
+const prefix = lang === 'ar' ? '/ar' : '';
+const isHome = (lang === 'ar' ? arPath : path) === (prefix || '/');
 
-function localise(href: string): string {
-  if (lang === 'ar') return href === '/' ? '/ar' : `/ar${href}`;
-  return href;
-}
+const localise = (href: string) => (href === '/' ? prefix || '/' : `${prefix}${href}`);
 
 const product = [
   { label: t.footer.features, href: localise('/features') },
@@ -49,54 +47,76 @@ const legal = [
   { label: t.footer.privacy, href: localise('/privacy') },
   { label: t.footer.conduct, href: `${GITHUB_URL}/blob/main/CODE_OF_CONDUCT.md` },
 ];
+
+const mobileLinks = [
+  { label: t.footer.features, href: localise('/features') },
+  { label: t.footer.setup, href: localise('/install') },
+  { label: t.footer.docs, href: localise('/docs') },
+  { label: t.footer.github, href: GITHUB_URL },
+  { label: t.footer.license, href: localise('/license') },
+];
 ---
 
-<footer class="footer">
+<footer class:list={['footer', !isHome && 'footer--inner']}>
   <div class="container">
     <div class="footer__top">
       <div class="footer__brand">
-        <a class="brand" href={lang === 'ar' ? '/ar' : '/'}>
-          <svg class="brand__mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
-            <circle cx="256" cy="256" r="184" fill="none" stroke="var(--accent-brand)" stroke-width="63" />
-            <circle cx="386" cy="386" r="68" fill="var(--accent-brand)" />
+        <a class="brand" href={prefix || '/'} aria-label="Orbiscreen">
+          <svg class="brand__mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="8.625" fill="none" stroke="var(--accent-brand)" stroke-width="2.953" />
+            <circle cx="18.0935" cy="18.0935" r="3.1875" fill="var(--accent-brand)" />
           </svg>
-          <span>Orbiscreen</span>
+          <span class="brand__word">Orbiscreen</span>
         </a>
         <p class="footer__tagline">{t.footer.tagline}</p>
       </div>
 
-      <nav class="footer__col" aria-label={t.footer.product}>
-        <h2 class="footer__heading">{t.footer.product}</h2>
-        {product.map((item) => <a class="footer__link" href={item.href}>{item.label}</a>)}
-      </nav>
+      <div class="footer__cols">
+        <nav class="footer__col" aria-label={t.footer.product}>
+          <h2 class="footer__heading">{t.footer.product}</h2>
+          {product.map((item) => (
+            <a class="footer__link" href={item.href} rel={item.href.startsWith('http') ? 'noopener' : undefined}>{item.label}</a>
+          ))}
+        </nav>
 
-      <nav class="footer__col" aria-label={t.footer.docs}>
-        <h2 class="footer__heading">{t.footer.docs}</h2>
-        {docs.map((item) => <a class="footer__link" href={item.href}>{item.label}</a>)}
-      </nav>
+        <nav class="footer__col" aria-label={t.footer.docs}>
+          <h2 class="footer__heading">{t.footer.docs}</h2>
+          {docs.map((item) => <a class="footer__link" href={item.href}>{item.label}</a>)}
+        </nav>
 
-      <nav class="footer__col" aria-label={t.footer.community}>
-        <h2 class="footer__heading">{t.footer.community}</h2>
-        {community.map((item) => (
-          <a class="footer__link" href={item.href} rel={item.href.startsWith('http') ? 'noopener' : undefined}>
-            {item.label}
-          </a>
-        ))}
-      </nav>
+        <nav class="footer__col" aria-label={t.footer.community}>
+          <h2 class="footer__heading">{t.footer.community}</h2>
+          {community.map((item) => (
+            <a class="footer__link" href={item.href} rel={item.href.startsWith('http') ? 'noopener' : undefined}>{item.label}</a>
+          ))}
+        </nav>
 
-      <nav class="footer__col" aria-label={t.footer.legal}>
-        <h2 class="footer__heading">{t.footer.legal}</h2>
-        {legal.map((item) => (
-          <a class="footer__link" href={item.href} rel={item.href.startsWith('http') ? 'noopener' : undefined}>
-            {item.label}
-          </a>
+        <nav class="footer__col" aria-label={t.footer.legal}>
+          <h2 class="footer__heading">{t.footer.legal}</h2>
+          {legal.map((item) => (
+            <a class="footer__link" href={item.href} rel={item.href.startsWith('http') ? 'noopener' : undefined}>{item.label}</a>
+          ))}
+        </nav>
+      </div>
+
+      <nav class="footer__mobile-links" aria-label={t.nav.primary}>
+        {mobileLinks.map((item) => (
+          <a class="footer__link" href={item.href} rel={item.href.startsWith('http') ? 'noopener' : undefined}>{item.label}</a>
         ))}
       </nav>
     </div>
 
     <div class="footer__bottom">
-      <span class="footer__copy">{t.footer.copyright}</span>
-      <div class="lang" role="group" aria-label={t.nav.language}>
+      <span class="footer__copy">
+        {lang === 'ar' ? (
+          <>
+            <span dir="ltr">© 2026 Orbiscreen</span> · <span>بناه shadow-x78</span> · <span dir="ltr">GPL-3.0</span>
+          </>
+        ) : (
+          t.footer.copyright
+        )}
+      </span>
+      <div class="lang" dir="ltr" role="group" aria-label={t.nav.language}>
         <a class="lang__opt" href={path} hreflang="en" lang="en" aria-current={lang === 'en' ? 'true' : undefined}>EN</a>
         <a class="lang__opt" href={arPath} hreflang="ar" lang="ar" aria-current={lang === 'ar' ? 'true' : undefined}>عربي</a>
       </div>

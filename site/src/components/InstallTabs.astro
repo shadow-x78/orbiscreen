@@ -1,7 +1,6 @@
 ---
 // ─────────────────────────────────────────────
-// Orbiscreen - Install tabs and terminal
-// https://github.com/shadow-x78/orbiscreen
+// Orbiscreen · Install tabs and terminal
 // ─────────────────────────────────────────────
 
 import Icon from './Icon.astro';
@@ -12,7 +11,6 @@ import type { Lang } from '../lib/site';
 interface Props {
   lang: Lang;
   methods: InstallMethod[];
-  /** Compact mode hides notes and actions (used on the landing page). */
   compact?: boolean;
 }
 
@@ -27,38 +25,48 @@ const prepared = methods.map((method, index) => ({
   id: method.id,
   label: method.label,
   note: method.note,
-  action: method.action,
   commands: method.lines.filter((line) => line.kind === 'cmd').map((line) => line.text).join('\n'),
   codeHtml: method.lines
-    .map((line) =>
-      line.kind === 'comment'
-        ? `<span class="c">${escapeHtml(line.text)}</span>`
-        : `<span class="cmd">$ ${escapeHtml(line.text)}</span>`,
-    )
+    .map((line) => {
+      if (line.kind === 'comment') return `<span class="c">${escapeHtml(line.text)}</span>`;
+      let text = escapeHtml(line.text);
+      const classes = [line.text.startsWith('orbiscreen start') ? 'ok' : 'cmd'];
+      if (line.text.startsWith('orbiscreen start')) classes.push('line-start');
+      if (/install orbiscreen(?:\s+-y)$/.test(line.text)) {
+        text = text.replace(/\s+-y$/, ' <span class="flag-y">-y</span>');
+      }
+      return `<span class="${classes.join(' ')}">${text}</span>`;
+    })
     .join('\n'),
   first: index === 0,
 }));
 ---
 
 <div class:list={['install-tabs', compact && 'install-tabs--compact']} data-install-tabs>
-  <div class="tabs" role="tablist" aria-label={lang === 'ar' ? 'طرق التثبيت' : 'Install methods'}>
-    {prepared.map((method) => (
-      <button
-        class="tab"
-        id={`tab-${method.id}`}
-        type="button"
-        role="tab"
-        aria-selected={method.first ? 'true' : 'false'}
-        aria-controls={`panel-${method.id}`}
-        tabindex={method.first ? 0 : -1}
-        data-tab={method.id}
-      >{method.label}</button>
+  <div class="tabs" dir="ltr" role="tablist" aria-label={lang === 'ar' ? 'طرق التثبيت' : 'Install methods'}>
+    <span class="tabs__pill" aria-hidden="true" hidden></span>
+    {[prepared.slice(0, 3), prepared.slice(3)].map((group) => (
+      <div class="tabs__row">
+        {group.map((method) => (
+          <button
+            class="tab"
+            dir="auto"
+            id={`tab-${method.id}`}
+            type="button"
+            role="tab"
+            aria-selected={method.first ? 'true' : 'false'}
+            aria-controls={`panel-${method.id}`}
+            tabindex={method.first ? 0 : -1}
+            data-tab={method.id}
+          >{method.label}</button>
+        ))}
+      </div>
     ))}
   </div>
 
   {prepared.map((method) => (
     <div
-      class="panel"
+      class="install-panel"
       id={`panel-${method.id}`}
       role="tabpanel"
       aria-labelledby={`tab-${method.id}`}
@@ -69,9 +77,9 @@ const prepared = methods.map((method, index) => ({
       <div class="terminal">
         <div class="terminal__head">
           <span class="terminal__dots" aria-hidden="true">
-            <span class="mock__dot mock__dot--r"></span>
-            <span class="mock__dot mock__dot--y"></span>
-            <span class="mock__dot mock__dot--g"></span>
+            <span class="terminal__dot dot--danger"></span>
+            <span class="terminal__dot dot--warning"></span>
+            <span class="terminal__dot dot--success"></span>
           </span>
           <span class="terminal__path">~/  bash</span>
           <button
@@ -81,120 +89,106 @@ const prepared = methods.map((method, index) => ({
             data-label-copy={t.actions.copy}
             data-label-copied={t.actions.copied}
             data-label-failed={t.actions.copyFailed}
-          >{t.actions.copy}</button>
+          >
+            <Icon name="copy" size={13} class="copy-icon--copy" />
+            <Icon name="check-sm" size={13} class="copy-icon--check" />
+            <span data-copy-label>{t.actions.copy}</span>
+          </button>
         </div>
         <div class="terminal__body" tabindex="0">
           <pre class="terminal__code"><code set:html={method.codeHtml} /></pre>
         </div>
       </div>
 
-      <div class="install-note">
-        <p class="muted">{method.note}</p>
-        {method.action && (
-          <a class="btn btn--secondary btn--sm" href={method.action.href} rel="noopener">
-            {method.action.label}
-            <Icon name="external" size={15} />
-          </a>
-        )}
-      </div>
+      {!compact && <p class="install-note">{method.note}</p>}
     </div>
   ))}
 </div>
 
-<style>
-  .install-note {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    margin-block-start: 14px;
-    font-size: 14px;
-  }
-
-  .install-note p {
-    max-width: 68ch;
-    margin: 0;
-  }
-
-  .install-tabs--compact .install-note {
-    display: none;
-  }
-</style>
-
 <script>
   function setup(root: HTMLElement) {
-    const tabs = Array.from(root.querySelectorAll('[role="tab"]'));
-    const panels = Array.from(root.querySelectorAll('[role="tabpanel"]'));
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    const panels = Array.from(root.querySelectorAll<HTMLElement>('[role="tabpanel"]'));
+    const row = root.querySelector<HTMLElement>('.tabs');
+    const pill = root.querySelector<HTMLElement>('.tabs__pill');
+
+    function placePill(active: HTMLElement | undefined) {
+      if (!row || !pill) return;
+      const first = tabs[0];
+      if (!active || !first) return;
+      const wrapped = Math.abs(active.offsetTop - first.offsetTop) > 1;
+      if (wrapped) {
+        pill.hidden = true;
+        row.dataset.pill = 'off';
+        return;
+      }
+      pill.hidden = false;
+      row.dataset.pill = 'ready';
+      pill.style.width = `${active.offsetWidth}px`;
+      pill.style.height = `${active.offsetHeight}px`;
+      pill.style.transform = `translate(${active.offsetLeft}px, ${active.offsetTop}px)`;
+    }
+
+    let activeId = tabs[0]?.dataset.tab || '';
 
     function activate(id: string, focus: boolean) {
+      activeId = id;
+      let selected: HTMLButtonElement | undefined;
       tabs.forEach((tab) => {
-        const element = tab as HTMLButtonElement;
-        const selected = element.dataset.tab === id;
-        element.setAttribute('aria-selected', String(selected));
-        element.tabIndex = selected ? 0 : -1;
-        if (selected && focus) element.focus();
+        const on = tab.dataset.tab === id;
+        tab.setAttribute('aria-selected', String(on));
+        tab.tabIndex = on ? 0 : -1;
+        if (on) {
+          selected = tab;
+          if (focus) tab.focus();
+        }
       });
       panels.forEach((panel) => {
-        (panel as HTMLElement).hidden = (panel as HTMLElement).dataset.panel !== id;
+        panel.hidden = panel.dataset.panel !== id;
       });
+      placePill(selected);
       const url = new URL(window.location.href);
       url.hash = id;
       history.replaceState(null, '', url);
     }
 
     tabs.forEach((tab, index) => {
-      const element = tab as HTMLButtonElement;
-      element.addEventListener('click', () => activate(element.dataset.tab || '', false));
-      element.addEventListener('keydown', (event) => {
+      tab.addEventListener('click', () => activate(tab.dataset.tab || '', false));
+      tab.addEventListener('keydown', (event) => {
         if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
         event.preventDefault();
-        const step = event.key === 'ArrowRight' ? 1 : -1;
-        const next = tabs[(index + step + tabs.length) % tabs.length] as HTMLButtonElement;
+        const rtl = row ? getComputedStyle(row).direction === 'rtl' : document.documentElement.dir === 'rtl';
+        const step = (event.key === 'ArrowRight' ? 1 : -1) * (rtl ? -1 : 1);
+        const next = tabs[(index + step + tabs.length) % tabs.length];
         activate(next.dataset.tab || '', true);
       });
     });
 
     const initial = window.location.hash.replace('#', '');
-    if (initial && tabs.some((tab) => (tab as HTMLButtonElement).dataset.tab === initial)) {
+    if (initial && tabs.some((tab) => tab.dataset.tab === initial)) {
       activate(initial, false);
+    } else {
+      activeId = tabs[0]?.dataset.tab || '';
+      placePill(tabs[0]);
     }
 
-    root.querySelectorAll('[data-copy]').forEach((node) => {
-      const button = node as HTMLButtonElement;
-      button.addEventListener('click', () => {
-        const text = button.dataset.copy || '';
-        const done = (label: string) => {
-          button.textContent = label;
-          window.setTimeout(() => {
-            button.textContent = button.dataset.labelCopy || 'Copy';
-          }, 1600);
-        };
-
-        const fallback = () => {
-          const pre = button.closest('.terminal')?.querySelector('pre');
-          const range = document.createRange();
-          if (pre) {
-            range.selectNodeContents(pre);
-            const selection = window.getSelection();
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-          }
-          done(button.dataset.labelFailed || 'Copy failed');
-        };
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(
-            () => done(button.dataset.labelCopied || 'Copied'),
-            fallback,
-          );
-          return;
-        }
-
-        fallback();
+    let frame = 0;
+    const sync = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const active =
+          tabs.find((tab) => tab.dataset.tab === activeId) ??
+          tabs.find((tab) => tab.getAttribute('aria-selected') === 'true');
+        placePill(active);
       });
-    });
+    };
+    window.addEventListener('resize', sync);
+    window.addEventListener('load', sync, { once: true });
+    document.fonts?.ready.then(sync).catch(() => {});
+    window.requestAnimationFrame(sync);
+
   }
 
-  document.querySelectorAll('[data-install-tabs]').forEach((node) => setup(node as HTMLElement));
+  document.querySelectorAll<HTMLElement>('[data-install-tabs]').forEach(setup);
 </script>

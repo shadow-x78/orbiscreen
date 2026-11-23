@@ -13,35 +13,25 @@ const docsHref = '/docs';
   arPath="/ar"
   noindex
 >
-  <section class="section" style="min-height:60vh;display:flex;align-items:center">
-    <div class="container" style="max-width:720px">
-      <p class="eyebrow">404</p>
-      <h1 class="h1" style="margin-block:14px 16px">That page does not exist</h1>
-      <p class="lede" style="margin-block-end:28px">
-        The link may come from an older release, or the path may have changed. The documentation index and the home page are the fastest ways back.
-      </p>
-      <div class="row">
-        <a class="btn btn--primary" href="/">
-          Back to the home page
-          <Icon name="arrow-right" size={18} />
-        </a>
-        <a class="btn btn--secondary" href={docsHref}>Browse the documentation</a>
+  <section class="notfound">
+    <div class="container">
+      <div class="notfound__col">
+        <p class="notfound__numeral">404 <span class="notfound__rule"></span></p>
+        <p class="eyebrow">ERROR · NOT FOUND</p>
+        <h1 class="notfound__title">That page does not exist.</h1>
+        <p class="notfound__lede">
+          The link may come from an older release, or the path may have changed. The documentation
+          index and the home page are the fastest ways back.
+        </p>
+        <div class="notfound__actions">
+          <a class="btn btn--primary" href="/">
+            Back to the home page
+            <Icon name="arrow-right-sm" size={16} class="btn__arrow" />
+          </a>
+          <a class="btn btn--secondary" href="/install">Install Orbiscreen</a>
+          <a class="btn btn--ghost" href={docsHref}>Browse the documentation</a>
+        </div>
       </div>
-      <p class="not-found-ar" lang="ar" dir="rtl">
-        هذه الصفحة غير موجودة. يمكنك العودة إلى <a href="/ar">الصفحة الرئيسية</a> أو تصفّح <a href="/ar/docs">التوثيق</a>.
-      </p>
     </div>
   </section>
 </Base>
-
-<style>
-  /* Links inside body text must not rely on colour alone (WCAG 1.4.1). */
-  .not-found-ar {
-    margin-block-start: 28px;
-    color: var(--text-muted);
-  }
-
-  .not-found-ar a {
-    text-decoration: underline;
-  }
-</style>
