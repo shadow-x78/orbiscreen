@@ -2270,7 +2270,7 @@ html[lang='ar'] .matrix__name {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 14px;
   text-align: start;
 }
@@ -2281,6 +2281,7 @@ html[lang='ar'] .matrix__name {
   justify-content: center;
   width: 44px;
   height: 44px;
+  flex: none;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-12);
   background: var(--surface-2);
