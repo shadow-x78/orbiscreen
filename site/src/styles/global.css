@@ -327,7 +327,26 @@ html[lang='ar'] .eyebrow {
   flex: none;
 }
 
+.btn > svg,
+.btn__arrow,
+.dl-btn > svg,
+.chip > svg,
+.pill > svg,
+.trust__item > svg,
+.lang__opt > svg,
+.install-tab > svg,
+.callout__title > svg,
+.cmp__mark > svg,
+.method__check > svg,
+.toc__link > svg {
+  flex: none;
+  align-self: center;
+  vertical-align: middle;
+}
+
 .btn__arrow {
+  position: relative;
+  inset-block-start: 0.5px;
   transition: transform var(--dur-micro) var(--ease-out-expo);
 }
 
