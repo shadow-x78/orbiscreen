@@ -22,6 +22,7 @@ status=0
 # ── Banner Skipper ──
 # Emits the file body after the leading banner block, then the caller greps
 # that body for violations.
+# shellcheck disable=SC2016
 skip_banner='
 BEGIN { state = 0 }
 state == 0 {

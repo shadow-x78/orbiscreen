@@ -15,7 +15,8 @@ fi
 # ── Distribution Detection ──
 detect_distro() {
     if [[ -f /etc/os-release ]]; then
-        . /etc/os-release
+        # shellcheck source=/dev/null
+. /etc/os-release
         echo "${ID:-unknown}"
     else
         echo "unknown"
