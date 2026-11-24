@@ -5,7 +5,6 @@ use ashpd::desktop::screencast::{
     StartCastOptions, Streams,
 };
 use ashpd::desktop::{PersistMode, ResponseError, Session};
-use enumflags2::BitFlags;
 use orbiscreen_core::portal_state;
 use thiserror::Error;
 use tracing::instrument;
@@ -52,16 +51,16 @@ impl From<gstreamer::glib::BoolError> for WaylandCaptureError {
 
 fn virtual_only_options() -> SelectSourcesOptions {
     SelectSourcesOptions::default()
-        .set_sources(Some(BitFlags::from(SourceType::Virtual)))
-        .set_cursor_mode(CursorMode::Embedded)
+        .set_sources(SourceType::VIRTUAL)
+        .set_cursor_mode(CursorMode::EMBEDDED)
         .set_multiple(false)
         .set_persist_mode(PersistMode::ExplicitlyRevoked)
 }
 
 fn monitor_fallback_options() -> SelectSourcesOptions {
     SelectSourcesOptions::default()
-        .set_sources(Some(BitFlags::from(SourceType::Monitor)))
-        .set_cursor_mode(CursorMode::Embedded)
+        .set_sources(SourceType::MONITOR)
+        .set_cursor_mode(CursorMode::EMBEDDED)
         .set_multiple(false)
         .set_persist_mode(PersistMode::ExplicitlyRevoked)
 }
@@ -211,11 +210,11 @@ mod tests {
     fn portal_options_embed_the_cursor_in_the_stream() {
         assert_eq!(
             virtual_only_options().cursor_mode(),
-            Some(CursorMode::Embedded)
+            Some(CursorMode::EMBEDDED)
         );
         assert_eq!(
             monitor_fallback_options().cursor_mode(),
-            Some(CursorMode::Embedded)
+            Some(CursorMode::EMBEDDED)
         );
     }
 

@@ -42,11 +42,8 @@ impl OrbiscreenDbusServer {
             .ok_or_else(|| "cannot determine caller".to_string())?;
         let proxy = zbus::fdo::DBusProxy::builder(connection)
             .destination("org.freedesktop.DBus")
-            .map_err(|e| e.to_string())?
             .path("/org/freedesktop/DBus")
-            .map_err(|e| e.to_string())?
             .interface("org.freedesktop.DBus")
-            .map_err(|e| e.to_string())?
             .build()
             .await
             .map_err(|e| e.to_string())?;
@@ -419,7 +416,7 @@ pub async fn call_stop(conn: &zbus::Connection) -> zbus::Result<String> {
 }
 
 pub async fn request_stop() -> zbus::Result<String> {
-    let conn = zbus::connection::Builder::session()?.build().await?;
+    let conn = zbus::connection::Builder::session().build().await?;
     call_stop(&conn).await
 }
 
@@ -460,7 +457,7 @@ pub async fn call_status(conn: &zbus::Connection) -> zbus::Result<String> {
 }
 
 pub async fn request_status() -> zbus::Result<String> {
-    let conn = zbus::connection::Builder::session()?.build().await?;
+    let conn = zbus::connection::Builder::session().build().await?;
     call_status(&conn).await
 }
 
@@ -507,10 +504,10 @@ pub async fn call_set_resolution(
 
 pub async fn run_dbus_server(handles: Arc<DaemonHandles>) -> zbus::Result<()> {
     let server = OrbiscreenDbusServer::new(handles);
-    let _conn = zbus::connection::Builder::session()?
-        .name("org.shadow-x78.Orbiscreen")?
-        .name("com.orbiscreen.Daemon")?
-        .serve_at("/com/orbiscreen/Daemon", server)?
+    let _conn = zbus::connection::Builder::session()
+        .name("org.shadow-x78.Orbiscreen")
+        .name("com.orbiscreen.Daemon")
+        .serve_at("/com/orbiscreen/Daemon", server)
         .build()
         .await?;
 
@@ -578,22 +575,22 @@ pub async fn call_pair_revoke(conn: &zbus::Connection, client_id: &str) -> zbus:
 }
 
 pub async fn request_pair_list() -> zbus::Result<String> {
-    let conn = zbus::connection::Builder::session()?.build().await?;
+    let conn = zbus::connection::Builder::session().build().await?;
     call_pair_list(&conn).await
 }
 
 pub async fn request_pair_approve(request_id: &str) -> zbus::Result<String> {
-    let conn = zbus::connection::Builder::session()?.build().await?;
+    let conn = zbus::connection::Builder::session().build().await?;
     call_pair_approve(&conn, request_id).await
 }
 
 pub async fn request_pair_deny(request_id: &str) -> zbus::Result<String> {
-    let conn = zbus::connection::Builder::session()?.build().await?;
+    let conn = zbus::connection::Builder::session().build().await?;
     call_pair_deny(&conn, request_id).await
 }
 
 pub async fn request_pair_revoke(client_id: &str) -> zbus::Result<String> {
-    let conn = zbus::connection::Builder::session()?.build().await?;
+    let conn = zbus::connection::Builder::session().build().await?;
     call_pair_revoke(&conn, client_id).await
 }
 

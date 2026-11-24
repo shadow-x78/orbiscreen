@@ -2,7 +2,6 @@ use ashpd::desktop::remote_desktop::{
     DeviceType, KeyState, RemoteDesktop, SelectDevicesOptions, SelectedDevices,
 };
 use ashpd::desktop::{PersistMode, ResponseError, Session};
-use enumflags2::BitFlags;
 use orbiscreen_core::portal_state;
 use thiserror::Error;
 use tracing::{info, instrument, warn};
@@ -38,9 +37,7 @@ pub struct WaylandInjector {
 
 fn device_options() -> SelectDevicesOptions {
     SelectDevicesOptions::default()
-        .set_devices(Some(
-            BitFlags::from(DeviceType::Keyboard) | BitFlags::from(DeviceType::Pointer),
-        ))
+        .set_devices(DeviceType::KEYBOARD | DeviceType::POINTER)
         .set_persist_mode(PersistMode::ExplicitlyRevoked)
 }
 

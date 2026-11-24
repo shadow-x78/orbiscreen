@@ -41,7 +41,7 @@ wtransport = { version = "0.7.2", features = ["self-signed"] }
 rcgen = { version = "0.14", default-features = false, features = ["ring"] }
 time = { version = "0.3", default-features = false, features = ["std"] }
 quinn-proto = "0.11.18"
-axum-server = { version = "0.7", default-features = false, features = ["tls-rustls-no-provider"] }
+axum-server = { version = "0.9", default-features = false, features = ["tls-rustls-no-provider"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 ring = "0.17.14"
 

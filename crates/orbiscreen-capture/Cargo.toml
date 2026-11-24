@@ -20,7 +20,6 @@ workspace = true
 orbiscreen-core = { path = "../orbiscreen-core" }
 x11rb = { workspace = true }
 ashpd = { workspace = true }
-enumflags2 = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
