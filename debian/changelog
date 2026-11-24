@@ -1,3 +1,11 @@
+orbiscreen (0.45.0~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.45.0 for Ubuntu noble.
+  * Clear the audit findings and upgrade the unmaintained dependencies
+  * Bump version to 0.45.0 across all packages; Android versionCode 210.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Tue, 24 Nov 2026 21:49:41 +0300
+
 orbiscreen (0.44.9~ubuntunoble1) noble; urgency=medium
 
   * Release 0.44.9 for Ubuntu noble.

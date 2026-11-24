@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.44.9
+%global version 0.45.0
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -152,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Tue Nov 24 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.45.0-1
+- Release 0.45.0: Clear the audit findings and upgrade the unmaintained dependencies
+
 * Sun Nov 22 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.44.9-1
 - Release 0.44.9: follow the host resolution by default (#116)
 

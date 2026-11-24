@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.45.0] - 2026-11-24
+
+### Fixed
+- **The dependency tree no longer carries unmaintained, yanked, or unsound crates.**
+  `rustix` moved past the unsound xattr advisory and `async-executor` past its yanked
+  release. `ashpd` 0.14 and `zbus` 6 replace the unmaintained portal stack, with the
+  screencast and remote-desktop code migrated to the new bitflags API, and `axum-server`
+  0.9 drops `rustls-pemfile`. `cargo audit` now reports only `derivative` (pulled in by
+  EVDI) and `cargo deny` passes.
+- **The comment guard covers everything it claims.** Both checkers now detect trailing
+  comments with the same rules, allow the same tool directives, and CI runs both on every
+  change, including `worker/` and `scripts/`-only edits.
+- **The site ships no dead weight.** Removed the unused Hero, HeroVisual, and
+  PlatformTable components together with their orphaned CSS, the unread platform `root`
+  data, and the stray CSS brace that made the minifier complain.
+- ShellCheck findings in the build and packaging scripts are fixed.
+
+### Changed
+- **The site runs Astro 7 and Mermaid 12.** The Markdown pipeline uses the `unified()`
+  processor, content schemas import `z` from `astro/zod`, and the Node engine is
+  `>=22.23.4`. Version and changelog readers now share one repository-root resolver.
+- Version bumped to 0.45.0 across the Cargo workspace, Android (`versionCode` 210), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.44.9] - 2026-11-22
 
 ### Changed
