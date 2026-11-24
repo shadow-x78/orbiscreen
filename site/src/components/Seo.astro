@@ -40,12 +40,13 @@ const defaultKeywords =
     ? 'شاشة ثانية لينكس, تابلت أندرويد شاشة, شاشة افتراضية, wayland, لينكس'
     : 'android tablet second monitor, linux extended display, virtual display, wayland, remote desktop';
 
-const fullTitle = /orbiscreen/i.test(title) ? title : `${title} · ${SITE_NAME}`;
+const BRAND = 'orbiscreen';
+const fullTitle = title.toLowerCase().startsWith(`${BRAND} |`) ? title : `${BRAND} | ${title}`;
 const canonical = `${SITE_URL}${lang === 'ar' ? arPath : path}`;
 const enUrl = `${SITE_URL}${path}`;
 const arUrl = `${SITE_URL}${arPath}`;
 const imageUrl = image.startsWith('http') ? image : `${SITE_URL}${image}`;
-const imageAlt = /orbiscreen/i.test(title) ? title : `${SITE_NAME}: ${title}`;
+const imageAlt = fullTitle;
 
 function mirrorPath(p: string): string {
   if (p === '/') return '/index.md';
