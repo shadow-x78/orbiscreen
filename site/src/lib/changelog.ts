@@ -36,7 +36,7 @@ export type Block =
   | { type: 'list'; items: ListItem[] }
   | { type: 'paragraph'; text: string };
 
-export function releaseAnchor(version: string): string {
+function releaseAnchor(version: string): string {
   return `v${version.replace(/\./g, '-')}`;
 }
 
@@ -56,7 +56,7 @@ export function inlineMarkdown(value: string): string {
   return out;
 }
 
-export function plainText(blocks: Block[]): string {
+function plainText(blocks: Block[]): string {
   return blocks
     .map((block) => {
       if (block.type === 'list') return block.items.map((item) => item.text).join(' ');

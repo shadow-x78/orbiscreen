@@ -28,4 +28,3 @@ function readRustVersion(): string {
 export const VERSION = readWorkspaceVersion();
 export const VERSION_TAG = `v${VERSION}`;
 export const RUST_VERSION = readRustVersion();
-export const CHANGELOG_ANCHOR = `v${VERSION.replace(/\./g, '-')}`;

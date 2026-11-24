@@ -46,7 +46,7 @@ export function websiteSchema() {
   };
 }
 
-export const APP_FEATURES = [
+const APP_FEATURES = [
   'Independent virtual display up to 7680x4320',
   'Hardware H.264 encoding through NVENC, VA-API or x264',
   'Reverse multi-touch, mouse, keyboard and 4095-level stylus input',

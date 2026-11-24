@@ -5,7 +5,7 @@
 
 export const SITE_URL = 'https://orbiscreen.com';
 export const SITE_NAME = 'Orbiscreen';
-export const SITE_LOCALES = ['en', 'ar'] as const;
+const SITE_LOCALES = ['en', 'ar'] as const;
 export type Lang = (typeof SITE_LOCALES)[number];
 
 export const SHORT_DESCRIPTION =
@@ -13,7 +13,6 @@ export const SHORT_DESCRIPTION =
 
 export const GITHUB_URL = 'https://github.com/shadow-x78/orbiscreen';
 export const RELEASES_URL = `${GITHUB_URL}/releases`;
-export const LATEST_RELEASE_URL = `${GITHUB_URL}/releases/latest`;
 export const ISSUES_URL = `${GITHUB_URL}/issues`;
 export const ADVISORY_URL = `${GITHUB_URL}/security/advisories/new`;
 export const PPA_URL = 'https://launchpad.net/~shadow-x78/+archive/ubuntu/ppa';
