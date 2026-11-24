@@ -134,7 +134,9 @@ master_coverage() {
     rm -f "$tmp"
     width="${trimmed%% *}"
     height="${trimmed##* }"
-    [ -n "$width" ] && [ -n "$height" ] || fail "cannot measure the coverage of $what"
+    if [ -z "$width" ] || [ -z "$height" ]; then
+        fail "cannot measure the coverage of $what"
+    fi
     longest="$width"
     [ "$height" -gt "$longest" ] && longest="$height"
     cover=$((100 * longest / MEASURE_SIZE))
@@ -162,7 +164,9 @@ verify() {
     # "WxH+X+Y" of the alpha bounding box at half opacity.
     box="$(magick "$file" -alpha extract -threshold 50% -format "%@" info: 2>/dev/null)" \
         || fail "cannot measure $what"
-    [ -n "$box" ] && [ "$box" != "0x0" ] || fail "$what draws nothing: ${file#"$REPO_ROOT"/}"
+    if [ -z "$box" ] || [ "$box" = "0x0" ]; then
+        fail "$what draws nothing: ${file#"$REPO_ROOT"/}"
+    fi
 
     local w="${box%%x*}"
     local rest="${box#*x}"
@@ -176,8 +180,9 @@ verify() {
     local bottom=$((size - y - h))
     local tolerance=$((size / 8 + 1))
     local dx=$((left - right)) dy=$((top - bottom))
-    [ "${dx#-}" -le "$tolerance" ] && [ "${dy#-}" -le "$tolerance" ] \
-        || fail "$what is off-centre (margins L$left R$right T$top B$bottom): ${file#"$REPO_ROOT"/}"
+    if [ "${dx#-}" -gt "$tolerance" ] || [ "${dy#-}" -gt "$tolerance" ]; then
+        fail "$what is off-centre (margins L$left R$right T$top B$bottom): ${file#"$REPO_ROOT"/}"
+    fi
 }
 
 # sizes_from_small: the whole mark is only a dozen pixels tall, so it uses the heavier master.

@@ -13,6 +13,7 @@ REPO_ROOT="$(pwd)"
 VERSION="${1:-$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')}"
 
 if ! command -v cargo >/dev/null 2>&1; then
+    # shellcheck source=/dev/null
     if [ -f "$HOME/.cargo/env" ]; then
         . "$HOME/.cargo/env"
     else
@@ -105,7 +106,9 @@ bundle_qt() {
     ldd "$APP/usr/bin/orbiscreen-gui" 2>/dev/null |
     awk '/=> \/.*libQt6/ {print $3}' |
     while IFS= read -r lib; do
-        [ -n "$lib" ] && cp -f "$lib" "$APP/usr/lib/" 2>/dev/null || true
+        if [ -n "$lib" ]; then
+            cp -f "$lib" "$APP/usr/lib/" 2>/dev/null || true
+        fi
     done
 }
 bundle_qt

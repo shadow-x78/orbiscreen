@@ -46,8 +46,9 @@ for file in $files; do
     fi
     # The dots are escaped so the version only matches itself: an unescaped "0.43.0"
     # also matches "0x4320" and rewrites the 7680x4320 resolution in the README.
-    grep -qF "$previous" "$file" 2>/dev/null &&
-        sed -i "s/${previous//./\\.}/${version}/g" "$file" || true
+    if grep -qF "$previous" "$file" 2>/dev/null; then
+        sed -i "s/${previous//./\\.}/${version}/g" "$file"
+    fi
 done
 
 # Android versionCode is an independent monotonic integer.
