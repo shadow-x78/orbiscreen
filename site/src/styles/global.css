@@ -236,8 +236,6 @@ html[lang='ar'] .eyebrow {
   letter-spacing: 0;
 }
 
-/* ── Buttons ── */
-
 .btn {
   position: relative;
   display: inline-flex;
@@ -313,7 +311,6 @@ html[lang='ar'] .eyebrow {
   font-weight: 600;
 }
 
-
 .btn--lg {
   min-height: 48px;
   padding-inline: 22px;
@@ -379,8 +376,6 @@ html[dir='rtl'] .btn:hover .btn__arrow {
   }
 }
 
-/* ── Language switch ── */
-
 .lang {
   display: inline-flex;
   align-items: center;
@@ -407,7 +402,6 @@ html[dir='rtl'] .btn:hover .btn__arrow {
     background-color var(--dur-state) var(--ease-out-expo),
     color var(--dur-state) var(--ease-out-expo);
 }
-
 
 .lang__opt[lang='ar'] {
   font-family: var(--font-arabic);
@@ -438,8 +432,6 @@ html[dir='rtl'] .btn:hover .btn__arrow {
   line-height: 18px;
 }
 
-/* ── Navbar ── */
-
 .nav {
   position: sticky;
   inset-block-start: 0;
@@ -454,12 +446,10 @@ html[dir='rtl'] .btn:hover .btn__arrow {
     border-color var(--dur-state) var(--ease-out-expo);
 }
 
-
 .nav.is-scrolled {
   background: var(--nav-bg-scrolled);
   border-block-end-color: var(--nav-edge);
 }
-
 
 .nav__inner {
   display: flex;
@@ -468,7 +458,6 @@ html[dir='rtl'] .btn:hover .btn__arrow {
   gap: 24px;
   height: 100%;
 }
-
 
 .brand,
 .brand:visited {
@@ -481,14 +470,12 @@ html[dir='rtl'] .btn:hover .btn__arrow {
   transition: color var(--dur-micro) var(--ease-out-expo);
 }
 
-
 .brand__mark {
   display: block;
   width: 26px;
   height: 26px;
   flex: none;
 }
-
 
 .brand__word {
   font-family: 'Inter Variable', 'Inter', system-ui, sans-serif;
@@ -498,14 +485,12 @@ html[dir='rtl'] .btn:hover .btn__arrow {
   letter-spacing: -0.3px;
 }
 
-
 .nav__links {
   display: flex;
   align-items: center;
   gap: 30px;
   margin-inline-start: auto;
 }
-
 
 .nav__link {
   color: var(--text-muted);
@@ -515,7 +500,6 @@ html[dir='rtl'] .btn:hover .btn__arrow {
   white-space: nowrap;
   transition: color var(--dur-micro) var(--ease-out-expo);
 }
-
 
 .nav__link:hover,
 .nav__link[aria-current='page'] {
@@ -556,8 +540,6 @@ html[dir='rtl'] .btn:hover .btn__arrow {
 .nav__menu span::after {
   display: none;
 }
-
-/* ── Drawer ── */
 
 .drawer {
   position: fixed;
@@ -694,13 +676,10 @@ html[dir='rtl'] .drawer__panel {
   color: var(--text-primary);
 }
 
-/* ── Hero ── */
-
 .hero {
   background: var(--bg-base);
   padding-block: 96px 88px;
 }
-
 
 .hero__inner {
   display: grid;
@@ -709,7 +688,6 @@ html[dir='rtl'] .drawer__panel {
   align-items: center;
 }
 
-
 .hero__text {
   display: flex;
   flex-direction: column;
@@ -717,7 +695,6 @@ html[dir='rtl'] .drawer__panel {
   gap: 24px;
   max-width: 560px;
 }
-
 
 .hero__eyebrow {
   display: flex;
@@ -775,7 +752,6 @@ html[dir='rtl'] .drawer__panel {
   font-weight: 700;
 }
 
-
 .hero__sub {
   margin: 0;
   max-width: 560px;
@@ -784,13 +760,11 @@ html[dir='rtl'] .drawer__panel {
   line-height: 30px;
 }
 
-
 .hero__cta {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
 }
-
 
 .hero__store {
   display: flex;
@@ -820,8 +794,6 @@ html[lang='ar'] .hero__title {
   line-height: 80px;
   letter-spacing: 0;
 }
-
-/* CSS hero mockup */
 
 .mockup {
   position: relative;
@@ -1089,8 +1061,6 @@ html[lang='ar'] .mockup__chip {
   }
 }
 
-/* Hero entrance stagger */
-
 .hero-enter {
   opacity: 0;
   transform: translateY(12px);
@@ -1104,8 +1074,6 @@ html[lang='ar'] .mockup__chip {
     transform: translateY(0);
   }
 }
-
-/* ── Trust chips ── */
 
 .trust {
   position: relative;
@@ -1147,8 +1115,6 @@ html[lang='ar'] .mockup__chip {
   flex: none;
 }
 
-/* ── Section scaffolding ── */
-
 .section {
   padding-block: 64px;
 }
@@ -1185,8 +1151,6 @@ html[lang='ar'] .mockup__chip {
   border: 0;
   background: linear-gradient(to right, transparent, rgb(255 255 255 / 8.5%), transparent);
 }
-
-/* ── Capabilities ── */
 
 .caps {
   position: relative;
@@ -1356,14 +1320,11 @@ html[lang='ar'] .mockup__chip {
   line-height: 25px;
 }
 
-/* ── How it works ── */
-
 .hiw {
   position: relative;
   background: var(--bg-subtle);
   padding-block: 96px;
 }
-
 
 .hiw__head {
   margin-block-end: 40px;
@@ -1437,8 +1398,6 @@ html[lang='ar'] .mockup__chip {
   font-size: 12px;
   line-height: 20px;
 }
-
-/* ── Platform ── */
 
 .platform {
   position: relative;
@@ -1570,14 +1529,11 @@ html[lang='ar'] .matrix__name {
   font-family: 'Inter Variable', 'Noto Sans Arabic', sans-serif;
 }
 
-/* ── Performance ── */
-
 .perf {
   position: relative;
   background: var(--bg-band-alt);
   padding-block: 96px;
 }
-
 
 .perf__head {
   margin-block-end: 36px;
@@ -1635,8 +1591,6 @@ html[lang='ar'] .matrix__name {
   line-height: 20px;
 }
 
-/* ── Install (landing) ── */
-
 .install-landing {
   position: relative;
   background: var(--bg-base);
@@ -1663,8 +1617,6 @@ html[lang='ar'] .matrix__name {
   letter-spacing: var(--tracking-h2);
   font-weight: 700;
 }
-
-/* ── Tabs + terminal ── */
 
 .tabs {
   position: relative;
@@ -1878,8 +1830,6 @@ html[lang='ar'] .matrix__name {
   display: none;
 }
 
-/* ── Download buttons ── */
-
 .downloads {
   display: flex;
   flex-direction: column;
@@ -1902,7 +1852,6 @@ html[lang='ar'] .matrix__name {
   grid-template-columns: repeat(3, 200px);
   gap: 12px;
 }
-
 
 .downloads--compact .downloads__grid {
   max-width: 636px;
@@ -1984,8 +1933,6 @@ html[lang='ar'] .matrix__name {
   font-size: 13.5px;
   line-height: 18px;
 }
-
-/* ── Open source card ── */
 
 .oss {
   position: relative;
@@ -2072,14 +2019,11 @@ html[lang='ar'] .matrix__name {
   color: var(--accent-brand);
 }
 
-/* ── Footer ── */
-
 .footer {
   background: var(--bg-subtle);
   border-block-start: 1px solid var(--border-hairline);
   padding-block: 56px 32px;
 }
-
 
 .footer__top {
   display: flex;
@@ -2139,7 +2083,6 @@ html[lang='ar'] .matrix__name {
   font-weight: 600;
   letter-spacing: 0.6px;
 }
-
 
 .footer__link {
   color: var(--text-muted);
@@ -2206,8 +2149,6 @@ html[lang='ar'] .matrix__name {
   padding-block-start: 24px;
 }
 
-/* ── Page head (inner pages) ── */
-
 .page-head {
   background: var(--bg-base);
   padding-block: 72px 48px;
@@ -2254,8 +2195,6 @@ html[lang='ar'] .matrix__name {
 .breadcrumbs [aria-current='page'] {
   color: var(--text-primary);
 }
-
-/* ── Feature sections ── */
 
 .feature-sections {
   padding-block: 72px;
@@ -2345,8 +2284,6 @@ html[lang='ar'] .matrix__name {
   flex: none;
 }
 
-/* ── Requirements / checklist rows ── */
-
 .split-row {
   display: grid;
   grid-template-columns: 340px minmax(0, 804px);
@@ -2398,8 +2335,6 @@ html[lang='ar'] .bullet {
   line-height: 24px;
 }
 
-/* ── Shared section heads for inner pages ── */
-
 .inner-head {
   display: flex;
   flex-direction: column;
@@ -2433,8 +2368,6 @@ html[lang='ar'] .bullet {
   font-size: 17px;
   line-height: 30px;
 }
-
-/* ── Methods grid ── */
 
 .methods-grid {
   display: grid;
@@ -2506,8 +2439,6 @@ html[lang='ar'] .bullet {
   line-height: 20px;
 }
 
-/* ── Platform table (install verify) ── */
-
 .platform-table {
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-14);
@@ -2553,8 +2484,6 @@ html[lang='ar'] .bullet {
   color: var(--text-muted);
 }
 
-/* ── CTA section ── */
-
 .cta-section {
   background: var(--bg-base);
   padding-block: 0 96px;
@@ -2592,8 +2521,6 @@ html[lang='ar'] .bullet {
   flex-wrap: wrap;
   gap: 12px;
 }
-
-/* ── Compare ── */
 
 .compare-sec {
   padding-block: 64px;
@@ -2865,8 +2792,6 @@ html[lang='ar'] .bullet {
   line-height: 25px;
 }
 
-/* ── FAQ ── */
-
 .faq-page {
   padding-block: 0 64px;
 }
@@ -2969,8 +2894,6 @@ html[lang='ar'] .bullet {
   text-underline-offset: 3px;
 }
 
-/* ── Docs index ── */
-
 .docs-index {
   padding-block: 64px 72px;
 }
@@ -3065,8 +2988,6 @@ html[lang='ar'] .bullet {
   font-size: 15px;
   line-height: 25px;
 }
-
-/* ── Changelog ── */
 
 .changelog {
   padding-block: 64px 72px;
@@ -3202,8 +3123,6 @@ html[lang='ar'] .bullet {
   line-height: 20px;
 }
 
-/* ── Legal / simple pages ── */
-
 .legal-overview {
   padding-block: 56px 48px;
 }
@@ -3283,8 +3202,6 @@ html[lang='ar'] .bullet {
   text-underline-offset: 3px;
 }
 
-/* ── 404 ── */
-
 .notfound {
   padding-block: 128px;
 }
@@ -3336,8 +3253,6 @@ html[lang='ar'] .bullet {
   gap: 12px;
 }
 
-/* ── Reveal motion ── */
-
 .motion [data-reveal] {
   opacity: 0;
   transform: translateY(12px);
@@ -3353,8 +3268,6 @@ html[lang='ar'] .bullet {
   transform: none;
   will-change: auto;
 }
-
-/* ── Route progress bar ── */
 
 .route-progress {
   position: fixed;
@@ -3386,8 +3299,6 @@ html[dir='rtl'] .route-progress {
   opacity: 0;
 }
 
-/* ── Skeletons ── */
-
 .skeleton-line,
 .skeleton-card {
   border-radius: var(--radius-8);
@@ -3413,8 +3324,6 @@ html[dir='rtl'] .route-progress {
     background-position: -200% 0;
   }
 }
-
-/* ── Responsive ── */
 
 @media (max-width: 1279px) {
   .hero__inner {
@@ -4377,8 +4286,6 @@ html[dir='rtl'] .route-progress {
   }
 }
 
-/* ── Reduced motion ── */
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -4410,8 +4317,6 @@ html[dir='rtl'] .route-progress {
   }
 }
 
-/* Print */
-
 @media print {
   :root {
     color-scheme: light;
@@ -4423,7 +4328,6 @@ html[dir='rtl'] .route-progress {
   }
 }
 
-/* Hero stagger indices */
 .hero-enter--0 {
   --enter-i: 0;
 }
@@ -4443,7 +4347,6 @@ html[dir='rtl'] .route-progress {
   --enter-i: 5;
 }
 
-/* Dot colours (no inline styles under the CSP) */
 .dot--brand {
   background: var(--accent-brand);
 }
@@ -4527,7 +4430,6 @@ html.drawer-open body {
   gap: 28px;
 }
 
-
 .install-landing .terminal {
   min-height: 200px;
 }
@@ -4565,13 +4467,11 @@ html.drawer-open body {
   }
 }
 
-/* ── Arabic typography refinements (design page values) ── */
 @media (min-width: 768px) {
   html[lang='ar'] .hero__title {
     font-size: 54px;
     line-height: 80px;
   }
-
 
   html[lang='ar'] .hero__sub {
     font-size: 16.5px;
@@ -4704,7 +4604,6 @@ html.drawer-open body {
   }
 }
 
-/* Arabic desktop design overrides */
 @media (min-width: 768px) {
   html[lang='ar'] .hiw__footnote {
     display: none;
@@ -4715,7 +4614,6 @@ html.drawer-open body {
   }
 }
 
-/* Install tabs: LTR technical order, right-aligned in Arabic, 3x2 rows on mobile */
 .tabs__row {
   display: contents;
 }
@@ -4772,7 +4670,6 @@ html.drawer-open body {
   }
 }
 
-/* Mockup resolution: compact label on mobile */
 .mockup__res-short {
   display: none;
 }
