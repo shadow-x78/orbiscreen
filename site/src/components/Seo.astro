@@ -40,8 +40,10 @@ const defaultKeywords =
     ? 'شاشة ثانية لينكس, تابلت أندرويد شاشة, شاشة افتراضية, wayland, لينكس'
     : 'android tablet second monitor, linux extended display, virtual display, wayland, remote desktop';
 
-const BRAND = 'orbiscreen';
-const fullTitle = title.toLowerCase().startsWith(`${BRAND} |`) ? title : `${BRAND} | ${title}`;
+const BRAND = 'Orbiscreen';
+const fullTitle = /^orbiscreen \|/i.test(title)
+  ? title.replace(/^orbiscreen \|/i, `${BRAND} |`)
+  : `${BRAND} | ${title}`;
 const canonical = `${SITE_URL}${lang === 'ar' ? arPath : path}`;
 const enUrl = `${SITE_URL}${path}`;
 const arUrl = `${SITE_URL}${arPath}`;
