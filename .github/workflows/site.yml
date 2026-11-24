@@ -14,6 +14,8 @@ on:
     paths:
       - 'site/**'
       - 'docs/**'
+      - 'worker/**'
+      - 'scripts/**'
       - 'CHANGELOG.md'
       - 'Cargo.toml'
       - '.github/workflows/site.yml'
@@ -21,6 +23,8 @@ on:
     paths:
       - 'site/**'
       - 'docs/**'
+      - 'worker/**'
+      - 'scripts/**'
       - 'CHANGELOG.md'
       - 'Cargo.toml'
       - '.github/workflows/site.yml'

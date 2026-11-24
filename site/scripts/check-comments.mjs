@@ -61,7 +61,16 @@ function checkFile(path) {
       continue;
     }
     if (ticks % 2 === 1) inTemplate = true;
-    if (s.startsWith('//') || s.startsWith('/*') || s.startsWith('<!--')) {
+    const code = line
+      .replace(/'(?:[^'\\]|\\.)*'/g, "''")
+      .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+      .replace(/`(?:[^`\\]|\\.)*`/g, '``');
+    const comment =
+      s.startsWith('//') ||
+      s.startsWith('/*') ||
+      s.startsWith('<!--') ||
+      (ticks % 2 === 0 && (/[^:"/]\s+\/\//.test(code) || /[^:"/]\s+\/\*/.test(code)));
+    if (comment) {
       console.error(`${relative(repo, path)}:${i + 1}: comment is not allowed`);
       failures += 1;
     }

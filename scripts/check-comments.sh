@@ -7,7 +7,8 @@
 # Fails when a source file (Rust, Kotlin, JavaScript, TypeScript, HTML)
 # contains any comment: standalone lines, trailing remarks, or blocks.
 # The file-top credit banner (license or third-party notice, including a
-# leading DOCTYPE and blank lines) is the only tolerated occurrence.
+# leading DOCTYPE and blank lines) and tool directives (eslint, @ts-, and
+# similar linter markers) are the only tolerated occurrences.
 # Configuration files (.env*, *.toml, *.sh, *.xml, *.yml, systemd units) keep
 # their comments and are out of scope here.
 
@@ -49,7 +50,8 @@ state == 1 { print }
 # ── Violation Scan ──
 while IFS= read -r file; do
     hits=$(awk "$skip_banner" "$file" 2>/dev/null \
-        | grep -Pn '(^\s*//)|([^:"/]\s+//)|(^\s*/\*)|([^:"/]\s+/\*)|(^\s*<!--)')
+        | grep -Pn '(^\s*//)|([^:"/]\s+//)|(^\s*/\*)|([^:"/]\s+/\*)|(^\s*<!--)' \
+        | grep -Pv '(@ts-|@ts\b|eslint|istanbul|prettier|@license|@preserve|@jsx|@flow|sourceMappingURL|@vite|@vitest|@jest|v8 ignore|c8 ignore|#region|#endregion|shellcheck)')
     if [ -n "$hits" ]; then
         echo "::error file=${file#"$root"/}::code comments are not allowed"
         status=1
