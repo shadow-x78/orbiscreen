@@ -467,7 +467,6 @@ html[dir='rtl'] .btn:hover .btn__arrow {
   justify-content: space-between;
   gap: 24px;
   height: 100%;
-  padding-inline: 0;
 }
 
 
@@ -584,9 +583,9 @@ html[dir='rtl'] .btn:hover .btn__arrow {
   inset-inline-start: 0;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  width: min(340px, 88vw);
-  padding: 20px;
+  gap: 18px;
+  width: min(312px, 88vw);
+  padding: 17px;
   background: var(--bg-base);
   border-inline-end: 1px solid var(--border-hairline);
   border-start-start-radius: 0;
@@ -635,14 +634,14 @@ html[dir='rtl'] .drawer__panel {
 .drawer__nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .drawer__link {
   display: flex;
   align-items: center;
-  min-height: 44px;
-  padding-inline: 10px;
+  min-height: 48px;
+  padding-inline: 12px;
   border-radius: var(--radius-8);
   color: var(--text-muted);
   font-size: 16px;
@@ -658,8 +657,16 @@ html[dir='rtl'] .drawer__panel {
 
 .drawer__lang {
   width: 100%;
+  height: 40px;
   justify-content: space-between;
-  padding: 5px;
+  padding: 4px;
+}
+
+.drawer__bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-block-start: auto;
 }
 
 .drawer__lang .lang__opt {
@@ -677,6 +684,7 @@ html[dir='rtl'] .drawer__panel {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-height: 44px;
   color: var(--text-muted);
   font-size: 14px;
   line-height: 20px;
@@ -1753,6 +1761,7 @@ html[lang='ar'] .matrix__name {
 .terminal__head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   min-height: 46px;
   padding-inline: 18px;
@@ -3657,8 +3666,53 @@ html[dir='rtl'] .route-progress {
   }
 
   .hero__visual {
-    max-width: 100%;
-    height: 240px;
+    width: 100%;
+    max-width: 350px;
+    height: auto;
+    margin-inline: auto;
+  }
+
+  .mockup {
+    aspect-ratio: 350 / 240;
+  }
+
+  .mockup__monitor {
+    inset-inline-start: 4.57%;
+    inset-block-start: 9.17%;
+    width: 56%;
+    height: 55%;
+    aspect-ratio: auto;
+    border-radius: 8px;
+  }
+
+  .mockup__tablet {
+    inset-inline-start: 65.71%;
+    inset-block-start: 9.17%;
+    width: 29.71%;
+    height: 73.33%;
+    aspect-ratio: auto;
+    border-radius: 12px;
+    padding: 4.3%;
+  }
+
+  .mockup__stand {
+    inset-inline-start: 24.57%;
+    inset-block-start: 65%;
+    width: 16%;
+    height: 2.08%;
+  }
+
+  .mockup__base {
+    inset-inline-start: 20%;
+    inset-block-start: 70%;
+    width: 25.14%;
+    height: 2.08%;
+  }
+
+  .mockup__link {
+    inset-inline-start: 60.57%;
+    inset-block-start: 36.67%;
+    width: 5.14%;
   }
 
   .hero__eyebrow .pill--surface.pill--mono {
@@ -3678,8 +3732,8 @@ html[dir='rtl'] .route-progress {
   }
 
   .mockup__chip {
-    left: 16px;
-    top: 206px;
+    left: 4.57%;
+    top: 85.83%;
     width: 136px;
     height: 26px;
     padding-inline: 11px;
@@ -3756,6 +3810,38 @@ html[dir='rtl'] .route-progress {
     width: 36px;
     height: 36px;
     border-radius: 8px;
+  }
+
+  .tile,
+  .tile--feature,
+  .tile:first-child,
+  .tile:nth-child(2),
+  .tile:nth-child(n + 3) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 10px;
+  }
+
+  .tile__icon,
+  .tile:nth-child(n) .tile__icon {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .tile__title,
+  .tile:nth-child(2) .tile__title,
+  .tile--feature .tile__title {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .tile__body,
+  .tile:nth-child(2) .tile__body,
+  .tile--feature .tile__body {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 
   .tile__icon svg {

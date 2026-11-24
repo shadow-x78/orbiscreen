@@ -27,6 +27,12 @@ const links = [
   { label: t.nav.compare, href: localise('/compare'), match: '/compare' },
 ];
 
+const drawerLinks = [
+  ...links,
+  { label: t.nav.faq, href: localise('/faq'), match: '/faq' },
+  { label: t.nav.changelog, href: localise('/changelog'), match: '/changelog' },
+];
+
 function isActive(match: string): boolean {
   const target = lang === 'ar' ? `/ar${match}` : match;
   return current === target || current.startsWith(`${target}/`);
@@ -108,7 +114,7 @@ function isActive(match: string): boolean {
     </div>
 
     <nav class="drawer__nav" aria-label={t.nav.primary}>
-      {links.map((link) => (
+      {drawerLinks.map((link) => (
         <a class="drawer__link" href={link.href} aria-current={isActive(link.match) ? 'page' : undefined}>
           {link.label}
         </a>
@@ -133,10 +139,12 @@ function isActive(match: string): boolean {
       >عربي</a>
     </div>
 
-    <a class="btn btn--primary drawer__cta" href={localise('/install')}>{t.nav.cta}</a>
-    <a class="drawer__github" href={GITHUB_URL} rel="noopener">
-      <Icon name="github" size={18} />
-      GitHub
-    </a>
+    <div class="drawer__bottom">
+      <a class="btn btn--primary drawer__cta" href={localise('/install')}>{t.nav.cta}</a>
+      <a class="drawer__github" href={GITHUB_URL} rel="noopener">
+        <Icon name="github" size={18} />
+        GitHub
+      </a>
+    </div>
   </aside>
 </div>

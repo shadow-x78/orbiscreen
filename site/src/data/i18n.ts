@@ -12,6 +12,7 @@ export interface UiStrings {
     docs: string;
     compare: string;
     faq: string;
+    changelog: string;
     github: string;
     cta: string;
     menu: string;
@@ -78,6 +79,7 @@ export const ui: Record<Lang, UiStrings> = {
       docs: 'Docs',
       compare: 'Compare',
       faq: 'FAQ',
+      changelog: 'Changelog',
       github: 'GitHub',
       cta: 'Install Orbiscreen',
       menu: 'Open menu',
@@ -143,6 +145,7 @@ export const ui: Record<Lang, UiStrings> = {
       docs: 'التوثيق',
       compare: 'المقارنة',
       faq: 'الأسئلة',
+      changelog: 'سجل التغييرات',
       github: 'GitHub',
       cta: 'تثبيت Orbiscreen',
       menu: 'افتح القائمة',
