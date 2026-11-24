@@ -33,7 +33,7 @@ Contributions to Orbiscreen are welcome. Please note that this project is releas
 // https://github.com/shadow-x78/orbiscreen
 ```
 
-- **Comments:** the policy guard rejects comments in Rust, Kotlin, JavaScript/TypeScript, HTML, C++, the site sources, and the worker. Shell scripts and configuration files keep their comments for packaging context; the file-top credit banner is the only tolerated code comment.
+- **Comments:** the policy guard rejects comments in Rust, Kotlin, JavaScript/TypeScript, HTML, C++, the site sources, and the worker. Shell scripts and configuration files keep their comments for packaging context; the file-top credit banner and tool directives (eslint, `@ts-`, shellcheck, ...) are the only tolerated code comments.
 - **Toolchain:** to install Rust and all build dependencies on Fedora-, Debian-, or Arch-based distros: `./scripts/setup-dev-env.sh`
 - **Pull requests:** from a fork, targeting `main`, with tests green, a `CHANGELOG.md` entry, and the PR template checklist filled in.
 

@@ -59,7 +59,9 @@ jobs:
 
       # ── Comment Policy ──
       - name: Enforce code comment policy
-        run: ./scripts/check-comments.sh
+        run: |
+          ./scripts/check-comments.sh
+          node site/scripts/check-comments.mjs
 
       # ── Release Consistency ──
       - name: Check version consistency

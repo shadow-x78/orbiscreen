@@ -10,7 +10,6 @@ export interface PlatformRow {
   virtual: string;
   capture: string;
   input: string;
-  root: 'no' | 'optional' | 'yes';
 }
 
 const en: PlatformRow[] = [
@@ -19,42 +18,36 @@ const en: PlatformRow[] = [
     virtual: 'Native portal virtual output or zkde-screencast',
     capture: 'PipeWire',
     input: 'RemoteDesktop portal, uinput',
-    root: 'no',
   },
   {
     name: 'COSMIC (Wayland)',
     virtual: 'EVDI kernel display',
     capture: 'Portal ScreenCast (PipeWire)',
     input: 'uinput, RemoteDesktop portal',
-    root: 'optional',
   },
   {
     name: 'Sway / Hyprland / wlroots',
     virtual: 'Headless output over compositor IPC',
     capture: 'wlr-screencopy',
     input: 'virtual-pointer, virtual-keyboard',
-    root: 'no',
   },
   {
     name: 'GNOME (Wayland)',
     virtual: 'Portal virtual monitor (GNOME 46+) or EVDI',
     capture: 'Portal ScreenCast (PipeWire)',
     input: 'RemoteDesktop portal, persisted',
-    root: 'optional',
   },
   {
     name: 'XFCE / MATE / LXQt / Cinnamon (X11)',
     virtual: 'EVDI kernel display',
     capture: 'XShm root mirror',
     input: 'XTEST, uinput',
-    root: 'optional',
   },
   {
     name: 'Anything else',
     virtual: 'EVDI kernel display',
     capture: 'Best available backend',
     input: 'Best available backend',
-    root: 'optional',
   },
 ];
 
@@ -64,42 +57,36 @@ const ar: PlatformRow[] = [
     virtual: 'مخرج افتراضي أصلي عبر البوابة أو zkde-screencast',
     capture: 'PipeWire',
     input: 'بوابة RemoteDesktop وuinput',
-    root: 'no',
   },
   {
     name: 'COSMIC (Wayland)',
     virtual: 'شاشة نواة EVDI',
     capture: 'بوابة ScreenCast (PipeWire)',
     input: 'uinput وبوابة RemoteDesktop',
-    root: 'optional',
   },
   {
     name: 'Sway / Hyprland / wlroots',
     virtual: 'مخرج headless عبر IPC مدير النوافذ',
     capture: 'wlr-screencopy',
     input: 'virtual-pointer وvirtual-keyboard',
-    root: 'no',
   },
   {
     name: 'GNOME (Wayland)',
     virtual: 'شاشة افتراضية عبر البوابة (GNOME 46+) أو EVDI',
     capture: 'بوابة ScreenCast (PipeWire)',
     input: 'بوابة RemoteDesktop مع حفظ الإذن',
-    root: 'optional',
   },
   {
     name: 'XFCE / MATE / LXQt / Cinnamon (X11)',
     virtual: 'شاشة نواة EVDI',
     capture: 'XShm لنسخ الجذر',
     input: 'XTEST وuinput',
-    root: 'optional',
   },
   {
     name: 'أي بيئة أخرى',
     virtual: 'شاشة نواة EVDI',
     capture: 'أفضل واجهة متاحة',
     input: 'أفضل واجهة متاحة',
-    root: 'optional',
   },
 ];
 

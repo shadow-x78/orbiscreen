@@ -2439,51 +2439,6 @@ html[lang='ar'] .bullet {
   line-height: 20px;
 }
 
-.platform-table {
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-14);
-  background: var(--surface-1);
-  overflow: hidden;
-}
-
-.platform-table table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.platform-table th,
-.platform-table td {
-  padding: 14px 16px;
-  text-align: start;
-  border-block-end: 1px solid var(--border-hairline);
-}
-
-.platform-table thead th {
-  background: var(--table-head);
-  color: var(--text-primary);
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 600;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-}
-
-.platform-table tbody tr:last-child th,
-.platform-table tbody tr:last-child td {
-  border-block-end: 0;
-}
-
-.platform-table tbody th {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.platform-table tbody td {
-  color: var(--text-muted);
-}
-
 .cta-section {
   background: var(--bg-base);
   padding-block: 0 96px;
