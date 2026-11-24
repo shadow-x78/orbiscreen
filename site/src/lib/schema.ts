@@ -12,6 +12,7 @@ import {
   SHORT_DESCRIPTION,
 } from './site';
 import { VERSION } from './version';
+import { latestReleaseDate } from './changelog';
 
 const ORG_ID = `${SITE_URL}/#organization`;
 const SITE_ID = `${SITE_URL}/#website`;
@@ -68,6 +69,8 @@ export function softwareApplicationSchema(features: string[] = APP_FEATURES) {
     applicationSubCategory: 'Remote desktop and virtual display',
     operatingSystem: 'Linux, Android',
     softwareVersion: VERSION,
+    datePublished: latestReleaseDate(),
+    dateModified: latestReleaseDate(),
     softwareRequirements:
       'Linux host with GStreamer; KDE Plasma, GNOME 46+, COSMIC, Sway/Hyprland or X11; Android 8+ or a Chromium browser for the client.',
     license: 'https://www.gnu.org/licenses/gpl-3.0.html',

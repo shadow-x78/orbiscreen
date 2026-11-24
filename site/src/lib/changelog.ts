@@ -133,6 +133,11 @@ function parseBlocks(lines: string[]): Block[] {
 
 let cache: Release[] | null = null;
 
+/** The date of the newest changelog entry, used as the site-wide freshness stamp. */
+export function latestReleaseDate(): string {
+  return getReleases()[0]?.date ?? '';
+}
+
 export function getReleases(): Release[] {
   if (cache) return cache;
   const source = readFileSync(resolve(repoRoot, 'CHANGELOG.md'), 'utf8');

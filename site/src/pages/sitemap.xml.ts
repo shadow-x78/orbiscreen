@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 import { routes } from '../data/routes';
 import { SITE_URL } from '../lib/site';
+import { latestReleaseDate } from '../lib/changelog';
 
 function escapeXml(value: string): string {
   return value
@@ -23,6 +24,10 @@ export const GET: APIRoute = async () => {
     modified.set(`${prefix}${entry.data.slug}`, entry.data.updated);
   }
 
+  // Documents carry their own commit date; the marketing pages move with the
+  // latest release, so they get that date instead of the build date.
+  const siteModified = latestReleaseDate();
+
   const entries: string[] = [];
 
   for (const route of routes) {
@@ -38,7 +43,7 @@ export const GET: APIRoute = async () => {
       [en, route.path],
       [ar, route.arPath],
     ] as const) {
-      const lastmod = modified.get(pagePath);
+      const lastmod = modified.get(pagePath) ?? siteModified;
       entries.push(
         [
           '  <url>',
