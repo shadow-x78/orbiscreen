@@ -31,14 +31,8 @@ all-features = false
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 ignore = [
-  # ── Unmaintained: derivative, pulled in by zvariant_derive (syn 1.x) ──
+  # ── Unmaintained: derivative, pulled in by evdi 0.8 ──
   "RUSTSEC-2024-0388",
-  # ── Unmaintained: rustls-pemfile 2.x, no maintained upgrade on axum-server 0.7 ──
-  "RUSTSEC-2025-0134",
-  # ── Unmaintained: zbus 5 family, pending the ashpd 0.14 / zbus 6 migration ──
-  "RUSTSEC-2026-0370",
-  "RUSTSEC-2026-0371",
-  "RUSTSEC-2026-0372",
 ]
 
 # ── Bans ──

@@ -1477,7 +1477,7 @@ fn load_or_create_token() -> String {
 async fn run_pair(action: Option<PairAction>) -> ExitCode {
     let action = action.unwrap_or(PairAction::List);
     let conn = match async {
-        let builder = zbus::connection::Builder::session()?;
+        let builder = zbus::connection::Builder::session();
         builder.build().await
     }
     .await
