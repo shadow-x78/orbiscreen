@@ -6,7 +6,6 @@
 :root {
   color-scheme: dark;
 
-  /* Backgrounds and alternating bands */
   --bg-base: #0e1116;
   --bg-subtle: #0a0d11;
   --bg-band-alt: #0b0e13;
@@ -18,11 +17,9 @@
   --surface-sunken: #0e151f;
   --surface-terminal-head: #0e1218;
 
-  /* Borders */
   --border-hairline: #252d38;
   --border-strong: #333d4b;
 
-  /* Text */
   --text-primary: #e8edf5;
   --text-muted: #93a0b4;
   --text-faint: #7b899e;
@@ -30,25 +27,21 @@
   --text-faint-inner: #7d8899;
   --display-404: #6f7d93;
 
-  /* Code */
   --code-text: #e8edf5;
   --code-comment: #7b899e;
   --code-bg: #0a0d11;
 
-  /* Primary action */
   --primary-bg: #2563eb;
   --primary-hover: #1d4ed8;
   --primary-active: #1e40af;
   --primary-text: #ffffff;
 
-  /* Accent */
   --accent-interactive: #4c8dff;
   --accent-brand: #89b4fa;
   --accent-soft: rgb(76 141 255 / 12%);
   --accent-solid: var(--primary-bg);
   --accent-solid-hover: var(--primary-hover);
 
-  /* Semantic */
   --semantic-success: #34d399;
   --semantic-warning: #fbbf24;
   --semantic-danger: #f87171;
@@ -59,7 +52,6 @@
   --callout-tip: #34d399;
   --callout-warn: #fbbf24;
 
-  /* Type */
   --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-arabic: 'Noto Sans Arabic', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'Source Code Pro', ui-monospace, 'SFMono-Regular', Menlo, monospace;
@@ -85,7 +77,6 @@
   --text-code: 14px;
   --leading-code: 22px;
 
-  /* Space and shape */
   --container: 1200px;
   --gutter: 120px;
   --gutter-md: 48px;
@@ -107,13 +98,11 @@
   --radius-lg: var(--radius-14);
   --radius-xl: var(--radius-16);
 
-  /* Focus */
   --focus-ring-color: #4c8dff;
   --focus-ring: 2px solid var(--focus-ring-color);
   --focus-ring-shadow: 0 0 0 3px rgb(76 141 255 / 30%);
   --focus-offset: 2px;
 
-  /* Depth */
   --hairline-fade: transparent 0%, rgb(255 255 255 / 8%) 50%, transparent 100%;
   --shadow-raised: 0 18px 40px rgb(0 0 0 / 28%);
   --shadow-float: 0 12px 32px rgb(0 0 0 / 45%);
@@ -123,7 +112,6 @@
   --nav-blur: 12px;
   --nav-edge: rgb(255 255 255 / 9%);
 
-  /* Motion */
   --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
   --ease: var(--ease-out-expo);
   --dur-micro: 180ms;
@@ -136,7 +124,6 @@
   --dur-4: var(--dur-hero);
   --stagger: 60ms;
 
-  /* Light parity (print) */
   --light-bg: #f3f5f9;
   --light-surface: #ffffff;
   --light-surface-alt: #f6f8fc;
@@ -172,7 +159,6 @@
   }
 }
 
-/* Arabic: larger size, looser leading, and no tracking anywhere. */
 :root[lang='ar'] {
   --font-sans: var(--font-arabic);
   --text-h1: 56px;
@@ -206,9 +192,6 @@
   }
 }
 
-/* Hard rule: Arabic script never receives tracking, including inline
-   Latin runs inside Arabic copy. Code and versions stay LTR and can keep
-   their own metrics because they sit outside Arabic words. */
 html[lang='ar'] *,
 html[lang='ar'] *::before,
 html[lang='ar'] *::after {

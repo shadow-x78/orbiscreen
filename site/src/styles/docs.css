@@ -221,8 +221,6 @@ html[lang='ar'] .doc__title {
   font-weight: 500;
 }
 
-/* ── Prose ── */
-
 .prose {
   color: var(--text-muted);
   font-size: 15px;
@@ -457,8 +455,6 @@ html[lang='ar'] .doc__title {
   max-width: 100%;
   height: auto;
 }
-
-/* ── Responsive ── */
 
 @media (max-width: 1199px) {
   .doc__grid {
