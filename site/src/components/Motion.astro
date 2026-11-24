@@ -1,15 +1,13 @@
 ---
 // ─────────────────────────────────────────────
 // Orbiscreen · Motion and interaction layer
-// Loaded as an external module; no inline handlers.
-// ─────────────────────────────────────────────
+
+
 ---
 
 <script>
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* Progressive reveal: above-the-fold content is marked visible before the
-     hidden state is enabled, so there is never a flash of invisible content. */
   function setupReveal() {
     const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
     if (nodes.length === 0) return;
@@ -50,7 +48,6 @@
       if (node.dataset.revealed !== 'true') observer.observe(node);
     });
   }
-
 
   function setupCopy() {
     document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((button) => {

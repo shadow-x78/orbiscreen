@@ -32,12 +32,10 @@ const files = walk(dist);
 const htmlFiles = files.filter((file) => file.endsWith('.html'));
 const mdFiles = files.filter((file) => file.endsWith('.md'));
 
-// ── Inline script hashes (JSON-LD only; Astro bundles its own scripts) ──
 const hashes = new Set();
 for (const file of htmlFiles) {
   const html = readFileSync(file, 'utf8');
-  // Only executable inline scripts belong in script-src. JSON-LD is a data
-  // block, so hashing it would grow the header by one value per page for nothing.
+
   for (const match of html.matchAll(
     /<script(?![^>]*\bsrc=)(?![^>]*\bapplication\/ld\+json)[^>]*>([\s\S]*?)<\/script>/gi,
   )) {
@@ -74,7 +72,6 @@ const globalHeaders = [
   '  Cross-Origin-Opener-Policy: same-origin',
 ].join('\n');
 
-// ── Canonical links for the Markdown mirrors ──
 function canonicalFor(file) {
   const rel = relative(dist, file).split(sep).join('/');
   const withoutExt = rel.replace(/\.md$/, '');
@@ -124,7 +121,6 @@ ${mirrorRules}
 
 writeFileSync(resolve(dist, '_headers'), headers, 'utf8');
 
-// ── llms-full.txt: every mirror in reading order ──
 function orderKey(file) {
   const rel = relative(dist, file).split(sep).join('/');
   if (rel === 'index.md') return '0000';

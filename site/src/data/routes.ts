@@ -6,13 +6,13 @@
 import docsMeta from './docs-meta.json';
 
 export interface Route {
-  /** English path, always starting with a slash and never ending with one (except root). */
+
   path: string;
-  /** Arabic path. */
+
   arPath: string;
-  /** Sitemap priority. */
+
   priority: number;
-  /** Sitemap changefreq. */
+
   changefreq: 'daily' | 'weekly' | 'monthly' | 'yearly';
 }
 

@@ -19,7 +19,6 @@ URL = (
 
 UNPUBLISHABLE = {"Superseded", "Deleted", "Obsolete"}
 
-
 def upstream_version(debian_version: str) -> str:
     """Reduce a Debian version to the upstream part.
 
@@ -27,7 +26,6 @@ def upstream_version(debian_version: str) -> str:
     release is not mistaken for a published "0.44.90".
     """
     return debian_version.split("~", 1)[0].split("-", 1)[0]
-
 
 def main() -> int:
     if len(sys.argv) != 2:
@@ -51,7 +49,6 @@ def main() -> int:
     if all(status in UNPUBLISHABLE for status in statuses):
         return 4
     return 3
-
 
 if __name__ == "__main__":
     sys.exit(main())

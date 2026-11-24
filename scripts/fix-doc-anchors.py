@@ -171,16 +171,13 @@ ARABIC = {
     "still-stuck": "ما-زلت-عالقاً",
 }
 
-
 def slugify(title: str) -> str:
     s = title.strip().lower().replace("`", "")
     s = re.sub(r"[^\w\s\u0600-\u06ff-]", "", s)
     return re.sub(r"\s+", "-", s)
 
-
 def headings(text: str):
     return [slugify(m.group(1)) for m in re.finditer(r"^#{1,6}\s+(.+?)\s*$", text, re.M)]
-
 
 def main() -> int:
     rc = 0
@@ -206,7 +203,6 @@ def main() -> int:
             print(f"   ! {link}")
         rc |= 1 if dangling else 0
     return rc
-
 
 if __name__ == "__main__":
     sys.exit(main())

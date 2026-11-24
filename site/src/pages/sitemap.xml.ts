@@ -14,9 +14,7 @@ function escapeXml(value: string): string {
 }
 
 export const GET: APIRoute = async () => {
-  // Only document pages carry a real modification date (their last commit).
-  // Stamping every URL with the build date would make the sitemap "change" on
-  // every deploy and teach crawlers to ignore lastmod.
+
   const docs = await getCollection('docs');
   const modified = new Map<string, string>();
   for (const entry of docs) {
@@ -24,8 +22,6 @@ export const GET: APIRoute = async () => {
     modified.set(`${prefix}${entry.data.slug}`, entry.data.updated);
   }
 
-  // Documents carry their own commit date; the marketing pages move with the
-  // latest release, so they get that date instead of the build date.
   const siteModified = latestReleaseDate();
 
   const entries: string[] = [];
