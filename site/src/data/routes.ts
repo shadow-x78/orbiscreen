@@ -18,7 +18,7 @@ export interface Route {
 
 const docs = docsMeta.docs;
 
-export const staticRoutes: Route[] = [
+const staticRoutes: Route[] = [
   { path: '/', arPath: '/ar', priority: 1.0, changefreq: 'weekly' },
   { path: '/features', arPath: '/ar/features', priority: 0.9, changefreq: 'monthly' },
   { path: '/install', arPath: '/ar/install', priority: 0.9, changefreq: 'weekly' },

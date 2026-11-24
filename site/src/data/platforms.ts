@@ -104,8 +104,3 @@ const ar: PlatformRow[] = [
 ];
 
 export const platforms: Record<Lang, PlatformRow[]> = { en, ar };
-
-export const rootLabels: Record<Lang, Record<PlatformRow['root'], string>> = {
-  en: { no: 'No root', optional: 'Root only for EVDI', yes: 'Root required' },
-  ar: { no: 'بلا root', optional: 'root لـ EVDI فقط', yes: 'يتطلب root' },
-};
