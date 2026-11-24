@@ -240,6 +240,17 @@ clients/web/
 
 ---
 
+## الشيفرة غير الآمنة
+
+يقتصر `unsafe` على وحدات FFI محدودة. الشروط أدناه هي العقد لكل كتلة، وهي موثقة هنا بدلًا من داخل الملفات لأن سياسة المشروع تمنع التعليقات في الشيفرة.
+
+- `orbiscreen-core/src/shm.rs`: استدعاءات `memfd_create` و`ftruncate` و`mmap`؛ يملك `File::from_raw_fd` الواصف مرة واحدة، ويبقى التعيين صالحًا بطوله حتى `munmap`، ولا يوجد تعيين ثانٍ يتشارك النطاق نفسه.
+- `orbiscreen-transport/src/aoa.rs`: واجهات `USBDEVFS_CONTROL` و`USBDEVFS_BULK` على واصف جهاز حي؛ تُهيّأ بنى الطلب وتطابق أطوالها، ويُفحص عدد البايتات المُعاد قبل استخدامه.
+- `orbiscreen-capture/src/wlr_screencopy.rs` و`wlr_virtual_output.rs` و`kwin_virtual.rs` و`orbiscreen-input/src/wlroots.rs`: استدعاءات `libc::poll` و`BorrowedFd::borrow_raw` وبروتوكولات Wayland؛ يبقى الواصف وكائن البروتوكول حيين طوال الاستدعاء أو الاستعارة.
+- `orbiscreen-transport/src/udp_stream.rs` و`orbiscreen-display/src/lib.rs`: `setsockopt` وفتح عقدة DRM؛ الواصف صالح ومخزن الخيار بالحجم الصحيح ويُحوّل كل خطأ إلى خطأ مُنمّط.
+
+يجب أن يحافظ أي تعديل على إحدى هذه الكتل على الشروط أعلاه وأن يبقي اختبارات الحزمة ناجحة؛ `cargo test --workspace` هو بوابة التحقق.
+
 ## تحسينات النقل
 
 - **GOP غير منتهي + IDR عند الطلب:** المرمزات لا تبذر عرضها بإطارات مفتاحية دورية؛ العميل الملتحق حديثا أو المتأخر يطلب إطار IDR فيستلم SPS/PPS معه ويفك الترميز خلال إطار واحد.

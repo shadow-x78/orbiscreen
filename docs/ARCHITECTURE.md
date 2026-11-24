@@ -234,6 +234,17 @@ Every session generates a random 32-byte base64url token at startup:
 
 ---
 
+## Unsafe Code
+
+`unsafe` is confined to a small set of FFI modules. The invariants below are the contract for every block; they live here instead of inline because the project's comment policy forbids comments in source files.
+
+- `orbiscreen-core/src/shm.rs`: `memfd_create`, `ftruncate`, and `mmap`; the descriptor is owned by `File::from_raw_fd` exactly once, the mapping stays valid for its length until `munmap`, and no second mapping aliases the same range.
+- `orbiscreen-transport/src/aoa.rs`: `USBDEVFS_CONTROL` and `USBDEVFS_BULK` ioctls on a live device descriptor; the request structs are initialised, their lengths match, and the returned byte count is checked before use.
+- `orbiscreen-capture/src/wlr_screencopy.rs`, `wlr_virtual_output.rs`, `kwin_virtual.rs`, `orbiscreen-input/src/wlroots.rs`: `libc::poll`, `BorrowedFd::borrow_raw`, and Wayland protocol calls; the descriptor and the protocol object stay alive for the whole call or borrow.
+- `orbiscreen-transport/src/udp_stream.rs` and `orbiscreen-display/src/lib.rs`: `setsockopt` and DRM node opening; the descriptor is valid, the option buffer is correctly sized, and every error is mapped to a typed error.
+
+Every change to one of these blocks must preserve the invariant above and keep the crate's tests green; `cargo test --workspace` is the verification gate.
+
 ## HTTP API Contract
 
 | Endpoint | Method | Auth | Body | Response |
