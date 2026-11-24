@@ -8,7 +8,19 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(here, '../../..');
+function findRepoRoot(start: string): string {
+  let dir = start;
+  for (let i = 0; i < 8; i += 1) {
+    try {
+      if (readFileSync(resolve(dir, 'Cargo.toml'), 'utf8').includes('[workspace.package]')) return dir;
+    } catch {}
+    const parent = resolve(dir, '..');
+    if (parent === dir) break;
+    dir = parent;
+  }
+  throw new Error('Cargo.toml with [workspace.package] not found');
+}
+const repoRoot = findRepoRoot(here);
 
 export const CHANGELOG_PAGE_SIZE = 12;
 
