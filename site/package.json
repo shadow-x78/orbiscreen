@@ -11,7 +11,7 @@
     "postbuild": "node scripts/emit-headers.mjs && node scripts/check-site.mjs",
     "dev": "astro dev",
     "preview": "astro preview",
-    "check": "astro check",
+    "check": "astro check && node scripts/check-comments.mjs",
     "verify": "node scripts/check-site.mjs",
     "deploy": "wrangler deploy --config ../wrangler.jsonc",
     "worker": "wrangler dev --config ../wrangler.jsonc"
