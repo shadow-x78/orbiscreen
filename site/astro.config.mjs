@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import rehypeScrollable from './scripts/rehype-scrollable.mjs';
+import { unified } from '@astrojs/markdown-remark';
 
 export default defineConfig({
   site: 'https://orbiscreen.com',
@@ -20,7 +21,7 @@ export default defineConfig({
   markdown: {
     syntaxHighlight: false,
 
-    rehypePlugins: [rehypeScrollable],
+    processor: unified({ rehypePlugins: [rehypeScrollable] }),
   },
   vite: {
     build: {

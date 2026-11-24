@@ -4683,7 +4683,6 @@ html.drawer-open body {
     display: inline;
   }
 }
-}
 
 .trust,
 .caps,
@@ -4709,3 +4708,4 @@ html.drawer-open body {
   height: 1px;
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 8.5%) 50%, transparent);
   pointer-events: none;
+}
