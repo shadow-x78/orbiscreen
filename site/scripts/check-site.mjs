@@ -68,7 +68,6 @@ function distPathForHref(href) {
   return resolve(dist, `${trimmed.replace(/^\//, '')}/index.html`);
 }
 
-// ── Sitemap ──
 const sitemapPath = resolve(dist, 'sitemap.xml');
 if (!existsSync(sitemapPath)) {
   error('sitemap.xml is missing');
@@ -105,7 +104,6 @@ for (const file of htmlFiles) {
   }
 }
 
-// ── Per page checks ──
 const titles = new Map();
 const descriptions = new Map();
 
@@ -148,7 +146,6 @@ for (const file of htmlFiles) {
   const h1s = html.match(/<h1\b/gi)?.length ?? 0;
   if (h1s !== 1) error(`${name}: expected exactly one <h1>, found ${h1s}`);
 
-  // A skipped level (h2 -> h4) breaks the outline screen readers announce.
   const levels = [...html.matchAll(/<h([1-6])\b/gi)].map((match) => Number(match[1]));
   for (let index = 1; index < levels.length; index += 1) {
     if (levels[index] - levels[index - 1] > 1) {
@@ -156,7 +153,6 @@ for (const file of htmlFiles) {
     }
   }
 
-  // aria-controls must point at an element that exists on the same page.
   for (const match of html.matchAll(/aria-controls="([^"]+)"/g)) {
     for (const id of match[1].split(/\s+/)) {
       if (id && !new RegExp(`\\sid="${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`).test(html)) {
@@ -205,13 +201,12 @@ for (const file of htmlFiles) {
     try {
       decoded = decodeURIComponent(fragment);
     } catch {
-      /* keep the raw fragment */
+
     }
     if (!ids.has(decoded)) error(`${name}: broken anchor ${href}`);
   }
 }
 
-// ── Language pairing ──
 for (const [url, file] of pageUrls) {
   if (url === '/404') continue;
   const html = readFileSync(file, 'utf8');
@@ -226,7 +221,6 @@ for (const [url, file] of pageUrls) {
   }
 }
 
-// ── Required machine-readable files ──
 for (const required of ['llms.txt', 'llms-full.txt', 'robots.txt', 'rss.xml', 'sitemap-index.xml', 'site.webmanifest']) {
   if (!existsSync(resolve(dist, required))) error(`missing ${required}`);
 }
@@ -237,13 +231,12 @@ for (const bot of ['GPTBot', 'OAI-SearchBot', 'ClaudeBot', 'PerplexityBot', 'Goo
 }
 if (!robots.includes(`Sitemap: ${SITE_URL}/sitemap-index.xml`)) error('robots.txt does not point at the sitemap');
 
-// ── Machine-readable output is well formed ──
 function checkXml(file, { requireItems = false } = {}) {
   if (!existsSync(file)) return;
   const text = readFileSync(file, 'utf8');
   const name = relative(dist, file).split(sep).join('/');
   if (!text.startsWith('<?xml')) error(`${name}: missing XML declaration`);
-  // An unescaped ampersand is the usual way a title breaks the feed.
+
   for (const match of text.matchAll(/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/g)) {
     const at = text.slice(Math.max(0, match.index - 40), match.index + 40).replace(/\s+/g, ' ');
     error(`${name}: unescaped & near "${at}"`);
@@ -257,7 +250,6 @@ checkXml(resolve(dist, 'sitemap.xml'));
 checkXml(resolve(dist, 'sitemap-index.xml'));
 checkXml(resolve(dist, 'rss.xml'), { requireItems: true });
 
-// Every sitemap <loc> must be an absolute URL on the canonical host.
 const sitemapFile = resolve(dist, 'sitemap.xml');
 if (existsSync(sitemapFile)) {
   for (const match of readFileSync(sitemapFile, 'utf8').matchAll(/<loc>([^<]+)<\/loc>/g)) {
@@ -265,7 +257,6 @@ if (existsSync(sitemapFile)) {
   }
 }
 
-// ── The CSP must cover every inline script, or the page silently loses its JS ──
 const headersFile = resolve(dist, '_headers');
 if (existsSync(headersFile)) {
   const headers = readFileSync(headersFile, 'utf8');
@@ -288,7 +279,6 @@ if (existsSync(headersFile)) {
   }
 }
 
-// ── Report ──
 for (const message of warnings) console.warn(`warn  ${message}`);
 for (const message of errors) console.error(`error ${message}`);
 

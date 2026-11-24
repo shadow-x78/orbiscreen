@@ -11,9 +11,9 @@ interface Props {
   lang: Lang;
   title: string;
   description: string;
-  /** English path for this page, e.g. "/features". */
+
   path: string;
-  /** Arabic path for the same page. */
+
   arPath: string;
   image?: string;
   type?: 'website' | 'article';
@@ -55,15 +55,9 @@ function mirrorPath(p: string): string {
 }
 const markdownHref = mirrorPath(lang === 'ar' ? arPath : path);
 
-// Every page carries the same three entity nodes so that @id references in the
-// page-specific schema always resolve, and answer engines see one consistent
-// description of Orbiscreen wherever they land.
 const base = [organizationSchema(), websiteSchema(), softwareApplicationSchema()];
 const pageNodes = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
 
-// A page may refine a base entity (the home page lists its own features on the
-// SoftwareApplication). Page nodes are merged last so a matching @id replaces
-// the generic base node instead of being silently dropped.
 const byKey = new Map<string, Record<string, unknown>>();
 for (const node of [...base, ...pageNodes]) {
   const id = typeof node['@id'] === 'string' ? node['@id'] : '';

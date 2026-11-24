@@ -10,11 +10,6 @@ import { dirname, resolve } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '../../..');
 
-/**
- * How many releases the changelog page renders. The RSS feed, the page body and
- * the Markdown mirror all use this, so a feed item can never point at an anchor
- * the page does not render.
- */
 export const CHANGELOG_PAGE_SIZE = 12;
 
 export interface Release {
@@ -27,7 +22,7 @@ export interface Release {
 
 export interface ListItem {
   text: string;
-  /** 0 for a top-level bullet, 1 for one level of nesting. */
+
   depth: number;
 }
 
@@ -110,7 +105,7 @@ function parseBlocks(lines: string[]): Block[] {
     if (bullet) {
       flushParagraph();
       flushItem();
-      // Two spaces per nesting level, as used by CHANGELOG.md.
+
       currentDepth = Math.min(2, Math.floor(bullet[1].replace(/\t/g, '  ').length / 2));
       currentItem.push(bullet[2]);
       continue;
@@ -133,7 +128,6 @@ function parseBlocks(lines: string[]): Block[] {
 
 let cache: Release[] | null = null;
 
-/** The date of the newest changelog entry, used as the site-wide freshness stamp. */
 export function latestReleaseDate(): string {
   return getReleases()[0]?.date ?? '';
 }

@@ -14,9 +14,7 @@ function escapeXml(value: string): string {
 export const GET: APIRoute = () => {
   const all = getReleases();
   const releases = all.slice(0, CHANGELOG_PAGE_SIZE);
-  // A release without a valid date would get the build time as pubDate, which
-  // makes every deploy look like a new release. Fall back to the next older
-  // release that does have a date.
+
   const fallback = all.find((release) => /^\d{4}-\d{2}-\d{2}$/.test(release.date))?.date;
 
   const items = releases
