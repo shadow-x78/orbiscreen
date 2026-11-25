@@ -1,3 +1,11 @@
+orbiscreen (0.45.1~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.45.1 for Ubuntu noble.
+  * Install evdi from the AUR on Arch-based distributions
+  * Bump version to 0.45.1 across all packages; Android versionCode 211.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Thu, 26 Nov 2026 00:16:02 +0300
+
 orbiscreen (0.45.0~ubuntunoble1) noble; urgency=medium
 
   * Release 0.45.0 for Ubuntu noble.

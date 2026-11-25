@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.45.1] - 2026-11-25
+
+### Fixed
+- **`orbiscreen doctor --fix` no longer tries to install a nonexistent `evdi` package on Arch-based distributions.** It checks the configured pacman repositories first, then uses an available AUR helper (`yay`, `paru`, `pikaur`, `trizen`) to install `evdi-dkms`, and otherwise prints the exact manual command instead of running `pacman -S evdi`. CachyOS and Garuda are now recognized as Arch-family.
+- Version bumped to 0.45.1 across the Cargo workspace, Android (`versionCode` 211), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.45.0] - 2026-11-24
 
 ### Fixed

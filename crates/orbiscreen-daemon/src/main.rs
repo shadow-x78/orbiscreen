@@ -2466,17 +2466,81 @@ fn usb_doctor_report() -> UsbDoctorReport {
     }
 }
 
-struct EvdiFixPlan {
-    package_manager: &'static str,
-    install_cmd: Vec<String>,
+#[derive(Debug)]
+enum EvdiFixPlan {
+    Install {
+        package_manager: &'static str,
+        install_cmd: Vec<String>,
+    },
+    Manual {
+        package_manager: &'static str,
+        instructions: &'static str,
+    },
 }
 
 fn detect_evdi_fix_plan() -> Option<EvdiFixPlan> {
     let os_release = std::fs::read_to_string("/etc/os-release").unwrap_or_default();
-    evdi_fix_plan_for_os_release(&os_release)
+    let pacman_pkg = if is_arch_family(&os_release) {
+        pacman_sync_package(&["evdi", "evdi-dkms"])
+    } else {
+        None
+    };
+    evdi_fix_plan(&os_release, detect_aur_helper(), pacman_pkg)
 }
 
-fn evdi_fix_plan_for_os_release(os_release: &str) -> Option<EvdiFixPlan> {
+fn is_arch_family(os_release: &str) -> bool {
+    let os_release = os_release.to_ascii_lowercase();
+    os_release
+        .lines()
+        .filter_map(|line| {
+            line.strip_prefix("id=")
+                .or_else(|| line.strip_prefix("id_like="))
+        })
+        .flat_map(|line| line.trim_matches('"').split_ascii_whitespace())
+        .any(|t| matches!(t, "arch" | "cachyos" | "endeavouros" | "manjaro" | "garuda"))
+}
+
+fn detect_aur_helper() -> Option<&'static str> {
+    let path = std::env::var_os("PATH")?;
+    aur_helper_in_path(&path)
+}
+
+fn aur_helper_in_path(path: &std::ffi::OsStr) -> Option<&'static str> {
+    const HELPERS: [&str; 4] = ["yay", "paru", "pikaur", "trizen"];
+    HELPERS
+        .into_iter()
+        .find(|helper| std::env::split_paths(path).any(|dir| is_executable(&dir.join(helper))))
+}
+
+fn is_executable(path: &std::path::Path) -> bool {
+    use std::os::unix::fs::PermissionsExt as _;
+    std::fs::metadata(path)
+        .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+        .unwrap_or(false)
+}
+
+fn pacman_sync_package(candidates: &[&'static str]) -> Option<&'static str> {
+    candidates
+        .iter()
+        .copied()
+        .find(|package| pacman_sync_has(package))
+}
+
+fn pacman_sync_has(package: &str) -> bool {
+    std::process::Command::new("pacman")
+        .args(["-Si", package])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false)
+}
+
+fn evdi_fix_plan(
+    os_release: &str,
+    aur_helper: Option<&'static str>,
+    pacman_pkg: Option<&'static str>,
+) -> Option<EvdiFixPlan> {
     let os_release = os_release.to_ascii_lowercase();
     let id = os_release
         .lines()
@@ -2496,7 +2560,7 @@ fn evdi_fix_plan_for_os_release(os_release: &str) -> Option<EvdiFixPlan> {
         .iter()
         .any(|t| matches!(*t, "fedora" | "rhel" | "centos"))
     {
-        return Some(EvdiFixPlan {
+        return Some(EvdiFixPlan::Install {
             package_manager: "dnf",
             install_cmd: ["sudo", "dnf", "install", "-y", "evdi"]
                 .into_iter()
@@ -2505,21 +2569,9 @@ fn evdi_fix_plan_for_os_release(os_release: &str) -> Option<EvdiFixPlan> {
         });
     }
     if tokens.iter().any(|t| matches!(*t, "opensuse" | "suse")) {
-        return Some(EvdiFixPlan {
+        return Some(EvdiFixPlan::Install {
             package_manager: "zypper",
             install_cmd: ["sudo", "zypper", "install", "-y", "evdi"]
-                .into_iter()
-                .map(String::from)
-                .collect(),
-        });
-    }
-    if tokens
-        .iter()
-        .any(|t| matches!(*t, "arch" | "endeavouros" | "manjaro"))
-    {
-        return Some(EvdiFixPlan {
-            package_manager: "pacman",
-            install_cmd: ["sudo", "pacman", "-S", "--noconfirm", "evdi"]
                 .into_iter()
                 .map(String::from)
                 .collect(),
@@ -2528,10 +2580,43 @@ fn evdi_fix_plan_for_os_release(os_release: &str) -> Option<EvdiFixPlan> {
     if tokens.iter().any(|t| {
         matches!(
             *t,
+            "arch" | "cachyos" | "endeavouros" | "manjaro" | "garuda"
+        )
+    }) {
+        if let Some(package) = pacman_pkg {
+            return Some(EvdiFixPlan::Install {
+                package_manager: "pacman",
+                install_cmd: ["sudo", "pacman", "-S", "--noconfirm", package]
+                    .into_iter()
+                    .map(String::from)
+                    .collect(),
+            });
+        }
+        return Some(match aur_helper {
+            Some(helper) => EvdiFixPlan::Install {
+                package_manager: "aur",
+                install_cmd: [
+                    helper.to_string(),
+                    "-S".to_string(),
+                    "--noconfirm".to_string(),
+                    "evdi-dkms".to_string(),
+                ]
+                .into_iter()
+                .collect(),
+            },
+            None => EvdiFixPlan::Manual {
+                package_manager: "pacman (AUR)",
+                instructions: "evdi is not in the configured pacman repositories; install it from the AUR:\n    yay -S evdi-dkms   (or paru -S evdi-dkms)\n  or build the module from source:\n    bash scripts/install-evdi-module.sh",
+            },
+        });
+    }
+    if tokens.iter().any(|t| {
+        matches!(
+            *t,
             "debian" | "ubuntu" | "linuxmint" | "pop" | "elementary" | "zorin" | "cosmic"
         )
     }) {
-        return Some(EvdiFixPlan {
+        return Some(EvdiFixPlan::Install {
             package_manager: "apt",
             install_cmd: [
                 "sudo",
@@ -2653,17 +2738,30 @@ async fn run_doctor_fix(assume_yes: bool) -> ExitCode {
         );
         return ExitCode::from(1);
     };
-    println!(
-        "[doctor --fix] evdi kernel module is missing; distro detected ({})",
-        plan.package_manager
-    );
-    println!("[doctor --fix] will run: {}", plan.install_cmd.join(" "));
+    let (package_manager, install_cmd) = match plan {
+        EvdiFixPlan::Install {
+            package_manager,
+            install_cmd,
+        } => (package_manager, install_cmd),
+        EvdiFixPlan::Manual {
+            package_manager,
+            instructions,
+        } => {
+            println!(
+                "[doctor --fix] evdi kernel module is missing; distro detected ({package_manager})"
+            );
+            println!("[doctor --fix] {instructions}");
+            return ExitCode::from(1);
+        }
+    };
+    println!("[doctor --fix] evdi kernel module is missing; distro detected ({package_manager})");
+    println!("[doctor --fix] will run: {}", install_cmd.join(" "));
     if !assume_yes && !confirm_with_user() {
         println!("[doctor --fix] aborted by the user");
         return ExitCode::from(1);
     }
 
-    let Some((program, args)) = plan.install_cmd.split_first() else {
+    let Some((program, args)) = install_cmd.split_first() else {
         eprintln!("[doctor --fix] the detected fix plan has an empty install command");
         return ExitCode::from(1);
     };
@@ -3311,7 +3409,15 @@ mod tests {
     }
 
     fn plan_pm(os_release: &str) -> Option<&'static str> {
-        evdi_fix_plan_for_os_release(os_release).map(|p| p.package_manager)
+        match evdi_fix_plan(os_release, None, None) {
+            Some(EvdiFixPlan::Install {
+                package_manager, ..
+            })
+            | Some(EvdiFixPlan::Manual {
+                package_manager, ..
+            }) => Some(package_manager),
+            None => None,
+        }
     }
 
     #[test]
@@ -3339,9 +3445,77 @@ mod tests {
     }
 
     #[test]
-    fn arch_uses_pacman() {
-        let os = "NAME=\"Arch Linux\"\nID=arch\n";
-        assert_eq!(plan_pm(os), Some("pacman"));
+    fn arch_without_repo_or_aur_helper_prints_manual_instructions() {
+        let plan = evdi_fix_plan("NAME=\"Arch Linux\"\nID=arch\n", None, None).expect("arch plan");
+        match plan {
+            EvdiFixPlan::Manual {
+                package_manager,
+                instructions,
+            } => {
+                assert_eq!(package_manager, "pacman (AUR)");
+                assert!(instructions.contains("evdi-dkms"));
+                assert!(instructions.contains("install-evdi-module.sh"));
+            }
+            other => panic!("expected manual instructions, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn arch_with_aur_helper_installs_evdi_dkms() {
+        let os = "NAME=\"CachyOS\"\nID=cachyos\nID_LIKE=arch\n";
+        let plan = evdi_fix_plan(os, Some("yay"), None).expect("cachyos plan");
+        match plan {
+            EvdiFixPlan::Install {
+                package_manager,
+                install_cmd,
+            } => {
+                assert_eq!(package_manager, "aur");
+                assert_eq!(install_cmd.first().map(String::as_str), Some("yay"));
+                assert!(install_cmd.contains(&"evdi-dkms".to_string()));
+                assert!(!install_cmd.iter().any(|c| c == "pacman" || c == "sudo"));
+            }
+            other => panic!("expected an AUR install plan, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn arch_with_repo_package_uses_pacman() {
+        let plan = evdi_fix_plan("ID=arch\n", None, Some("evdi-dkms")).expect("arch plan");
+        match plan {
+            EvdiFixPlan::Install {
+                package_manager,
+                install_cmd,
+            } => {
+                assert_eq!(package_manager, "pacman");
+                assert!(install_cmd.contains(&"evdi-dkms".to_string()));
+                assert!(install_cmd.contains(&"sudo".to_string()));
+            }
+            other => panic!("expected a pacman install plan, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn cachyos_is_detected_as_arch_family() {
+        assert!(is_arch_family("ID=cachyos\nID_LIKE=arch\n"));
+        assert!(is_arch_family("ID=arch\n"));
+        assert!(!is_arch_family("ID=fedora\n"));
+    }
+
+    #[test]
+    fn aur_helper_is_found_in_path() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("orbi-aur-{unique}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let helper = dir.join("paru");
+        std::fs::write(&helper, "#!/bin/sh\n").unwrap();
+        std::fs::set_permissions(&helper, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let path = std::ffi::OsString::from(dir.clone());
+        assert_eq!(aur_helper_in_path(&path), Some("paru"));
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -3364,18 +3538,26 @@ mod tests {
 
     #[test]
     fn fedora_plan_installs_evdi_package() {
-        let plan = evdi_fix_plan_for_os_release("ID=fedora\n").expect("fedora plan");
-        assert!(plan.install_cmd.contains(&"evdi".to_string()));
-        assert!(plan.install_cmd.iter().any(|c| c == "sudo"));
+        let plan = evdi_fix_plan("ID=fedora\n", None, None).expect("fedora plan");
+        match plan {
+            EvdiFixPlan::Install { install_cmd, .. } => {
+                assert!(install_cmd.contains(&"evdi".to_string()));
+                assert!(install_cmd.iter().any(|c| c == "sudo"));
+            }
+            other => panic!("expected an install plan, got {other:?}"),
+        }
     }
 
     #[test]
     fn apt_plan_installs_evdi_dkms_with_headers() {
-        let plan = evdi_fix_plan_for_os_release("ID=ubuntu\n").expect("apt plan");
-        assert!(plan.install_cmd.contains(&"evdi-dkms".to_string()));
-        assert!(plan
-            .install_cmd
-            .contains(&"linux-headers-generic".to_string()));
+        let plan = evdi_fix_plan("ID=ubuntu\n", None, None).expect("apt plan");
+        match plan {
+            EvdiFixPlan::Install { install_cmd, .. } => {
+                assert!(install_cmd.contains(&"evdi-dkms".to_string()));
+                assert!(install_cmd.contains(&"linux-headers-generic".to_string()));
+            }
+            other => panic!("expected an install plan, got {other:?}"),
+        }
     }
 
     #[test]

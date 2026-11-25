@@ -61,7 +61,7 @@ install_arch() {
         libx11 libxcb libxrandr \
         qt6-base qt6-wayland cmake \
         xorg-xrandr
-    echo "[Orbiscreen] note: evdi is only available from the AUR (package: evdi); install it with an AUR helper"
+    echo "[Orbiscreen] note: evdi is only available from the AUR (package: evdi-dkms); install it with an AUR helper"
 }
 
 # ── Entry Point ──
