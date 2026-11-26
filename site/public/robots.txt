@@ -2,32 +2,32 @@
 # Orbiscreen - robots.txt
 # https://orbiscreen.com/
 # ─────────────────────────────────────────────
-# Answer engines and crawlers are explicitly welcome: the site exists to be
-# read by them, and llms.txt and the per-page Markdown mirrors serve the same
-# content in a cleaner form.
+# Policy: search and answer crawlers may read every page; crawlers that only
+# collect training data may not. Search crawlers bring a reader back, training
+# crawlers take the text and leave. The policy can be relaxed later; training
+# data cannot be recalled once it is in a model.
 #
-# Cloudflare's "Bot Preference Sync" prepends a managed block that disallows
-# most AI crawlers (Content-Signal: ai-train=no). When both blocks name the same
-# user agent, RFC 9309 merges the groups and the first Disallow wins, so the
-# managed block must be turned off in AI Crawl Control for this file to apply.
+# llms.txt and the per-page Markdown mirrors serve the same content in a
+# cleaner form for the answer engines listed below.
 #
-# AI Crawl Control can also answer these agents with a 403 at the edge even
-# when this file allows them. Set each crawler to Allow there if the groups
-# below are to take effect.
+# Cloudflare's "Bot Preference Sync" prepends a managed block with
+# Content-Signal: ai-train=no. When both blocks name the same user agent,
+# RFC 9309 merges the groups and the first Disallow wins, so the managed block
+# stays off and this file is the single source of the policy.
+#
+# Cloudflare's AI Crawl Control decides the answer at the edge and can return
+# 403 before this file is read. Keep each crawler's action there in step with
+# the groups below, or the two disagree and only the edge matters.
 
 User-agent: *
 Allow: /
 
-User-agent: GPTBot
-Allow: /
+# ── Search and answer crawlers: allowed ──
 
 User-agent: OAI-SearchBot
 Allow: /
 
 User-agent: ChatGPT-User
-Allow: /
-
-User-agent: ClaudeBot
 Allow: /
 
 User-agent: Claude-SearchBot
@@ -42,25 +42,45 @@ Allow: /
 User-agent: Perplexity-User
 Allow: /
 
-User-agent: Google-Extended
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckAssistBot
 Allow: /
 
 User-agent: Applebot
 Allow: /
 
-User-agent: Applebot-Extended
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: CCBot
-Allow: /
-
 User-agent: Yeti
 Allow: /
 
-User-agent: DuckAssistBot
-Allow: /
+# ── Training crawlers: blocked ──
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: Meta-ExternalAgent
+Disallow: /
+
+User-agent: cohere-ai
+Disallow: /
 
 Sitemap: https://orbiscreen.com/sitemap-index.xml
