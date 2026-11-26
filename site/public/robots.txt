@@ -10,6 +10,10 @@
 # most AI crawlers (Content-Signal: ai-train=no). When both blocks name the same
 # user agent, RFC 9309 merges the groups and the first Disallow wins, so the
 # managed block must be turned off in AI Crawl Control for this file to apply.
+#
+# AI Crawl Control can also answer these agents with a 403 at the edge even
+# when this file allows them. Set each crawler to Allow there if the groups
+# below are to take effect.
 
 User-agent: *
 Allow: /
