@@ -9,7 +9,7 @@ import PageHead from './PageHead.astro';
 import Icon from './Icon.astro';
 import docsMeta from '../data/docs-meta.json';
 import { ui } from '../data/i18n';
-import { GITHUB_URL, type Lang } from '../lib/site';
+import { GITHUB_URL, ISSUES_URL, type Lang } from '../lib/site';
 
 interface Props {
   lang: Lang;
@@ -30,6 +30,88 @@ const groupLabels: Record<string, string> = {
   guides: lang === 'ar' ? 'الأدلة' : 'Guides',
   reference: lang === 'ar' ? 'المراجع' : 'Reference',
 };
+
+const start = lang === 'ar'
+  ? {
+      eyebrow: 'ابدأ هنا',
+      title: 'اختر مسارك.',
+      items: [
+        {
+          title: 'جديد على Orbiscreen',
+          body: 'افهم الأجزاء قبل التثبيت: خادم المضيف، والشاشة الافتراضية، والنقل، والعميل.',
+          links: [
+            { label: 'المعمارية', href: `${prefix}/docs/architecture` },
+            { label: 'دعم بيئات سطح المكتب', href: `${prefix}/docs/de-support` },
+          ],
+        },
+        {
+          title: 'ثبّت واقرن عميلا',
+          body: 'اختر حزمة توزيعتك، ثم اتصل بتطبيق Android أو المتصفح.',
+          links: [
+            { label: 'التثبيت', href: `${prefix}/install` },
+            { label: 'حل الأعطال', href: `${prefix}/docs/troubleshooting` },
+          ],
+        },
+        {
+          title: 'دبّج البث',
+          body: 'تتبع إطارا من الالتقاط إلى فك الترميز، وافحص مسار الحزم عند ظهور زمن استجابة أو فقد.',
+          links: [
+            { label: 'نقل UDP', href: `${prefix}/docs/udp-transport` },
+            { label: 'نقل الإطارات', href: `${prefix}/docs/frame-transport` },
+          ],
+        },
+      ],
+      conventionsTitle: 'كيف كتبت هذه المستندات',
+      conventions:
+        'كل صفحة تذكر ما تفترضه، وتسمي الملفات والأوامر التي تصفها بدقة، وتنتهي بالفحوص التي تؤكد السلوك. وتذكر الملاحظات الخاصة بالإصدار رقمه، فتبقى الصفحة القديمة مطابقة للبناء الذي تشغله.',
+      helpTitle: 'حين لا تجيب المستندات',
+      help:
+        'ابحث في صفحة حل الأعطال أولا؛ فهي تربط الأعراض بالأوامر. وإن غاب الجواب فافتح بلاغا مع مخرجات orbiscreen doctor والإصدار الذي تشغله.',
+      helpLinks: [
+        { label: 'حل الأعطال', href: `${prefix}/docs/troubleshooting` },
+        { label: 'افتح بلاغا', href: ISSUES_URL },
+      ],
+    }
+  : {
+      eyebrow: 'Start here',
+      title: 'Choose a path.',
+      items: [
+        {
+          title: 'New to Orbiscreen',
+          body: 'Learn the moving parts before you install: the host daemon, the virtual display, the transport, and the client.',
+          links: [
+            { label: 'Architecture', href: `${prefix}/docs/architecture` },
+            { label: 'Desktop support', href: `${prefix}/docs/de-support` },
+          ],
+        },
+        {
+          title: 'Install and pair a client',
+          body: 'Pick the package for your distribution, then connect the Android app or a browser.',
+          links: [
+            { label: 'Installation', href: `${prefix}/install` },
+            { label: 'Troubleshooting', href: `${prefix}/docs/troubleshooting` },
+          ],
+        },
+        {
+          title: 'Debug a stream',
+          body: 'Follow a frame from capture to decode, and check the packet path when latency or packet loss appears.',
+          links: [
+            { label: 'UDP transport', href: `${prefix}/docs/udp-transport` },
+            { label: 'Frame transport', href: `${prefix}/docs/frame-transport` },
+          ],
+        },
+      ],
+      conventionsTitle: 'How these documents are written',
+      conventions:
+        'Each page states what it assumes, names the exact files and commands it describes, and ends with the checks that confirm the behaviour. Version-specific notes name the release, so an older page still matches the build you run.',
+      helpTitle: 'When the docs do not answer it',
+      help:
+        'Search the troubleshooting page first; it maps symptoms to commands. If the answer is missing, open an issue with the output of orbiscreen doctor and the release you run.',
+      helpLinks: [
+        { label: 'Troubleshooting', href: `${prefix}/docs/troubleshooting` },
+        { label: 'Open an issue', href: ISSUES_URL },
+      ],
+    };
 
 function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -87,6 +169,49 @@ const sections = Object.entries(groupLabels)
         ))}
       </div>
     ))}
+
+    <div class="docs-group">
+      <p class="eyebrow">{start.eyebrow}</p>
+      <h2 class="docs-group__title">{start.title}</h2>
+      <div class="docs-row">
+        {start.items.map((item) => (
+          <div class="doc-card">
+            <span class="doc-card__title">{item.title}</span>
+            <span class="doc-card__desc">{item.body}</span>
+            <p class="docs-start__links">
+              {item.links.map((link, index) => (
+                <>
+                  {index > 0 && <span aria-hidden="true"> · </span>}
+                  <a class="docs-start__link" href={link.href}>{link.label}</a>
+                </>
+              ))}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div class="docs-group">
+      <h2 class="docs-group__title">{start.conventionsTitle}</h2>
+      <p class="docs-start__body">{start.conventions}</p>
+    </div>
+
+    <div class="docs-group">
+      <h2 class="docs-group__title">{start.helpTitle}</h2>
+      <p class="docs-start__body">{start.help}</p>
+      <p class="docs-start__links">
+        {start.helpLinks.map((link, index) => (
+          <>
+            {index > 0 && <span aria-hidden="true"> · </span>}
+            <a
+              class="docs-start__link"
+              href={link.href}
+              rel={link.href.startsWith('http') ? 'noopener' : undefined}
+            >{link.label}</a>
+          </>
+        ))}
+      </p>
+    </div>
 
     <div class="docs-cta" data-reveal>
       <div>

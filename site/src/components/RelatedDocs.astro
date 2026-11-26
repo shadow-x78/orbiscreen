@@ -1,0 +1,31 @@
+---
+import { relatedDocs, type RelatedPage } from '../data/related';
+import type { Lang } from '../lib/site';
+
+interface Props {
+  lang: Lang;
+  page: RelatedPage;
+}
+
+const { lang, page } = Astro.props;
+const items = relatedDocs(page, lang);
+const eyebrow = lang === 'ar' ? 'التوثيق' : 'Documentation';
+const title = lang === 'ar' ? 'تابع القراءة' : 'Read next';
+---
+
+<section class="related-docs">
+  <div class="container">
+    <div class="related-docs__head">
+      <p class="eyebrow">{eyebrow}</p>
+      <h2 class="related-docs__title">{title}</h2>
+    </div>
+    <div class="related-docs__grid">
+      {items.map((item) => (
+        <a class="related-docs__card" href={item.href}>
+          <span class="related-docs__label">{item.title}</span>
+          <span class="related-docs__desc">{item.description}</span>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>

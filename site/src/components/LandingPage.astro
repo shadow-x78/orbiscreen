@@ -6,6 +6,7 @@
 import Icon from './Icon.astro';
 import InstallTabs from './InstallTabs.astro';
 import DownloadButtons from './DownloadButtons.astro';
+import RelatedDocs from './RelatedDocs.astro';
 import { landing } from '../data/landing';
 import { installMethods, downloads } from '../data/install';
 import { GITHUB_URL, type Lang } from '../lib/site';
@@ -280,3 +281,5 @@ const contributingHref = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
     </div>
   </div>
 </section>
+
+<RelatedDocs lang={lang} page="home" />

@@ -70,6 +70,43 @@ export const licensePage: Record<Lang, SimplePage> = {
           'The QR code helper in gui/ui/qrcode.js is MIT licensed and keeps its original notice. That notice is a license obligation, not documentation, so it stays in place inside the GPL-3.0-or-later source tree.',
         ],
       },
+      {
+        title: 'Which license covers which part',
+        body: ['Every first-party component is GPL-3.0-or-later unless a file says otherwise:'],
+        list: [
+          'The Rust workspace in crates/ and the orbiscreen daemon.',
+          'The Qt GUI in gui/, except gui/ui/qrcode.js, which is MIT.',
+          'The Android client in clients/android/ and the web client in clients/web/.',
+          'The site code in site/, and the packaging scripts in scripts/.',
+          'Third-party crates and libraries keep their own licenses, recorded in Cargo.lock and in the package metadata.',
+        ],
+      },
+      {
+        title: 'Redistributing a build',
+        body: [
+          'You may redistribute the unmodified AppImage, deb, rpm, tarball, or APK. Keep the license text and the copyright notices, and do not suggest that the project endorses your build.',
+          'If you modify the code, publish the corresponding source under GPL-3.0-or-later. The release tag in the artifacts and the source in the repository identify the exact revision.',
+        ],
+        list: [
+          'Ship LICENSE and the notices that come with the artifact.',
+          'Link back to the source tag or commit used for the build.',
+          'Do not add restrictions that GPL-3.0 forbids.',
+          'State the license on any store or download page.',
+        ],
+      },
+      {
+        title: 'Commercial use',
+        body: [
+          'GPL-3.0 does not forbid selling Orbiscreen, bundling it with hardware, or offering paid support. It only requires that people who receive the software also receive the same freedoms.',
+          'You do not need a separate commercial license from the project. If your organization cannot accept the GPL-3.0 obligations, use Orbiscreen internally instead of distributing it, or contact the maintainer to discuss a separate arrangement.',
+        ],
+      },
+      {
+        title: 'Reporting a licensing problem',
+        body: [
+          'If a file is missing a notice, or a bundled component is under a different license than this page says, open an issue with the path and the license you expected. The maintainer will correct the file or this page.',
+        ],
+      },
     ],
   },
   ar: {
@@ -98,6 +135,43 @@ export const licensePage: Record<Lang, SimplePage> = {
         title: 'مكونات مضمنة',
         body: [
           'مساعد رمز QR في gui/ui/qrcode.js مرخص بـ MIT ويحتفظ بإشعاره الأصلي. ذلك الإشعار التزام ترخيصي لا توثيق، فيبقى في مكانه داخل شجرة GPL-3.0-or-later.',
+        ],
+      },
+      {
+        title: 'أي جزء تغطيه أي رخصة',
+        body: ['كل مكون من مكونات المشروع تحت GPL-3.0-or-later ما لم يذكر الملف غير ذلك:'],
+        list: [
+          'مساحة عمل Rust في crates/ وخادم orbiscreen.',
+          'واجهة Qt في gui/، باستثناء gui/ui/qrcode.js المرخص بـ MIT.',
+          'عميل Android في clients/android/ وعميل الويب في clients/web/.',
+          'شيفرة الموقع في site/، وسكربتات التغليف في scripts/.',
+          'تحتفظ حزم Rust والمكتبات الخارجية برخصها، وهي مسجلة في Cargo.lock وفي بيانات الحزم.',
+        ],
+      },
+      {
+        title: 'إعادة توزيع نسخة مبنية',
+        body: [
+          'يمكنك إعادة توزيع AppImage أو deb أو rpm أو tarball أو APK دون تعديل. حافظ على نص الرخصة وإشعارات حقوق النشر، ولا توحِ بأن المشروع يتبنى نسختك.',
+          'إذا عدلت الشيفرة فعليك نشر المصدر المقابل تحت GPL-3.0-or-later. وسم الإصدار في الملفات والمصدر في المستودع يحددان المراجعة بدقة.',
+        ],
+        list: [
+          'أرفق LICENSE والإشعارات التي تأتي مع الملف.',
+          'اربط بوسم المصدر أو الالتزام المستخدم في البناء.',
+          'لا تضف قيودا تحظرها GPL-3.0.',
+          'اذكر الرخصة في أي صفحة متجر أو تحميل.',
+        ],
+      },
+      {
+        title: 'الاستخدام التجاري',
+        body: [
+          'لا تمنع GPL-3.0 بيع Orbiscreen أو ضمه إلى عتاد أو تقديم دعم مدفوع. كل ما تطلبه أن يحصل متلقو البرنامج على الحريات نفسها.',
+          'لا تحتاج رخصة تجارية منفصلة من المشروع. وإذا تعذر على مؤسستك قبول التزامات GPL-3.0 فاستخدم Orbiscreen داخليا بدل توزيعه، أو تواصل مع المشرف لمناقشة ترتيب منفصل.',
+        ],
+      },
+      {
+        title: 'الإبلاغ عن مشكلة ترخيص',
+        body: [
+          'إذا كان ملف يفتقد إشعارا، أو كان مكون مضمّن تحت رخصة مختلفة عما تقوله هذه الصفحة، فافتح بلاغا بالمسار والرخصة المتوقعة. سيصحح المشرف الملف أو هذه الصفحة.',
         ],
       },
     ],
@@ -141,6 +215,48 @@ export const securityPage: Record<Lang, SimplePage> = {
           'Every Linux and Android release artifact is cryptographically signed, and the signatures are published with the release.',
         ],
       },
+      {
+        title: 'What happens after you report',
+        body: ['Reports are handled privately until a fix and a release are ready. The usual sequence is:'],
+        list: [
+          'The maintainer acknowledges the report and confirms the affected versions.',
+          'Reproduction and scope confirmation with you.',
+          'A private fix, a signed release, and a GitHub advisory.',
+          'Coordinated disclosure on a date agreed with you, with credit under the name you choose.',
+        ],
+      },
+      {
+        title: 'Handling and credit',
+        body: [
+          'Reports stay private until a fix and a release are ready. The advisory credits the reporter under the name they choose, unless they ask to stay anonymous. Please give the maintainer a reasonable window to ship a fix before publishing details.',
+        ],
+      },
+      {
+        title: 'Hardening checklist',
+        body: ['Orbiscreen listens on the local network and authenticates clients with a token. These defaults reduce exposure:'],
+        list: [
+          'Keep the daemon on a trusted LAN; do not expose the signaling port to the internet.',
+          'Pair clients explicitly and revoke them when a device is lost.',
+          'Prefer per-session tokens over the legacy shared token for browser clients.',
+          'Run the daemon as your user; root is only needed for EVDI on some desktops.',
+          'Keep the host and the Android client on current releases.',
+        ],
+      },
+      {
+        title: 'Verifying a release',
+        body: ['Every release publishes SHA-256 sums and GitHub build attestations. Check an artifact before running it:'],
+        list: [
+          'sha256sum -c orbiscreen-x86_64.AppImage.sha256',
+          'gh attestation verify orbiscreen-x86_64.AppImage -R shadow-x78/orbiscreen',
+          'Compare the tag in the release notes with the source you audit.',
+        ],
+      },
+      {
+        title: 'Out of scope',
+        body: [
+          'Reports that require physical access, a compromised host, a malicious compositor, or a browser zero-day are out of scope. So are missing headers on third-party mirrors and issues in dependencies that are already fixed upstream.',
+        ],
+      },
     ],
   },
   ar: {
@@ -179,6 +295,48 @@ export const securityPage: Record<Lang, SimplePage> = {
           'كل إصدارات Linux وAndroid موقعة تشفيريا، وتنشر التوقيعات مع الإصدار.',
         ],
       },
+      {
+        title: 'ما يحدث بعد الإبلاغ',
+        body: ['تدار البلاغات بخصوصية حتى يصبح الإصلاح والإصدار جاهزين. والتسلسل المعتاد:'],
+        list: [
+          'يقر المشرف بالبلاغ ويؤكد الإصدارات المتأثرة.',
+          'إعادة إنتاج وتأكيد النطاق معك.',
+          'إصلاح خاص وإصدار موقّع واستشارة على GitHub.',
+          'كشف منسق في موعد تتفقان عليه، والفضل باسم تختاره.',
+        ],
+      },
+      {
+        title: 'التعامل والفضل',
+        body: [
+          'تبقى البلاغات خاصة حتى يصبح الإصلاح والإصدار جاهزين. وتنسب الاستشارة الفضل للباحث بالاسم الذي يختاره، ما لم يطلب البقاء مجهولا. يرجى منح المشرف وقتا معقولا لإصدار الإصلاح قبل نشر التفاصيل.',
+        ],
+      },
+      {
+        title: 'قائمة تقوية',
+        body: ['يستمع Orbiscreen على الشبكة المحلية ويوثق العملاء برمز. هذه الإعدادات تقلل التعرض:'],
+        list: [
+          'أبق الخادم على شبكة محلية موثوقة، ولا تعرض منفذ الإشارات إلى الإنترنت.',
+          'اقرن العملاء صراحة وألغ اقترانهم عند فقد الجهاز.',
+          'فضل رموز الجلسات على الرمز المشترك القديم لعملاء المتصفح.',
+          'شغّل الخادم بمستخدمك؛ ولا تحتاج root إلا لـ EVDI على بعض البيئات.',
+          'أبق المضيف وعميل Android على أحدث الإصدارات.',
+        ],
+      },
+      {
+        title: 'التحقق من الإصدار',
+        body: ['ينشر كل إصدار مجاميع SHA-256 وإثباتات بناء GitHub. تحقق من الملف قبل تشغيله:'],
+        list: [
+          'sha256sum -c orbiscreen-x86_64.AppImage.sha256',
+          'gh attestation verify orbiscreen-x86_64.AppImage -R shadow-x78/orbiscreen',
+          'قارن الوسم في ملاحظات الإصدار بالمصدر الذي تدققه.',
+        ],
+      },
+      {
+        title: 'خارج النطاق',
+        body: [
+          'البلاغات التي تتطلب وصولا ماديا أو مضيفا مخترقا أو مدير نوافذ خبيثا أو ثغرة يوم صفر في المتصفح خارج النطاق. وكذلك الترويسات الناقصة على مرايا طرف ثالث والمشكلات في اعتماديات أصلحتها المنابع.',
+        ],
+      },
     ],
   },
 };
@@ -210,6 +368,43 @@ export const privacyPage: Record<Lang, SimplePage> = {
         ],
       },
       {
+        title: 'Data flow at a glance',
+        body: ['Three paths are involved, and none of them sends your screen or input to the project:'],
+        list: [
+          'Browser to the Cloudflare edge to a static asset from Cloudflare Pages. Cloudflare records the request metadata described above.',
+          'Host to your LAN to the Android or browser client. No project server is involved.',
+          'Host to the GitHub releases endpoint, only for the update check, unless you disable it.',
+        ],
+      },
+      {
+        title: 'Cloudflare Analytics and retention',
+        body: [
+          'Cloudflare Web Analytics reports aggregate counts such as page views, referrers, countries, and browsers without cookies or cross-site identifiers. The project sees only the aggregate dashboard; raw edge logs are retained by Cloudflare according to the account settings.',
+        ],
+      },
+      {
+        title: 'Android client permissions',
+        body: [
+          'The Android client asks for network access for streaming and LAN discovery. It also declares the install-packages permission for an update APK you choose yourself, and the battery-optimization exemption so a session can stay alive when you grant it. It does not request contacts, location, camera, microphone, storage, or notification access.',
+        ],
+      },
+      {
+        title: 'How to verify these claims',
+        body: ['You do not have to trust this page:'],
+        list: [
+          'Open DevTools, then Network, on any page; the only third-party requests are Cloudflare\u2019s analytics script and the edge itself.',
+          'Run ss -tunp while the daemon is idle; no connection leaves your LAN except the update check.',
+          'Set ORBISCREEN_NO_UPDATE_CHECK=1 and confirm the host makes no outbound request.',
+          'Inspect the Android manifest for the permission list.',
+        ],
+      },
+      {
+        title: 'Changes to this policy',
+        body: [
+          'This policy changes only when the site or the client changes what it collects. The changelog records the change, and this page keeps the current text.',
+        ],
+      },
+      {
         title: 'Contact',
         body: [`Privacy questions can go to ${SECURITY_EMAIL}.`],
       },
@@ -238,6 +433,43 @@ export const privacyPage: Record<Lang, SimplePage> = {
         title: 'الروابط الخارجية',
         body: [
           'تفتح روابط GitHub وLaunchpad وFedora COPR مواقع طرف ثالث لها سياساتها. ولا يضمن هذا الموقع سكربتات أو خطوطا أو بكسلات تتبع من طرف ثالث.',
+        ],
+      },
+      {
+        title: 'مسار البيانات باختصار',
+        body: ['هناك ثلاثة مسارات، ولا يرسل أي منها شاشتك أو إدخالك إلى المشروع:'],
+        list: [
+          'المتصفح إلى حافة Cloudflare إلى ملف ثابت من Cloudflare Pages. وتسجل Cloudflare بيانات الطلب المذكورة أعلاه.',
+          'المضيف إلى شبكتك المحلية إلى عميل Android أو المتصفح. ولا يشارك أي خادم تابع للمشروع.',
+          'المضيف إلى نقطة إصدارات GitHub، لفحص التحديث فقط، ما لم تعطله.',
+        ],
+      },
+      {
+        title: 'تحليلات Cloudflare والاحتفاظ',
+        body: [
+          'تعرض Cloudflare Web Analytics عدا مجمعة مثل المشاهدات والمصادر والبلدان والمتصفحات بلا كوكيز وبلا معرفات عبر المواقع. ولا يرى المشروع إلا لوحة العدا المجمعة؛ وتحتفظ Cloudflare بسجلات الحافة الخام حسب إعدادات الحساب.',
+        ],
+      },
+      {
+        title: 'أذونات عميل Android',
+        body: [
+          'يطلب عميل Android الوصول إلى الشبكة للبث واكتشاف الشبكة المحلية. ويعلن أيضا إذن تثبيت الحزم لتحديث APK تختاره بنفسك، وإعفاء تحسين البطارية لإبقاء الجلسة حية عند منحه. ولا يطلب جهات الاتصال أو الموقع أو الكاميرا أو الميكروفون أو التخزين أو الإشعارات.',
+        ],
+      },
+      {
+        title: 'كيف تتحقق من هذه الادعاءات',
+        body: ['لا تحتاج إلى الوثوق بهذه الصفحة:'],
+        list: [
+          'افتح أدوات المطور ثم Network في أي صفحة؛ الطلبات الخارجية الوحيدة هي سكربت تحليلات Cloudflare والحافة نفسها.',
+          'شغّل ss -tunp والخادم خامل؛ لا يغادر اتصال شبكتك المحلية إلا فحص التحديث.',
+          'عيّن ORBISCREEN_NO_UPDATE_CHECK=1 وتأكد أن المضيف لا يرسل طلبا خارجيا.',
+          'افحص بيان Android للحصول على قائمة الأذونات.',
+        ],
+      },
+      {
+        title: 'تغييرات هذه السياسة',
+        body: [
+          'تتغير هذه السياسة فقط عندما يغيّر الموقع أو العميل ما يجمعه. ويسجل سجل التغييرات التعديل، وتحتفظ الصفحة بالنص الحالي.',
         ],
       },
       {

@@ -8,6 +8,7 @@ import PageHead from './PageHead.astro';
 import Icon from './Icon.astro';
 import InstallTabs from './InstallTabs.astro';
 import DownloadButtons from './DownloadButtons.astro';
+import RelatedDocs from './RelatedDocs.astro';
 import { pages } from '../data/pages';
 import { landing } from '../data/landing';
 import { downloads, installMethods } from '../data/install';
@@ -151,6 +152,8 @@ const trailingArrow = lang === 'ar' ? 'arrow-cta-left' : 'arrow-cta';
     </div>
   </div>
 </section>
+
+<RelatedDocs lang={lang} page="install" />
 
 <section class="cta-section">
   <div class="container">

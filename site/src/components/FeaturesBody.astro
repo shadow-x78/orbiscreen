@@ -6,6 +6,7 @@
 import '../styles/docs.css';
 import PageHead from './PageHead.astro';
 import Icon from './Icon.astro';
+import RelatedDocs from './RelatedDocs.astro';
 import { pages } from '../data/pages';
 import { ui } from '../data/i18n';
 import type { Lang } from '../lib/site';
@@ -68,6 +69,8 @@ const iconFor: Record<string, string> = {
     ))}
   </div>
 </section>
+
+<RelatedDocs lang={lang} page="features" />
 
 <section class="cta-section">
   <div class="container">

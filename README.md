@@ -21,6 +21,8 @@ Secondary monitor for Linux, powered by an Android tablet or phone.
 
 <a href="README.md">🇬🇧 English</a> · <a href="README_AR.md">🇸🇦 العربية</a>
 
+**Website:** [orbiscreen.com](https://orbiscreen.com) · **Documentation:** [orbiscreen.com/docs](https://orbiscreen.com/docs)
+
 ---
 
 ## Table of Contents
@@ -257,6 +259,8 @@ On a 5 GHz network with hardware encoding, transport delay measures 2 to 4 ms be
 
 <a id="documentation"></a>
 ## Documentation
+
+The same guides are published at [orbiscreen.com/docs](https://orbiscreen.com/docs) with search, language switching, and per-page Markdown mirrors.
 
 | Document | Description |
 |----------|-------------|

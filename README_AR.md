@@ -21,6 +21,8 @@
 
 <a href="README.md">🇬🇧 English</a> · <a href="README_AR.md">🇸🇦 العربية</a>
 
+**الموقع:** [orbiscreen.com](https://orbiscreen.com) · **التوثيق:** [orbiscreen.com/docs](https://orbiscreen.com/docs)
+
 ---
 
 ## فهرس المحتويات
@@ -321,6 +323,8 @@ orbiscreen/
 ## التوثيق
 
 <div dir="rtl" align="right">
+
+توجد الأدلة نفسها على [orbiscreen.com/docs](https://orbiscreen.com/docs) مع البحث وتبديل اللغة ونسخ Markdown لكل صفحة.
 
 | الوثيقة | الوصف |
 | :--- | :--- |
