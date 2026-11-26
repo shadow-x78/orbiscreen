@@ -16,7 +16,7 @@ Build-Depends: debhelper-compat (= 13),
                cmake,
                g++
 Standards-Version: 4.6.2
-Homepage: https://github.com/shadow-x78/orbiscreen
+Homepage: https://orbiscreen.com
 
 Package: orbiscreen
 Architecture: any

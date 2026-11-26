@@ -10,7 +10,8 @@ pkgver=0.45.2
 pkgrel=1
 pkgdesc="Turn Android devices into high-performance secondary monitors for Linux (Wayland & X11)"
 arch=('x86_64')
-url="https://github.com/shadow-x78/orbiscreen"
+url="https://orbiscreen.com"
+_repo="https://github.com/shadow-x78/orbiscreen"
 license=('GPL-3.0-or-later')
 depends=(
     'gstreamer'
@@ -30,7 +31,7 @@ optdepends=(
 )
 provides=('orbiscreen')
 conflicts=('orbiscreen-bin')
-source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/v${pkgver}/${pkgname}-${pkgver}.tar.gz")
+source=("${pkgname}-${pkgver}.tar.gz::${_repo}/archive/v${pkgver}/${pkgname}-${pkgver}.tar.gz")
 sha256sums=('SKIP')
 
 options=('!lto')
