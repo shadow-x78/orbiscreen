@@ -1,3 +1,11 @@
+orbiscreen (0.45.2~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.45.2 for Ubuntu noble.
+  * Bundle the Qt platform plugin dependencies in the AppImage (#119)
+  * Bump version to 0.45.2 across all packages; Android versionCode 212.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Thu, 26 Nov 2026 18:21:49 +0300
+
 orbiscreen (0.45.1~ubuntunoble1) noble; urgency=medium
 
   * Release 0.45.1 for Ubuntu noble.

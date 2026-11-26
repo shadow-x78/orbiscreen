@@ -86,6 +86,34 @@ else
 fi
 
 # ── Bundle Qt Runtime ──
+qt_libraries() {
+    ldd "$1" 2>/dev/null |
+    awk '/=> \/[^ ]*\/libQt6[^\/]*\.so[^ ]*/ {print $3}'
+}
+
+bundle_qt_libraries() {
+    local target="$1"
+    local lib
+    while IFS= read -r lib; do
+        [ -n "$lib" ] || continue
+        cp -f "$lib" "$APP/usr/lib/" 2>/dev/null || true
+    done < <(qt_libraries "$target")
+}
+
+verify_qt_plugins() {
+    local plugin lib missing=0
+    while IFS= read -r -d '' plugin; do
+        while IFS= read -r lib; do
+            [ -n "$lib" ] || continue
+            if [ ! -e "$APP/usr/lib/$(basename "$lib")" ]; then
+                echo "error: $(basename "$lib") required by $(basename "$plugin") is not bundled" >&2
+                missing=1
+            fi
+        done < <(qt_libraries "$plugin")
+    done < <(find "$APP/usr/lib/qt6/plugins" -type f -name '*.so' -print0)
+    return "$missing"
+}
+
 bundle_qt() {
     [ -x "$APP/usr/bin/orbiscreen-gui" ] || return 0
     local qt_plugins
@@ -103,13 +131,13 @@ bundle_qt() {
         echo "warning: Qt plugin directory not found; AppImage will rely on the host Qt 6" >&2
     fi
     mkdir -p "$APP/usr/lib"
-    ldd "$APP/usr/bin/orbiscreen-gui" 2>/dev/null |
-    awk '/=> \/.*libQt6/ {print $3}' |
-    while IFS= read -r lib; do
-        if [ -n "$lib" ]; then
-            cp -f "$lib" "$APP/usr/lib/" 2>/dev/null || true
-        fi
-    done
+    bundle_qt_libraries "$APP/usr/bin/orbiscreen-gui"
+    if [ -d "$APP/usr/lib/qt6/plugins" ]; then
+        while IFS= read -r -d '' plugin; do
+            bundle_qt_libraries "$plugin"
+        done < <(find "$APP/usr/lib/qt6/plugins" -type f -name '*.so' -print0)
+        verify_qt_plugins
+    fi
 }
 bundle_qt
 
@@ -167,10 +195,12 @@ cp "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png" "$APP/orbiscreen.p
 cat > "$APP/AppRun" <<'EOF'
 #!/usr/bin/env bash
 HERE="$(dirname "$(readlink -f "$0")")"
+if [ -d "$HERE/usr/lib" ]; then
+    export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
 if [ -d "$HERE/usr/lib/gstreamer-1.0" ]; then
     export GST_PLUGIN_PATH="$HERE/usr/lib/gstreamer-1.0${GST_PLUGIN_PATH:+:$GST_PLUGIN_PATH}"
     export GST_PLUGIN_SCANNER="$HERE/usr/lib/gstreamer-1.0/gst-plugin-scanner"
-    export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 fi
 if [ -d "$HERE/usr/lib/qt6/plugins" ]; then
     export QT_PLUGIN_PATH="$HERE/usr/lib/qt6/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"

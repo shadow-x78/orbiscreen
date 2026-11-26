@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.45.2] - 2026-11-26
+
+### Fixed
+- **The AppImage now starts when the host's Qt is newer than the bundled Qt 6.10.2.** The bundled `libqxcb.so` and `libqwayland.so` were shipped without `libQt6XcbQpa.so.6` and `libQt6WaylandClient.so.6`, so on Arch-based systems with Qt 6.12 they resolved the host copies, which require `Qt_6.12` versioned symbols from the bundled `libQt6Core.so.6` 6.10.2. Both plugins then failed to load and the app aborted with "Could not load the Qt platform plugin". The packager now bundles every Qt library that the copied Qt plugins link against and verifies the AppDir before `appimagetool` runs, so an incomplete plugin dependency fails packaging instead of shipping. `AppRun` also puts the bundled `usr/lib` first in `LD_LIBRARY_PATH` whenever it exists, not only when GStreamer is bundled.
+- Reported, diagnosed, and verified by [@ZFi88](https://github.com/ZFi88) in [#119](https://github.com/shadow-x78/orbiscreen/issues/119), who traced the failure with `QT_DEBUG_PLUGINS=1` to the missing Qt libraries and confirmed that copying them into `usr/lib` and repacking makes the AppImage start under both Wayland and xcb. The issue is intentionally left open pending confirmation on the released build.
+- Version bumped to 0.45.2 across the Cargo workspace, Android (`versionCode` 212), Tauri, PKGBUILD, Debian, COPR, and documentation badges.
+
 ## [v0.45.1] - 2026-11-25
 
 ### Fixed

@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.45.1
+%global version 0.45.2
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -152,6 +152,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Thu Nov 26 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.45.2-1
+- Release 0.45.2: Bundle the Qt platform plugin dependencies in the AppImage (#119)
+
 * Wed Nov 25 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.45.1-1
 - Release 0.45.1: Install evdi from the AUR on Arch-based distributions
 
