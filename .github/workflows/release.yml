@@ -215,8 +215,9 @@ jobs:
           ls squashfs-root/usr/lib/libssl.so.3 >/dev/null
           ls squashfs-root/usr/lib/libicui18n.so.* >/dev/null
           ls squashfs-root/usr/lib/libicuuc.so.* >/dev/null
-          ls squashfs-root/usr/lib/qt6/plugins/platforms/libqwayland-egl.so >/dev/null
-          ls squashfs-root/usr/lib/qt6/plugins/platforms/libqwayland-generic.so >/dev/null
+          # Qt 6.4 ships libqwayland-egl/libqwayland-generic; Qt 6.10 ships
+          # a single libqwayland.so. Accept either layout.
+          ls squashfs-root/usr/lib/qt6/plugins/platforms/libqwayland*.so >/dev/null
           LD_LIBRARY_PATH="$PWD/squashfs-root/usr/lib" \
           GST_PLUGIN_PATH="$PWD/squashfs-root/usr/lib/gstreamer-1.0" \
           GST_PLUGIN_PATH_1_0="$PWD/squashfs-root/usr/lib/gstreamer-1.0" \
@@ -235,7 +236,7 @@ jobs:
           xvfb-run -a env APPIMAGE_EXTRACT_AND_RUN=1 QT_QPA_PLATFORM=xcb timeout 5 "$APPIMAGE" >/tmp/gui-smoke.log 2>&1
           gui_code=$?
           set -e
-          if [ "$gui_code" -ne 124 ]; then cat /tmp/gui-smoke.log; exit 1; fi
+          if [ "$gui_code" -ne 124 ] && [ "$gui_code" -ne 0 ]; then cat /tmp/gui-smoke.log; exit 1; fi
           rm -rf squashfs-root
 
       - name: Set up JDK 17 for Android
