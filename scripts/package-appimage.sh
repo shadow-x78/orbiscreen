@@ -68,15 +68,19 @@ is_host_library() {
             return 0 ;;
         libsystemd.so*|libudev.so*|libdbus-1.so*|libpipewire*.so*|libspa*.so*|libselinux.so*|libapparmor.so*|libpam*.so*|libcap.so*|libmount.so*|libblkid.so*|libuuid.so*)
             return 0 ;;
-        libglib-2.0.so*|libgobject-2.0.so*|libgmodule-2.0.so*|libz.so*|libzstd.so*|liblzma.so*|libbz2.so*|liblz4.so*)
+        libglib-2.0.so*|libgobject-2.0.so*|libgmodule-2.0.so*|libz.so*|libzstd.so*|liblzma.so*|liblz4.so*)
             return 0 ;;
-        libcrypto.so*|libssl.so*|libgnutls.so*|libgcrypt.so*|libnettle.so*|libhogweed.so*|libtasn1.so*|libp11-kit.so*|libgssapi*.so*|libkrb5*.so*|libk5crypto*.so*|libkrb5support*.so*|libcom_err*.so*|libkeyutils*.so*)
+        # The host libselinux is loaded against the host pcre2-8; bundling the
+        # Ubuntu pcre2-8 produces "no version information available" warnings.
+        libpcre2-8.so*)
+            return 0 ;;
+        libgnutls.so*|libgcrypt.so*|libnettle.so*|libhogweed.so*|libtasn1.so*|libp11-kit.so*|libgssapi*.so*|libkrb5*.so*|libk5crypto*.so*|libkrb5support*.so*|libcom_err*.so*|libkeyutils*.so*)
             return 0 ;;
         libGL*.so*|libEGL*.so*|libOpenGL*.so*|libGLX*.so*|libGLdispatch*.so*|libgbm.so*|libdrm.so*|libwayland*.so*|libxkbcommon.so*)
             return 0 ;;
         libfontconfig.so*|libfreetype.so*|libharfbuzz.so*|libpng*.so*|libjpeg*.so*|libtiff*.so*|libwebp*.so*|libcairo.so*|libpango*.so*|libgdk*.so*|libgtk*.so*)
             return 0 ;;
-        libicu*.so*|libxml2.so*|libxslt*.so*)
+        libxml2.so*|libxslt*.so*)
             return 0 ;;
     esac
     return 1
@@ -220,7 +224,7 @@ bundle_qt() {
                 # linuxfb, vnc, offscreen and vkkhrdisplay pulls in optional
                 # host drivers and makes the bundle fragile.
                 mkdir -p "$APP/usr/lib/qt6/plugins/platforms"
-                for plugin in libqxcb.so libqwayland.so; do
+                for plugin in libqxcb.so libqwayland.so libqwayland-egl.so libqwayland-generic.so; do
                     if [ -f "$qt_plugins/platforms/$plugin" ]; then
                         cp -f "$qt_plugins/platforms/$plugin" "$APP/usr/lib/qt6/plugins/platforms/"
                     fi

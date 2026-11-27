@@ -97,7 +97,7 @@ jobs:
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
             gstreamer1.0-libav gstreamer1.0-pipewire gstreamer1.0-tools \
-            libxcb-cursor0 libxkbcommon-x11-0 \
+            libxcb-cursor0 libxkbcommon-x11-0 xvfb \
             rpm imagemagick librsvg2-bin \
             qt6-base-dev qt6-wayland cmake g++
 
@@ -209,17 +209,33 @@ jobs:
           plugins="$(find squashfs-root/usr/lib/gstreamer-1.0 -maxdepth 1 -name '*.so' | wc -l)"
           echo "bundled GStreamer plugins: $plugins"
           test "$plugins" -gt 10
+          # These are the runtime libraries that were missing on Fedora/Bluefin:
+          # the host SONAMEs do not match the Ubuntu build.
+          ls squashfs-root/usr/lib/libbz2.so.1.0 >/dev/null
+          ls squashfs-root/usr/lib/libssl.so.3 >/dev/null
+          ls squashfs-root/usr/lib/libicui18n.so.* >/dev/null
+          ls squashfs-root/usr/lib/libicuuc.so.* >/dev/null
+          ls squashfs-root/usr/lib/qt6/plugins/platforms/libqwayland-egl.so >/dev/null
+          ls squashfs-root/usr/lib/qt6/plugins/platforms/libqwayland-generic.so >/dev/null
           LD_LIBRARY_PATH="$PWD/squashfs-root/usr/lib" \
           GST_PLUGIN_PATH="$PWD/squashfs-root/usr/lib/gstreamer-1.0" \
           GST_PLUGIN_PATH_1_0="$PWD/squashfs-root/usr/lib/gstreamer-1.0" \
+          GST_PLUGIN_SCANNER="$PWD/squashfs-root/usr/libexec/gstreamer-1.0/gst-plugin-scanner" \
           GST_PLUGIN_SYSTEM_PATH="" GST_PLUGIN_SYSTEM_PATH_1_0="" \
           gst-inspect-1.0 x264enc >/dev/null
           LD_LIBRARY_PATH="$PWD/squashfs-root/usr/lib" \
           GST_PLUGIN_PATH="$PWD/squashfs-root/usr/lib/gstreamer-1.0" \
           GST_PLUGIN_PATH_1_0="$PWD/squashfs-root/usr/lib/gstreamer-1.0" \
+          GST_PLUGIN_SCANNER="$PWD/squashfs-root/usr/libexec/gstreamer-1.0/gst-plugin-scanner" \
           GST_PLUGIN_SYSTEM_PATH="" GST_PLUGIN_SYSTEM_PATH_1_0="" \
           gst-inspect-1.0 pipewiresrc >/dev/null
           APPIMAGE_EXTRACT_AND_RUN=1 ORBISCREEN_CLI=1 "$APPIMAGE" --version >/dev/null
+          # Start the GUI under Xvfb; it must stay alive (timeout 124), not crash.
+          set +e
+          xvfb-run -a env APPIMAGE_EXTRACT_AND_RUN=1 QT_QPA_PLATFORM=xcb timeout 5 "$APPIMAGE" >/tmp/gui-smoke.log 2>&1
+          gui_code=$?
+          set -e
+          if [ "$gui_code" -ne 124 ]; then cat /tmp/gui-smoke.log; exit 1; fi
           rm -rf squashfs-root
 
       - name: Set up JDK 17 for Android
