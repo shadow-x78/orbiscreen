@@ -3,6 +3,13 @@
   "name": "orbiscreen-site",
   "main": "./worker/index.mjs",
   "compatibility_date": "2026-11-21",
+  // Workers Builds can run the deploy command without a dashboard build
+  // command. Wrangler then needs to build site/dist itself; otherwise the
+  // assets directory does not exist and the build fails before it starts.
+  "build": {
+    "command": "test -d site/dist || npm run build",
+    "cwd": "."
+  },
   // The worker answers on orbiscreen.com and www.orbiscreen.com only. A
   // workers.dev address and preview URLs would serve the same pages from a
   // second, indexable host, which is exactly what the canonical host exists to

@@ -1,0 +1,32 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "orbiscreen-site",
+  // A copy of ../wrangler.jsonc for a Cloudflare project whose root directory
+  // is site/. Keep the name, routes and compatibility date in sync with the
+  // root config; only main and assets.directory are relative to this file.
+  "main": "../worker/index.mjs",
+  "compatibility_date": "2026-11-21",
+  // If the dashboard build command is empty, Wrangler builds the site before
+  // collecting assets. When the dashboard already ran npm run build, dist
+  // exists and this is a no-op.
+  "build": {
+    "command": "test -d dist || npm run build",
+    "cwd": "."
+  },
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "drop-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": true
+  },
+  "routes": [
+    { "pattern": "orbiscreen.com/*", "zone_name": "orbiscreen.com" },
+    { "pattern": "www.orbiscreen.com/*", "zone_name": "orbiscreen.com" }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
