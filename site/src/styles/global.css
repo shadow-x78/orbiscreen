@@ -3022,7 +3022,10 @@ html[lang='ar'] .bullet {
 }
 
 .changelog {
-  padding-block: 64px 72px;
+  padding-block: 0 72px;
+}
+
+.changelog .container {
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -3044,6 +3047,12 @@ html[lang='ar'] .bullet {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.release__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .release__tag {
@@ -4266,7 +4275,10 @@ html[dir='rtl'] .route-progress {
   }
 
   .changelog {
-    padding-block: 40px;
+    padding-block: 0 40px;
+  }
+
+  .changelog .container {
     gap: 16px;
   }
 
