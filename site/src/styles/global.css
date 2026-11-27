@@ -1448,10 +1448,9 @@ html[lang='ar'] .mockup__chip {
 .demo-band__media {
   width: 100%;
   border: 1px solid var(--border-hairline);
-  border-radius: 24px;
+  border-radius: var(--radius-12);
   overflow: hidden;
   background: var(--surface-deep);
-  box-shadow: var(--shadow-raised);
 }
 
 .demo-band__media video {

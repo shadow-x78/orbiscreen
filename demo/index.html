@@ -16,493 +16,529 @@
   }
 
   :root {
-    --bg: #0a0d11;
-    --bg2: #0e1116;
-    --surface: #151a21;
-    --surface2: #1b222b;
+    --bg: #0e1116;
+    --surface-1: #151a21;
+    --surface-2: #1b222b;
+    --surface-deep: #10151c;
+    --surface-term: #0b0e13;
+    --screen: #10151c;
+    --ink: #e8edf5;
+    --ink-2: #93a0b4;
+    --ink-3: #7b899e;
+    --rule: rgba(232, 237, 245, 0.10);
     --line: #252d38;
-    --line2: #333d4b;
-    --text: #e8edf5;
-    --muted: #93a0b4;
-    --faint: #7b899e;
+    --line-strong: #333d4b;
     --blue: #4c8dff;
-    --blue2: #89b4fa;
+    --blue-2: #89b4fa;
     --green: #34d399;
+    --red: #f87171;
     --amber: #fbbf24;
   }
 
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; width: 1080px; height: 1080px; overflow: hidden; background: var(--bg); }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 1080px;
+    height: 1080px;
+    overflow: hidden;
+    background: var(--bg);
+  }
   body { cursor: none; }
+
   #stage {
     position: relative;
     width: 1080px;
     height: 1080px;
     overflow: hidden;
     background: var(--bg);
-    color: var(--text);
+    color: var(--ink);
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  #grid {
+
+  .mono { font-family: 'SCP', monospace; }
+  .rule { position: absolute; left: 72px; width: 936px; height: 1px; background: var(--rule); }
+  #toprule { top: 94px; }
+  #bottomrule { top: 1006px; }
+  #progress {
     position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(255,255,255,.038) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,.038) 1px, transparent 1px);
-    background-size: 60px 60px;
-    mask-image: radial-gradient(circle at 50% 42%, #000 0%, transparent 78%);
-    -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 0%, transparent 78%);
+    left: 72px;
+    top: 94px;
+    width: 0;
+    height: 2px;
+    background: var(--blue);
   }
-  #glow {
+
+  #topbar {
     position: absolute;
-    left: -360px;
-    top: -360px;
-    width: 1800px;
-    height: 1800px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(76,141,255,.23) 0%, rgba(76,141,255,.07) 35%, transparent 66%);
-    filter: blur(10px);
-    pointer-events: none;
+    left: 72px;
+    top: 42px;
+    width: 936px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
-  #vignette {
+  #brand { display: flex; align-items: center; gap: 10px; }
+  #brand-mark { width: 28px; height: 28px; }
+  #brand-word { font-size: 18px; line-height: 1; font-weight: 600; letter-spacing: -0.3px; }
+  #timecode { color: var(--ink-3); font-family: 'SCP', monospace; font-size: 12px; line-height: 16px; }
+
+  #foot-left, #foot-right {
     position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,.55) 100%);
-    pointer-events: none;
+    bottom: 40px;
+    color: var(--ink-3);
+    font-family: 'SCP', monospace;
+    font-size: 11px;
+    line-height: 16px;
   }
+  #foot-left { left: 72px; }
+  #foot-right { right: 72px; }
 
   .scene { position: absolute; inset: 0; opacity: 0; }
-  .eyebrow {
+
+  .kicker {
     position: absolute;
-    left: 90px;
-    top: 126px;
+    left: 72px;
+    top: 132px;
     margin: 0;
-    color: var(--blue);
+    color: var(--blue-2);
     font-family: 'SCP', monospace;
-    font-size: 16px;
-    line-height: 24px;
-    letter-spacing: 2.4px;
-    text-transform: uppercase;
+    font-size: 13px;
+    line-height: 20px;
+    letter-spacing: 0.2px;
   }
-  .title {
+  .headline {
     position: absolute;
-    left: 90px;
-    top: 164px;
+    left: 72px;
+    top: 166px;
     margin: 0;
-    width: 900px;
-    color: var(--text);
-    font-size: 66px;
-    line-height: 72px;
-    font-weight: 700;
-    letter-spacing: -2.6px;
+    width: 936px;
+    color: var(--ink);
+    font-size: 72px;
+    line-height: 78px;
+    font-weight: 600;
+    letter-spacing: -1.9px;
   }
-  .title .accent { color: var(--blue2); }
+  .headline .accent { color: var(--blue-2); }
   .sub {
     position: absolute;
-    left: 90px;
-    top: 318px;
+    left: 72px;
+    top: 336px;
     margin: 0;
-    width: 860px;
-    color: var(--muted);
-    font-size: 27px;
-    line-height: 38px;
+    width: 740px;
+    color: var(--ink-2);
+    font-size: 23px;
+    line-height: 33px;
     font-weight: 400;
-    letter-spacing: -0.4px;
+    letter-spacing: -0.2px;
   }
-  .mono { font-family: 'SCP', monospace; }
-  .card {
+  .note {
     position: absolute;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    background: linear-gradient(180deg, #171d26 0%, #12171e 100%);
-    box-shadow: 0 24px 60px rgba(0,0,0,.35);
+    color: var(--ink-3);
+    font-family: 'SCP', monospace;
+    font-size: 11px;
+    line-height: 16px;
   }
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 34px;
-    padding: 0 13px;
-    border: 1px solid var(--line2);
-    border-radius: 999px;
-    background: rgba(21,26,33,.86);
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1;
-    white-space: nowrap;
-  }
-  .chip b { color: var(--text); font-weight: 600; }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 12px rgba(52,211,153,.7); }
 
-  /* ── intro ── */
-  #s0 { display: grid; place-items: center; }
-  #s0-inner { position: absolute; left: 0; top: 0; width: 1080px; height: 1080px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  #s0-logo { width: 138px; height: 138px; margin-bottom: 34px; filter: drop-shadow(0 0 42px rgba(76,141,255,.38)); }
-  #s0-word { font-size: 104px; line-height: 108px; font-weight: 700; letter-spacing: -4.6px; }
-  #s0-tag { margin-top: 22px; color: var(--muted); font-size: 34px; line-height: 44px; letter-spacing: -.6px; }
-  #s0-pills { display: flex; gap: 12px; margin-top: 38px; }
-  #s0-version { position: absolute; bottom: 82px; color: var(--faint); font-size: 15px; letter-spacing: 1.6px; }
+  /* devices */
+  .monitor { position: absolute; }
+  .monitor .screen {
+    position: absolute;
+    overflow: hidden;
+    background: var(--screen);
+    background-image:
+      linear-gradient(rgba(76, 141, 255, 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(76, 141, 255, 0.15) 1px, transparent 1px);
+    background-size: 24px 24px;
+    border: 2px solid var(--line-strong);
+    border-radius: 3px;
+  }
+  .monitor .stand { position: absolute; background: var(--line-strong); }
+  .monitor .foot { position: absolute; background: var(--line-strong); }
 
-  /* ── scene 1 ── */
-  #s1-monitor { left: 78px; top: 398px; width: 574px; height: 382px; }
-  .monitor-screen {
-    position: absolute; left: 20px; top: 20px; width: 534px; height: 302px;
-    border-radius: 12px; overflow: hidden; background: #0b1017; border: 1px solid #2a3441;
+  .tablet {
+    position: absolute;
+    border: 2px solid var(--line-strong);
+    border-radius: 11px;
+    background: var(--surface-2);
   }
-  .monitor-neck { position: absolute; left: 267px; top: 322px; width: 40px; height: 38px; background: linear-gradient(180deg, #222b36, #161c24); }
-  .monitor-base { position: absolute; left: 197px; top: 360px; width: 180px; height: 10px; border-radius: 999px; background: #232c37; }
-  .wall { position: absolute; inset: 0; background: radial-gradient(circle at 30% 20%, #1b2b45 0%, #0d1420 55%, #090d13 100%); }
-  .win {
-    position: absolute; border: 1px solid #2c3644; border-radius: 8px; overflow: hidden;
-    background: #111821; box-shadow: 0 16px 34px rgba(0,0,0,.4);
+  .tablet .screen {
+    position: absolute;
+    overflow: hidden;
+    background: var(--screen);
+    background-image:
+      linear-gradient(rgba(76, 141, 255, 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(76, 141, 255, 0.15) 1px, transparent 1px);
+    background-size: 20px 20px;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 2px;
   }
-  .win-bar { display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; background: #1a222d; border-bottom: 1px solid #2a3441; }
-  .win-dot { width: 7px; height: 7px; border-radius: 50%; background: #3a4656; }
-  .win-title { margin-left: 4px; color: #a8b6c9; font-family: 'SCP', monospace; font-size: 9px; }
+  .tablet .cam { position: absolute; left: 50%; width: 18px; height: 3px; background: var(--line-strong); transform: translateX(-50%); }
+  .tablet .home { position: absolute; left: 50%; width: 52px; height: 3px; background: var(--line-strong); transform: translateX(-50%); }
+
+  /* windows */
+  .win { position: absolute; border: 1.5px solid var(--line-strong); background: var(--surface-2); border-radius: 2px; }
+  .win-bar { display: flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border-bottom: 1.5px solid var(--line); }
+  .win-dot { width: 5px; height: 5px; border: 1.2px solid #4a5568; border-radius: 50%; }
+  .win-title { margin-left: 4px; color: var(--ink-3); font-family: 'SCP', monospace; font-size: 8px; line-height: 1; }
   .win-body { padding: 10px 12px; }
-  .code-line { height: 6px; border-radius: 3px; background: #2a3441; margin: 7px 0; }
-  .code-line.short { width: 62%; }
-  .code-line.blue { background: #2f5fae; }
-  #s1-tablet { left: 736px; top: 400px; width: 266px; height: 392px; border-radius: 26px; }
-  .tablet-screen { position: absolute; left: 16px; top: 18px; width: 234px; height: 322px; border-radius: 14px; overflow: hidden; background: #0b1017; border: 1px solid #2a3441; }
-  .tablet-cam { position: absolute; left: 126px; top: 7px; width: 14px; height: 5px; border-radius: 999px; background: #29323e; }
-  .tablet-home { position: absolute; left: 103px; bottom: 7px; width: 60px; height: 4px; border-radius: 999px; background: #29323e; }
-  #s1-tablet-window { left: 18px; top: 34px; width: 198px; height: 126px; }
-  #s1-ghost { left: 250px; top: 474px; width: 236px; height: 148px; z-index: 20; }
-  #s1-cursor { position: absolute; left: 0; top: 0; width: 30px; height: 30px; z-index: 30; filter: drop-shadow(0 3px 6px rgba(0,0,0,.5)); }
-  #s1-badge { position: absolute; left: 748px; top: 812px; height: 34px; z-index: 25; }
-  #s1-caption { position: absolute; left: 78px; top: 858px; color: var(--faint); font-size: 18px; letter-spacing: .2px; }
-  #s1-caption b { color: var(--muted); font-weight: 500; }
-  #s1-link { position: absolute; left: 600px; top: 470px; width: 150px; height: 220px; overflow: visible; }
+  .win-line { height: 4px; margin: 7px 0; background: var(--ink); opacity: 0.16; }
+  .win-line.blue { background: var(--blue); opacity: 0.75; }
 
-  /* ── scene 2 ── */
-  #s2-host { left: 84px; top: 388px; width: 242px; height: 142px; padding: 18px 20px; }
-  #s2-tab { left: 754px; top: 388px; width: 242px; height: 142px; padding: 18px 20px; }
-  .cap-label { color: var(--faint); font-family: 'SCP', monospace; font-size: 12px; letter-spacing: 1.6px; }
-  .cap-main { margin-top: 12px; color: var(--text); font-size: 24px; font-weight: 600; letter-spacing: -.5px; }
-  .cap-sub { margin-top: 6px; color: var(--muted); font-size: 14px; }
-  #s2-pipe { position: absolute; left: 326px; top: 430px; width: 428px; height: 60px; }
-  #s2-line { position: absolute; left: 0; top: 29px; width: 100%; height: 2px; background: linear-gradient(90deg, rgba(76,141,255,.15), rgba(76,141,255,.65), rgba(76,141,255,.15)); }
-  #s2-packets { position: absolute; inset: 0; }
-  .packet { position: absolute; top: 24px; width: 12px; height: 12px; border-radius: 3px; background: var(--blue); box-shadow: 0 0 14px rgba(76,141,255,.8); }
-  .packet.fec { background: #3b4758; box-shadow: none; }
-  #s2-terminal { left: 110px; top: 586px; width: 860px; height: 304px; padding: 24px 28px; }
-  .term-head { display: flex; align-items: center; gap: 7px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid #222a35; }
-  .term-dot { width: 9px; height: 9px; border-radius: 50%; }
-  .term-title { margin-left: 8px; color: #7f8ea3; font-family: 'SCP', monospace; font-size: 12px; }
-  .term-line { color: #aab7c8; font-family: 'SCP', monospace; font-size: 19px; line-height: 40px; white-space: nowrap; }
-  .term-line .prompt { color: var(--blue); }
-  .term-line .ok { color: var(--green); }
-  .term-line .key { color: #7f8ea3; }
-  .term-line .val { color: #dce5f2; }
-  .term-line .warn { color: var(--amber); }
-  #s2-chips { position: absolute; left: 84px; top: 548px; display: flex; gap: 8px; }
+  /* signal */
+  .signal { position: absolute; overflow: visible; }
+  .signal path { fill: none; stroke: var(--blue); stroke-width: 2; stroke-linecap: round; }
+  .signal .tick { stroke: var(--blue); stroke-width: 2; }
+  .packet { position: absolute; width: 8px; height: 8px; background: var(--blue); top: 16px; }
 
-  /* ── scene 3 ── */
-  #s3-desktop { left: 82px; top: 386px; width: 560px; height: 388px; }
-  #s3-tablet { left: 732px; top: 366px; width: 268px; height: 408px; border-radius: 26px; }
-  .canvas-win { position: absolute; inset: 0; border-radius: 18px; overflow: hidden; }
-  .canvas-tool { position: absolute; left: 0; top: 0; width: 46px; height: 100%; background: #141b24; border-right: 1px solid #252d38; }
-  .tool-dot { width: 14px; height: 14px; margin: 16px auto; border-radius: 4px; background: #2a3441; }
-  .tool-dot.on { background: var(--blue); box-shadow: 0 0 10px rgba(76,141,255,.6); }
-  .canvas-area { position: absolute; left: 46px; top: 0; right: 0; bottom: 0; background: radial-gradient(circle at 50% 45%, #152031, #0b1119 70%); }
-  .canvas-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px); background-size: 28px 28px; }
-  #s3-desk-path, #s3-tab-path { fill: none; stroke: var(--blue); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 10px rgba(76,141,255,.55)); }
-  #s3-pen { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; z-index: 10; }
-  #s3-pen svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 8px rgba(0,0,0,.6)); }
-  #s3-chips { position: absolute; left: 82px; top: 812px; display: flex; gap: 10px; }
-  #s3-note { position: absolute; left: 82px; top: 862px; color: var(--faint); font-size: 17px; }
+  #s1-ghost { z-index: 20; }
+  #s1-cursor { position: absolute; z-index: 21; width: 26px; height: 26px; }
+  #s3-pen { position: absolute; z-index: 10; width: 30px; height: 30px; margin: -15px 0 0 -15px; }
+  #s3-pen svg { width: 100%; height: 100%; }
 
-  /* ── scene 4 ── */
-  #s4-terminal { left: 110px; top: 402px; width: 860px; height: 342px; padding: 24px 28px; }
-  #s4-chips { position: absolute; left: 110px; top: 784px; display: flex; flex-wrap: wrap; gap: 10px; width: 860px; }
-  #s4-root { position: absolute; right: 40px; top: 24px; }
+  /* spec table */
+  .spec { position: absolute; left: 72px; top: 404px; width: 936px; }
+  .spec-row {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr) auto;
+    align-items: baseline;
+    height: 64px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .spec-row:first-child { border-top: 1px solid var(--rule); }
+  .spec-key { color: var(--ink-3); font-family: 'SCP', monospace; font-size: 12px; line-height: 18px; }
+  .spec-val { color: var(--ink); font-size: 21px; line-height: 28px; font-weight: 500; letter-spacing: -0.2px; }
+  .spec-note { color: var(--ink-3); font-family: 'SCP', monospace; font-size: 11px; line-height: 16px; }
 
-  /* ── scene 5 ── */
-  #s5-grid { position: absolute; left: 90px; top: 376px; width: 900px; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-  .client-card { position: relative; height: 166px; padding: 22px; }
-  .client-icon { position: absolute; right: 22px; top: 22px; width: 40px; height: 40px; color: var(--blue2); }
-  .client-title { color: var(--text); font-size: 25px; font-weight: 600; letter-spacing: -.6px; }
-  .client-sub { margin-top: 10px; color: var(--muted); font-size: 16px; line-height: 24px; }
-  #s5-cmd { left: 90px; top: 784px; width: 900px; height: 82px; display: flex; align-items: center; gap: 18px; padding: 0 26px; }
-  #s5-cmd .prompt { color: var(--blue); font-family: 'SCP', monospace; font-size: 24px; }
-  #s5-cmd .cmd { color: #dce5f2; font-family: 'SCP', monospace; font-size: 24px; }
-  #s5-cmd .hint { margin-left: auto; color: var(--faint); font-size: 15px; }
+  /* terminal */
+  .term {
+    position: absolute;
+    left: 72px;
+    border: 1.5px solid var(--line-strong);
+    background: var(--surface-deep);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .term-head {
+    background: var(--surface-term);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 34px;
+    padding: 0 12px;
+    border-bottom: 1.5px solid var(--line);
+  }
+  .term-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .term-title { margin-left: 6px; color: var(--ink-3); font-family: 'SCP', monospace; font-size: 10px; line-height: 1; }
+  .term-body { padding: 16px 20px 18px; font-family: 'SCP', monospace; font-size: 17px; line-height: 30px; }
+  .term-line { display: grid; grid-template-columns: 28px 190px minmax(0, 1fr); align-items: baseline; }
+  .term-line .mark { color: var(--green); }
+  .term-line .key { color: var(--ink-3); }
+  .term-line .val { color: var(--ink); }
+  .prompt { color: var(--blue-2); }
 
-  /* ── scene 6 ── */
-  #s6-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  #s6-logo { width: 150px; height: 150px; margin-bottom: 26px; filter: drop-shadow(0 0 50px rgba(76,141,255,.4)); }
-  #s6-word { font-size: 102px; line-height: 106px; font-weight: 700; letter-spacing: -4.4px; }
-  #s6-tag { margin-top: 18px; color: var(--muted); font-size: 32px; line-height: 42px; }
-  #s6-pills { display: flex; gap: 10px; margin-top: 28px; }
-  #s6-url { margin-top: 54px; color: var(--blue2); font-size: 44px; line-height: 54px; font-weight: 600; letter-spacing: -1.2px; }
-  #s6-gh { margin-top: 8px; color: var(--faint); font-family: 'SCP', monospace; font-size: 18px; }
+  /* clients */
+  .clients { position: absolute; left: 72px; top: 400px; width: 936px; }
+  .client-row {
+    display: grid;
+    grid-template-columns: 54px 280px minmax(0, 1fr);
+    align-items: center;
+    height: 76px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .client-row:first-child { border-top: 1px solid var(--rule); }
+  .client-num { color: var(--blue-2); font-family: 'SCP', monospace; font-size: 12px; line-height: 16px; }
+  .client-name { color: var(--ink); font-size: 24px; line-height: 30px; font-weight: 500; letter-spacing: -0.3px; }
+  .client-detail { color: var(--ink-2); font-size: 16px; line-height: 24px; }
+
+  .cmd { position: absolute; left: 72px; color: var(--ink); font-family: 'SCP', monospace; font-size: 20px; line-height: 28px; }
+  .cmd-sub { position: absolute; left: 72px; color: var(--ink-3); font-family: 'SCP', monospace; font-size: 12px; line-height: 18px; }
+
+  #s6-mark { position: absolute; left: 72px; top: 196px; width: 120px; height: 120px; }
+  #s6-word { position: absolute; left: 72px; top: 346px; font-size: 76px; line-height: 80px; font-weight: 600; letter-spacing: -2.2px; }
+  #s6-tag { position: absolute; left: 72px; top: 448px; color: var(--ink-2); font-size: 30px; line-height: 40px; }
+  #s6-url { position: absolute; left: 72px; top: 616px; color: var(--blue-2); font-size: 40px; line-height: 48px; font-weight: 500; letter-spacing: -0.8px; }
+  #s6-gh { position: absolute; left: 72px; top: 682px; color: var(--ink-3); font-family: 'SCP', monospace; font-size: 18px; line-height: 24px; }
 </style>
 </head>
 <body>
 <div id="stage">
-  <div id="grid"></div>
-  <div id="glow"></div>
-  <div id="vignette"></div>
-
-  <section class="scene" id="s0">
-    <div id="s0-inner">
-      <svg id="s0-logo" viewBox="0 0 512 512" aria-hidden="true">
+  <header id="topbar">
+    <div id="brand">
+      <svg id="brand-mark" viewBox="0 0 512 512" aria-hidden="true">
         <circle cx="256" cy="256" r="184" fill="none" stroke="#89b4fa" stroke-width="63"/>
         <circle cx="386" cy="386" r="68" fill="#89b4fa"/>
       </svg>
-      <div id="s0-word">Orbiscreen</div>
-      <div id="s0-tag">Your tablet is your second monitor.</div>
-      <div id="s0-pills" class="chips">
-        <span class="chip"><span class="dot"></span> GPL-3.0</span>
-        <span class="chip"><b>Rust</b> 1.92+</span>
-        <span class="chip"><b>Linux</b> · Android</span>
+      <span id="brand-word">Orbiscreen</span>
+    </div>
+    <div id="timecode">00:00:00:00</div>
+  </header>
+  <div id="progress"></div>
+  <div id="toprule" class="rule"></div>
+  <div id="bottomrule" class="rule"></div>
+  <div id="foot-left">orbiscreen.com</div>
+  <div id="foot-right">GPL-3.0 · Rust · Linux + Android</div>
+
+  <section class="scene" id="s0">
+    <p class="kicker" id="s0-kicker">Linux + Android</p>
+    <h1 class="headline" id="s0-title">Your tablet is already<br>a <span class="accent">second monitor</span>.</h1>
+    <p class="sub" id="s0-sub">A real extended display for Linux. Local, low latency, open source.</p>
+
+    <div id="s0-figure" style="position:absolute;left:72px;top:470px;width:936px;height:420px;">
+      <div class="monitor" id="s0-monitor" style="left:0;top:24px;width:520px;height:352px;">
+        <div class="screen" style="left:18px;top:18px;width:484px;height:286px;">
+          <div class="win" style="left:26px;top:26px;width:250px;height:170px;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">terminal</span></div>
+            <div class="win-body">
+              <div class="win-line blue" style="width:48%"></div>
+              <div class="win-line" style="width:82%"></div>
+              <div class="win-line" style="width:66%"></div>
+              <div class="win-line blue" style="width:54%"></div>
+              <div class="win-line" style="width:40%"></div>
+            </div>
+          </div>
+          <div class="win" style="left:298px;top:62px;width:162px;height:152px;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
+            <div class="win-body">
+              <div class="win-line blue" style="width:40%"></div>
+              <div class="win-line" style="width:84%"></div>
+              <div class="win-line" style="width:72%"></div>
+              <div class="win-line" style="width:56%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="stand" style="left:246px;top:304px;width:10px;height:30px;"></div>
+        <div class="foot" style="left:174px;top:334px;width:172px;height:5px;"></div>
       </div>
-      <div id="s0-version" class="mono">v0.45.2</div>
+
+      <div class="tablet" id="s0-tablet" style="left:756px;top:10px;width:180px;height:320px;">
+        <div class="screen" style="left:14px;top:16px;width:152px;height:272px;">
+          <div class="win" style="left:14px;top:30px;width:124px;height:150px;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">display 2</span></div>
+            <div class="win-body">
+              <div class="win-line blue" style="width:44%"></div>
+              <div class="win-line" style="width:80%"></div>
+              <div class="win-line" style="width:64%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="cam" style="top:7px;"></div>
+        <div class="home" style="bottom:9px;"></div>
+      </div>
+
+      <div id="s0-packets" style="position:absolute;left:520px;top:160px;width:236px;height:40px;"></div>
+      <svg class="signal" id="s0-signal" viewBox="0 0 236 40" style="left:520px;top:160px;width:236px;height:40px;">
+        <path id="s0-signal-path" pathLength="1" d="M0 20 H236"/>
+        <line class="tick" x1="56" y1="13" x2="56" y2="27"/>
+        <line class="tick" x1="118" y1="13" x2="118" y2="27"/>
+        <line class="tick" x1="180" y1="13" x2="180" y2="27"/>
+      </svg>
+      <span class="note" id="s0-host" style="left:0;top:392px;">host</span>
+      <span class="note" id="s0-tab" style="left:756px;top:392px;">tablet</span>
     </div>
   </section>
 
   <section class="scene" id="s1">
-    <p class="eyebrow" id="s1-eyebrow">01 · Display</p>
-    <h2 class="title" id="s1-title">A real second<br>screen. <span class="accent">Not a mirror.</span></h2>
-    <p class="sub" id="s1-sub">A virtual monitor your compositor creates. Drag a window onto it and keep working.</p>
+    <p class="kicker" id="s1-kicker">Extended display</p>
+    <h2 class="headline" id="s1-title" style="font-size:60px;line-height:66px;letter-spacing:-1.4px;">A real second screen,<br>not a copy.</h2>
+    <p class="sub" id="s1-sub">The compositor creates a virtual output. Drag a window onto it and keep working.</p>
 
-    <div class="card" id="s1-monitor">
-      <div class="monitor-screen">
-        <div class="wall"></div>
-        <div class="win" style="left:26px;top:54px;width:226px;height:168px;">
-          <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">terminal</span></div>
-          <div class="win-body">
-            <div class="code-line blue" style="width:46%"></div>
-            <div class="code-line" style="width:78%"></div>
-            <div class="code-line short"></div>
-            <div class="code-line blue" style="width:58%"></div>
-            <div class="code-line" style="width:70%"></div>
-            <div class="code-line short"></div>
+    <div id="s1-figure" style="position:absolute;left:72px;top:430px;width:936px;height:500px;">
+      <div class="monitor" id="s1-monitor" style="left:0;top:40px;width:560px;height:380px;">
+        <div class="screen" style="left:18px;top:18px;width:524px;height:302px;">
+          <div class="win" id="s1-host-window" style="left:40px;top:40px;width:300px;height:200px;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
+            <div class="win-body">
+              <div class="win-line blue" style="width:40%"></div>
+              <div class="win-line" style="width:82%"></div>
+              <div class="win-line" style="width:66%"></div>
+              <div class="win-line blue" style="width:50%"></div>
+              <div class="win-line" style="width:34%"></div>
+            </div>
+          </div>
+          <div class="win" style="left:300px;top:120px;width:190px;height:150px;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">terminal</span></div>
+            <div class="win-body" style="padding:8px 10px;">
+              <div class="win-line blue" style="width:46%;margin:6px 0;"></div>
+              <div class="win-line" style="width:82%;margin:6px 0;"></div>
+              <div class="win-line" style="width:64%;margin:6px 0;"></div>
+              <div class="win-line" style="width:40%;margin:6px 0;"></div>
+            </div>
           </div>
         </div>
-        <div class="win" style="left:276px;top:84px;width:228px;height:190px;">
-          <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
-          <div class="win-body">
-            <div class="code-line blue" style="width:38%"></div>
-            <div class="code-line" style="width:86%"></div>
-            <div class="code-line" style="width:72%"></div>
-            <div class="code-line short"></div>
-            <div class="code-line blue" style="width:48%"></div>
-            <div class="code-line" style="width:64%"></div>
+        <div class="stand" style="left:266px;top:320px;width:10px;height:30px;"></div>
+        <div class="foot" style="left:194px;top:350px;width:172px;height:5px;"></div>
+      </div>
+
+      <div class="tablet" id="s1-tablet" style="left:726px;top:0;width:210px;height:440px;">
+        <div class="screen" style="left:14px;top:16px;width:182px;height:390px;">
+          <div class="win" id="s1-tab-window" style="left:14px;top:40px;width:150px;height:100px;opacity:0;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
+            <div class="win-body" style="padding:6px 8px;">
+              <div class="win-line blue" style="width:40%;margin:4px 0;"></div>
+              <div class="win-line" style="width:82%;margin:4px 0;"></div>
+              <div class="win-line" style="width:60%;margin:4px 0;"></div>
+            </div>
           </div>
         </div>
+        <div class="cam" style="top:7px;"></div>
+        <div class="home" style="bottom:9px;"></div>
       </div>
-      <div class="monitor-neck"></div>
-      <div class="monitor-base"></div>
-    </div>
 
-    <div class="card" id="s1-tablet">
-      <div class="tablet-screen">
-        <div class="wall" style="background: radial-gradient(circle at 70% 20%, #1d3350 0%, #0d1622 60%, #090d13 100%);"></div>
-        <div class="win" id="s1-tablet-window">
-          <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
-          <div class="win-body">
-            <div class="code-line blue" style="width:40%"></div>
-            <div class="code-line" style="width:82%"></div>
-            <div class="code-line short"></div>
-            <div class="code-line blue" style="width:52%"></div>
-          </div>
+      <div class="win" id="s1-ghost" style="left:0;top:0;width:300px;height:200px;">
+        <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
+        <div class="win-body">
+          <div class="win-line blue" style="width:40%"></div>
+          <div class="win-line" style="width:82%"></div>
+          <div class="win-line" style="width:66%"></div>
+          <div class="win-line blue" style="width:50%"></div>
         </div>
       </div>
-      <div class="tablet-cam"></div>
-      <div class="tablet-home"></div>
+      <svg id="s1-cursor" viewBox="0 0 24 24"><path d="M3 2 20 12l-7 2-3 7z" fill="#e8edf5" stroke="#0e1116" stroke-width="1.2"/></svg>
+
+      <div id="s1-packets" style="position:absolute;left:560px;top:188px;width:166px;height:40px;"></div>
+      <svg class="signal" id="s1-signal" viewBox="0 0 166 40" style="left:560px;top:188px;width:166px;height:40px;">
+        <path id="s1-signal-path" pathLength="1" d="M0 20 H166"/>
+      </svg>
+      <span class="note" id="s1-host" style="left:18px;top:458px;">host</span>
+      <span class="note" id="s1-tab" style="left:726px;top:458px;">tablet · 1920 × 1080 / 60 Hz</span>
     </div>
-
-    <svg id="s1-link" viewBox="0 0 150 220" aria-hidden="true">
-      <path d="M4 110 C 50 110, 100 110, 146 110" fill="none" stroke="rgba(76,141,255,.45)" stroke-width="2" stroke-dasharray="7 9"/>
-      <circle cx="4" cy="110" r="4" fill="#4c8dff"/>
-      <circle cx="146" cy="110" r="4" fill="#4c8dff"/>
-    </svg>
-
-    <div class="card win" id="s1-ghost">
-      <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
-      <div class="win-body">
-        <div class="code-line blue" style="width:40%"></div>
-        <div class="code-line" style="width:82%"></div>
-        <div class="code-line short"></div>
-        <div class="code-line blue" style="width:52%"></div>
-      </div>
-    </div>
-    <svg id="s1-cursor" viewBox="0 0 24 24"><path d="M4 2 20 12l-7 2-3 7z" fill="#fff" stroke="#0a0d11" stroke-width="1.6"/></svg>
-
-    <div class="chip" id="s1-badge"><span class="dot"></span> Extended · 1920×1080</div>
-    <p id="s1-caption"><b>Same desktop.</b> A second output, not a copy.</p>
   </section>
 
   <section class="scene" id="s2">
-    <p class="eyebrow" id="s2-eyebrow">02 · Transport</p>
-    <h2 class="title" id="s2-title">H.264 over<br>LAN or USB.</h2>
-    <p class="sub" id="s2-sub">Low-latency video, tuned for a real second screen.</p>
+    <p class="kicker" id="s2-kicker">Transport</p>
+    <h2 class="headline" id="s2-title" style="font-size:60px;line-height:66px;letter-spacing:-1.4px;">H.264 over<br>LAN or USB.</h2>
+    <p class="sub" id="s2-sub" style="top:320px;">Hardware encoding, Reed-Solomon FEC, and a transport tuned for a local network.</p>
 
-    <div class="card" id="s2-host">
-      <div class="cap-label">HOST</div>
-      <div class="cap-main">Encoder</div>
-      <div class="cap-sub">NVENC · VA-API · x264</div>
+    <div class="spec" id="s2-spec" style="top:404px;">
+      <div class="spec-row"><span class="spec-key">Encoder</span><span class="spec-val">NVENC / VA-API / x264</span><span class="spec-note">H.264</span></div>
+      <div class="spec-row"><span class="spec-key">Transport</span><span class="spec-val">UDP + FEC / USB AOA</span><span class="spec-note">2–4 ms</span></div>
+      <div class="spec-row"><span class="spec-key">Latency</span><span class="spec-val">25–40 ms glass to glass</span><span class="spec-note">LAN</span></div>
     </div>
 
-    <div id="s2-pipe">
-      <div id="s2-line"></div>
-      <div id="s2-packets"></div>
-    </div>
+    <div id="s2-packets" style="position:absolute;left:72px;top:624px;width:936px;height:48px;"></div>
+    <svg class="signal" id="s2-line" viewBox="0 0 936 40" style="left:72px;top:628px;width:936px;height:40px;">
+      <path id="s2-line-path" pathLength="1" d="M0 20 H936"/>
+      <line class="tick" x1="120" y1="13" x2="120" y2="27"/>
+      <line class="tick" x1="300" y1="13" x2="300" y2="27"/>
+      <line class="tick" x1="480" y1="13" x2="480" y2="27"/>
+      <line class="tick" x1="660" y1="13" x2="660" y2="27"/>
+      <line class="tick" x1="840" y1="13" x2="840" y2="27"/>
+    </svg>
+    <span class="note" id="s2-host" style="left:72px;top:668px;">host</span>
+    <span class="note" id="s2-tab" style="right:72px;top:668px;">tablet</span>
 
-    <div class="card" id="s2-tab">
-      <div class="cap-label">TABLET</div>
-      <div class="cap-main">Decoder</div>
-      <div class="cap-sub">25–40 ms glass to glass</div>
-    </div>
-
-    <div id="s2-chips" class="chips">
-      <span class="chip"><b>2–4 ms</b> transport</span>
-      <span class="chip"><b>UDP</b> + FEC</span>
-      <span class="chip"><b>USB AOA</b></span>
-    </div>
-
-    <div class="card" id="s2-terminal">
+    <div class="term" id="s2-term" style="top:722px;width:936px;height:214px;">
       <div class="term-head">
-        <span class="term-dot" style="background:#ff5f57"></span>
-        <span class="term-dot" style="background:#febc2e"></span>
-        <span class="term-dot" style="background:#28c840"></span>
+        <span class="term-dot" style="background:var(--red)"></span>
+        <span class="term-dot" style="background:var(--amber)"></span>
+        <span class="term-dot" style="background:var(--green)"></span>
         <span class="term-title">orbiscreen · stream</span>
       </div>
-      <div class="term-line"><span class="prompt">$</span> <span class="val">orbiscreen start</span></div>
-      <div class="term-line"><span class="ok">✓</span> <span class="key">virtual display</span> <span class="val">1920×1080 @ 60</span></div>
-      <div class="term-line"><span class="ok">✓</span> <span class="key">encoder</span> <span class="val">NVENC · H.264 · CBR 8 Mbps</span></div>
-      <div class="term-line"><span class="ok">✓</span> <span class="key">transport</span> <span class="val">UDP + Reed-Solomon FEC</span></div>
-      <div class="term-line"><span class="ok">→</span> <span class="key">glass to glass</span> <span class="val">25–40 ms</span></div>
+      <div class="term-body">
+        <div><span class="prompt">$</span> <span id="s2-cmd-text"></span></div>
+        <div class="term-line"><span></span><span class="key">virtual display</span><span class="val">1920 × 1080 @ 60</span></div>
+        <div class="term-line"><span></span><span class="key">encoder</span><span class="val">NVENC · H.264 · CBR 8 Mbps</span></div>
+        <div class="term-line"><span></span><span class="key">transport</span><span class="val">UDP + Reed-Solomon FEC</span></div>
+        <div class="term-line"><span></span><span class="key">latency</span><span class="val">25–40 ms glass to glass</span></div>
+      </div>
     </div>
   </section>
 
   <section class="scene" id="s3">
-    <p class="eyebrow" id="s3-eyebrow">03 · Input</p>
-    <h2 class="title" id="s3-title">Touch and pen go back.</h2>
-    <p class="sub" id="s3-sub">Multi-touch, keyboard, and a 4095-level stylus.</p>
+    <p class="kicker" id="s3-kicker">Input</p>
+    <h2 class="headline" id="s3-title" style="font-size:60px;line-height:66px;letter-spacing:-1.4px;">Touch and pen<br>go back.</h2>
+    <p class="sub" id="s3-sub">Your apps see a real Linux tablet: pressure, tilt, and multi-touch.</p>
 
-    <div class="card canvas-win" id="s3-desktop">
-      <div class="canvas-tool">
-        <div class="tool-dot on"></div>
-        <div class="tool-dot"></div>
-        <div class="tool-dot"></div>
-        <div class="tool-dot"></div>
-        <div class="tool-dot"></div>
+    <div class="tablet" id="s3-tablet" style="left:72px;top:420px;width:300px;height:470px;">
+      <div class="screen" style="left:16px;top:18px;width:268px;height:404px;">
+        <svg viewBox="0 0 268 404" style="position:absolute;inset:0;width:100%;height:100%;">
+          <path id="s3-tab-path" pathLength="1" d="M40 302 C 62 140, 104 330, 136 188 S 196 96, 228 246" fill="none" stroke="#4c8dff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
-      <div class="canvas-area">
-        <div class="canvas-grid"></div>
-        <svg viewBox="0 0 514 388" style="position:absolute;inset:0;width:100%;height:100%">
-          <path id="s3-desk-path" pathLength="1" d="M52 300 C 118 120, 190 330, 262 170 S 390 80, 468 250"/>
+      <div class="cam" style="top:8px;"></div>
+      <div class="home" style="bottom:10px;"></div>
+    </div>
+
+    <div class="win" id="s3-desktop" style="left:480px;top:420px;width:528px;height:440px;">
+      <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">Krita · canvas</span></div>
+      <div style="position:absolute;inset:26px 0 0;background:var(--surface-2);">
+        <svg viewBox="0 0 528 414" style="position:absolute;inset:0;width:100%;height:100%;">
+          <path id="s3-desk-path" pathLength="1" d="M79 310 C 122 144, 205 338, 268 193 S 386 98, 449 252" fill="none" stroke="#4c8dff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
     </div>
-
-    <div class="card" id="s3-tablet">
-      <div class="tablet-screen">
-        <div class="wall" style="background: radial-gradient(circle at 40% 30%, #16263b 0%, #0c121b 70%);"></div>
-        <div class="canvas-grid" style="opacity:.7"></div>
-        <svg viewBox="0 0 234 322" style="position:absolute;inset:0;width:100%;height:100%">
-          <path id="s3-tab-path" pathLength="1" d="M24 250 C 56 100, 88 276, 120 142 S 182 66, 210 208"/>
-        </svg>
-        <div id="s3-pen">
-          <svg viewBox="0 0 32 32"><path d="M6 26l4-10L24 3l5 5-13 14z" fill="#dce5f2" stroke="#0a0d11" stroke-width="1.4"/><path d="M10 16l5 5" stroke="#8997aa" stroke-width="1.2"/></svg>
-        </div>
-      </div>
-      <div class="tablet-cam"></div>
-      <div class="tablet-home"></div>
+    <div id="s3-pen">
+      <svg viewBox="0 0 32 32"><path d="M6 26l4-10L24 3l5 5-13 14z" fill="#1b222b" stroke="#e8edf5" stroke-width="1.6"/><path d="M10 16l5 5" stroke="#e8edf5" stroke-width="1.2" stroke-opacity="0.55"/><path d="M6 26l4-10 2 2-4 10z" fill="#89b4fa"/></svg>
     </div>
 
-    <div id="s3-chips" class="chips">
-      <span class="chip"><b>4095</b> pressure levels</span>
-      <span class="chip"><b>tilt</b> · hover</span>
-      <span class="chip"><b>uinput</b> · RemoteDesktop</span>
-    </div>
-    <p id="s3-note">The stroke lands in the app on the host, with pressure and tilt intact.</p>
+    <div id="s3-packets" style="position:absolute;left:372px;top:604px;width:108px;height:40px;"></div>
+    <svg class="signal" id="s3-signal" viewBox="0 0 108 40" style="left:372px;top:608px;width:108px;height:40px;">
+      <path id="s3-signal-path" pathLength="1" d="M108 20 H0"/>
+      <path d="M10 13 L0 20 L10 27" />
+    </svg>
+    <span class="note" id="s3-uinput" style="left:404px;top:586px;">uinput</span>
+    <p class="note" id="s3-caption" style="left:480px;top:882px;">4095 pressure levels · tilt · hover</p>
   </section>
 
   <section class="scene" id="s4">
-    <p class="eyebrow" id="s4-eyebrow">04 · Setup</p>
-    <h2 class="title" id="s4-title">Rootless where<br>it counts.</h2>
-    <p class="sub" id="s4-sub">No root. No share dialog on KDE and wlroots. One consent, then it works.</p>
+    <p class="kicker" id="s4-kicker">Setup</p>
+    <h2 class="headline" id="s4-title" style="font-size:60px;line-height:66px;letter-spacing:-1.4px;">Rootless where<br>it counts.</h2>
+    <p class="sub" id="s4-sub">KDE and wlroots need no root, no kernel module, and no share dialog.</p>
 
-    <div class="card" id="s4-terminal">
+    <div class="term" id="s4-term" style="top:424px;width:936px;height:252px;">
       <div class="term-head">
-        <span class="term-dot" style="background:#ff5f57"></span>
-        <span class="term-dot" style="background:#febc2e"></span>
-        <span class="term-dot" style="background:#28c840"></span>
+        <span class="term-dot" style="background:var(--red)"></span>
+        <span class="term-dot" style="background:var(--amber)"></span>
+        <span class="term-dot" style="background:var(--green)"></span>
         <span class="term-title">orbiscreen · doctor</span>
       </div>
-      <div class="term-line"><span class="prompt">$</span> <span class="val">orbiscreen doctor</span></div>
-      <div class="term-line"><span class="ok">✓</span> <span class="key">compositor</span> <span class="val">KWin (Wayland)</span></div>
-      <div class="term-line"><span class="ok">✓</span> <span class="key">virtual display</span> <span class="val">portal</span></div>
-      <div class="term-line"><span class="ok">✓</span> <span class="key">capture</span> <span class="val">PipeWire</span></div>
-      <div class="term-line"><span class="ok">✓</span> <span class="key">input</span> <span class="val">RemoteDesktop + uinput</span></div>
-      <div class="term-line"><span class="warn">root</span> <span class="key">not needed</span> <span class="ok" style="margin-left:10px">✓</span></div>
+      <div class="term-body" id="s4-body">
+        <div><span class="prompt">$</span> orbiscreen doctor</div>
+        <div class="term-line"><span class="mark">✓</span><span class="key">compositor</span><span class="val">KWin (Wayland)</span></div>
+        <div class="term-line"><span class="mark">✓</span><span class="key">virtual display</span><span class="val">portal</span></div>
+        <div class="term-line"><span class="mark">✓</span><span class="key">capture</span><span class="val">PipeWire</span></div>
+        <div class="term-line"><span class="mark">✓</span><span class="key">input</span><span class="val">RemoteDesktop + uinput</span></div>
+        <div class="term-line"><span class="mark">→</span><span class="key">root</span><span class="val">not required</span></div>
+      </div>
     </div>
-
-    <div id="s4-chips" class="chips">
-      <span class="chip">KDE Plasma</span>
-      <span class="chip">GNOME 46+</span>
-      <span class="chip">Sway</span>
-      <span class="chip">Hyprland</span>
-      <span class="chip">X11</span>
-    </div>
+    <p class="note" id="s4-note" style="left:72px;top:704px;">KDE Plasma · GNOME 46+ · Sway · Hyprland · X11</p>
   </section>
 
   <section class="scene" id="s5">
-    <p class="eyebrow" id="s5-eyebrow">05 · Clients</p>
-    <h2 class="title" id="s5-title">Any Android.<br>Any desktop.</h2>
-    <p class="sub" id="s5-sub">Native app, browser, LAN or USB. Pick what you have.</p>
+    <p class="kicker" id="s5-kicker">Clients</p>
+    <h2 class="headline" id="s5-title" style="font-size:60px;line-height:66px;letter-spacing:-1.4px;">Any Android.<br>Any desktop.</h2>
+    <p class="sub" id="s5-sub">Native app, browser, LAN or USB. No install for the browser.</p>
 
-    <div id="s5-grid">
-      <div class="card client-card">
-        <svg class="client-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>
-        <div class="client-title">Android app</div>
-        <div class="client-sub">Material 3 · Compose<br>Touch and stylus input</div>
-      </div>
-      <div class="card client-card">
-        <svg class="client-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"/></svg>
-        <div class="client-title">Browser</div>
-        <div class="client-sub">WebCodecs · no install<br>Chromium over WebTransport</div>
-      </div>
-      <div class="card client-card">
-        <svg class="client-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 12h8M12 4v8M8 8l4-4 4 4M8 16l4 4 4-4"/></svg>
-        <div class="client-title">USB AOA</div>
-        <div class="client-sub">No adb reverse<br>Wired, no Wi-Fi</div>
-      </div>
-      <div class="card client-card">
-        <svg class="client-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8.5c5-4 13-4 18 0M6 12c3.5-2.6 8.5-2.6 12 0M9 15.5c1.8-1.3 4.2-1.3 6 0"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/></svg>
-        <div class="client-title">LAN</div>
-        <div class="client-sub">UDP + Reed-Solomon FEC<br>mDNS discovery</div>
-      </div>
+    <div class="clients" id="s5-list">
+      <div class="client-row"><span class="client-num">01</span><span class="client-name">Android app</span><span class="client-detail">Material 3 · touch and stylus</span></div>
+      <div class="client-row"><span class="client-num">02</span><span class="client-name">Browser</span><span class="client-detail">WebCodecs · no install</span></div>
+      <div class="client-row"><span class="client-num">03</span><span class="client-name">USB AOA</span><span class="client-detail">wired · no adb reverse</span></div>
+      <div class="client-row"><span class="client-num">04</span><span class="client-name">LAN</span><span class="client-detail">UDP + FEC · mDNS discovery</span></div>
     </div>
 
-    <div class="card" id="s5-cmd">
-      <span class="prompt">$</span>
-      <span class="cmd">sudo apt install orbiscreen</span>
-      <span class="hint">also dnf · pacman · COPR · PPA</span>
-    </div>
+    <p class="cmd" id="s5-cmd" style="top:768px;"><span class="prompt">$</span> <span id="s5-cmd-text"></span></p>
+    <p class="cmd-sub" id="s5-cmd-sub" style="top:810px;">also dnf · pacman · PPA · COPR</p>
   </section>
 
   <section class="scene" id="s6">
-    <div id="s6-inner">
-      <svg id="s6-logo" viewBox="0 0 512 512" aria-hidden="true">
-        <circle cx="256" cy="256" r="184" fill="none" stroke="#89b4fa" stroke-width="63"/>
-        <circle cx="386" cy="386" r="68" fill="#89b4fa"/>
-      </svg>
-      <div id="s6-word">Orbiscreen</div>
-      <div id="s6-tag">Your tablet is your second monitor.</div>
-      <div id="s6-pills" class="chips">
-        <span class="chip"><span class="dot"></span> Open source</span>
-        <span class="chip"><b>GPL-3.0</b></span>
-        <span class="chip"><b>Rust</b> 1.92+</span>
-      </div>
-      <div id="s6-url">orbiscreen.com</div>
-      <div id="s6-gh">github.com/shadow-x78/orbiscreen</div>
-    </div>
+    <svg id="s6-mark" viewBox="0 0 512 512" aria-hidden="true">
+      <circle cx="256" cy="256" r="184" fill="none" stroke="#89b4fa" stroke-width="63"/>
+      <circle cx="386" cy="386" r="68" fill="#89b4fa"/>
+    </svg>
+    <div id="s6-word">Orbiscreen</div>
+    <div id="s6-tag">Your tablet is your second monitor.</div>
+    <svg class="signal" id="s6-line" viewBox="0 0 936 40" style="left:72px;top:566px;width:936px;height:40px;">
+      <path id="s6-line-path" pathLength="1" d="M0 20 H936"/>
+      <line class="tick" x1="120" y1="13" x2="120" y2="27"/>
+      <line class="tick" x1="300" y1="13" x2="300" y2="27"/>
+      <line class="tick" x1="480" y1="13" x2="480" y2="27"/>
+      <line class="tick" x1="660" y1="13" x2="660" y2="27"/>
+      <line class="tick" x1="840" y1="13" x2="840" y2="27"/>
+    </svg>
+    <div id="s6-url">orbiscreen.com</div>
+    <div id="s6-gh">github.com/shadow-x78/orbiscreen</div>
   </section>
 </div>
 
@@ -510,200 +546,227 @@
   const $ = (id) => document.getElementById(id);
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
   const p = (t, a, b) => clamp((t - a) / (b - a));
-  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-  const easeIn = (t) => t * t * t;
-  const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  const lerp = (a, b, t) => a + (b - a) * t;
-  const backOut = (t) => { const c = 1.70158; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
 
-  function place(el, o, x = 0, y = 0, s = 1) {
+  function place(el, o, x = 0, y = 0, s = 1, rot = 0) {
     el.style.opacity = o;
-    el.style.transform = `translate3d(${x}px,${y}px,0) scale(${s})`;
+    el.style.transform = `translate3d(${x}px,${y}px,0) scale(${s}) rotate(${rot}deg)`;
   }
-  function enter(el, t, a, d, dy = 28, s0 = 1) {
-    const q = easeOut(p(t, a, a + d));
-    place(el, q, 0, (1 - q) * dy, lerp(s0, 1, q));
+  function enter(el, t, a, d, dy = 12) {
+    const q = ease(p(t, a, a + d));
+    place(el, q, 0, (1 - q) * dy);
   }
-  function enterX(el, t, a, d, dx = -40) {
-    const q = easeOut(p(t, a, a + d));
-    place(el, q, (1 - q) * dx, 0, 1);
+  function draw(path, q) {
+    path.style.strokeDasharray = '1';
+    path.style.strokeDashoffset = String(1 - q);
   }
-  function sceneVis(el, lt, dur, fade = 0.42) {
-    const i = easeOut(clamp(lt / fade));
-    const o = easeOut(clamp((lt - (dur - fade)) / fade));
-    el.style.opacity = Math.min(i, 1 - o);
+  function type(el, t, a, b, text) {
+    const q = p(t, a, b);
+    el.textContent = text.slice(0, Math.floor(text.length * q));
   }
-
-  const packets = [];
-  (() => {
-    const wrap = $('s2-packets');
-    for (let i = 0; i < 16; i += 1) {
+  function packets(wrap, count) {
+    const list = [];
+    for (let i = 0; i < count; i += 1) {
       const d = document.createElement('div');
-      d.className = 'packet' + (i % 5 === 4 ? ' fec' : '');
+      d.className = 'packet';
       wrap.appendChild(d);
-      packets.push(d);
+      list.push(d);
     }
-  })();
+    return list;
+  }
+  function movePackets(list, t, start, span = 1.6, amp = 7) {
+    list.forEach((el, i) => {
+      const q = ((t - start) / span + i * 0.13) % 1;
+      el.style.left = `${q * 100}%`;
+      el.style.top = `${16 + Math.sin(q * Math.PI) * (i % 3 === 0 ? -amp : amp)}px`;
+      el.style.opacity = t >= start ? 1 : 0;
+    });
+  }
 
+  const TOTAL = 34.0;
+  const FPS = 30;
+
+  const s0Packets = packets($('s0-packets'), 10);
+  const s1Packets = packets($('s1-packets'), 8);
+  const s2Packets = packets($('s2-packets'), 14);
+  const s3Packets = packets($('s3-packets'), 5);
+
+  const s0Signal = $('s0-signal-path');
+  const s1Signal = $('s1-signal-path');
+  const s2Line = $('s2-line-path');
+  const s3Signal = $('s3-signal-path');
+  const s6Line = $('s6-line-path');
   const deskPath = $('s3-desk-path');
   const tabPath = $('s3-tab-path');
   const pen = $('s3-pen');
-  const dragGhost = $('s1-ghost');
-  const dragCursor = $('s1-cursor');
-  const tabletWindow = $('s1-tablet-window');
+  const ghost = $('s1-ghost');
+  const cursor = $('s1-cursor');
 
-  const TOTAL = 32.4;
+  function timecode(t) {
+    const total = Math.max(0, Math.min(TOTAL, t));
+    const secs = Math.floor(total);
+    const frames = Math.floor((total - secs) * FPS) % FPS;
+    const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+    const ss = String(secs % 60).padStart(2, '0');
+    const ff = String(frames).padStart(2, '0');
+    return `00:${mm}:${ss}:${ff}`;
+  }
 
   function render(t) {
+    $('progress').style.width = `${(clamp(t / TOTAL) * 936).toFixed(2)}px`;
+    $('timecode').textContent = timecode(t);
+
     const s0 = $('s0');
-    if (t < 3.6) {
-      sceneVis(s0, t, 3.6);
-      const a = easeOut(p(t, 0.12, 0.62));
-      s0.querySelector('#s0-logo').style.opacity = a;
-      s0.querySelector('#s0-logo').style.transform = `scale(${lerp(0.65, 1, a)})`;
-      enter(s0.querySelector('#s0-word'), t, 0.34, 0.55, 34);
-      enter(s0.querySelector('#s0-tag'), t, 0.58, 0.5, 28);
-      enter(s0.querySelector('#s0-pills'), t, 0.82, 0.45, 24);
-      enter(s0.querySelector('#s0-version'), t, 1.05, 0.4, 16);
+    if (t < 4.2) {
+      s0.style.opacity = 1;
+      enter($('s0-kicker'), t, -0.35, 0.5, 8);
+      enter($('s0-title'), t, -0.3, 0.7, 14);
+      enter($('s0-sub'), t, -0.1, 0.5, 10);
+      const dq = ease(p(t, 0.5, 1.3));
+      $('s0-monitor').style.opacity = dq;
+      $('s0-tablet').style.opacity = dq;
+      $('s0-monitor').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      $('s0-tablet').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      $('s0-signal').style.opacity = p(t, 0.9, 1.1);
+      draw(s0Signal, ease(p(t, 0.9, 1.7)));
+      $('s0-host').style.opacity = p(t, 1.1, 1.3);
+      $('s0-tab').style.opacity = p(t, 1.1, 1.3);
+      movePackets(s0Packets, t, 1.1, 1.5, 6);
     } else s0.style.opacity = 0;
 
     const s1 = $('s1');
-    if (t >= 3.6 && t < 8.7) {
-      const lt = t - 3.6;
-      sceneVis(s1, lt, 5.1);
-      enter($('s1-eyebrow'), t, 3.7, 0.4);
-      enter($('s1-title'), t, 3.78, 0.55, 36);
-      enter($('s1-sub'), t, 3.92, 0.5, 28);
-      enterX($('s1-monitor'), t, 4.0, 0.55, -70);
-      enterX($('s1-tablet'), t, 4.14, 0.55, 70);
-      const link = easeOut(p(t, 4.5, 5.0));
-      $('s1-link').style.opacity = link;
-      const drag = easeInOut(p(t, 5.05, 6.35));
-      const gx = lerp(0, 494, drag);
-      const gy = lerp(0, 4, drag);
-      const gs = lerp(1, 0.6, drag);
-      dragGhost.style.opacity = 1 - p(t, 6.35, 6.6);
-      dragGhost.style.transform = `translate3d(${gx}px,${gy}px,0) scale(${gs})`;
-      dragCursor.style.opacity = p(t, 5.0, 5.2) * (1 - p(t, 6.35, 6.6));
-      dragCursor.style.transform = `translate3d(${250 + gx + 174}px,${474 + gy + 108}px,0) scale(${lerp(1.1, 1, drag)})`;
-      tabletWindow.style.opacity = p(t, 6.35, 6.7);
-      tabletWindow.style.transform = `scale(${lerp(0.9, 1, easeOut(p(t, 6.35, 6.75)))})`;
-      $('s1-badge').style.opacity = easeOut(p(t, 6.6, 6.95));
-      $('s1-badge').style.transform = `translateY(${(1 - easeOut(p(t, 6.6, 6.95))) * 14}px)`;
-      $('s1-caption').style.opacity = easeOut(p(t, 6.8, 7.1));
+    if (t >= 4.2 && t < 9.8) {
+      s1.style.opacity = 1;
+      enter($('s1-kicker'), t, 4.0, 0.35, 8);
+      enter($('s1-title'), t, 4.08, 0.45, 12);
+      enter($('s1-sub'), t, 4.22, 0.4, 10);
+      const dq = ease(p(t, 4.6, 5.1));
+      $('s1-monitor').style.opacity = dq;
+      $('s1-tablet').style.opacity = dq;
+      $('s1-monitor').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      $('s1-tablet').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      $('s1-signal').style.opacity = p(t, 4.9, 5.1);
+      draw(s1Signal, ease(p(t, 4.9, 5.5)));
+      $('s1-host').style.opacity = p(t, 4.9, 5.1);
+      $('s1-tab').style.opacity = p(t, 4.9, 5.1);
+      movePackets(s1Packets, t, 5.0, 1.3, 5);
+      const drag = ease(p(t, 5.5, 6.8));
+      const gx = 58 + drag * 696;
+      const gy = 98 - drag * 42;
+      const gs = 1 - drag * 0.5;
+      $('s1-host-window').style.opacity = 1 - p(t, 5.45, 5.6);
+      ghost.style.opacity = p(t, 5.4, 5.6) * (1 - p(t, 6.8, 7.05));
+      ghost.style.transform = `translate3d(${gx}px,${gy}px,0) scale(${gs})`;
+      ghost.style.transformOrigin = '0 0';
+      cursor.style.opacity = p(t, 5.4, 5.6) * (1 - p(t, 6.8, 7.05));
+      cursor.style.transform = `translate3d(${gx + 300 * gs - 8}px,${gy + 200 * gs - 8}px,0)`;
+      $('s1-tab-window').style.opacity = p(t, 6.75, 7.0);
     } else s1.style.opacity = 0;
 
     const s2 = $('s2');
-    if (t >= 8.7 && t < 13.9) {
-      const lt = t - 8.7;
-      sceneVis(s2, lt, 5.2);
-      enter($('s2-eyebrow'), t, 8.8, 0.4);
-      enter($('s2-title'), t, 8.88, 0.55, 36);
-      enter($('s2-sub'), t, 9.02, 0.5, 28);
-      enter($('s2-host'), t, 9.1, 0.5, 30);
-      enter($('s2-tab'), t, 9.22, 0.5, 30);
-      $('s2-chips').style.opacity = easeOut(p(t, 9.35, 9.7));
-      enter($('s2-terminal'), t, 9.5, 0.55, 40);
-      const lines = $('s2-terminal').querySelectorAll('.term-line');
-      lines.forEach((el, i) => {
-        const q = easeOut(p(t, 10.3 + i * 0.42, 10.65 + i * 0.42));
-        el.style.opacity = q;
-        el.style.transform = `translateY(${(1 - q) * 12}px)`;
+    if (t >= 9.8 && t < 15.6) {
+      s2.style.opacity = 1;
+      enter($('s2-kicker'), t, 9.6, 0.35, 8);
+      enter($('s2-title'), t, 9.68, 0.45, 12);
+      enter($('s2-sub'), t, 9.82, 0.4, 10);
+      [...$('s2-spec').children].forEach((row, i) => {
+        const q = ease(p(t, 10.3 + i * 0.16, 10.6 + i * 0.16));
+        row.style.opacity = q;
+        row.style.transform = `translateY(${(1 - q) * 8}px)`;
       });
-      const start = 9.6;
-      packets.forEach((el, i) => {
-        const speed = 0.62;
-        const q = ((t - start) * speed + i * 0.095) % 1;
-        el.style.left = `${q * 100}%`;
-        el.style.top = `${24 + Math.sin(q * Math.PI) * (i % 2 ? 6 : -6)}px`;
-        el.style.opacity = (t > start ? 1 : 0) * clamp(Math.sin(q * Math.PI) * 1.4, 0, 1);
+      $('s2-line').style.opacity = p(t, 10.5, 10.7);
+      draw(s2Line, ease(p(t, 10.5, 11.2)));
+      $('s2-host').style.opacity = p(t, 10.7, 10.9);
+      $('s2-tab').style.opacity = p(t, 10.7, 10.9);
+      movePackets(s2Packets, t, 10.8, 1.8, 7);
+      $('s2-term').style.opacity = p(t, 11.0, 11.25);
+      type($('s2-cmd-text'), t, 11.15, 11.8, 'orbiscreen start');
+      [...$('s2-term').querySelectorAll('.term-line')].forEach((row, i) => {
+        const q = ease(p(t, 11.9 + i * 0.12, 12.25 + i * 0.12));
+        row.style.opacity = q;
+        row.style.transform = `translateY(${(1 - q) * 6}px)`;
       });
     } else s2.style.opacity = 0;
 
     const s3 = $('s3');
-    if (t >= 13.9 && t < 19.1) {
-      const lt = t - 13.9;
-      sceneVis(s3, lt, 5.2);
-      enter($('s3-eyebrow'), t, 14.0, 0.4);
-      enter($('s3-title'), t, 14.08, 0.55, 36);
-      enter($('s3-sub'), t, 14.22, 0.5, 28);
-      enterX($('s3-desktop'), t, 14.3, 0.55, -60);
-      enterX($('s3-tablet'), t, 14.44, 0.55, 60);
-      const draw = easeInOut(p(t, 15.15, 17.85));
-      const dash = 1 - draw;
-      deskPath.style.strokeDasharray = '1';
-      deskPath.style.strokeDashoffset = dash;
-      tabPath.style.strokeDasharray = '1';
-      tabPath.style.strokeDashoffset = dash;
-      deskPath.style.opacity = t > 15.1 ? 1 : 0;
-      tabPath.style.opacity = t > 15.1 ? 1 : 0;
-      const penQ = p(t, 15.15, 17.85);
+    if (t >= 15.6 && t < 21.0) {
+      s3.style.opacity = 1;
+      enter($('s3-kicker'), t, 15.4, 0.35, 8);
+      enter($('s3-title'), t, 15.48, 0.45, 12);
+      enter($('s3-sub'), t, 15.62, 0.4, 10);
+      const dq = ease(p(t, 16.0, 16.5));
+      $('s3-desktop').style.opacity = dq;
+      $('s3-tablet').style.opacity = dq;
+      $('s3-desktop').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      $('s3-tablet').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      const q = ease(p(t, 16.4, 19.1));
+      draw(deskPath, q);
+      draw(tabPath, q);
+      $('s3-signal').style.opacity = p(t, 16.2, 16.4);
+      draw(s3Signal, ease(p(t, 16.2, 16.8)));
+      $('s3-uinput').style.opacity = p(t, 16.4, 16.6);
+      movePackets(s3Packets, t, 16.4, 1.2, 4);
+      const penQ = p(t, 16.4, 19.1);
       if (penQ > 0 && penQ < 1) {
-        const pt = tabPath.getPointAtLength(tabPath.getTotalLength() * easeInOut(penQ));
-        pen.style.left = `${(pt.x / 234) * 100}%`;
-        pen.style.top = `${(pt.y / 322) * 100}%`;
+        const pt = tabPath.getPointAtLength(tabPath.getTotalLength() * ease(penQ));
+        pen.style.left = `${72 + 16 + (pt.x / 268) * 268}px`;
+        pen.style.top = `${420 + 18 + (pt.y / 404) * 404}px`;
         pen.style.opacity = 1;
       } else pen.style.opacity = 0;
-      $('s3-chips').style.opacity = easeOut(p(t, 17.6, 17.95));
-      $('s3-note').style.opacity = easeOut(p(t, 17.75, 18.1));
+      enter($('s3-caption'), t, 18.8, 0.4, 8);
     } else s3.style.opacity = 0;
 
     const s4 = $('s4');
-    if (t >= 19.1 && t < 23.9) {
-      const lt = t - 19.1;
-      sceneVis(s4, lt, 4.8);
-      enter($('s4-eyebrow'), t, 19.2, 0.4);
-      enter($('s4-title'), t, 19.28, 0.55, 36);
-      enter($('s4-sub'), t, 19.42, 0.5, 28);
-      enter($('s4-terminal'), t, 19.5, 0.55, 40);
-      const lines = $('s4-terminal').querySelectorAll('.term-line');
-      lines.forEach((el, i) => {
-        const q = easeOut(p(t, 20.35 + i * 0.38, 20.7 + i * 0.38));
-        el.style.opacity = q;
-        el.style.transform = `translateY(${(1 - q) * 12}px)`;
+    if (t >= 21.0 && t < 25.8) {
+      s4.style.opacity = 1;
+      enter($('s4-kicker'), t, 20.8, 0.35, 8);
+      enter($('s4-title'), t, 20.88, 0.45, 12);
+      enter($('s4-sub'), t, 21.02, 0.4, 10);
+      $('s4-term').style.opacity = p(t, 21.5, 21.75);
+      [...$('s4-body').children].forEach((row, i) => {
+        const q = ease(p(t, 21.7 + i * 0.14, 22.05 + i * 0.14));
+        row.style.opacity = q;
+        row.style.transform = `translateY(${(1 - q) * 6}px)`;
       });
-      $('s4-chips').style.opacity = easeOut(p(t, 22.2, 22.55));
-      $('s4-chips').style.transform = `translateY(${(1 - easeOut(p(t, 22.2, 22.55))) * 14}px)`;
+      enter($('s4-note'), t, 22.6, 0.4, 6);
     } else s4.style.opacity = 0;
 
     const s5 = $('s5');
-    if (t >= 23.9 && t < 28.2) {
-      const lt = t - 23.9;
-      sceneVis(s5, lt, 4.3);
-      enter($('s5-eyebrow'), t, 24.0, 0.4);
-      enter($('s5-title'), t, 24.08, 0.55, 36);
-      enter($('s5-sub'), t, 24.22, 0.5, 28);
-      [...$('s5-grid').children].forEach((el, i) => {
-        const q = easeOut(p(t, 24.35 + i * 0.12, 24.75 + i * 0.12));
-        el.style.opacity = q;
-        el.style.transform = `translateY(${(1 - q) * 24}px) scale(${lerp(0.96, 1, q)})`;
+    if (t >= 25.8 && t < 30.4) {
+      s5.style.opacity = 1;
+      enter($('s5-kicker'), t, 25.6, 0.35, 8);
+      enter($('s5-title'), t, 25.68, 0.45, 12);
+      enter($('s5-sub'), t, 25.82, 0.4, 10);
+      [...$('s5-list').children].forEach((row, i) => {
+        const q = ease(p(t, 26.3 + i * 0.14, 26.65 + i * 0.14));
+        row.style.opacity = q;
+        row.style.transform = `translateY(${(1 - q) * 8}px)`;
       });
-      $('s5-cmd').style.opacity = easeOut(p(t, 25.35, 25.7));
-      $('s5-cmd').style.transform = `translateY(${(1 - easeOut(p(t, 25.35, 25.7))) * 18}px)`;
+      type($('s5-cmd-text'), t, 26.9, 27.55, 'sudo apt install orbiscreen');
+      enter($('s5-cmd-sub'), t, 27.55, 0.35, 6);
     } else s5.style.opacity = 0;
 
     const s6 = $('s6');
-    if (t >= 28.2) {
-      const lt = t - 28.2;
-      sceneVis(s6, lt, 4.2, 0.5);
-      const a = easeOut(p(t, 28.3, 28.8));
-      $('s6-logo').style.opacity = a;
-      $('s6-logo').style.transform = `scale(${lerp(0.7, 1, a)})`;
-      enter($('s6-word'), t, 28.45, 0.5, 30);
-      enter($('s6-tag'), t, 28.62, 0.5, 24);
-      enter($('s6-pills'), t, 28.78, 0.45, 20);
-      enter($('s6-url'), t, 28.95, 0.5, 20);
-      enter($('s6-gh'), t, 29.1, 0.5, 16);
+    if (t >= 30.4) {
+      s6.style.opacity = 1;
+      const mq = ease(p(t, 30.2, 30.8));
+      $('s6-mark').style.opacity = mq;
+      $('s6-mark').style.transform = `scale(${0.86 + mq * 0.14})`;
+      enter($('s6-word'), t, 30.28, 0.45, 12);
+      enter($('s6-tag'), t, 30.45, 0.4, 10);
+      $('s6-line').style.opacity = p(t, 30.55, 30.75);
+      draw(s6Line, ease(p(t, 30.55, 31.2)));
+      enter($('s6-url'), t, 30.75, 0.4, 8);
+      enter($('s6-gh'), t, 30.9, 0.4, 6);
     } else s6.style.opacity = 0;
-
-    const gx = 540 + Math.sin(t * 0.35) * 120;
-    const gy = 420 + Math.cos(t * 0.28) * 90;
-    $('glow').style.transform = `translate3d(${gx - 900}px,${gy - 900}px,0)`;
   }
 
   const params = new URLSearchParams(location.search);
   if (params.has('t')) {
     render(parseFloat(params.get('t')) || 0);
+  } else if (params.has('capture')) {
+    // deterministic mode for demo/capture.py: no wall-clock loop to race the capture
+    render(0);
   } else {
     const start = performance.now();
     const tick = (now) => {

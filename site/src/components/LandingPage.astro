@@ -188,15 +188,14 @@ const contributingHref = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
 <section class="demo-band" aria-labelledby="demo-title">
   <div class="container demo-band__grid">
     <div class="demo-band__copy">
-      <p class="eyebrow">{lang === 'ar' ? 'عرض' : 'Demo'}</p>
-      <h2 class="demo-band__title" id="demo-title">{lang === 'ar' ? 'شاهده أثناء العمل.' : 'See it in action.'}</h2>
+      <h2 class="demo-band__title" id="demo-title">{lang === 'ar' ? 'جولة في 34 ثانية' : 'A 34-second walkthrough'}</h2>
       <p class="demo-band__body">
         {lang === 'ar'
           ? 'اسحب نافذة إلى الجهاز اللوحي، وبث H.264 عبر الشبكة أو USB، وأعد اللمس والقلم إلى Linux.'
           : 'Drag a window to the tablet, stream H.264 over LAN or USB, and send touch and pen back to Linux.'}
       </p>
       <p class="demo-band__meta mono">
-        {lang === 'ar' ? '32 ثانية · بلا صوت' : '32s loop · silent'}
+        {lang === 'ar' ? 'معاينة 18 ثانية · بلا صوت' : '18s preview · silent'}
       </p>
       <a class="btn btn--secondary" href="/assets/demo/orbiscreen-demo.mp4">
         {lang === 'ar' ? 'شاهد الفيديو الكامل' : 'Watch the full video'}
@@ -210,9 +209,11 @@ const contributingHref = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
         playsinline
         preload="metadata"
         poster="/assets/demo/orbiscreen-demo-poster.png"
+        width="1080"
+        height="1080"
         aria-label={lang === 'ar' ? 'عرض Orbiscreen: جهاز لوحي يصبح شاشة ثانية' : 'Orbiscreen demo: a tablet becomes a second display'}
       >
-        <source src="/assets/demo/orbiscreen-demo-480.mp4" type="video/mp4" />
+        <source src="/assets/demo/orbiscreen-demo-preview.mp4" type="video/mp4" />
       </video>
     </div>
   </div>
