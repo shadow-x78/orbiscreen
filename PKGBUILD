@@ -6,7 +6,7 @@
 # Maintainer: shadow-x78 <shadow-x7@red-shadows-rs.com>
 
 pkgname=orbiscreen
-pkgver=0.45.2
+pkgver=0.45.3
 pkgrel=1
 pkgdesc="Turn Android devices into high-performance secondary monitors for Linux (Wayland & X11)"
 arch=('x86_64')
@@ -18,6 +18,8 @@ depends=(
     'gst-plugins-base'
     'gst-plugins-good'
     'gst-plugins-bad'
+    'gst-plugins-ugly'
+    'gst-plugin-pipewire'
     'libevdev'
     'libxkbcommon'
     'hicolor-icon-theme'

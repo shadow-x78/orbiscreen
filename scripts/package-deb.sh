@@ -88,7 +88,7 @@ Package: orbiscreen
 Version: ${VERSION}
 Architecture: ${ARCH}
 Maintainer: shadow-x78 <shadow-x7@red-shadows-rs.com>
-Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, libxkbcommon0, libevdev2, libqt6widgets6 | libqt6widgets6t64, libqt6network6 | libqt6network6t64, libqt6dbus6 | libqt6dbus6t64, qt6-wayland
+Depends: libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, gstreamer1.0-pipewire, libxkbcommon0, libevdev2, libqt6widgets6 | libqt6widgets6t64, libqt6network6 | libqt6network6t64, libqt6dbus6 | libqt6dbus6t64, qt6-wayland
 Recommends: android-tools-adb
 Suggests: evdi-dkms
 Section: utils

@@ -10,9 +10,9 @@ clients, and the end card.
 | File | Size | What it is |
 |---|---|---|
 | `orbiscreen-demo.mp4` | 1.2 MB | Full 34.0 s, 1080 × 1080, 30 fps, H.264 |
-| `orbiscreen-demo-480.mp4` | 333 KB | Full 34.0 s, 480 × 480, H.264 |
-| `orbiscreen-demo-preview.mp4` | 746 KB | 17.8 s cut: intro, display, transport, end card |
-| `orbiscreen-demo-poster.png` | 196 KB | 1080 × 1080 poster from the intro |
+| `orbiscreen-demo-480.mp4` | 336 KB | Full 34.0 s, 480 × 480, H.264 |
+| `orbiscreen-demo-preview.mp4` | 696 KB | 17.8 s cut: intro, display, transport, end card |
+| `orbiscreen-demo-poster.png` | 188 KB | 1080 × 1080 poster from the intro |
 
 The READMEs embed the poster and link to the full video. The site plays the
 preview. There is no GIF: the old 480 × 480 / 10 fps GIF was the low-quality

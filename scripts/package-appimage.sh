@@ -33,9 +33,11 @@ ARCH="$(uname -m)"
 # ── Build Binaries ──
 echo "Building release binaries..."
 cargo build --release --workspace
+GUI_BUILT=0
 if command -v cmake >/dev/null 2>&1 && pkg-config --exists Qt6Widgets 2>/dev/null; then
     cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release
     cmake --build build-gui -j"$(nproc)"
+    GUI_BUILT=1
 else
     echo "warning: Qt 6 Widgets or CMake not found; building without GUI" >&2
 fi
@@ -46,7 +48,7 @@ rm -rf "$APP"
 mkdir -p "$APP/usr/bin" "$APP/usr/share/orbiscreen/client" "$APP/usr/share/icons/hicolor"
 
 install -m755 target/release/orbiscreen "$APP/usr/bin/orbiscreen"
-if [ -f build-gui/orbiscreen-gui ]; then
+if [ "$GUI_BUILT" = 1 ] && [ -f build-gui/orbiscreen-gui ]; then
     install -m755 build-gui/orbiscreen-gui "$APP/usr/bin/orbiscreen-gui"
 fi
 for f in index.html style.css app.js protocol.js annexb.js stats.js favicon.svg favicon.png apple-touch-icon.png; do
@@ -55,17 +57,50 @@ done
 install -m644 -D clients/web/fonts/noto_kufi_arabic_regular.ttf "$APP/usr/share/orbiscreen/client/fonts/noto_kufi_arabic_regular.ttf"
 install -m644 -D clients/web/fonts/noto_kufi_arabic_bold.ttf "$APP/usr/share/orbiscreen/client/fonts/noto_kufi_arabic_bold.ttf"
 
+# ── Runtime dependency helpers ──
+# Host libraries that must come from the target system. Everything else that the
+# bundled Qt/GStreamer objects link against is copied into the AppDir, so the
+# AppImage still works on distroless images (e.g. Bluefin Dakota) that do not
+# ship GStreamer plugins or X11 client libraries.
+is_host_library() {
+    case "$1" in
+        ld-linux*|libc.so*|libm.so*|libdl.so*|libpthread.so*|librt.so*|libgcc_s.so*|libstdc++.so*|libresolv.so*|libnss_*|libnss3.so*|libnssutil3.so*|libutil.so*|libcrypt.so*|libanl.so*|libmvec.so*|libgomp.so*)
+            return 0 ;;
+        libsystemd.so*|libudev.so*|libdbus-1.so*|libpipewire*.so*|libspa*.so*|libselinux.so*|libapparmor.so*|libpam*.so*|libcap.so*|libmount.so*|libblkid.so*|libuuid.so*)
+            return 0 ;;
+        libglib-2.0.so*|libgobject-2.0.so*|libgmodule-2.0.so*|libz.so*|libzstd.so*|liblzma.so*|libbz2.so*|liblz4.so*)
+            return 0 ;;
+        libcrypto.so*|libssl.so*|libgnutls.so*|libgcrypt.so*|libnettle.so*|libhogweed.so*|libtasn1.so*|libp11-kit.so*|libgssapi*.so*|libkrb5*.so*|libk5crypto*.so*|libkrb5support*.so*|libcom_err*.so*|libkeyutils*.so*)
+            return 0 ;;
+        libGL*.so*|libEGL*.so*|libOpenGL*.so*|libGLX*.so*|libGLdispatch*.so*|libgbm.so*|libdrm.so*|libwayland*.so*|libxkbcommon.so*)
+            return 0 ;;
+        libfontconfig.so*|libfreetype.so*|libharfbuzz.so*|libpng*.so*|libjpeg*.so*|libtiff*.so*|libwebp*.so*|libcairo.so*|libpango*.so*|libgdk*.so*|libgtk*.so*)
+            return 0 ;;
+        libicu*.so*|libxml2.so*|libxslt*.so*)
+            return 0 ;;
+    esac
+    return 1
+}
+
+bundle_library_deps() {
+    local target="$1" lib base
+    while IFS= read -r lib; do
+        [ -n "$lib" ] || continue
+        base="$(basename "$lib")"
+        [ -e "$APP/usr/lib/$base" ] && continue
+        is_host_library "$base" && continue
+        cp -Lf "$lib" "$APP/usr/lib/$base" 2>/dev/null || true
+    done < <(LD_LIBRARY_PATH="$APP/usr/lib" ldd "$target" 2>/dev/null | awk '/=> \// {print $3}')
+}
+
 # ── Bundle GStreamer Runtime ──
 GST_PREFIX="$(pkg-config --variable=prefix gstreamer-1.0 2>/dev/null || true)"
 if [ -n "${GST_PREFIX:-}" ] && [ -d "$GST_PREFIX/lib" ]; then
     echo "Bundling GStreamer from $GST_PREFIX ..."
-    mkdir -p "$APP/usr/lib/gstreamer-1.0"
     GST_LIB_DIR="$(pkg-config --variable=libdir gstreamer-1.0)"
     GST_PLUGIN_DIR="$(pkg-config --variable=pluginsdir gstreamer-1.0)"
-    if [ -n "${GST_PLUGIN_DIR}" ] && [ -d "$GST_PLUGIN_DIR/gstreamer-1.0" ]; then
-        cp -r "$GST_PLUGIN_DIR/gstreamer-1.0/." "$APP/usr/lib/gstreamer-1.0/"
-    fi
-    mkdir -p "$APP/usr/lib"
+    mkdir -p "$APP/usr/lib" "$APP/usr/lib/gstreamer-1.0" "$APP/usr/libexec/gstreamer-1.0"
+
     LIB_SEARCH_DIRS=()
     for dir in "$GST_LIB_DIR" /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu; do
         if [ -d "$dir" ]; then
@@ -78,38 +113,95 @@ if [ -n "${GST_PREFIX:-}" ] && [ -d "$GST_PREFIX/lib" ]; then
         find "${LIB_SEARCH_DIRS[@]}" \
              -maxdepth 2 -name "${pattern}.so*" -print0 2>/dev/null |
         while IFS= read -r -d '' so; do
-            cp -f "$so" "$APP/usr/lib/" 2>/dev/null || true
+            cp -Lf "$so" "$APP/usr/lib/" 2>/dev/null || true
         done
     done
+
+    # pkg-config already points at the plugin directory itself on Debian,
+    # Ubuntu and Fedora. Appending /gstreamer-1.0 here used to copy zero
+    # plugins, leaving the AppImage dependent on host GStreamer.
+    if [ -n "${GST_PLUGIN_DIR}" ] && [ -d "$GST_PLUGIN_DIR" ]; then
+        echo "Bundling GStreamer plugins from $GST_PLUGIN_DIR ..."
+        cp -aL "$GST_PLUGIN_DIR/." "$APP/usr/lib/gstreamer-1.0/"
+    else
+        echo "error: GStreamer plugin directory not found" >&2
+        exit 1
+    fi
+
+    plugin_count=0
+    while IFS= read -r -d '' plugin; do
+        plugin_count=$((plugin_count + 1))
+        bundle_library_deps "$plugin"
+    done < <(find "$APP/usr/lib/gstreamer-1.0" -maxdepth 1 -type f -name '*.so' -print0)
+    if [ "$plugin_count" -eq 0 ]; then
+        echo "error: no GStreamer plugins were bundled" >&2
+        exit 1
+    fi
+    echo "Bundled $plugin_count GStreamer plugins"
+
+    GST_SCANNER=""
+    for candidate in \
+        "$(command -v gst-plugin-scanner 2>/dev/null || true)" \
+        "/usr/libexec/gstreamer-1.0/gst-plugin-scanner" \
+        "/usr/lib/x86_64-linux-gnu/gstreamer1.0/gst-plugin-scanner" \
+        "/usr/lib/gstreamer1.0/gst-plugin-scanner" \
+        "$(pkg-config --variable=libexecdir gstreamer-1.0 2>/dev/null)/gstreamer-1.0/gst-plugin-scanner"; do
+        if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+            GST_SCANNER="$candidate"
+            break
+        fi
+    done
+    if [ -n "$GST_SCANNER" ]; then
+        install -m755 "$GST_SCANNER" "$APP/usr/libexec/gstreamer-1.0/gst-plugin-scanner"
+        bundle_library_deps "$APP/usr/libexec/gstreamer-1.0/gst-plugin-scanner"
+    else
+        echo "error: gst-plugin-scanner not found; bundled plugins cannot be scanned on a host without GStreamer" >&2
+        exit 1
+    fi
+
+    missing=0
+    while IFS= read -r -d '' plugin; do
+        if LD_LIBRARY_PATH="$APP/usr/lib" ldd "$plugin" 2>/dev/null | grep -q "not found"; then
+            echo "error: $(basename "$plugin") has unresolved libraries:" >&2
+            LD_LIBRARY_PATH="$APP/usr/lib" ldd "$plugin" | grep "not found" >&2
+            missing=1
+        fi
+    done < <(find "$APP/usr/lib/gstreamer-1.0" -maxdepth 1 -type f -name '*.so' -print0)
+    [ "$missing" -eq 0 ] || exit 1
 else
     echo "warning: GStreamer pkg-config prefix not found; AppImage will rely on the host GStreamer install" >&2
 fi
 
-# ── Bundle Qt Runtime ──
-qt_libraries() {
-    ldd "$1" 2>/dev/null |
-    awk '/=> \/[^ ]*\/libQt6[^\/]*\.so[^ ]*/ {print $3}'
-}
+# The daemon links to GStreamer, GLib and xcb directly; pick up anything the
+# plugin bundle did not already copy (e.g. libXau/libxcb on a minimal host).
+bundle_library_deps "$APP/usr/bin/orbiscreen"
 
+# ── Bundle Qt Runtime ──
+# Copy the Qt libraries and every non-host dependency the GUI and its platform
+# plugins need (including libxcb/libX11), so the GUI still starts on systems
+# that do not install the X11 client stack.
 bundle_qt_libraries() {
     local target="$1"
-    local lib
-    while IFS= read -r lib; do
-        [ -n "$lib" ] || continue
-        cp -f "$lib" "$APP/usr/lib/" 2>/dev/null || true
-    done < <(qt_libraries "$target")
+    bundle_library_deps "$target"
 }
 
 verify_qt_plugins() {
     local plugin lib missing=0
     while IFS= read -r -d '' plugin; do
+        if LD_LIBRARY_PATH="$APP/usr/lib" ldd "$plugin" 2>/dev/null | grep -q "not found"; then
+            echo "error: $(basename "$plugin") has unresolved libraries:" >&2
+            LD_LIBRARY_PATH="$APP/usr/lib" ldd "$plugin" | grep "not found" >&2
+            missing=1
+        fi
         while IFS= read -r lib; do
             [ -n "$lib" ] || continue
-            if [ ! -e "$APP/usr/lib/$(basename "$lib")" ]; then
-                echo "error: $(basename "$lib") required by $(basename "$plugin") is not bundled" >&2
+            local base
+            base="$(basename "$lib")"
+            if [ ! -e "$APP/usr/lib/$base" ] && ! is_host_library "$base"; then
+                echo "error: $base required by $(basename "$plugin") is not bundled" >&2
                 missing=1
             fi
-        done < <(qt_libraries "$plugin")
+        done < <(LD_LIBRARY_PATH="$APP/usr/lib" ldd "$plugin" 2>/dev/null | awk '/=> \// {print $3}')
     done < <(find "$APP/usr/lib/qt6/plugins" -type f -name '*.so' -print0)
     return "$missing"
 }
@@ -122,7 +214,18 @@ bundle_qt() {
         for dir in platforms styles imageformats \
                    wayland-shell-integration wayland-decoration-client \
                    wayland-graphics-integration-client; do
-            if [ -d "$qt_plugins/$dir" ]; then
+            if [ "$dir" = "platforms" ]; then
+                # The GUI needs exactly two platform plugins: Wayland on a
+                # Wayland session and xcb on X11/XWayland. Copying eglfs,
+                # linuxfb, vnc, offscreen and vkkhrdisplay pulls in optional
+                # host drivers and makes the bundle fragile.
+                mkdir -p "$APP/usr/lib/qt6/plugins/platforms"
+                for plugin in libqxcb.so libqwayland.so; do
+                    if [ -f "$qt_plugins/platforms/$plugin" ]; then
+                        cp -f "$qt_plugins/platforms/$plugin" "$APP/usr/lib/qt6/plugins/platforms/"
+                    fi
+                done
+            elif [ -d "$qt_plugins/$dir" ]; then
                 mkdir -p "$APP/usr/lib/qt6/plugins/$dir"
                 cp -r "$qt_plugins/$dir/." "$APP/usr/lib/qt6/plugins/$dir/"
             fi
@@ -193,19 +296,29 @@ cp "$APP/usr/share/icons/hicolor/256x256/apps/orbiscreen.png" "$APP/orbiscreen.p
 
 # ── AppRun Launcher ──
 cat > "$APP/AppRun" <<'EOF'
-#!/usr/bin/env bash
-HERE="$(dirname "$(readlink -f "$0")")"
+#!/bin/sh
+HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 if [ -d "$HERE/usr/lib" ]; then
     export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 fi
 if [ -d "$HERE/usr/lib/gstreamer-1.0" ]; then
-    export GST_PLUGIN_PATH="$HERE/usr/lib/gstreamer-1.0${GST_PLUGIN_PATH:+:$GST_PLUGIN_PATH}"
-    export GST_PLUGIN_SCANNER="$HERE/usr/lib/gstreamer-1.0/gst-plugin-scanner"
+    export GST_PLUGIN_PATH_1_0="$HERE/usr/lib/gstreamer-1.0${GST_PLUGIN_PATH_1_0:+:$GST_PLUGIN_PATH_1_0}"
+    # Legacy alias used by some launchers.
+    export GST_PLUGIN_PATH="$GST_PLUGIN_PATH_1_0"
+    # The bundle is self-contained; do not mix in host plugins built for a
+    # different GStreamer version (Bluefin Dakota has no plugins in the base).
+    export GST_PLUGIN_SYSTEM_PATH=""
+    export GST_PLUGIN_SYSTEM_PATH_1_0=""
+    if [ -x "$HERE/usr/libexec/gstreamer-1.0/gst-plugin-scanner" ]; then
+        export GST_PLUGIN_SCANNER="$HERE/usr/libexec/gstreamer-1.0/gst-plugin-scanner"
+    fi
 fi
 if [ -d "$HERE/usr/lib/qt6/plugins" ]; then
     export QT_PLUGIN_PATH="$HERE/usr/lib/qt6/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
     export QT_QPA_PLATFORM_PLUGIN_PATH="$HERE/usr/lib/qt6/plugins/platforms"
 fi
+# Let Qt 6 choose the platform plugin (Wayland on a Wayland session, xcb
+# otherwise). The bundle now carries the xcb/X11 libraries, so either path works.
 # Launch the desktop GUI when it was bundled (that is what the desktop entry and the icon set are
 # for); fall back to the CLI only in GUI-less builds.
 if [ -x "$HERE/usr/bin/orbiscreen-gui" ] && [ -z "${ORBISCREEN_CLI:-}" ]; then

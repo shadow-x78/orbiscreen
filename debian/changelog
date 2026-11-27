@@ -1,3 +1,12 @@
+orbiscreen (0.45.3~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.45.3 for Ubuntu noble.
+  * Bundle GStreamer plugins, the plugin scanner, and X11 client libraries in the AppImage
+  * Match the demo to the site palette and center its device diagrams
+  * Bump version to 0.45.3 across all packages; Android versionCode 213.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Fri, 27 Nov 2026 22:00:00 +0300
+
 orbiscreen (0.45.2~ubuntunoble1) noble; urgency=medium
 
   * Release 0.45.2 for Ubuntu noble.

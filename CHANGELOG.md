@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.45.3] - 2026-11-27
+
+### Fixed
+- **The AppImage is self-contained again.** The packaging script read `pluginsdir` and appended `/gstreamer-1.0`, which copied zero plugins, so the AppImage only worked where the host already had GStreamer. It now bundles the plugin directory, `gst-plugin-scanner`, every non-host dependency those plugins need (including x264, libav, and the PipeWire source), and the X11/xcb client libraries. The build fails if the plugin directory is empty, and CI runs `gst-inspect` against the extracted bundle. Bluefin Dakota no longer needs a host GStreamer install.
+- **The demo geometry is centered and shares a baseline.** The monitor, tablet, labels, signal line, and drag target were re-measured; the input scene shows the same portrait document on both devices, and the transport terminal grows with its log instead of showing a large empty panel.
+- Version bumped to 0.45.3 across the Cargo workspace, Android (`versionCode` 213), Qt GUI, PKGBUILD, Debian, COPR, and documentation badges.
+
+### Changed
+- **The demo uses the site palette.** `#0e1116` base, `#151a21`/`#1b222b` surfaces, `#4c8dff` signal lines, `#89b4fa` accent, and the shared text ramp. `demo/build.sh` captures deterministically at 2160 px and rebuilds the video, the 480 copy, the preview, and the poster.
+- **The README shows the demo in its own section** with a 1080 poster and a link, and one flat-square badge row. The 480×480/10 fps GIF and the flag emoji were removed.
+- The DEB, RPM, and PKGBUILD now require the PipeWire GStreamer plugin and x264 support, not only the good/bad plugin sets. The AppImage bundles both.
+
 ## [v0.45.2] - 2026-11-26
 
 ### Fixed

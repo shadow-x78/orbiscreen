@@ -45,6 +45,8 @@ jobs:
             libevdev-dev libxkbcommon-dev libwayland-dev \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
+            gstreamer1.0-libav gstreamer1.0-pipewire gstreamer1.0-tools \
+            libxcb-cursor0 libxkbcommon-x11-0 \
             qt6-base-dev qt6-wayland cmake g++
 
       # ── Lint ──
@@ -93,7 +95,9 @@ jobs:
             libx11-dev libxcb1-dev libxrandr-dev \
             libevdev-dev libxkbcommon-dev libwayland-dev \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-            gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+            gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
+            gstreamer1.0-libav gstreamer1.0-pipewire gstreamer1.0-tools \
+            libxcb-cursor0 libxkbcommon-x11-0 \
             rpm imagemagick librsvg2-bin \
             qt6-base-dev qt6-wayland cmake g++
 
@@ -195,6 +199,28 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           ./scripts/package-appimage.sh "$VERSION"
           cp "dist/orbiscreen-${VERSION}-x86_64.AppImage" orbiscreen-x86_64.AppImage
+
+      - name: Smoke-test the AppImage bundle
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          APPIMAGE="dist/orbiscreen-${VERSION}-x86_64.AppImage"
+          "$APPIMAGE" --appimage-extract >/dev/null
+          test -x squashfs-root/usr/libexec/gstreamer-1.0/gst-plugin-scanner
+          plugins="$(find squashfs-root/usr/lib/gstreamer-1.0 -maxdepth 1 -name '*.so' | wc -l)"
+          echo "bundled GStreamer plugins: $plugins"
+          test "$plugins" -gt 10
+          LD_LIBRARY_PATH="$PWD/squashfs-root/usr/lib" \
+          GST_PLUGIN_PATH="$PWD/squashfs-root/usr/lib/gstreamer-1.0" \
+          GST_PLUGIN_PATH_1_0="$PWD/squashfs-root/usr/lib/gstreamer-1.0" \
+          GST_PLUGIN_SYSTEM_PATH="" GST_PLUGIN_SYSTEM_PATH_1_0="" \
+          gst-inspect-1.0 x264enc >/dev/null
+          LD_LIBRARY_PATH="$PWD/squashfs-root/usr/lib" \
+          GST_PLUGIN_PATH="$PWD/squashfs-root/usr/lib/gstreamer-1.0" \
+          GST_PLUGIN_PATH_1_0="$PWD/squashfs-root/usr/lib/gstreamer-1.0" \
+          GST_PLUGIN_SYSTEM_PATH="" GST_PLUGIN_SYSTEM_PATH_1_0="" \
+          gst-inspect-1.0 pipewiresrc >/dev/null
+          APPIMAGE_EXTRACT_AND_RUN=1 ORBISCREEN_CLI=1 "$APPIMAGE" --version >/dev/null
+          rm -rf squashfs-root
 
       - name: Set up JDK 17 for Android
         uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0

@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.45.2
+%global version 0.45.3
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -34,9 +34,8 @@ BuildRequires:  qt6-qtbase-devel
 BuildRequires:  qt6-qtwayland-devel
 BuildRequires:  git-core
 
-Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free
+Requires:       gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free gstreamer1-plugins-ugly-free pipewire-gstreamer
 Requires:       libevdev libxkbcommon qt6-qtbase qt6-qtwayland
-Recommends:     gstreamer1-plugins-ugly-free
 
 %description
 Orbiscreen turns Android tablets and phones into high-performance
@@ -152,6 +151,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Fri Nov 27 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.45.3-1
+- Release 0.45.3: Bundle GStreamer plugins and X11 libraries in the AppImage; refine the demo
+
 * Thu Nov 26 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.45.2-1
 - Release 0.45.2: Bundle the Qt platform plugin dependencies in the AppImage (#119)
 

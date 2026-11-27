@@ -148,8 +148,8 @@
     overflow: hidden;
     background: var(--screen);
     background-image:
-      linear-gradient(rgba(76, 141, 255, 0.15) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(76, 141, 255, 0.15) 1px, transparent 1px);
+      linear-gradient(rgba(76, 141, 255, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(76, 141, 255, 0.12) 1px, transparent 1px);
     background-size: 24px 24px;
     border: 2px solid var(--line-strong);
     border-radius: 3px;
@@ -168,8 +168,8 @@
     overflow: hidden;
     background: var(--screen);
     background-image:
-      linear-gradient(rgba(76, 141, 255, 0.15) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(76, 141, 255, 0.15) 1px, transparent 1px);
+      linear-gradient(rgba(76, 141, 255, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(76, 141, 255, 0.12) 1px, transparent 1px);
     background-size: 20px 20px;
     border: 1.5px solid var(--line-strong);
     border-radius: 2px;
@@ -185,6 +185,27 @@
   .win-body { padding: 10px 12px; }
   .win-line { height: 4px; margin: 7px 0; background: var(--ink); opacity: 0.16; }
   .win-line.blue { background: var(--blue); opacity: 0.75; }
+  .panel {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--surface-2);
+    border-top: 1px solid var(--line);
+  }
+  .panel-dot { width: 7px; height: 7px; border-radius: 2px; background: var(--ink-3); opacity: 0.6; }
+  .document {
+    position: relative;
+    width: 300px;
+    height: 414px;
+    background: var(--screen);
+    border: 1px solid var(--line);
+    background-image:
+      linear-gradient(rgba(76, 141, 255, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(76, 141, 255, 0.12) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
 
   /* signal */
   .signal { position: absolute; overflow: visible; }
@@ -285,10 +306,10 @@
     <h1 class="headline" id="s0-title">Your tablet is already<br>a <span class="accent">second monitor</span>.</h1>
     <p class="sub" id="s0-sub">A real extended display for Linux. Local, low latency, open source.</p>
 
-    <div id="s0-figure" style="position:absolute;left:72px;top:470px;width:936px;height:420px;">
-      <div class="monitor" id="s0-monitor" style="left:0;top:24px;width:520px;height:352px;">
-        <div class="screen" style="left:18px;top:18px;width:484px;height:286px;">
-          <div class="win" style="left:26px;top:26px;width:250px;height:170px;">
+    <div id="s0-figure" style="position:absolute;left:72px;top:500px;width:936px;height:420px;">
+      <div class="monitor" id="s0-monitor" style="left:30px;top:24px;width:500px;height:338px;">
+        <div class="screen" style="left:18px;top:18px;width:464px;height:261px;">
+          <div class="win" style="left:24px;top:24px;width:236px;height:154px;">
             <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">terminal</span></div>
             <div class="win-body">
               <div class="win-line blue" style="width:48%"></div>
@@ -298,7 +319,7 @@
               <div class="win-line" style="width:40%"></div>
             </div>
           </div>
-          <div class="win" style="left:298px;top:62px;width:162px;height:152px;">
+          <div class="win" style="left:280px;top:60px;width:160px;height:120px;">
             <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
             <div class="win-body">
               <div class="win-line blue" style="width:40%"></div>
@@ -307,14 +328,17 @@
               <div class="win-line" style="width:56%"></div>
             </div>
           </div>
+          <div class="panel" style="left:0;top:247px;width:464px;height:14px;">
+            <span class="panel-dot"></span><span class="panel-dot"></span><span class="panel-dot"></span>
+          </div>
         </div>
-        <div class="stand" style="left:246px;top:304px;width:10px;height:30px;"></div>
-        <div class="foot" style="left:174px;top:334px;width:172px;height:5px;"></div>
+        <div class="stand" style="left:244px;top:279px;width:12px;height:32px;"></div>
+        <div class="foot" style="left:160px;top:311px;width:180px;height:6px;"></div>
       </div>
 
-      <div class="tablet" id="s0-tablet" style="left:756px;top:10px;width:180px;height:320px;">
-        <div class="screen" style="left:14px;top:16px;width:152px;height:272px;">
-          <div class="win" style="left:14px;top:30px;width:124px;height:150px;">
+      <div class="tablet" id="s0-tablet" style="left:720px;top:41px;width:180px;height:300px;">
+        <div class="screen" style="left:14px;top:16px;width:152px;height:256px;">
+          <div class="win" style="left:14px;top:30px;width:124px;height:100px;">
             <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">display 2</span></div>
             <div class="win-body">
               <div class="win-line blue" style="width:44%"></div>
@@ -322,20 +346,23 @@
               <div class="win-line" style="width:64%"></div>
             </div>
           </div>
+          <div class="panel" style="left:0;top:242px;width:152px;height:14px;">
+            <span class="panel-dot"></span><span class="panel-dot"></span><span class="panel-dot"></span>
+          </div>
         </div>
         <div class="cam" style="top:7px;"></div>
         <div class="home" style="bottom:9px;"></div>
       </div>
 
-      <div id="s0-packets" style="position:absolute;left:520px;top:160px;width:236px;height:40px;"></div>
-      <svg class="signal" id="s0-signal" viewBox="0 0 236 40" style="left:520px;top:160px;width:236px;height:40px;">
-        <path id="s0-signal-path" pathLength="1" d="M0 20 H236"/>
-        <line class="tick" x1="56" y1="13" x2="56" y2="27"/>
-        <line class="tick" x1="118" y1="13" x2="118" y2="27"/>
-        <line class="tick" x1="180" y1="13" x2="180" y2="27"/>
+      <div id="s0-packets" style="position:absolute;left:530px;top:156px;width:190px;height:40px;"></div>
+      <svg class="signal" id="s0-signal" viewBox="0 0 190 40" style="left:530px;top:156px;width:190px;height:40px;">
+        <path id="s0-signal-path" pathLength="1" d="M0 20 H190"/>
+        <line class="tick" x1="48" y1="13" x2="48" y2="27"/>
+        <line class="tick" x1="95" y1="13" x2="95" y2="27"/>
+        <line class="tick" x1="142" y1="13" x2="142" y2="27"/>
       </svg>
-      <span class="note" id="s0-host" style="left:0;top:392px;">host</span>
-      <span class="note" id="s0-tab" style="left:756px;top:392px;">tablet</span>
+      <span class="note" id="s0-host" style="left:30px;top:357px;width:500px;text-align:center;">host</span>
+      <span class="note" id="s0-tab" style="left:720px;top:357px;width:180px;text-align:center;">tablet</span>
     </div>
   </section>
 
@@ -344,9 +371,9 @@
     <h2 class="headline" id="s1-title" style="font-size:60px;line-height:66px;letter-spacing:-1.4px;">A real second screen,<br>not a copy.</h2>
     <p class="sub" id="s1-sub">The compositor creates a virtual output. Drag a window onto it and keep working.</p>
 
-    <div id="s1-figure" style="position:absolute;left:72px;top:430px;width:936px;height:500px;">
-      <div class="monitor" id="s1-monitor" style="left:0;top:40px;width:560px;height:380px;">
-        <div class="screen" style="left:18px;top:18px;width:524px;height:302px;">
+    <div id="s1-figure" style="position:absolute;left:72px;top:450px;width:936px;height:500px;">
+      <div class="monitor" id="s1-monitor" style="left:20px;top:0;width:540px;height:380px;">
+        <div class="screen" style="left:18px;top:18px;width:504px;height:283px;">
           <div class="win" id="s1-host-window" style="left:40px;top:40px;width:300px;height:200px;">
             <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
             <div class="win-body">
@@ -357,7 +384,7 @@
               <div class="win-line" style="width:34%"></div>
             </div>
           </div>
-          <div class="win" style="left:300px;top:120px;width:190px;height:150px;">
+          <div class="win" style="left:320px;top:110px;width:180px;height:140px;">
             <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">terminal</span></div>
             <div class="win-body" style="padding:8px 10px;">
               <div class="win-line blue" style="width:46%;margin:6px 0;"></div>
@@ -366,14 +393,17 @@
               <div class="win-line" style="width:40%;margin:6px 0;"></div>
             </div>
           </div>
+          <div class="panel" style="left:0;top:269px;width:504px;height:14px;">
+            <span class="panel-dot"></span><span class="panel-dot"></span><span class="panel-dot"></span>
+          </div>
         </div>
-        <div class="stand" style="left:266px;top:320px;width:10px;height:30px;"></div>
-        <div class="foot" style="left:194px;top:350px;width:172px;height:5px;"></div>
+        <div class="stand" style="left:264px;top:301px;width:12px;height:34px;"></div>
+        <div class="foot" style="left:175px;top:335px;width:190px;height:6px;"></div>
       </div>
 
-      <div class="tablet" id="s1-tablet" style="left:726px;top:0;width:210px;height:440px;">
-        <div class="screen" style="left:14px;top:16px;width:182px;height:390px;">
-          <div class="win" id="s1-tab-window" style="left:14px;top:40px;width:150px;height:100px;opacity:0;">
+      <div class="tablet" id="s1-tablet" style="left:720px;top:0;width:196px;height:341px;">
+        <div class="screen" style="left:14px;top:16px;width:168px;height:299px;">
+          <div class="win" id="s1-tab-window" style="left:9px;top:40px;width:150px;height:100px;opacity:0;">
             <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
             <div class="win-body" style="padding:6px 8px;">
               <div class="win-line blue" style="width:40%;margin:4px 0;"></div>
@@ -397,12 +427,13 @@
       </div>
       <svg id="s1-cursor" viewBox="0 0 24 24"><path d="M3 2 20 12l-7 2-3 7z" fill="#e8edf5" stroke="#0e1116" stroke-width="1.2"/></svg>
 
-      <div id="s1-packets" style="position:absolute;left:560px;top:188px;width:166px;height:40px;"></div>
-      <svg class="signal" id="s1-signal" viewBox="0 0 166 40" style="left:560px;top:188px;width:166px;height:40px;">
-        <path id="s1-signal-path" pathLength="1" d="M0 20 H166"/>
+      <div id="s1-packets" style="position:absolute;left:560px;top:145px;width:160px;height:40px;"></div>
+      <svg class="signal" id="s1-signal" viewBox="0 0 160 40" style="left:560px;top:145px;width:160px;height:40px;">
+        <path id="s1-signal-path" pathLength="1" d="M0 20 H160"/>
       </svg>
-      <span class="note" id="s1-host" style="left:18px;top:458px;">host</span>
-      <span class="note" id="s1-tab" style="left:726px;top:458px;">tablet · 1920 × 1080 / 60 Hz</span>
+      <span class="note" id="s1-host" style="left:20px;top:362px;width:540px;text-align:center;">host</span>
+      <span class="note" id="s1-tab" style="left:720px;top:362px;width:196px;text-align:center;">tablet</span>
+      <span class="note" id="s1-res" style="left:720px;top:378px;width:196px;text-align:center;font-size:10px;">1920 × 1080 · 60 Hz</span>
     </div>
   </section>
 
@@ -429,7 +460,7 @@
     <span class="note" id="s2-host" style="left:72px;top:668px;">host</span>
     <span class="note" id="s2-tab" style="right:72px;top:668px;">tablet</span>
 
-    <div class="term" id="s2-term" style="top:722px;width:936px;height:214px;">
+    <div class="term" id="s2-term" style="top:722px;width:936px;height:98px;">
       <div class="term-head">
         <span class="term-dot" style="background:var(--red)"></span>
         <span class="term-dot" style="background:var(--amber)"></span>
@@ -461,25 +492,27 @@
       <div class="home" style="bottom:10px;"></div>
     </div>
 
-    <div class="win" id="s3-desktop" style="left:480px;top:420px;width:528px;height:440px;">
+    <div class="win" id="s3-desktop" style="left:480px;top:420px;width:528px;height:470px;">
       <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">Krita · canvas</span></div>
-      <div style="position:absolute;inset:26px 0 0;background:var(--surface-2);">
-        <svg viewBox="0 0 528 414" style="position:absolute;inset:0;width:100%;height:100%;">
-          <path id="s3-desk-path" pathLength="1" d="M79 310 C 122 144, 205 338, 268 193 S 386 98, 449 252" fill="none" stroke="#4c8dff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+      <div style="position:absolute;inset:26px 0 0;background:var(--surface-2);display:flex;align-items:center;justify-content:center;">
+        <div class="document">
+          <svg viewBox="0 0 268 404" preserveAspectRatio="xMidYMid meet" style="position:absolute;inset:0;width:100%;height:100%;">
+            <path id="s3-desk-path" pathLength="1" d="M40 302 C 62 140, 104 330, 136 188 S 196 96, 228 246" fill="none" stroke="#4c8dff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
       </div>
     </div>
     <div id="s3-pen">
       <svg viewBox="0 0 32 32"><path d="M6 26l4-10L24 3l5 5-13 14z" fill="#1b222b" stroke="#e8edf5" stroke-width="1.6"/><path d="M10 16l5 5" stroke="#e8edf5" stroke-width="1.2" stroke-opacity="0.55"/><path d="M6 26l4-10 2 2-4 10z" fill="#89b4fa"/></svg>
     </div>
 
-    <div id="s3-packets" style="position:absolute;left:372px;top:604px;width:108px;height:40px;"></div>
-    <svg class="signal" id="s3-signal" viewBox="0 0 108 40" style="left:372px;top:608px;width:108px;height:40px;">
+    <div id="s3-packets" style="position:absolute;left:372px;top:616px;width:108px;height:40px;"></div>
+    <svg class="signal" id="s3-signal" viewBox="0 0 108 40" style="left:372px;top:620px;width:108px;height:40px;">
       <path id="s3-signal-path" pathLength="1" d="M108 20 H0"/>
       <path d="M10 13 L0 20 L10 27" />
     </svg>
-    <span class="note" id="s3-uinput" style="left:404px;top:586px;">uinput</span>
-    <p class="note" id="s3-caption" style="left:480px;top:882px;">4095 pressure levels · tilt · hover</p>
+    <span class="note" id="s3-uinput" style="left:404px;top:598px;">uinput</span>
+    <p class="note" id="s3-caption" style="left:480px;top:902px;">4095 pressure levels · tilt · hover</p>
   </section>
 
   <section class="scene" id="s4">
@@ -651,8 +684,8 @@
       $('s1-tab').style.opacity = p(t, 4.9, 5.1);
       movePackets(s1Packets, t, 5.0, 1.3, 5);
       const drag = ease(p(t, 5.5, 6.8));
-      const gx = 58 + drag * 696;
-      const gy = 98 - drag * 42;
+      const gx = 78 + drag * 665;
+      const gy = 58 - drag * 2;
       const gs = 1 - drag * 0.5;
       $('s1-host-window').style.opacity = 1 - p(t, 5.45, 5.6);
       ghost.style.opacity = p(t, 5.4, 5.6) * (1 - p(t, 6.8, 7.05));
@@ -681,11 +714,14 @@
       movePackets(s2Packets, t, 10.8, 1.8, 7);
       $('s2-term').style.opacity = p(t, 11.0, 11.25);
       type($('s2-cmd-text'), t, 11.15, 11.8, 'orbiscreen start');
-      [...$('s2-term').querySelectorAll('.term-line')].forEach((row, i) => {
-        const q = ease(p(t, 11.9 + i * 0.12, 12.25 + i * 0.12));
+      const termRows = [...$('s2-term').querySelectorAll('.term-line')];
+      termRows.forEach((row, i) => {
+        const q = ease(p(t, 11.85 + i * 0.10, 12.2 + i * 0.10));
         row.style.opacity = q;
         row.style.transform = `translateY(${(1 - q) * 6}px)`;
       });
+      const visibleRows = termRows.reduce((sum, row) => sum + (parseFloat(row.style.opacity) || 0), 0);
+      $('s2-term').style.height = `${(98 + 30 * visibleRows).toFixed(1)}px`;
     } else s2.style.opacity = 0;
 
     const s3 = $('s3');
