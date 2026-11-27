@@ -13,6 +13,12 @@ Secondary monitor for Linux, powered by an Android tablet or phone.
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=for-the-badge&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
 
+<a href="assets/demo/orbiscreen-demo.mp4">
+  <img src="assets/demo/orbiscreen-demo.gif" alt="Orbiscreen demo: a tablet becomes a real second display" width="520" />
+</a>
+
+<sub>18-second preview · <a href="assets/demo/orbiscreen-demo.mp4">full 32-second video</a></sub>
+
 </div>
 
 ---

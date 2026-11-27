@@ -60,7 +60,7 @@ function mirrorFor(url) {
 function distPathForHref(href) {
   const clean = href.split('#')[0].split('?')[0];
   if (!clean || clean === '/') return resolve(dist, 'index.html');
-  if (/\.(md|txt|xml|webmanifest|svg|png|jpg|webp|ico|json)$/.test(clean)) {
+  if (/\.(md|txt|xml|webmanifest|svg|png|jpg|jpeg|webp|avif|ico|json|mp4|webm|gif|pdf|zip)$/.test(clean)) {
     return resolve(dist, clean.replace(/^\//, ''));
   }
   const trimmed = clean.replace(/\/$/, '');

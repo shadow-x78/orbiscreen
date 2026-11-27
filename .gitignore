@@ -84,3 +84,6 @@ __pycache__/
 
 # ── Playwright MCP scratch output ──
 /.playwright-mcp/
+
+# ── Demo capture frames ──
+/demo/frames/

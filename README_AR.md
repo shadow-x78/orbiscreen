@@ -13,6 +13,12 @@
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=for-the-badge&logo=rust)
 ![المنصة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=for-the-badge&logo=linux)
 
+<a href="assets/demo/orbiscreen-demo.mp4">
+  <img src="assets/demo/orbiscreen-demo.gif" alt="عرض Orbiscreen: جهاز لوحي يصبح شاشة ثانية حقيقية" width="520" />
+</a>
+
+<sub>معاينة 18 ثانية · <a href="assets/demo/orbiscreen-demo.mp4">الفيديو الكامل 32 ثانية</a></sub>
+
 </div>
 
 ---
