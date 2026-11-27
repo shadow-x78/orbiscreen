@@ -37,7 +37,7 @@ for (const file of htmlFiles) {
   const html = readFileSync(file, 'utf8');
 
   for (const match of html.matchAll(
-    /<script(?![^>]*\bsrc=)(?![^>]*\bapplication\/ld\+json)[^>]*>([\s\S]*?)<\/script>/gi,
+    /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi,
   )) {
     const body = match[1];
     if (!body || body.trim() === '') continue;
