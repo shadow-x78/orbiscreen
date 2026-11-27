@@ -8,7 +8,10 @@
 
 Secondary monitor for Linux, powered by an Android tablet or phone.
 
-[![Version](https://img.shields.io/badge/version-0.45.3-2563eb?style=flat-square&labelColor=17181b&logo=semver&logoColor=white)](CHANGELOG.md) [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square&labelColor=17181b&logo=gnu&logoColor=white)](LICENSE) [![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&labelColor=17181b&logo=rust&logoColor=white)](#installation) [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&labelColor=17181b&logo=linux&logoColor=white)](#desktop-support)
+[![Version](https://img.shields.io/badge/version-0.45.3-2563eb?style=flat-square&labelColor=17181b&logo=semver&logoColor=white)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square&labelColor=17181b&logo=gnu&logoColor=white)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&labelColor=17181b&logo=rust&logoColor=white)](#installation)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&labelColor=17181b&logo=linux&logoColor=white)](#desktop-support)
 
 </div>
 
@@ -19,21 +22,6 @@ Secondary monitor for Linux, powered by an Android tablet or phone.
 <a href="README.md">English</a> · <a href="README_AR.md">العربية</a>
 
 **Website:** [orbiscreen.com](https://orbiscreen.com) · **Documentation:** [orbiscreen.com/docs](https://orbiscreen.com/docs)
-
----
-
-<a id="demo"></a>
-## Demo
-
-<p align="center">
-  <a href="assets/demo/orbiscreen-demo.mp4">
-    <img src="assets/demo/orbiscreen-demo-poster.png" alt="Orbiscreen demo: a tablet becomes a real second display" width="560" />
-  </a>
-</p>
-
-A 34-second silent tour: an extended display, H.264 over LAN or USB, pen and touch
-back to Linux, and the clients. [Watch the demo](assets/demo/orbiscreen-demo.mp4)
-(1080 × 1080, H.264).
 
 ---
 
@@ -62,6 +50,22 @@ back to Linux, and the clients. [Watch the demo](assets/demo/orbiscreen-demo.mp4
 Orbiscreen turns a spare Android tablet or phone into a secondary display for a Linux desktop. The host creates a virtual monitor, either as a kernel display through DisplayLink's `evdi` (COSMIC, GNOME, X11) or as a compositor-native output on KDE Plasma and wlroots compositors, with no root and no share dialog. The display is encoded as H.264 and streamed to Android or to a web browser, with reverse control from touch, mouse, keyboard, and a pressure-sensitive stylus.
 
 <a id="comparison"></a>
+<a id="demo"></a>
+## Demo
+
+<p align="center">
+  <a href="assets/demo/orbiscreen-demo.mp4">
+    <img src="assets/demo/orbiscreen-demo-poster.png" alt="Orbiscreen demo: a tablet becomes a real second display" width="420" />
+  </a>
+</p>
+
+A 24-second minimal tour: extended display, H.264 over LAN or USB, touch and pen input.
+[Watch the demo](assets/demo/orbiscreen-demo.mp4) (720 × 720, H.264).
+
+---
+
+---
+
 ## Comparison
 
 | Capability | Spacedesk | Deskreen | Weylus | Sidecar | **Orbiscreen** |

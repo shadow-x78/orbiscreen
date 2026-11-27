@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orbiscreen demo</title>
+<style>
+  @font-face {
+    font-family: 'Inter';
+    src: url('../site/node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2');
+    font-weight: 100 900;
+  }
+  @font-face {
+    font-family: 'SCP';
+    src: url('../site/node_modules/@fontsource/source-code-pro/files/source-code-pro-latin-500-normal.woff2') format('woff2');
+    font-weight: 500;
+  }
+
+  :root {
+    --bg: #0e1116;
+    --surface-1: #151a21;
+    --surface-2: #1b222b;
+    --surface-deep: #10151c;
+    --surface-term: #0b0e13;
+    --screen: #10151c;
+    --ink: #e8edf5;
+    --ink-2: #93a0b4;
+    --ink-3: #7b899e;
+    --rule: rgba(232, 237, 245, 0.10);
+    --line: #252d38;
+    --line-strong: #333d4b;
+    --blue: #4c8dff;
+    --blue-2: #89b4fa;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 1080px;
+    height: 1080px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  body { cursor: none; }
+
+  #stage {
+    position: relative;
+    width: 1080px;
+    height: 1080px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .mono { font-family: 'SCP', monospace; }
+  .rule { position: absolute; left: 72px; width: 936px; height: 1px; background: var(--rule); }
+  #toprule { top: 94px; }
+  #bottomrule { top: 1006px; }
+  #progress {
+    position: absolute;
+    left: 72px;
+    top: 94px;
+    width: 0;
+    height: 2px;
+    background: var(--blue);
+  }
+
+  #topbar {
+    position: absolute;
+    left: 72px;
+    top: 42px;
+    width: 936px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #brand { display: flex; align-items: center; gap: 10px; }
+  #brand-mark { width: 28px; height: 28px; }
+  #brand-word { font-size: 18px; line-height: 1; font-weight: 600; letter-spacing: -0.3px; }
+  #timecode { color: var(--ink-3); font-family: 'SCP', monospace; font-size: 12px; line-height: 16px; }
+
+  #foot-left, #foot-right {
+    position: absolute;
+    bottom: 40px;
+    color: var(--ink-3);
+    font-family: 'SCP', monospace;
+    font-size: 11px;
+    line-height: 16px;
+  }
+  #foot-left { left: 72px; }
+  #foot-right { right: 72px; }
+
+  .scene { position: absolute; inset: 0; opacity: 0; }
+
+  .kicker {
+    position: absolute;
+    left: 72px;
+    top: 132px;
+    margin: 0;
+    color: var(--blue-2);
+    font-family: 'SCP', monospace;
+    font-size: 13px;
+    line-height: 20px;
+    letter-spacing: 0.2px;
+  }
+  .headline {
+    position: absolute;
+    left: 72px;
+    top: 166px;
+    margin: 0;
+    width: 936px;
+    color: var(--ink);
+    font-size: 72px;
+    line-height: 78px;
+    font-weight: 600;
+    letter-spacing: -1.9px;
+  }
+  .headline .accent { color: var(--blue-2); }
+  .sub {
+    position: absolute;
+    left: 72px;
+    top: 336px;
+    margin: 0;
+    width: 740px;
+    color: var(--ink-2);
+    font-size: 23px;
+    line-height: 33px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+  }
+  .note {
+    position: absolute;
+    color: var(--ink-3);
+    font-family: 'SCP', monospace;
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  /* devices */
+  .monitor { position: absolute; }
+  .monitor .screen {
+    position: absolute;
+    overflow: hidden;
+    background: var(--screen);
+    background-image:
+      linear-gradient(rgba(76, 141, 255, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(76, 141, 255, 0.12) 1px, transparent 1px);
+    background-size: 24px 24px;
+    border: 2px solid var(--line-strong);
+    border-radius: 3px;
+  }
+  .monitor .stand { position: absolute; background: var(--line-strong); }
+  .monitor .foot { position: absolute; background: var(--line-strong); }
+
+  .tablet {
+    position: absolute;
+    border: 2px solid var(--line-strong);
+    border-radius: 11px;
+    background: var(--surface-2);
+  }
+  .tablet .screen {
+    position: absolute;
+    overflow: hidden;
+    background: var(--screen);
+    background-image:
+      linear-gradient(rgba(76, 141, 255, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(76, 141, 255, 0.12) 1px, transparent 1px);
+    background-size: 20px 20px;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 2px;
+  }
+  .tablet .cam { position: absolute; left: 50%; width: 18px; height: 3px; background: var(--line-strong); transform: translateX(-50%); }
+  .tablet .home { position: absolute; left: 50%; width: 52px; height: 3px; background: var(--line-strong); transform: translateX(-50%); }
+
+  /* windows */
+  .win { position: absolute; border: 1.5px solid var(--line-strong); background: var(--surface-2); border-radius: 2px; }
+  .win-bar { display: flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border-bottom: 1.5px solid var(--line); }
+  .win-dot { width: 5px; height: 5px; border: 1.2px solid #4a5568; border-radius: 50%; }
+  .win-title { margin-left: 4px; color: var(--ink-3); font-family: 'SCP', monospace; font-size: 8px; line-height: 1; }
+  .win-body { padding: 10px 12px; }
+  .win-line { height: 4px; margin: 7px 0; background: var(--ink); opacity: 0.16; }
+  .win-line.blue { background: var(--blue); opacity: 0.75; }
+  .panel {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--surface-2);
+    border-top: 1px solid var(--line);
+  }
+  .panel-dot { width: 7px; height: 7px; border-radius: 2px; background: var(--ink-3); opacity: 0.6; }
+  .document {
+    position: relative;
+    width: 300px;
+    height: 414px;
+    background: var(--screen);
+    border: 1px solid var(--line);
+    background-image:
+      linear-gradient(rgba(76, 141, 255, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(76, 141, 255, 0.12) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* signal */
+  .signal { position: absolute; overflow: visible; }
+  .signal path { fill: none; stroke: var(--blue); stroke-width: 2; stroke-linecap: round; }
+  .signal .tick { stroke: var(--blue); stroke-width: 2; }
+  .packet { position: absolute; width: 8px; height: 8px; background: var(--blue); top: 16px; }
+
+  #s1-ghost { z-index: 20; }
+  #s1-cursor { position: absolute; z-index: 21; width: 26px; height: 26px; }
+  #s3-pen { position: absolute; z-index: 10; width: 30px; height: 30px; margin: -15px 0 0 -15px; }
+  #s3-pen svg { width: 100%; height: 100%; }
+
+  /* spec table */
+  .spec { position: absolute; left: 72px; top: 404px; width: 936px; }
+  .spec-row {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr) auto;
+    align-items: baseline;
+    height: 64px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .spec-row:first-child { border-top: 1px solid var(--rule); }
+  .spec-key { color: var(--ink-3); font-family: 'SCP', monospace; font-size: 12px; line-height: 18px; }
+  .spec-val { color: var(--ink); font-size: 21px; line-height: 28px; font-weight: 500; letter-spacing: -0.2px; }
+  .spec-note { color: var(--ink-3); font-family: 'SCP', monospace; font-size: 11px; line-height: 16px; }
+
+  /* terminal */
+  .term {
+    position: absolute;
+    left: 72px;
+    border: 1.5px solid var(--line-strong);
+    background: var(--surface-deep);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .term-head {
+    background: var(--surface-term);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 34px;
+    padding: 0 12px;
+    border-bottom: 1.5px solid var(--line);
+  }
+  .term-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .term-title { margin-left: 6px; color: var(--ink-3); font-family: 'SCP', monospace; font-size: 10px; line-height: 1; }
+  .term-body { padding: 16px 20px 18px; font-family: 'SCP', monospace; font-size: 17px; line-height: 30px; }
+  .term-line { display: grid; grid-template-columns: 28px 190px minmax(0, 1fr); align-items: baseline; }
+  .term-line .mark { color: var(--green); }
+  .term-line .key { color: var(--ink-3); }
+  .term-line .val { color: var(--ink); }
+  .prompt { color: var(--blue-2); }
+
+  /* clients */
+  .clients { position: absolute; left: 72px; top: 400px; width: 936px; }
+  .client-row {
+    display: grid;
+    grid-template-columns: 54px 280px minmax(0, 1fr);
+    align-items: center;
+    height: 76px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .client-row:first-child { border-top: 1px solid var(--rule); }
+  .client-num { color: var(--blue-2); font-family: 'SCP', monospace; font-size: 12px; line-height: 16px; }
+  .client-name { color: var(--ink); font-size: 24px; line-height: 30px; font-weight: 500; letter-spacing: -0.3px; }
+  .client-detail { color: var(--ink-2); font-size: 16px; line-height: 24px; }
+
+  .cmd { position: absolute; left: 72px; color: var(--ink); font-family: 'SCP', monospace; font-size: 20px; line-height: 28px; }
+  .cmd-sub { position: absolute; left: 72px; color: var(--ink-3); font-family: 'SCP', monospace; font-size: 12px; line-height: 18px; }
+
+  #s6-mark { position: absolute; left: 72px; top: 196px; width: 120px; height: 120px; }
+  #s6-word { position: absolute; left: 72px; top: 346px; font-size: 76px; line-height: 80px; font-weight: 600; letter-spacing: -2.2px; }
+  #s6-tag { position: absolute; left: 72px; top: 448px; color: var(--ink-2); font-size: 30px; line-height: 40px; }
+  #s6-url { position: absolute; left: 72px; top: 616px; color: var(--blue-2); font-size: 40px; line-height: 48px; font-weight: 500; letter-spacing: -0.8px; }
+  #s6-gh { position: absolute; left: 72px; top: 682px; color: var(--ink-3); font-family: 'SCP', monospace; font-size: 18px; line-height: 24px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <header id="topbar">
+    <div id="brand">
+      <svg id="brand-mark" viewBox="0 0 512 512" aria-hidden="true">
+        <circle cx="256" cy="256" r="184" fill="none" stroke="#89b4fa" stroke-width="63"/>
+        <circle cx="386" cy="386" r="68" fill="#89b4fa"/>
+      </svg>
+      <span id="brand-word">Orbiscreen</span>
+    </div>
+    <div id="timecode">00:00:00:00</div>
+  </header>
+  <div id="progress"></div>
+  <div id="toprule" class="rule"></div>
+  <div id="bottomrule" class="rule"></div>
+  <div id="foot-left">orbiscreen.com</div>
+  <div id="foot-right">GPL-3.0 · Rust · Linux + Android</div>
+
+  <section class="scene" id="s0">
+    <p class="kicker" id="s0-kicker">Linux + Android</p>
+    <h1 class="headline" id="s0-title">Your tablet is already<br>a <span class="accent">second monitor</span>.</h1>
+    <p class="sub" id="s0-sub">A real extended display for Linux. Local, low latency, open source.</p>
+
+    <div id="s0-figure" style="position:absolute;left:72px;top:500px;width:936px;height:420px;">
+      <div class="monitor" id="s0-monitor" style="left:30px;top:24px;width:500px;height:338px;">
+        <div class="screen" style="left:18px;top:18px;width:464px;height:261px;">
+          <div class="win" style="left:24px;top:24px;width:236px;height:154px;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">terminal</span></div>
+            <div class="win-body">
+              <div class="win-line blue" style="width:48%"></div>
+              <div class="win-line" style="width:82%"></div>
+              <div class="win-line" style="width:66%"></div>
+              <div class="win-line blue" style="width:54%"></div>
+              <div class="win-line" style="width:40%"></div>
+            </div>
+          </div>
+          <div class="win" style="left:280px;top:60px;width:160px;height:120px;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
+            <div class="win-body">
+              <div class="win-line blue" style="width:40%"></div>
+              <div class="win-line" style="width:84%"></div>
+              <div class="win-line" style="width:72%"></div>
+              <div class="win-line" style="width:56%"></div>
+            </div>
+          </div>
+          <div class="panel" style="left:0;top:247px;width:464px;height:14px;">
+            <span class="panel-dot"></span><span class="panel-dot"></span><span class="panel-dot"></span>
+          </div>
+        </div>
+        <div class="stand" style="left:244px;top:279px;width:12px;height:32px;"></div>
+        <div class="foot" style="left:160px;top:311px;width:180px;height:6px;"></div>
+      </div>
+
+      <div class="tablet" id="s0-tablet" style="left:720px;top:41px;width:180px;height:300px;">
+        <div class="screen" style="left:14px;top:16px;width:152px;height:256px;">
+          <div class="win" style="left:14px;top:30px;width:124px;height:100px;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">display 2</span></div>
+            <div class="win-body">
+              <div class="win-line blue" style="width:44%"></div>
+              <div class="win-line" style="width:80%"></div>
+              <div class="win-line" style="width:64%"></div>
+            </div>
+          </div>
+          <div class="panel" style="left:0;top:242px;width:152px;height:14px;">
+            <span class="panel-dot"></span><span class="panel-dot"></span><span class="panel-dot"></span>
+          </div>
+        </div>
+        <div class="cam" style="top:7px;"></div>
+        <div class="home" style="bottom:9px;"></div>
+      </div>
+
+      <div id="s0-packets" style="position:absolute;left:530px;top:156px;width:190px;height:40px;"></div>
+      <svg class="signal" id="s0-signal" viewBox="0 0 190 40" style="left:530px;top:156px;width:190px;height:40px;">
+        <path id="s0-signal-path" pathLength="1" d="M0 20 H190"/>
+        <line class="tick" x1="48" y1="13" x2="48" y2="27"/>
+        <line class="tick" x1="95" y1="13" x2="95" y2="27"/>
+        <line class="tick" x1="142" y1="13" x2="142" y2="27"/>
+      </svg>
+      <span class="note" id="s0-host" style="left:30px;top:357px;width:500px;text-align:center;">host</span>
+      <span class="note" id="s0-tab" style="left:720px;top:357px;width:180px;text-align:center;">tablet</span>
+    </div>
+  </section>
+
+  <section class="scene" id="s1">
+    <p class="kicker" id="s1-kicker">Extended display</p>
+    <h2 class="headline" id="s1-title" style="font-size:60px;line-height:66px;letter-spacing:-1.4px;">A real second screen,<br>not a copy.</h2>
+    <p class="sub" id="s1-sub">The compositor creates a virtual output. Drag a window onto it and keep working.</p>
+
+    <div id="s1-figure" style="position:absolute;left:72px;top:450px;width:936px;height:500px;">
+      <div class="monitor" id="s1-monitor" style="left:20px;top:0;width:540px;height:380px;">
+        <div class="screen" style="left:18px;top:18px;width:504px;height:283px;">
+          <div class="win" id="s1-host-window" style="left:40px;top:40px;width:300px;height:200px;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
+            <div class="win-body">
+              <div class="win-line blue" style="width:40%"></div>
+              <div class="win-line" style="width:82%"></div>
+              <div class="win-line" style="width:66%"></div>
+              <div class="win-line blue" style="width:50%"></div>
+              <div class="win-line" style="width:34%"></div>
+            </div>
+          </div>
+          <div class="win" style="left:320px;top:110px;width:180px;height:140px;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">terminal</span></div>
+            <div class="win-body" style="padding:8px 10px;">
+              <div class="win-line blue" style="width:46%;margin:6px 0;"></div>
+              <div class="win-line" style="width:82%;margin:6px 0;"></div>
+              <div class="win-line" style="width:64%;margin:6px 0;"></div>
+              <div class="win-line" style="width:40%;margin:6px 0;"></div>
+            </div>
+          </div>
+          <div class="panel" style="left:0;top:269px;width:504px;height:14px;">
+            <span class="panel-dot"></span><span class="panel-dot"></span><span class="panel-dot"></span>
+          </div>
+        </div>
+        <div class="stand" style="left:264px;top:301px;width:12px;height:34px;"></div>
+        <div class="foot" style="left:175px;top:335px;width:190px;height:6px;"></div>
+      </div>
+
+      <div class="tablet" id="s1-tablet" style="left:720px;top:0;width:196px;height:341px;">
+        <div class="screen" style="left:14px;top:16px;width:168px;height:299px;">
+          <div class="win" id="s1-tab-window" style="left:9px;top:40px;width:150px;height:100px;opacity:0;">
+            <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
+            <div class="win-body" style="padding:6px 8px;">
+              <div class="win-line blue" style="width:40%;margin:4px 0;"></div>
+              <div class="win-line" style="width:82%;margin:4px 0;"></div>
+              <div class="win-line" style="width:60%;margin:4px 0;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="cam" style="top:7px;"></div>
+        <div class="home" style="bottom:9px;"></div>
+      </div>
+
+      <div class="win" id="s1-ghost" style="left:0;top:0;width:300px;height:200px;">
+        <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">browser</span></div>
+        <div class="win-body">
+          <div class="win-line blue" style="width:40%"></div>
+          <div class="win-line" style="width:82%"></div>
+          <div class="win-line" style="width:66%"></div>
+          <div class="win-line blue" style="width:50%"></div>
+        </div>
+      </div>
+      <svg id="s1-cursor" viewBox="0 0 24 24"><path d="M3 2 20 12l-7 2-3 7z" fill="#e8edf5" stroke="#0e1116" stroke-width="1.2"/></svg>
+
+      <div id="s1-packets" style="position:absolute;left:560px;top:145px;width:160px;height:40px;"></div>
+      <svg class="signal" id="s1-signal" viewBox="0 0 160 40" style="left:560px;top:145px;width:160px;height:40px;">
+        <path id="s1-signal-path" pathLength="1" d="M0 20 H160"/>
+      </svg>
+      <span class="note" id="s1-host" style="left:20px;top:362px;width:540px;text-align:center;">host</span>
+      <span class="note" id="s1-tab" style="left:720px;top:362px;width:196px;text-align:center;">tablet</span>
+      <span class="note" id="s1-res" style="left:720px;top:378px;width:196px;text-align:center;font-size:10px;">1920 × 1080 · 60 Hz</span>
+    </div>
+  </section>
+
+  <section class="scene" id="s2">
+    <p class="kicker" id="s2-kicker">Transport</p>
+    <h2 class="headline" id="s2-title" style="font-size:60px;line-height:66px;letter-spacing:-1.4px;">H.264 over<br>LAN or USB.</h2>
+    <p class="sub" id="s2-sub" style="top:320px;">Hardware encoding, Reed-Solomon FEC, and a transport tuned for a local network.</p>
+
+    <div class="spec" id="s2-spec" style="top:404px;">
+      <div class="spec-row"><span class="spec-key">Encoder</span><span class="spec-val">NVENC / VA-API / x264</span><span class="spec-note">H.264</span></div>
+      <div class="spec-row"><span class="spec-key">Transport</span><span class="spec-val">UDP + FEC / USB AOA</span><span class="spec-note">2–4 ms</span></div>
+      <div class="spec-row"><span class="spec-key">Latency</span><span class="spec-val">25–40 ms glass to glass</span><span class="spec-note">LAN</span></div>
+    </div>
+
+    <div id="s2-packets" style="position:absolute;left:72px;top:624px;width:936px;height:48px;"></div>
+    <svg class="signal" id="s2-line" viewBox="0 0 936 40" style="left:72px;top:628px;width:936px;height:40px;">
+      <path id="s2-line-path" pathLength="1" d="M0 20 H936"/>
+      <line class="tick" x1="120" y1="13" x2="120" y2="27"/>
+      <line class="tick" x1="300" y1="13" x2="300" y2="27"/>
+      <line class="tick" x1="480" y1="13" x2="480" y2="27"/>
+      <line class="tick" x1="660" y1="13" x2="660" y2="27"/>
+      <line class="tick" x1="840" y1="13" x2="840" y2="27"/>
+    </svg>
+    <span class="note" id="s2-host" style="left:72px;top:668px;">host</span>
+    <span class="note" id="s2-tab" style="right:72px;top:668px;">tablet</span>
+
+    <div class="term" id="s2-term" style="top:722px;width:936px;height:98px;">
+      <div class="term-head">
+        <span class="term-dot" style="background:var(--red)"></span>
+        <span class="term-dot" style="background:var(--amber)"></span>
+        <span class="term-dot" style="background:var(--green)"></span>
+        <span class="term-title">orbiscreen · stream</span>
+      </div>
+      <div class="term-body">
+        <div><span class="prompt">$</span> <span id="s2-cmd-text"></span></div>
+        <div class="term-line"><span></span><span class="key">virtual display</span><span class="val">1920 × 1080 @ 60</span></div>
+        <div class="term-line"><span></span><span class="key">encoder</span><span class="val">NVENC · H.264 · CBR 8 Mbps</span></div>
+        <div class="term-line"><span></span><span class="key">transport</span><span class="val">UDP + Reed-Solomon FEC</span></div>
+        <div class="term-line"><span></span><span class="key">latency</span><span class="val">25–40 ms glass to glass</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="scene" id="s3">
+    <p class="kicker" id="s3-kicker">Input</p>
+    <h2 class="headline" id="s3-title" style="font-size:60px;line-height:66px;letter-spacing:-1.4px;">Touch and pen<br>go back.</h2>
+    <p class="sub" id="s3-sub">Your apps see a real Linux tablet: pressure, tilt, and multi-touch.</p>
+
+    <div class="tablet" id="s3-tablet" style="left:72px;top:420px;width:300px;height:470px;">
+      <div class="screen" style="left:16px;top:18px;width:268px;height:404px;">
+        <svg viewBox="0 0 268 404" style="position:absolute;inset:0;width:100%;height:100%;">
+          <path id="s3-tab-path" pathLength="1" d="M40 302 C 62 140, 104 330, 136 188 S 196 96, 228 246" fill="none" stroke="#4c8dff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="cam" style="top:8px;"></div>
+      <div class="home" style="bottom:10px;"></div>
+    </div>
+
+    <div class="win" id="s3-desktop" style="left:480px;top:420px;width:528px;height:470px;">
+      <div class="win-bar"><span class="win-dot"></span><span class="win-dot"></span><span class="win-dot"></span><span class="win-title">Krita · canvas</span></div>
+      <div style="position:absolute;inset:26px 0 0;background:var(--surface-2);display:flex;align-items:center;justify-content:center;">
+        <div class="document">
+          <svg viewBox="0 0 268 404" preserveAspectRatio="xMidYMid meet" style="position:absolute;inset:0;width:100%;height:100%;">
+            <path id="s3-desk-path" pathLength="1" d="M40 302 C 62 140, 104 330, 136 188 S 196 96, 228 246" fill="none" stroke="#4c8dff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div id="s3-pen">
+      <svg viewBox="0 0 32 32"><path d="M6 26l4-10L24 3l5 5-13 14z" fill="#1b222b" stroke="#e8edf5" stroke-width="1.6"/><path d="M10 16l5 5" stroke="#e8edf5" stroke-width="1.2" stroke-opacity="0.55"/><path d="M6 26l4-10 2 2-4 10z" fill="#89b4fa"/></svg>
+    </div>
+
+    <div id="s3-packets" style="position:absolute;left:372px;top:616px;width:108px;height:40px;"></div>
+    <svg class="signal" id="s3-signal" viewBox="0 0 108 40" style="left:372px;top:620px;width:108px;height:40px;">
+      <path id="s3-signal-path" pathLength="1" d="M108 20 H0"/>
+      <path d="M10 13 L0 20 L10 27" />
+    </svg>
+    <span class="note" id="s3-uinput" style="left:404px;top:598px;">uinput</span>
+    <p class="note" id="s3-caption" style="left:480px;top:902px;">4095 pressure levels · tilt · hover</p>
+  </section>
+
+  <section class="scene" id="s4">
+    <p class="kicker" id="s4-kicker">Setup</p>
+    <h2 class="headline" id="s4-title" style="font-size:60px;line-height:66px;letter-spacing:-1.4px;">Rootless where<br>it counts.</h2>
+    <p class="sub" id="s4-sub">KDE and wlroots need no root, no kernel module, and no share dialog.</p>
+
+    <div class="term" id="s4-term" style="top:424px;width:936px;height:252px;">
+      <div class="term-head">
+        <span class="term-dot" style="background:var(--red)"></span>
+        <span class="term-dot" style="background:var(--amber)"></span>
+        <span class="term-dot" style="background:var(--green)"></span>
+        <span class="term-title">orbiscreen · doctor</span>
+      </div>
+      <div class="term-body" id="s4-body">
+        <div><span class="prompt">$</span> orbiscreen doctor</div>
+        <div class="term-line"><span class="mark">✓</span><span class="key">compositor</span><span class="val">KWin (Wayland)</span></div>
+        <div class="term-line"><span class="mark">✓</span><span class="key">virtual display</span><span class="val">portal</span></div>
+        <div class="term-line"><span class="mark">✓</span><span class="key">capture</span><span class="val">PipeWire</span></div>
+        <div class="term-line"><span class="mark">✓</span><span class="key">input</span><span class="val">RemoteDesktop + uinput</span></div>
+        <div class="term-line"><span class="mark">→</span><span class="key">root</span><span class="val">not required</span></div>
+      </div>
+    </div>
+    <p class="note" id="s4-note" style="left:72px;top:704px;">KDE Plasma · GNOME 46+ · Sway · Hyprland · X11</p>
+  </section>
+
+  <section class="scene" id="s5">
+    <p class="kicker" id="s5-kicker">Clients</p>
+    <h2 class="headline" id="s5-title" style="font-size:60px;line-height:66px;letter-spacing:-1.4px;">Any Android.<br>Any desktop.</h2>
+    <p class="sub" id="s5-sub">Native app, browser, LAN or USB. No install for the browser.</p>
+
+    <div class="clients" id="s5-list">
+      <div class="client-row"><span class="client-num">01</span><span class="client-name">Android app</span><span class="client-detail">Material 3 · touch and stylus</span></div>
+      <div class="client-row"><span class="client-num">02</span><span class="client-name">Browser</span><span class="client-detail">WebCodecs · no install</span></div>
+      <div class="client-row"><span class="client-num">03</span><span class="client-name">USB AOA</span><span class="client-detail">wired · no adb reverse</span></div>
+      <div class="client-row"><span class="client-num">04</span><span class="client-name">LAN</span><span class="client-detail">UDP + FEC · mDNS discovery</span></div>
+    </div>
+
+    <p class="cmd" id="s5-cmd" style="top:768px;"><span class="prompt">$</span> <span id="s5-cmd-text"></span></p>
+    <p class="cmd-sub" id="s5-cmd-sub" style="top:810px;">also dnf · pacman · PPA · COPR</p>
+  </section>
+
+  <section class="scene" id="s6">
+    <svg id="s6-mark" viewBox="0 0 512 512" aria-hidden="true">
+      <circle cx="256" cy="256" r="184" fill="none" stroke="#89b4fa" stroke-width="63"/>
+      <circle cx="386" cy="386" r="68" fill="#89b4fa"/>
+    </svg>
+    <div id="s6-word">Orbiscreen</div>
+    <div id="s6-tag">Your tablet is your second monitor.</div>
+    <svg class="signal" id="s6-line" viewBox="0 0 936 40" style="left:72px;top:566px;width:936px;height:40px;">
+      <path id="s6-line-path" pathLength="1" d="M0 20 H936"/>
+      <line class="tick" x1="120" y1="13" x2="120" y2="27"/>
+      <line class="tick" x1="300" y1="13" x2="300" y2="27"/>
+      <line class="tick" x1="480" y1="13" x2="480" y2="27"/>
+      <line class="tick" x1="660" y1="13" x2="660" y2="27"/>
+      <line class="tick" x1="840" y1="13" x2="840" y2="27"/>
+    </svg>
+    <div id="s6-url">orbiscreen.com</div>
+    <div id="s6-gh">github.com/shadow-x78/orbiscreen</div>
+  </section>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const p = (t, a, b) => clamp((t - a) / (b - a));
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+
+  function place(el, o, x = 0, y = 0, s = 1, rot = 0) {
+    el.style.opacity = o;
+    el.style.transform = `translate3d(${x}px,${y}px,0) scale(${s}) rotate(${rot}deg)`;
+  }
+  function enter(el, t, a, d, dy = 12) {
+    const q = ease(p(t, a, a + d));
+    place(el, q, 0, (1 - q) * dy);
+  }
+  function draw(path, q) {
+    path.style.strokeDasharray = '1';
+    path.style.strokeDashoffset = String(1 - q);
+  }
+  function type(el, t, a, b, text) {
+    const q = p(t, a, b);
+    el.textContent = text.slice(0, Math.floor(text.length * q));
+  }
+  function packets(wrap, count) {
+    const list = [];
+    for (let i = 0; i < count; i += 1) {
+      const d = document.createElement('div');
+      d.className = 'packet';
+      wrap.appendChild(d);
+      list.push(d);
+    }
+    return list;
+  }
+  function movePackets(list, t, start, span = 1.6, amp = 7) {
+    list.forEach((el, i) => {
+      const q = ((t - start) / span + i * 0.13) % 1;
+      el.style.left = `${q * 100}%`;
+      el.style.top = `${16 + Math.sin(q * Math.PI) * (i % 3 === 0 ? -amp : amp)}px`;
+      el.style.opacity = t >= start ? 1 : 0;
+    });
+  }
+
+  const TOTAL = 34.0;
+  const FPS = 30;
+
+  const s0Packets = packets($('s0-packets'), 10);
+  const s1Packets = packets($('s1-packets'), 8);
+  const s2Packets = packets($('s2-packets'), 14);
+  const s3Packets = packets($('s3-packets'), 5);
+
+  const s0Signal = $('s0-signal-path');
+  const s1Signal = $('s1-signal-path');
+  const s2Line = $('s2-line-path');
+  const s3Signal = $('s3-signal-path');
+  const s6Line = $('s6-line-path');
+  const deskPath = $('s3-desk-path');
+  const tabPath = $('s3-tab-path');
+  const pen = $('s3-pen');
+  const ghost = $('s1-ghost');
+  const cursor = $('s1-cursor');
+
+  function timecode(t) {
+    const total = Math.max(0, Math.min(TOTAL, t));
+    const secs = Math.floor(total);
+    const frames = Math.floor((total - secs) * FPS) % FPS;
+    const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+    const ss = String(secs % 60).padStart(2, '0');
+    const ff = String(frames).padStart(2, '0');
+    return `00:${mm}:${ss}:${ff}`;
+  }
+
+  function render(t) {
+    $('progress').style.width = `${(clamp(t / TOTAL) * 936).toFixed(2)}px`;
+    $('timecode').textContent = timecode(t);
+
+    const s0 = $('s0');
+    if (t < 4.2) {
+      s0.style.opacity = 1;
+      enter($('s0-kicker'), t, -0.35, 0.5, 8);
+      enter($('s0-title'), t, -0.3, 0.7, 14);
+      enter($('s0-sub'), t, -0.1, 0.5, 10);
+      const dq = ease(p(t, 0.5, 1.3));
+      $('s0-monitor').style.opacity = dq;
+      $('s0-tablet').style.opacity = dq;
+      $('s0-monitor').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      $('s0-tablet').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      $('s0-signal').style.opacity = p(t, 0.9, 1.1);
+      draw(s0Signal, ease(p(t, 0.9, 1.7)));
+      $('s0-host').style.opacity = p(t, 1.1, 1.3);
+      $('s0-tab').style.opacity = p(t, 1.1, 1.3);
+      movePackets(s0Packets, t, 1.1, 1.5, 6);
+    } else s0.style.opacity = 0;
+
+    const s1 = $('s1');
+    if (t >= 4.2 && t < 9.8) {
+      s1.style.opacity = 1;
+      enter($('s1-kicker'), t, 4.0, 0.35, 8);
+      enter($('s1-title'), t, 4.08, 0.45, 12);
+      enter($('s1-sub'), t, 4.22, 0.4, 10);
+      const dq = ease(p(t, 4.6, 5.1));
+      $('s1-monitor').style.opacity = dq;
+      $('s1-tablet').style.opacity = dq;
+      $('s1-monitor').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      $('s1-tablet').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      $('s1-signal').style.opacity = p(t, 4.9, 5.1);
+      draw(s1Signal, ease(p(t, 4.9, 5.5)));
+      $('s1-host').style.opacity = p(t, 4.9, 5.1);
+      $('s1-tab').style.opacity = p(t, 4.9, 5.1);
+      movePackets(s1Packets, t, 5.0, 1.3, 5);
+      const drag = ease(p(t, 5.5, 6.8));
+      const gx = 78 + drag * 665;
+      const gy = 58 - drag * 2;
+      const gs = 1 - drag * 0.5;
+      $('s1-host-window').style.opacity = 1 - p(t, 5.45, 5.6);
+      ghost.style.opacity = p(t, 5.4, 5.6) * (1 - p(t, 6.8, 7.05));
+      ghost.style.transform = `translate3d(${gx}px,${gy}px,0) scale(${gs})`;
+      ghost.style.transformOrigin = '0 0';
+      cursor.style.opacity = p(t, 5.4, 5.6) * (1 - p(t, 6.8, 7.05));
+      cursor.style.transform = `translate3d(${gx + 300 * gs - 8}px,${gy + 200 * gs - 8}px,0)`;
+      $('s1-tab-window').style.opacity = p(t, 6.75, 7.0);
+    } else s1.style.opacity = 0;
+
+    const s2 = $('s2');
+    if (t >= 9.8 && t < 15.6) {
+      s2.style.opacity = 1;
+      enter($('s2-kicker'), t, 9.6, 0.35, 8);
+      enter($('s2-title'), t, 9.68, 0.45, 12);
+      enter($('s2-sub'), t, 9.82, 0.4, 10);
+      [...$('s2-spec').children].forEach((row, i) => {
+        const q = ease(p(t, 10.3 + i * 0.16, 10.6 + i * 0.16));
+        row.style.opacity = q;
+        row.style.transform = `translateY(${(1 - q) * 8}px)`;
+      });
+      $('s2-line').style.opacity = p(t, 10.5, 10.7);
+      draw(s2Line, ease(p(t, 10.5, 11.2)));
+      $('s2-host').style.opacity = p(t, 10.7, 10.9);
+      $('s2-tab').style.opacity = p(t, 10.7, 10.9);
+      movePackets(s2Packets, t, 10.8, 1.8, 7);
+      $('s2-term').style.opacity = p(t, 11.0, 11.25);
+      type($('s2-cmd-text'), t, 11.15, 11.8, 'orbiscreen start');
+      const termRows = [...$('s2-term').querySelectorAll('.term-line')];
+      termRows.forEach((row, i) => {
+        const q = ease(p(t, 11.85 + i * 0.10, 12.2 + i * 0.10));
+        row.style.opacity = q;
+        row.style.transform = `translateY(${(1 - q) * 6}px)`;
+      });
+      const visibleRows = termRows.reduce((sum, row) => sum + (parseFloat(row.style.opacity) || 0), 0);
+      $('s2-term').style.height = `${(98 + 30 * visibleRows).toFixed(1)}px`;
+    } else s2.style.opacity = 0;
+
+    const s3 = $('s3');
+    if (t >= 15.6 && t < 21.0) {
+      s3.style.opacity = 1;
+      enter($('s3-kicker'), t, 15.4, 0.35, 8);
+      enter($('s3-title'), t, 15.48, 0.45, 12);
+      enter($('s3-sub'), t, 15.62, 0.4, 10);
+      const dq = ease(p(t, 16.0, 16.5));
+      $('s3-desktop').style.opacity = dq;
+      $('s3-tablet').style.opacity = dq;
+      $('s3-desktop').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      $('s3-tablet').style.transform = `translateY(${(1 - dq) * 8}px)`;
+      const q = ease(p(t, 16.4, 19.1));
+      draw(deskPath, q);
+      draw(tabPath, q);
+      $('s3-signal').style.opacity = p(t, 16.2, 16.4);
+      draw(s3Signal, ease(p(t, 16.2, 16.8)));
+      $('s3-uinput').style.opacity = p(t, 16.4, 16.6);
+      movePackets(s3Packets, t, 16.4, 1.2, 4);
+      const penQ = p(t, 16.4, 19.1);
+      if (penQ > 0 && penQ < 1) {
+        const pt = tabPath.getPointAtLength(tabPath.getTotalLength() * ease(penQ));
+        pen.style.left = `${72 + 16 + (pt.x / 268) * 268}px`;
+        pen.style.top = `${420 + 18 + (pt.y / 404) * 404}px`;
+        pen.style.opacity = 1;
+      } else pen.style.opacity = 0;
+      enter($('s3-caption'), t, 18.8, 0.4, 8);
+    } else s3.style.opacity = 0;
+
+    const s4 = $('s4');
+    if (t >= 21.0 && t < 25.8) {
+      s4.style.opacity = 1;
+      enter($('s4-kicker'), t, 20.8, 0.35, 8);
+      enter($('s4-title'), t, 20.88, 0.45, 12);
+      enter($('s4-sub'), t, 21.02, 0.4, 10);
+      $('s4-term').style.opacity = p(t, 21.5, 21.75);
+      [...$('s4-body').children].forEach((row, i) => {
+        const q = ease(p(t, 21.7 + i * 0.14, 22.05 + i * 0.14));
+        row.style.opacity = q;
+        row.style.transform = `translateY(${(1 - q) * 6}px)`;
+      });
+      enter($('s4-note'), t, 22.6, 0.4, 6);
+    } else s4.style.opacity = 0;
+
+    const s5 = $('s5');
+    if (t >= 25.8 && t < 30.4) {
+      s5.style.opacity = 1;
+      enter($('s5-kicker'), t, 25.6, 0.35, 8);
+      enter($('s5-title'), t, 25.68, 0.45, 12);
+      enter($('s5-sub'), t, 25.82, 0.4, 10);
+      [...$('s5-list').children].forEach((row, i) => {
+        const q = ease(p(t, 26.3 + i * 0.14, 26.65 + i * 0.14));
+        row.style.opacity = q;
+        row.style.transform = `translateY(${(1 - q) * 8}px)`;
+      });
+      type($('s5-cmd-text'), t, 26.9, 27.55, 'sudo apt install orbiscreen');
+      enter($('s5-cmd-sub'), t, 27.55, 0.35, 6);
+    } else s5.style.opacity = 0;
+
+    const s6 = $('s6');
+    if (t >= 30.4) {
+      s6.style.opacity = 1;
+      const mq = ease(p(t, 30.2, 30.8));
+      $('s6-mark').style.opacity = mq;
+      $('s6-mark').style.transform = `scale(${0.86 + mq * 0.14})`;
+      enter($('s6-word'), t, 30.28, 0.45, 12);
+      enter($('s6-tag'), t, 30.45, 0.4, 10);
+      $('s6-line').style.opacity = p(t, 30.55, 30.75);
+      draw(s6Line, ease(p(t, 30.55, 31.2)));
+      enter($('s6-url'), t, 30.75, 0.4, 8);
+      enter($('s6-gh'), t, 30.9, 0.4, 6);
+    } else s6.style.opacity = 0;
+  }
+
+  const params = new URLSearchParams(location.search);
+  if (params.has('t')) {
+    render(parseFloat(params.get('t')) || 0);
+  } else if (params.has('capture')) {
+    // deterministic mode for demo/capture.py: no wall-clock loop to race the capture
+    render(0);
+  } else {
+    const start = performance.now();
+    const tick = (now) => {
+      const t = ((now - start) / 1000) % TOTAL;
+      render(t);
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+  window.__setTime = (t) => render(t);
+  window.__total = TOTAL;
+</script>
+</body>
+</html>

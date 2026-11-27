@@ -5,7 +5,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 FPS = 30
-SCALE = 2  # capture at 2160 and downsample to 1080 for crisp text
+SCALE = 2  # capture at 1440 and downsample to 720 for crisp text
 URL = os.environ.get(
     "DEMO_URL", "http://127.0.0.1:8765/demo/index.html?capture=1"
 )
@@ -18,7 +18,7 @@ OUT.mkdir(parents=True)
 with sync_playwright() as p:
     browser = p.chromium.launch(channel="chrome", headless=True)
     page = browser.new_page(
-        viewport={"width": 1080, "height": 1080},
+        viewport={"width": 720, "height": 720},
         device_scale_factor=SCALE,
     )
     page.goto(URL, wait_until="networkidle")
@@ -38,4 +38,4 @@ with sync_playwright() as p:
 
     browser.close()
 
-print(f"captured {total} frames at {FPS} fps, {1080 * SCALE}px source", flush=True)
+print(f"captured {total} frames at {FPS} fps, {720 * SCALE}px source", flush=True)
