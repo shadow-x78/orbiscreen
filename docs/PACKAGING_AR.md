@@ -2,7 +2,7 @@
 
 # دليل التغليف متعدد التوزيعات - Orbiscreen
 
-[![الإصدار](https://img.shields.io/badge/version-0.45.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-0.45.4-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![المنصة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -12,7 +12,7 @@
 <a id="packaging-matrix"></a>
 ## مصفوفة حزم التوزيعات
 
-مصفوفة الإصدار: `0.45.3` (مساحة العمل)، `versionCode = 213` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع: راجع SECURITY.md؛ وفر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
+مصفوفة الإصدار: `0.45.4` (مساحة العمل)، `versionCode = 214` (Android). ملاحظة: keystore إصدار Android لم تعد مضمنة في المستودع: راجع SECURITY.md؛ وفر `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` عند بناء APK الإصدار.
 
 `versionCode` قيمة تعدل يدويا ويزيدها واحد مع كل إصدار (وهي عدد صحيح تصاعدي لا يمكن أن يتبع إصدارا دلاليا). `scripts/check-versions.sh` يتحقق من أن كل مواضع الإصدار الـ25 متطابقة مع مساحة عمل Cargo، ويعمل أيضا ضمن CI.
 
@@ -116,7 +116,7 @@ orbiscreen-<version>-linux-x86_64.tar.gz  # ثنائيات جاهزة
 
 يبقى `RPM_GPG_KEY` و`RPM_GPG_NAME` لتوقيع حزم RPM وAppImage. وإذا كان مفتاح PPA محميا بكلمة مرور فأضف `PPA_GPG_PASSPHRASE`؛ يكتبه السير في ملف مؤقت خاص لـ`debuild` ثم يحذفه.
 
-بعد دفع الوسم، يرفع سير PPA حزمة المصدر ثم يستعلم واجهة Launchpad عن الإصدار نفسه. يميز `scripts/check-ppa-published.py` أربع حالات: منشور، أو ما يزال في الانتظار أو قيد البناء، أو مرفوض/مستبدل، أو غير موجود بعد. تنتظر المهمة حتى 30 دقيقة ظهور `Published`؛ وإذا قبلت Launchpad المصدر وما زال يبنى تنتهي المهمة بتحذير ورابط صفحة حزم PPA بدل فشل زائف، لأن طابور البناء قد يتجاوز عمر المهمة. أما الرفع المرفوض فيفشل المهمة برسالة تشير إلى تسجيل المفتاح أو بريد الرفض. ويبني سير COPR حزمة SRPM ويرسلها بـ `copr-cli`، فيفشل عند غياب الرمز بدل إنتاج RPM محلي فقط.
+بعد دفع الوسم، يبني سير PPA الخادم والواجهة على عدّاء Ubuntu 24.04 ويضعها في `prebuilt/` ثم يرفع حزمة المصدر. لا تستطيع Launchpad بناء Rust 1.92 على noble، لذلك يثبّت `debian/rules` الملفات التنفيذية الجاهزة بدل تشغيل Cargo، وتُبنى حزمة الديب مرة على العدّاء كفحص قبل الرفع. ما زال `scripts/check-ppa-published.py` يمنع إعادة رفع إصدار موجود في الأرشيف. وتتحقق الخطوة الأخيرة عبر `scripts/check-ppa-binary.py` من نشر **الحزمة الثنائية** للسلسلة المستهدفة، وتميز الانتظار أو البناء من فشل Launchpad، وتفشل المهمة عند فشل البناء أو بقاء الحزمة غير منشورة 30 دقيقة. بذلك لا ينتهي السير بنجاح مع بقاء مستخدمي Ubuntu على 0.16.2. ويبني سير COPR حزمة SRPM ويرسلها بـ `copr-cli`، فيفشل عند غياب الرمز بدل إنتاج RPM محلي فقط.
 
 </div>
 
@@ -150,8 +150,8 @@ sudo dnf install orbiscreen
 
 ### ملف Control
 `debian/control` يحدد:
-- Build-Depends: `cargo (>= 1.92)`, `rustc (>= 1.92)`, `libgstreamer1.0-dev`, `libgstreamer-plugins-base1.0-dev`, `libwayland-dev`, `libdrm-dev`, `libkf5waylandclient-dev`, `libkf5kdelibs4support-dev`, `libinput-dev`, `libudev-dev`, `libsystemd-dev`, `libssl-dev`, `pkg-config`, `debhelper-compat (= 13)`, `cmake`
-- Depends: `${shlibs:Depends}`, `${misc:Depends}`, `gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad`, `gstreamer1.0-libav`, `libwayland-client0`, `libkf5waylandclient5`, `libinput10`, `libudev1`, `libsystemd0`, `libssl3`, `qt6-wayland` (GUI platform plugin)
+- Build-Depends: `debhelper-compat (= 13)`, `pkg-config`, `libglib2.0-dev`, `libgstreamer1.0-dev`, `libgstreamer-plugins-base1.0-dev`, `libevdev-dev`, `libxkbcommon-dev`, `libx11-dev`, `libxcb1-dev`, `libxrandr-dev`, `libwayland-dev`, `qt6-base-dev`, `qt6-wayland` (يبني Launchpad الحزمة من ملفات `prebuilt/` التي ينتجها CI)
+- Depends: `${shlibs:Depends}`, `${misc:Depends}`, `libgstreamer1.0-0`, `libgstreamer-plugins-base1.0-0`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad`, `gstreamer1.0-plugins-ugly`, `gstreamer1.0-libav`, `libevdev2`, `qt6-wayland` (GUI platform plugin)
 
 ### التثبيت
 ```bash
@@ -196,7 +196,7 @@ ORBISCREEN_KEY_PASSWORD=**** \
 
 ### المخرجات
 - `app/build/outputs/apk/release/app-release.apk` (موقع، V2/V3)
-- إصدار الكود: `213` (0.45.3)، يعدل يدويا. يتطلب Android عددا صحيحا متزايدا، لذا لا يمكن أن يتبع إصدارا دلاليا؛ زده واحدا مع كل إصدار.
+- إصدار الكود: `214` (0.45.4)، يعدل يدويا. يتطلب Android عددا صحيحا متزايدا، لذا لا يمكن أن يتبع إصدارا دلاليا؛ زده واحدا مع كل إصدار.
 
 ### التحقق
 ```bash

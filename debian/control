@@ -3,18 +3,18 @@ Section: utils
 Priority: optional
 Maintainer: shadow-x78 <shadow-x7@red-shadows-rs.com>
 Build-Depends: debhelper-compat (= 13),
-               cargo,
-               rustc (>= 1.92),
                pkg-config,
                libglib2.0-dev,
                libgstreamer1.0-dev,
                libgstreamer-plugins-base1.0-dev,
                libevdev-dev,
                libxkbcommon-dev,
+               libx11-dev,
+               libxcb1-dev,
+               libxrandr-dev,
+               libwayland-dev,
                qt6-base-dev,
-               qt6-wayland,
-               cmake,
-               g++
+               qt6-wayland
 Standards-Version: 4.6.2
 Homepage: https://orbiscreen.com
 

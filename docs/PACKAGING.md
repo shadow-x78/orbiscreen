@@ -2,7 +2,7 @@
 
 # Multi-Distro Packaging Guide - Orbiscreen
 
-[![Version](https://img.shields.io/badge/version-0.45.3-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.45.4-2563eb?style=flat-square&logo=semver)](../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](../LICENSE)
 ![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&logo=rust)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&logo=linux)
@@ -31,11 +31,11 @@
 
 When cutting a release, the version must be updated across all packages:
 
-- `Cargo.toml`: `[workspace.package].version = "0.45.3"`
-- `clients/android/app/build.gradle.kts`: `versionName = "0.45.3"`, `versionCode = 213`
-- `PKGBUILD`: `pkgver=0.45.3`
-- `debian/changelog`: new entry for `0.45.3-1`
-- `data/orbiscreen-copr.spec`: `Version: 0.45.3`
+- `Cargo.toml`: `[workspace.package].version = "0.45.4"`
+- `clients/android/app/build.gradle.kts`: `versionName = "0.45.4"`, `versionCode = 214`
+- `PKGBUILD`: `pkgver=0.45.4`
+- `debian/changelog`: new entry for `0.45.4-1`
+- `data/orbiscreen-copr.spec`: `Version: 0.45.4`
 
 Verify with the consistency check, which compares every location above against the Cargo
 workspace and exits non-zero on any mismatch. It runs in CI as well:
@@ -52,7 +52,7 @@ does not detect drift between the packaging files.
 <a id="packaging-matrix"></a>
 ## Packaging Matrix
 
-The release matrix is: `0.45.3` (workspace), `versionCode = 213` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
+The release matrix is: `0.45.4` (workspace), `versionCode = 214` (Android). The Android release keystore is no longer shipped in the repo (see SECURITY.md); supply `ORBISCREEN_KEYSTORE_PATH`/`ORBISCREEN_STORE_PASSWORD`/`ORBISCREEN_KEY_ALIAS`/`ORBISCREEN_KEY_PASSWORD` when building a release APK.
 
 Orbiscreen provides build configurations and package definitions for all major Linux distributions and Android:
 
@@ -159,14 +159,17 @@ RPM key for Launchpad.
 If the PPA key has a passphrase, add `PPA_GPG_PASSPHRASE`; the workflow writes it
 to a private temporary file for `debuild` and removes it afterwards.
 
-After a tag is pushed, the PPA workflow uploads the source package and then
-polls the Launchpad API for the exact version. `scripts/check-ppa-published.py`
-distinguishes the four states: published, still queued or building, rejected or
-superseded, and not on Launchpad yet. The job waits up to 30 minutes for
-`Published`; a source that Launchpad accepted but is still building ends the job
-with a warning and a link to the PPA package page, because the build queue can
-outlast the job. A rejected upload still fails the job with a message pointing at
-the key registration or the Launchpad rejection email. The COPR workflow builds the SRPM and submits it with `copr-cli`. It needs both
+After a tag is pushed, the PPA workflow builds the daemon and GUI on the Ubuntu
+24.04 runner, stages them in `prebuilt/`, and uploads the source package.
+Launchpad cannot build Rust 1.92 code on noble, so `debian/rules` installs the
+staged binaries instead of invoking Cargo; the binary package is also built once
+on the runner as a pre-upload check. `scripts/check-ppa-published.py` still
+prevents re-uploading a version already in the archive. The final step polls
+`scripts/check-ppa-binary.py`, which requires the published **binary** for the
+target series, distinguishes queued or building from a failed Launchpad build,
+and fails the job when the build fails or the binary is still absent after 30
+minutes. This prevents a green job from leaving Ubuntu users on the old 0.16.2
+package. The COPR workflow builds the SRPM and submits it with `copr-cli`. It needs both
 fields from the same API configuration: `login` and `token`. A missing or
 mismatched pair fails the job instead of silently producing only local RPMs. Packit is
 kept for pull-request builds only; it does not publish release tags.
@@ -201,8 +204,8 @@ The generated RPM: `orbiscreen-<version>-1.x86_64.rpm`
 
 ### Control File
 `debian/control` defines:
-- Build-Depends: `cargo (>= 1.92)`, `rustc (>= 1.92)`, `libgstreamer1.0-dev`, `libgstreamer-plugins-base1.0-dev`, `libwayland-dev`, `libdrm-dev`, `libkf5waylandclient-dev`, `libkf5kdelibs4support-dev`, `libinput-dev`, `libudev-dev`, `libsystemd-dev`, `libssl-dev`, `pkg-config`, `debhelper-compat (= 13)`, `cmake`
-- Depends: `${shlibs:Depends}`, `${misc:Depends}`, `gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad`, `gstreamer1.0-libav`, `libwayland-client0`, `libkf5waylandclient5`, `libinput10`, `libudev1`, `libsystemd0`, `libssl3`, `qt6-wayland` (GUI platform plugin)
+- Build-Depends: `debhelper-compat (= 13)`, `pkg-config`, `libglib2.0-dev`, `libgstreamer1.0-dev`, `libgstreamer-plugins-base1.0-dev`, `libevdev-dev`, `libxkbcommon-dev`, `libx11-dev`, `libxcb1-dev`, `libxrandr-dev`, `libwayland-dev`, `qt6-base-dev`, `qt6-wayland` (the Launchpad build uses CI-built `prebuilt/` binaries)
+- Depends: `${shlibs:Depends}`, `${misc:Depends}`, `libgstreamer1.0-0`, `libgstreamer-plugins-base1.0-0`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad`, `gstreamer1.0-plugins-ugly`, `gstreamer1.0-libav`, `libevdev2`, `qt6-wayland` (GUI platform plugin)
 
 ### Installation
 ```bash
@@ -247,7 +250,7 @@ ORBISCREEN_KEY_PASSWORD=**** \
 
 ### Output
 - `app/build/outputs/apk/release/app-release.apk` (signed, V2/V3)
-- Version code: `213` (0.45.3), edited by hand. Android requires a strictly increasing
+- Version code: `214` (0.45.4), edited by hand. Android requires a strictly increasing
   integer, so it cannot track a semantic version; bump it by one per release.
   `scripts/check-versions.sh` verifies that it still matches the value quoted in this
   document, but it cannot tell you whether the release needs to advance it.

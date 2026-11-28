@@ -8,7 +8,7 @@
 
 شاشة ثانية لنظام Linux باستخدام جهاز لوحي أو هاتف Android.
 
-[![الإصدار](https://img.shields.io/badge/version-0.45.3-2563eb?style=flat-square&labelColor=17181b&logo=semver&logoColor=white)](CHANGELOG.md) [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square&labelColor=17181b&logo=gnu&logoColor=white)](LICENSE) [![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&labelColor=17181b&logo=rust&logoColor=white)](#installation) [![المنصة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&labelColor=17181b&logo=linux&logoColor=white)](#desktop-support)
+[![الإصدار](https://img.shields.io/badge/version-0.45.4-2563eb?style=flat-square&labelColor=17181b&logo=semver&logoColor=white)](CHANGELOG.md) [![الرخصة](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square&labelColor=17181b&logo=gnu&logoColor=white)](LICENSE) [![Rust](https://img.shields.io/badge/rust-1.92%2B-16a34a?style=flat-square&labelColor=17181b&logo=rust&logoColor=white)](#installation) [![المنصة](https://img.shields.io/badge/platform-Linux%20%7C%20Android-9333ea?style=flat-square&labelColor=17181b&logo=linux&logoColor=white)](#desktop-support)
 
 </div>
 
@@ -22,22 +22,8 @@
 
 ---
 
-<a id="demo"></a>
-## العرض
-
-<p align="center">
-  <a href="assets/demo/orbiscreen-demo.mp4">
-    <img src="assets/demo/orbiscreen-demo-poster.png" alt="عرض Orbiscreen: جهاز لوحي يصبح شاشة ثانية حقيقية" width="560" />
-  </a>
-</p>
-
-جولة صامتة مدتها 34 ثانية: شاشة ممتدة، وبث H.264 عبر الشبكة أو USB، وعودة اللمس والقلم إلى Linux، والعملاء. [شاهد العرض](assets/demo/orbiscreen-demo.mp4) ‏(1080 × 1080، H.264).
-
----
-
 ## فهرس المحتويات
 
-- [العرض](#demo)
 - [نظرة عامة](#نظرة-عامة)
 - [المقارنة](#المقارنة)
 - [حالات الاستخدام](#حالات-الاستخدام)

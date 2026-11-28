@@ -1535,7 +1535,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-capture"
-version = "0.45.3"
+version = "0.45.4"
 dependencies = [
  "ashpd",
  "gstreamer",
@@ -1554,7 +1554,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-core"
-version = "0.45.3"
+version = "0.45.4"
 dependencies = [
  "libc",
  "serde",
@@ -1566,7 +1566,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-daemon"
-version = "0.45.3"
+version = "0.45.4"
 dependencies = [
  "base64",
  "clap",
@@ -1590,7 +1590,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-display"
-version = "0.45.3"
+version = "0.45.4"
 dependencies = [
  "drm-fourcc",
  "evdi",
@@ -1602,7 +1602,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-encode"
-version = "0.45.3"
+version = "0.45.4"
 dependencies = [
  "gstreamer",
  "gstreamer-app",
@@ -1614,7 +1614,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-input"
-version = "0.45.3"
+version = "0.45.4"
 dependencies = [
  "ashpd",
  "evdevil",
@@ -1635,7 +1635,7 @@ dependencies = [
 
 [[package]]
 name = "orbiscreen-transport"
-version = "0.45.3"
+version = "0.45.4"
 dependencies = [
  "axum",
  "axum-server",

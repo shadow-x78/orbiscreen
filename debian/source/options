@@ -2,7 +2,7 @@ tar-ignore = "target"
 tar-ignore = ".git"
 tar-ignore = "clients/android"
 tar-ignore = ".kilo"
-# `vendor/` and `.cargo/config.toml` are injected by the PPA workflow before debuild and
-# are re-created by any offline build; shipping them would bloat the source package.
-tar-ignore = "vendor"
-tar-ignore = ".cargo"
+tar-ignore = "node_modules"
+tar-ignore = "site/dist"
+tar-ignore = ".wrangler"
+tar-ignore = ".playwright-mcp"

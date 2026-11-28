@@ -9,15 +9,24 @@ export DH_VERBOSE = 1
 %:
 	dh $@
 
+override_dh_auto_configure:
+
 override_dh_auto_build:
-	cargo build --release --workspace --locked
-	cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release
-	cmake --build build-gui -j"$$(nproc)"
+	if [ ! -x prebuilt/orbiscreen ] || [ ! -x prebuilt/orbiscreen-gui ]; then \
+		cargo build --release --workspace --locked; \
+		cmake -S gui -B build-gui -DCMAKE_BUILD_TYPE=Release; \
+		cmake --build build-gui -j"$$(nproc)"; \
+	fi
 
 override_dh_auto_install:
 	@mkdir -p debian/orbiscreen/usr/bin
-	install -Dm0755 target/release/orbiscreen debian/orbiscreen/usr/bin/orbiscreen
-	install -Dm0755 build-gui/orbiscreen-gui debian/orbiscreen/usr/bin/orbiscreen-gui
+	if [ -x prebuilt/orbiscreen ]; then \
+		install -Dm0755 prebuilt/orbiscreen debian/orbiscreen/usr/bin/orbiscreen; \
+		install -Dm0755 prebuilt/orbiscreen-gui debian/orbiscreen/usr/bin/orbiscreen-gui; \
+	else \
+		install -Dm0755 target/release/orbiscreen debian/orbiscreen/usr/bin/orbiscreen; \
+		install -Dm0755 build-gui/orbiscreen-gui debian/orbiscreen/usr/bin/orbiscreen-gui; \
+	fi
 	install -Dm0644 data/orbiscreen.svg debian/orbiscreen/usr/share/icons/hicolor/scalable/apps/orbiscreen.svg
 	ln -sf orbiscreen.svg debian/orbiscreen/usr/share/icons/hicolor/scalable/apps/orbiscreen-gui.svg
 	for size in 16 22 24 32 48 64 128 256 512; do \
@@ -37,11 +46,12 @@ override_dh_auto_install:
 	install -Dm0644 data/99-orbiscreen-usb.rules debian/orbiscreen/usr/lib/udev/rules.d/99-orbiscreen-usb.rules
 
 override_dh_auto_test:
-	cargo test --workspace --locked
-	ctest --test-dir build-gui --output-on-failure
+	if [ ! -x prebuilt/orbiscreen ]; then \
+		cargo test --workspace --locked; \
+		ctest --test-dir build-gui --output-on-failure; \
+	fi
 
-# The daemon is meant to start with the graphical session. Debhelper has no helper for
-# user units, so the enable symlink is created by dh_installsystemduser instead of
-# leaving the installed unit inert. Starting is still deferred to the first login.
+# The daemon starts with the graphical session; dh_installsystemduser installs and
+# enables the user unit. The package installation cannot start a user session.
 override_dh_installsystemduser:
-	dh_installsystemduser --name=orbiscreen --no-start
+	dh_installsystemduser --name=orbiscreen

@@ -239,6 +239,35 @@ jobs:
           if [ "$gui_code" -ne 124 ] && [ "$gui_code" -ne 0 ]; then cat /tmp/gui-smoke.log; exit 1; fi
           rm -rf squashfs-root
 
+      - name: Smoke-test on Bluefin Dakota
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          APPIMAGE="$PWD/dist/orbiscreen-${VERSION}-x86_64.AppImage"
+          docker run --rm -v "$APPIMAGE:/orbiscreen.AppImage:ro" ghcr.io/projectbluefin/dakota:stable sh -c '
+            set -eu
+            /orbiscreen.AppImage --appimage-extract >/dev/null
+            export LD_LIBRARY_PATH="$PWD/squashfs-root/usr/lib"
+            missing=0
+            for f in squashfs-root/usr/bin/* squashfs-root/usr/lib/*.so* squashfs-root/usr/lib/qt6/plugins/*/*.so squashfs-root/usr/lib/gstreamer-1.0/*.so; do
+              [ -f "$f" ] || continue
+              if ldd "$f" 2>/dev/null | grep -q "not found"; then
+                echo "unresolved libraries in $f:" >&2
+                ldd "$f" | grep "not found" >&2
+                missing=1
+              fi
+            done
+            [ "$missing" -eq 0 ] || exit 1
+            APPIMAGE_EXTRACT_AND_RUN=1 ORBISCREEN_CLI=1 /orbiscreen.AppImage --version >/dev/null
+            APPIMAGE_EXTRACT_AND_RUN=1 QT_QPA_PLATFORM=wayland QT_DEBUG_PLUGINS=1 \
+              XDG_RUNTIME_DIR=/tmp WAYLAND_DISPLAY=none timeout 10 /orbiscreen.AppImage >/tmp/gui.log 2>&1 || true
+            if grep -qE "error while loading shared libraries|Cannot load library" /tmp/gui.log; then
+              cat /tmp/gui.log >&2
+              exit 1
+            fi
+            grep -qE "libqwayland[^\"]*\.so\" loaded library" /tmp/gui.log
+            rm -rf squashfs-root
+          '
+
       - name: Set up JDK 17 for Android
         uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
         with:

@@ -66,7 +66,7 @@ is_host_library() {
     case "$1" in
         ld-linux*|libc.so*|libm.so*|libdl.so*|libpthread.so*|librt.so*|libgcc_s.so*|libstdc++.so*|libresolv.so*|libnss_*|libnss3.so*|libnssutil3.so*|libutil.so*|libcrypt.so*|libanl.so*|libmvec.so*|libgomp.so*)
             return 0 ;;
-        libsystemd.so*|libudev.so*|libdbus-1.so*|libpipewire*.so*|libspa*.so*|libselinux.so*|libapparmor.so*|libpam*.so*|libcap.so*|libmount.so*|libblkid.so*|libuuid.so*)
+        libsystemd.so*|libudev.so*|libdbus-1.so*|libpipewire*.so*|libspa-0.2.so*|libselinux.so*|libapparmor.so*|libpam*.so*|libcap.so*|libmount.so*|libblkid.so*|libuuid.so*)
             return 0 ;;
         libglib-2.0.so*|libgobject-2.0.so*|libgmodule-2.0.so*|libz.so*|libzstd.so*|liblzma.so*|liblz4.so*)
             return 0 ;;
@@ -74,11 +74,11 @@ is_host_library() {
         # Ubuntu pcre2-8 produces "no version information available" warnings.
         libpcre2-8.so*)
             return 0 ;;
-        libgnutls.so*|libgcrypt.so*|libnettle.so*|libhogweed.so*|libtasn1.so*|libp11-kit.so*|libgssapi*.so*|libkrb5*.so*|libk5crypto*.so*|libkrb5support*.so*|libcom_err*.so*|libkeyutils*.so*)
+        libgnutls.so*|libgcrypt.so*|libtasn1.so*|libp11-kit.so*|libgssapi*.so*|libkrb5*.so*|libk5crypto*.so*|libkrb5support*.so*|libcom_err*.so*|libkeyutils*.so*)
             return 0 ;;
         libGL*.so*|libEGL*.so*|libOpenGL*.so*|libGLX*.so*|libGLdispatch*.so*|libgbm.so*|libdrm.so*|libwayland*.so*|libxkbcommon.so*)
             return 0 ;;
-        libfontconfig.so*|libfreetype.so*|libharfbuzz.so*|libpng*.so*|libjpeg*.so*|libtiff*.so*|libwebp*.so*|libcairo.so*|libpango*.so*|libgdk*.so*|libgtk*.so*)
+        libfontconfig.so*|libfreetype.so*|libharfbuzz.so*|libpng*.so*|libtiff*.so*|libwebp*.so*|libcairo.so*|libpango*.so*|libgdk*.so*|libgtk*.so*)
             return 0 ;;
         libxml2.so*|libxslt*.so*)
             return 0 ;;
@@ -247,6 +247,23 @@ bundle_qt() {
     fi
 }
 bundle_qt
+
+verify_bundled_libraries() {
+    local target needed base missing=0
+    while IFS= read -r -d '' target; do
+        while IFS= read -r needed; do
+            [ -n "$needed" ] || continue
+            base="$(basename "$needed")"
+            is_host_library "$base" && continue
+            if [ ! -e "$APP/usr/lib/$base" ]; then
+                echo "error: $(basename "$target") needs $base, which is not bundled" >&2
+                missing=1
+            fi
+        done < <(readelf -d "$target" 2>/dev/null | awk -F'[][]' '/NEEDED/ {print $2}')
+    done < <(find "$APP/usr/bin" "$APP/usr/lib" -type f \( -name '*.so' -o -name '*.so.*' -o -perm -u+x \) -print0)
+    return "$missing"
+}
+verify_bundled_libraries
 
 # ── Desktop & Icon Metadata ──
 if [ -f "$APP/usr/bin/orbiscreen-gui" ]; then

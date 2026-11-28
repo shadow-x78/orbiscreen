@@ -5,6 +5,7 @@
 
 # ── Rust / Cargo ──
 /target/
+/prebuilt/
 **/*.rs.bk
 Cargo.lock.bak
 .cargo/
@@ -84,6 +85,3 @@ __pycache__/
 
 # ── Playwright MCP scratch output ──
 /.playwright-mcp/
-
-# ── Demo capture frames ──
-/demo/frames/

@@ -9,7 +9,7 @@
 # ── Metadata ──
 Name:           orbiscreen
 # Single source of truth inside this spec; every other field refers to %{version}.
-%global version 0.45.3
+%global version 0.45.4
 
 Version:        %{version}
 Release:        1%{?dist}
@@ -151,6 +151,9 @@ fi
 %{_udevrulesdir}/99-orbiscreen-usb.rules
 
 %changelog
+* Sat Nov 28 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.45.4-1
+- Release 0.45.4: fix: bundle the remaining AppImage runtime libraries so the AppImage starts on Bluefin Dakota
+
 * Fri Nov 27 2026 shadow-x7 <shadow-x7@red-shadows-rs.com> - 0.45.3-1
 - Release 0.45.3: Bundle GStreamer plugins and X11 libraries in the AppImage; refine the demo
 

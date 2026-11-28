@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.45.4] - 2026-11-28
+
+### Fixed
+- **The AppImage now starts on Bluefin Dakota.** The v0.45.3 bundle still expected the host to provide `libnettle.so.8`, `libhogweed.so.6`, `libjpeg.so.8`, and `libspandsp.so.2`. Dakota ships nettle 9 and hogweed 7, so the GUI aborted during startup with `libnettle.so.8: cannot open shared object file` before Qt loaded. The packager now bundles nettle, hogweed, JPEG, and spandsp; the `libspa*.so*` host pattern no longer swallows `libspandsp.so.2` by prefix. A new verification step fails packaging when any bundled binary, Qt plugin, or GStreamer plugin still needs a library that is neither in the AppDir nor on the host allowlist.
+- **CI tests the AppImage on Bluefin Dakota.** The release job extracts the built AppImage inside `ghcr.io/projectbluefin/dakota:stable` and fails if any bundled object has an unresolved library, if the CLI does not start, or if the Wayland platform plugin does not load. The fixed bundle was verified on Dakota `stable-20261106`: no unresolved libraries, `libqwayland.so` loads, and the GUI stays running under the GNOME Wayland session.
+- **The Ubuntu PPA installs the current release again.** Every Launchpad build since 0.42.2 stopped in `install-deps`: `debian/control` required `rustc (>= 1.92)`, which noble does not ship, so the PPA kept serving `0.16.2`. That build had no current control panel and no current TLS pairing, which is why the control panel could not start the daemon and the Android app reported a secure-connection failure. The PPA workflow now builds the daemon and GUI on the Ubuntu 24.04 runner, ships them in the source package under `prebuilt/`, and `debian/rules` installs them without a Rust toolchain. The workflow also builds the binary package before uploading, and it now verifies the published **binary** package and fails when Launchpad's build fails instead of checking only the source.
+- Version bumped to 0.45.4 across the Cargo workspace, Android (`versionCode` 214), Qt GUI, PKGBUILD, Debian, COPR, and documentation badges.
+
+### Removed
+- **The demo is gone.** Deleted `demo/`, `assets/demo/`, `site/public/assets/demo/`, the landing-page demo band and its CSS, and the demo section and link from both READMEs. The README returns to the normal single-row badge header and section order.
+
 ## [v0.45.3] - 2026-11-27
 
 ### Fixed

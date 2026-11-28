@@ -1,3 +1,11 @@
+orbiscreen (0.45.4~ubuntunoble1) noble; urgency=medium
+
+  * Release 0.45.4 for Ubuntu noble.
+  * fix: bundle the remaining AppImage runtime libraries so the AppImage starts on Bluefin Dakota
+  * Bump version to 0.45.4 across all packages; Android versionCode 214.
+
+-- shadow-x7 <shadow-x7@red-shadows-rs.com>  Sat, 28 Nov 2026 07:07:34 +0300
+
 orbiscreen (0.45.3~ubuntunoble1) noble; urgency=medium
 
   * Release 0.45.3 for Ubuntu noble.
