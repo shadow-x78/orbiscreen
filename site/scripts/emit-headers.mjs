@@ -62,8 +62,8 @@ const csp = [
   'upgrade-insecure-requests',
 ].join('; ');
 
+// CSP moved to worker/index.mjs to avoid Cloudflare's 2000-char _headers limit
 const globalHeaders = [
-  `  Content-Security-Policy: ${csp}`,
   '  Strict-Transport-Security: max-age=31536000; includeSubDomains',
   '  X-Content-Type-Options: nosniff',
   '  X-Frame-Options: DENY',
@@ -71,6 +71,9 @@ const globalHeaders = [
   '  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
   '  Cross-Origin-Opener-Policy: same-origin',
 ].join('\n');
+
+// Write CSP to a separate file for the worker
+writeFileSync(resolve(dist, '_csp.txt'), csp, 'utf8');
 
 function canonicalFor(file) {
   const rel = relative(dist, file).split(sep).join('/');

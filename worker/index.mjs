@@ -82,6 +82,17 @@ export default {
     const headers = new Headers(response.headers);
     headers.set('vary', 'accept');
     headers.append('link', `<${mirrorUrl.toString()}>; rel="alternate"; type="text/markdown"`);
+    
+    // CSP moved from _headers to avoid Cloudflare's 2000-char limit
+    // Using 'unsafe-inline' for now - TODO: implement nonce-based CSP
+    headers.set('content-security-policy',
+      "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; " +
+      "form-action 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; " +
+      "style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; " +
+      "connect-src 'self' https://cloudflareinsights.com; manifest-src 'self'; " +
+      "upgrade-insecure-requests"
+    );
+    
     return new Response(response.body, { status: response.status, headers });
   },
 };
