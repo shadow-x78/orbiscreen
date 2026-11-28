@@ -4,7 +4,6 @@
 // https://github.com/shadow-x78/orbiscreen
 // ─────────────────────────────────────────────
 
-import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, relative, sep } from 'node:path';
@@ -259,31 +258,6 @@ if (existsSync(sitemapFile)) {
 
 const headersFile = resolve(dist, '_headers');
 if (existsSync(headersFile)) {
-  const headers = readFileSync(headersFile, 'utf8');
-  const csp = headers.match(/Content-Security-Policy: (.+)/)?.[1] ?? '';
-  const allowed = new Set([...csp.matchAll(/'(sha256-[^']+)'/g)].map((m) => m[1]));
-  
-  // CSP moved to worker/index.mjs to avoid Cloudflare's 2000-char _headers limit
-  // Skip validation - worker uses 'unsafe-inline' instead of hashes
-  // TODO: implement nonce-based CSP and restore validation
-  /*
-  if (allowed.size === 0) error('_headers: CSP has no script hashes');
-
-  for (const file of htmlFiles) {
-    const html = readFileSync(file, 'utf8');
-    for (const match of html.matchAll(
-      /<script(?![^>]*\bsrc=)(?![^>]*ld\+json)[^>]*>([\s\S]*?)<\/script>/g,
-    )) {
-      const body = match[1];
-      if (!body.trim()) continue;
-      const hash = `sha256-${createHash('sha256').update(body, 'utf8').digest('base64')}`;
-      if (!allowed.has(hash)) {
-        const short = hash.slice(0, 'sha256-'.length + 10);
-        error(`${rel(file)}: inline script is not allowed by the CSP (${short}…)`);
-      }
-    }
-  }
-  */
 }
 
 for (const message of warnings) console.warn(`warn  ${message}`);
